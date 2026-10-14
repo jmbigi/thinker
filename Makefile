@@ -1,5 +1,5 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint test coverage secrets lock sbom vuln-scan check ci hook
+.PHONY: help lint test coverage secrets lock sbom vuln-scan mutation check ci hook
 
 help:
 	@echo "make lint        - ruff check ."
@@ -9,6 +9,7 @@ help:
 	@echo "make lock        - regenera requirements.lock con hashes (uv)"
 	@echo "make sbom        - SBOM (syft si está; si no, inventario propio)"
 	@echo "make vuln-scan   - pip-audit sobre requirements.lock"
+	@echo "make mutation    - pruebas de mutación (mutmut): miden la fuerza de la suite"
 	@echo "make ci          - CI local: verifica una copia limpia de HEAD"
 	@echo "make check       - todo lo anterior + hook pre-commit"
 	@echo "make hook        - instala el hook pre-commit de git"
@@ -34,6 +35,10 @@ sbom:
 
 vuln-scan:
 	bash scripts/vuln-scan.sh
+
+mutation:
+	mutmut run
+	@echo "Supervivientes:" && mutmut results
 
 ci:
 	bash scripts/ci.sh

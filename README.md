@@ -66,6 +66,13 @@ python3 test_env_usage.py --real    # integración de la clave .env
 python3 openrouter_integration_demo.py --real
 ```
 
+Con **Ollama local** (sin API key, sin coste; requiere `ollama serve`):
+
+```bash
+python3 test_ollama_real.py         # conexión + pensamiento + pipeline con LLM local
+OLLAMA_MODEL=qwen3:8b python3 test_ollama_real.py   # otro modelo local
+```
+
 Para usar búsqueda web real en el pipeline:
 
 ```python
@@ -87,6 +94,7 @@ make coverage                                 # cobertura de los módulos de pro
 make secrets                                  # escaneo de secretos/datos personales
 make sbom                                     # inventario de dependencias (syft si está)
 make vuln-scan                                # pip-audit sobre requirements.lock
+make mutation                                 # pruebas de mutación (mutmut)
 make ci                                       # CI local: verifica una copia limpia de HEAD
 make lock                                     # regenera requirements.lock con hashes
 make hook                                     # instala el hook pre-commit de git

@@ -29,3 +29,16 @@ exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",
 ]
+
+# Pruebas de mutación (mutmut): miden si la suite detecta errores reales,
+# no solo qué líneas se ejecutan. Uso: mutmut run
+[tool.mutmut]
+source_paths = [
+    "code_design_improvement_tools.py",
+    "deep_research_system.py",
+    "llm_providers.py",
+    "pensamiento_layer.py",
+    "thinking_engine.py",
+    "web_search.py",
+]
+pytest_add_cli_args_test_selection = ["tests"]

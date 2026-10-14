@@ -12,12 +12,17 @@ htmlcov/
 install_check.json
 install_result.json
 test_openrouter_result.txt
+test_ollama_result.txt
 test_results.txt
 lessons_context.txt
 
 # Entornos virtuales
 .venv/
 venv/
+
+# Pruebas de mutación (mutmut)
+mutants/
+.mutmut-cache/
 
 # Sistema operativo / editores
 .DS_Store

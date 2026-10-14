@@ -328,3 +328,39 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Efecto colateral**: `scan-secrets.sh` aprendió a trabajar sin repositorio
   git (la copia exportada no tiene `.git`): usa `find` como respaldo.
 - **Evidencia**: `bash scripts/ci.sh` → exit 0 con la copia limpia.
+
+---
+
+## 2026-10-14 (ronda 8) — Mutación, Ollama en vivo y tests de comportamiento
+
+### Hallazgo 31: La cobertura NO mide la fuerza de la suite
+- **Medición**: con 99% de cobertura, `mutmut` (2.664 mutantes) solo mató
+  1.444 → **54,2%**. Las líneas se ejecutaban, pero no se comprobaba su efecto.
+- **Acción**: 41 tests nuevos de comportamiento exacto (parámetros enviados,
+  limpieza de HTML, resolución de redirecciones, registros del log de
+  decisiones, cifras del prompt del informe, formato del reporte) →
+  **1.531/2.664 = 57,5%**.
+- **Composición de los 1.133 supervivientes**: 330 en las funciones `main()`
+  de demo (impresiones), 127 en `analyze_and_improve`, 79 en
+  `EvidenceEvaluator.decide`, 74 en `generate_report`, 72 en `MockLLM.generate`,
+  47 en `SourceRetriever.decide`.
+- **Regla derivada**: cobertura y mutación son complementarias; para lógica
+  nueva, asertar valores exactos y efectos (no solo "no revienta").
+
+### Hallazgo 32: Un pragma que la herramienta no implementa es documentación falsa
+- **Intento**: añadir `# pragma: no mutate` a los `main()` de demo para que la
+  métrica midiera lógica. Los números no cambiaron.
+- **Verificación**: el propio código de mutmut 3 trae
+  `# TODO: pragma no mutate should end up in 'skipped' category` → **no está
+  implementado**. Se retiraron los comentarios en lugar de dejar escrita una
+  exclusión que no existe (P1.10).
+- **Regla derivada**: antes de afirmar en un comentario que una herramienta
+  ignora algo, comprobar que lo ignora de verdad.
+
+### Hallazgo 33: Ollama local verificado en vivo (LLM sin API key)
+- **Contexto**: el servidor Ollama estaba corriendo con varios modelos.
+- **Acción**: `test_ollama_real.py` (opt-in; si el servidor no responde, la
+  prueba se OMITE, nunca se simula).
+- **Evidencia**: 3/3 — conexión, pensamiento de 7 pasos válido e investigación
+  completa con `qwen3:1.7b` (5 subpreguntas, 5 claims, informe de 6.851 chars).
+  El proyecto funciona con LLM local, sin coste ni claves.

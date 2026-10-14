@@ -71,6 +71,12 @@ mejora de código (`code_design_improvement_tools.py`).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
   con el modelo gratuito por defecto.
+- LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
+  verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
+  `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
+- Fuerza de la suite: `make mutation` (mutmut). Puntuación medida 2026-10-14:
+  **57,5% de mutantes muertos** (1531/2664); el 29% de los supervivientes son
+  las funciones `main()` de demo (impresiones).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
