@@ -364,3 +364,24 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Evidencia**: 3/3 — conexión, pensamiento de 7 pasos válido e investigación
   completa con `qwen3:1.7b` (5 subpreguntas, 5 claims, informe de 6.851 chars).
   El proyecto funciona con LLM local, sin coste ni claves.
+
+### Hallazgo 34: Subir la mutación exige asertar valores, no llamadas
+- **Progresión medida**: 54,2% → 57,5% → **61,2%** (1631/2664) añadiendo 68
+  tests de precisión (constantes exactas, límites de umbral, formatos de dos
+  decimales, claves devueltas, orden de la escalera de consultas, truncados).
+- **Tres expectativas mías eran erróneas** y los números lo delataron: el
+  umbral de línea larga es `>120` (no `>=120`), `EvidenceEvaluator` usa SOLO
+  las fuentes que coinciden por URL (no añade las demás) y el paso inválido del
+  ciclo queda registrado vacío en lugar de desaparecer. Se corrigió el test, no
+  el código: el comportamiento era el correcto.
+- **Dónde queda el resto**: 330 mutantes en las tres funciones `main()` de demo
+  (impresiones) y 193 en el orquestador/reporte de código (también impresivos).
+- **Regla derivada**: al escribir tests, asertar el valor y el efecto concretos
+  (qué se envía, cuánto se trunca, qué se registra); "no revienta" no cuenta.
+
+### Hallazgo 35: Verificación multi-versión en venv aislado
+- **Acción**: suite completa en un venv de **Python 3.12** (aislado, sin tocar
+  el entorno del sistema): `python3.12 -m venv /tmp/venv312` + `pip install -r
+  requirements.txt`.
+- **Evidencia**: **199 tests OK en 3.12** (antes solo se había verificado 3.11).
+  El código no depende de APIs exclusivas de una versión ni de rutas de sistema.

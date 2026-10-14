@@ -24,7 +24,7 @@ herramientas de análisis estático de código.
 
 ## Requisitos
 
-- Python 3.11 o superior.
+- Python 3.11 o superior (verificado en 3.11 y 3.12).
 - Dependencias: `requests`, `openai>=1.0`, `python-dotenv` (ver `requirements.txt`).
 - Opcional: [Ollama](https://ollama.com/) para modelos locales.
 
@@ -125,6 +125,11 @@ escaneo de secretos, `py_compile` y la suite antes de cada commit.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube (la verificación es local, por diseño).
+- Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
+  macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
+- La suite mata el 61% de los mutantes de `mutmut`: cobertura alta no equivale
+  a tests fuertes. Las funciones de demo (`main()`) aportan un tercio de los
+  mutantes supervivientes.
 
 ## Licencia
 
