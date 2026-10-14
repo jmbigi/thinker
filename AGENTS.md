@@ -76,6 +76,8 @@ mejora de código (`code_design_improvement_tools.py`).
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
+- CI local (sin nube): `make ci` / `bash scripts/ci.sh` — exporta HEAD a una
+  copia limpia y verifica allí (detecta dependencias de archivos no versionados).
 - Antes de entregar: todo lo anterior en verde + checklist pre-entrega.
 
 ## Arquitectura de módulos

@@ -317,3 +317,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   fijo a 3 fuentes / 3 claims / 3 evaluaciones del pipeline; `pensamiento_layer`
   bajó de 416 a ~330 líneas y su cobertura quedó en 100%. Test de regresión que
   verifica que los métodos simulados **ya no existen**.
+
+### Hallazgo 30: "Funciona en mi árbol" no es verificación
+- **Problema**: toda la verificación se hacía sobre el árbol de trabajo, con
+  archivos sin comitear presentes. Un proyecto que dependiera de un archivo no
+  versionado pasaría las comprobaciones y rompería al clonar.
+- **Solución**: `scripts/ci.sh` (y `make ci`) exporta **HEAD a una copia
+  limpia** (`git archive | tar -x` en un temporal) y verifica allí: ruff,
+  py_compile, 131 tests y escaneo de secretos. Sin nube ni proveedores.
+- **Efecto colateral**: `scan-secrets.sh` aprendió a trabajar sin repositorio
+  git (la copia exportada no tiene `.git`): usa `find` como respaldo.
+- **Evidencia**: `bash scripts/ci.sh` → exit 0 con la copia limpia.

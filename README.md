@@ -87,6 +87,7 @@ make coverage                                 # cobertura de los módulos de pro
 make secrets                                  # escaneo de secretos/datos personales
 make sbom                                     # inventario de dependencias (syft si está)
 make vuln-scan                                # pip-audit sobre requirements.lock
+make ci                                       # CI local: verifica una copia limpia de HEAD
 make lock                                     # regenera requirements.lock con hashes
 make hook                                     # instala el hook pre-commit de git
 ```

@@ -11,7 +11,16 @@ CREDENCIALES='(sk-[A-Za-z0-9]{16,}|sk-or-v1-[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|gh
 PERSONALES='(/home/[a-z][a-z0-9_-]+/|/Users/[a-z][a-z0-9_-]+/|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|net|org|es|io))'
 
 fallo=0
-archivos=$(git ls-files 2>/dev/null)
+# En un repo: solo archivos versionados. Fuera de un repo (copia exportada):
+# se escanean los archivos de código y texto del árbol.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    archivos=$(git ls-files)
+else
+    archivos=$(find . -type f \
+        \( -name '*.py' -o -name '*.md' -o -name '*.sh' -o -name '*.toml' \
+           -o -name '*.txt' -o -name '*.lock' -o -name '*.json' -o -name '*.example' \) \
+        -not -path './.git/*' -not -path './.venv/*' -not -path '*/__pycache__/*')
+fi
 
 comprobar() {
     local patron="$1" etiqueta="$2"
