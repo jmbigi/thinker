@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Verificación previa al commit (P1.1, P1.9). Escape: git commit --no-verify
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "[pre-commit] ruff check"
+if command -v ruff >/dev/null 2>&1; then
+    ruff check .
+else
+    echo "  ruff no instalado: OMITIDO"
+fi
+
+echo "[pre-commit] py_compile"
+for f in *.py; do
+    python3 -m py_compile "$f"
+done
+
+echo "[pre-commit] unittest"
+if [ -d tests ]; then
+    python3 -m unittest discover -s tests -q
+else
+    echo "  no existe tests/: OJO, suite no ejecutada" >&2
+    exit 1
+fi
+
+echo "[pre-commit] OK"

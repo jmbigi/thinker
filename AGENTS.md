@@ -55,10 +55,12 @@ mejora de código (`code_design_improvement_tools.py`).
 
 ## Entorno y verificación (comandos del proyecto)
 
-- SO: **Linux**. Python 3.11. Dependencias: `requests`, `openai>=1.0`,
-  `python-dotenv` (ver `requirements.txt`); `ollama` opcional.
+- SO: **Linux**. Python 3.11. Dependencias fijadas en `requirements.txt`
+  (`requests`, `openai>=1.0`, `python-dotenv`); `ollama` opcional.
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
-- Lint: `ruff check *.py` (instalado; debe quedar en 0 errores).
+- Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
+- Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
+- Cobertura: `coverage run --source=. -m unittest discover -s tests && coverage report -m`.
 - Tests honestos offline: `python3 honest_test.py`, `python3 test_systems_honest.py`,
   `python3 test_kilo_integration.py`, `python3 test_env_usage.py`.
 - Demos offline: `python3 deep_research_system.py`, `python3 pensamiento_layer.py`,
@@ -66,7 +68,18 @@ mejora de código (`code_design_improvement_tools.py`).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
   con el modelo gratuito por defecto.
+- Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + py_compile + tests).
 - Antes de entregar: todo lo anterior en verde + checklist pre-entrega.
+
+## Arquitectura de módulos
+
+- `deep_research_system.py` — pipeline de investigación y proveedores LLM.
+- `thinking_engine.py` — motor común de ciclos de pensamiento (validación,
+  confianza, forma de resultado). **No duplicar** su lógica en otros módulos.
+- `pensamiento_layer.py` / `code_design_improvement_tools.py` — pasos concretos
+  sobre ese motor.
+- `web_search.py` — búsqueda: `MockSearchAPI` (offline), `WikipediaSearchAPI`
+  y `DuckDuckGoSearchAPI` (reales, sin API key).
 
 ---
 

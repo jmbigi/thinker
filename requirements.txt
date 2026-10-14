@@ -1,7 +1,7 @@
-# Dependencias del proyecto (ver AGENTS.md sección "Entorno y verificación")
-requests>=2.31
-openai>=1.0
-python-dotenv>=1.0
+# Dependencias del proyecto (versiones verificadas instaladas el 2026-10-14)
+requests==2.33.0
+openai==1.109.1
+python-dotenv==1.2.2
 
 # Opcional: solo si se usa Ollama local como proveedor LLM
-# ollama>=0.3
+# ollama==0.3.0

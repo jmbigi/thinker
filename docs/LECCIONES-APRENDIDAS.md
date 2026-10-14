@@ -180,3 +180,71 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   el test lo escribía en su log de resultados.
 - **Solución**: función `_sanitizar()` que oculta el `user_id` antes de
   imprimir o guardar (P0.9). El log está además en `.gitignore`.
+
+---
+
+## 2026-10-14 (ronda 5) — Mejoras: búsqueda real, motor unificado, tests
+
+### Hallazgo 18: El retrieve con búsqueda real recuperaba 0 fuentes
+- **Problema**: al conectar `WikipediaSearchAPI` al pipeline, el informe salió
+  con 0 fuentes y 0 claims (el modelo, honestamente, lo reportó). Reproducido
+  de forma determinista: el modelo real genera subpreguntas de 160–270
+  caracteres y Wikipedia devuelve 0 resultados en 4 de 5.
+- **Diagnóstico**: `SourceRetriever` pasaba la pregunta natural completa al
+  buscador. Los motores por palabras clave no entienden preguntas
+  multi-cláusula. Con un LLM falso (subpreguntas cortas) el mismo código
+  recuperaba 20 fuentes: el fallo era de los datos de entrada, no del retrieve.
+- **Solución**: `formulate_query()` extrae los términos con contenido
+  (sin palabras vacías) antes de buscar, con escalera de ampliación que se
+  registra en el log de decisiones (nunca en silencio).
+- **Evidencia**: 0 → 19 fuentes, 12 claims, 12 evaluaciones.
+
+### Hallazgo 19: Formular consulta sin ancla temática destruye la relevancia
+- **Problema**: con los 4 primeros términos de la subpregunta, "fusión"
+  (9ª palabra) quedaba fuera y Wikipedia devolvía "Cine experimental",
+  "Estereoscopio", "Unión Internacional de Química Pura y Aplicada".
+- **Solución**: `formulate_query(..., anchor_terms=...)` coloca al principio
+  los términos del tema tomados de la pregunta original del usuario.
+- **Evidencia**: 13/13 fuentes con términos del tema (antes, resultados
+  irrelevantes), manteniendo 13 fuentes y 12 claims.
+
+### Hallazgo 20: Elegir parámetros con medición, no por intuición
+- **Método**: se midió el recall de `formulate_query` con `max_terms` ∈
+  {8,5,4,3,2} sobre 5 subpreguntas reales: 8→8 resultados, 5→21, 4→24, 3→25,
+  2→25. Ordenar los términos por longitud daba peor resultado (15).
+- **Decisión**: `max_terms=4` (buen recall sin perder especificidad),
+  con escalera de ampliación si falla.
+
+### Hallazgo 21: Duplicación estructural en los dos motores de pensamiento
+- **Problema**: `pensamiento_layer` y `code_design_improvement_tools` repetían
+  el validador, el cálculo de confianza, la extracción de decisión y la forma
+  del resultado (14 prompts de paso replicados).
+- **Solución**: `thinking_engine.StepThinkingEngine` centraliza el ciclo, la
+  validación (ahora existe en un solo sitio), la confianza y la forma estable
+  del resultado; cada módulo aporta solo sus pasos.
+- **Mejora añadida**: si un paso no valida, el ciclo se detiene y lo reporta
+  en `invalid_steps` (validación antes de avanzar).
+
+### Hallazgo 22: Forma de resultado rota en la rama de error de `CodeDesignThinker`
+- **Problema**: `_execute_thinking_cycle` devuelve, cuando el paso 1 no valida,
+  un dict SIN la clave `invalid_steps` (el camino feliz y
+  `StepThinkingEngine._run_cycle` sí la incluyen). Un consumidor que haga
+  `result["invalid_steps"]` en esa rama obtiene `KeyError`: la misma clase de
+  regresión del Hallazgo 13. Detectado al escribir el test de la rama inválida
+  de la suite `tests/`.
+- **Estado**: **CORREGIDO** — se añadió `"invalid_steps": ["analysis"]` a esa
+  rama y el test de regresión `tests/test_regressions.py` compara las claves de
+  ambas ramas (si el bug reaparece, el test falla).
+- **Regla derivada**: al añadir una rama de error nueva, comparar
+  `set(resultado)` contra el camino feliz en el propio test.
+
+### Hallazgo 23: El binario `coverage` puede apuntar a OTRO intérprete
+- **Problema**: `~/.local/bin/coverage` tiene shebang al Python 3.10 de Blender;
+  bajo ese intérprete el SDK `openai` instalado para 3.10 está roto
+  (`ModuleNotFoundError: annotated_types`) y 3 tests fallaban solo con
+  `coverage run`, no con `python3 -m unittest`.
+- **Solución**: usar `python3 -m coverage run/report` (mismo intérprete del
+  proyecto, 3.11) en vez del script de `~/.local/bin`.
+- **Regla derivada**: si una herramienta CLI se comporta distinto que
+  `python3 -m <herramienta>`, sospechar del shebang y verificar con
+  `head -1 $(which <herramienta>)` (P0.16).

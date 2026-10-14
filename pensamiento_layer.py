@@ -7,76 +7,41 @@ Implementa un "pensamiento" deliberado que las LLMs no tienen de forma natural.
 Evita el "prueba y error" repetitivo al forzar raciocinio estructurado en pasos
 claros y verificables antes de generar salida.
 
+El ciclo de pasos (validación, confianza, forma del resultado) vive en
+`thinking_engine.StepThinkingEngine` y es compartido con las herramientas de
+diseño de código: aquí sólo se definen los 7 pasos de investigación.
+
 Principios clave:
-1. Pensamiento externado: el razonamiento se muestra explícitamente, no es "sucia"
+1. Pensamiento externado: el razonamiento se muestra explícitamente
 2. Decomposición paso a paso: cada decisión tiene un paso explícito
-3. Verificación antes de avanzar: se comprueba la evidencia antes de concluir
-4. Patrón anti-repitencia: si la lógica falla, reiniciar con nuevos parámetros
+3. Verificación antes de avanzar: se valida cada paso antes de continuar
+4. Patrón anti-repitencia: si un paso falla, el ciclo se detiene y se reporta
 """
 
-import re
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
+from thinking_engine import StepThinkingEngine
 
-class ThinkingLayer(ABC):
-    """
-    Capa base de pensamiento que obliga a la LLM a razonar en pasos explícitos.
-    """
-
-    def __init__(self, llm_provider, name: str = "thinking_layer"):
-        self.llm = llm_provider
-        self.name = name
-        self.step_count = 0
-        self.max_steps = 8
-
-    def think(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """
-        Ejecuta un ciclo de pensamiento estructurado.
-        Retorna: {thought: str, decision: Any, confidence: float, valid: bool}
-        """
-        self.step_count = 0
-        result = self._execute_cycle(prompt, context or {})
-        return result
-
-    @abstractmethod
-    def _execute_cycle(self, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        pass
-
-    def _validate_step(self, thought: str, decision: Any) -> bool:
-        """Valida que un paso de pensamiento tenga contenido sustancial.
-
-        Rechaza respuestas vacías o plantillas (solo llaves/puntuación/puntos
-        suspensivos). NO veta palabras como "etc." ni "..." dentro de una
-        respuesta con contenido: los modelos reales las usan con normalidad
-        (vetarlas producía falsos positivos en pasos válidos).
-        """
-        if not thought or not thought.strip():
-            return False
-        stripped = thought.strip()
-        if len(stripped) < 5:
-            return False
-        meaningful = re.sub(r'[\s\.·…"\'`{}\[\]:,;0-9\-_()|=]', "", stripped)
-        return len(meaningful) >= 10
+# Nombre histórico mantenido por compatibilidad.
+ThinkingLayer = StepThinkingEngine
 
 
-class DeepResearchThinkingLayer(ThinkingLayer):
+class DeepResearchThinkingLayer(StepThinkingEngine):
     """
     Capa de pensamiento profunda específicamente para sistemas de investigación.
     Implementa 7 pasos deliberados para evitar decisiones precipitadas.
     """
 
     def __init__(self, llm_provider, name: str = "deep_research_thinking"):
-        super().__init__(llm_provider, name)
-        self.max_steps = 7
+        super().__init__(llm_provider, name, max_steps=7)
 
-    def _execute_cycle(self, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Ejecuta el ciclo completo de 7 pasos de pensamiento."""
+    def _validate_step(self, thought: str, decision: Any = None) -> bool:
+        """Compatibilidad: delega en el validador común."""
+        return self.validate_step(thought)
 
-        steps = []
-
-        # PASO 1: Análisis de la pregunta
-        step1 = self._llm_generate(f"""
+    def _step_builders(self) -> List[Tuple[str, Any]]:
+        def step1(o):
+            return f"""
 PASO 1 - ANÁLISIS DE PREGUNTA:
 Analiza esta pregunta de investigación profundamente. Identifica:
 - El objetivo principal
@@ -85,7 +50,7 @@ Analiza esta pregunta de investigación profundamente. Identifica:
 - Los posibles sesgos
 - Las lagunas de información
 
-Pregunta: {prompt}
+Pregunta: {o['prompt']}
 
 Respuesta estructurada en formato JSON:
 {{
@@ -95,23 +60,10 @@ Respuesta estructurada en formato JSON:
   "sesgos_posibles": ["..."],
   "lagunas": ["..."]
 }}
-""")
+"""
 
-        if not self._validate_step(step1, None):
-            return {
-                "thought": "",
-                "decision": None,
-                "confidence": 0.0,
-                "valid": False,
-                "error": "Paso 1 inválido (respuesta vacía o plantilla)",
-                "steps": steps,
-                "step_count": len(steps),
-            }
-
-        steps.append(("analysis", step1))
-
-        # PASO 2: Planificación de investigación
-        step2 = self._llm_generate(f"""
+        def step2(o):
+            return f"""
 PASO 2 - PLAN DE INVESTIGACIÓN:
 Basado en el análisis, diseña un plan de investigación con:
 - Sub-preguntas específicas (3-5)
@@ -119,9 +71,9 @@ Basado en el análisis, diseña un plan de investigación con:
 - Métricas de éxito
 - Iteraciones máximas
 
-Contexto: {context}
+Contexto: {o['context']}
 
-Plan: {step1}
+Análisis previo: {o['analysis']}
 
 Genera el plan en JSON:
 {{
@@ -130,12 +82,10 @@ Genera el plan en JSON:
   "metricas_exito": ["..."],
   "max_iteraciones": 5
 }}
-""")
+"""
 
-        steps.append(("plan", step2))
-
-        # PASO 3: Búsqueda de evidencia
-        step3 = self._llm_generate(f"""
+        def step3(o):
+            return f"""
 PASO 3 - ESTRATEGIA DE BÚSQUEDA:
 Define la estrategia de búsqueda considerando:
 - Motores de búsqueda preferidos
@@ -143,7 +93,7 @@ Define la estrategia de búsqueda considerando:
 - Fecha de corte de información
 - Diversidad de fuentes
 
-Plan anterior: {step2}
+Plan anterior: {o['plan']}
 
 Estrategia: {{
   "motores": ["..."],
@@ -152,16 +102,14 @@ Estrategia: {{
   "fecha_corte": "YYYY-MM-DD",
   "diversidad": "descripción"
 }}
-""")
+"""
 
-        steps.append(("search_strategy", step3))
-
-        # PASO 4: Ejecución de búsqueda
-        step4 = self._llm_generate(f"""
+        def step4(o):
+            return f"""
 PASO 4 - RESULTADOS DE BÚSQUEDA:
 Ejecuta la estrategia y resume los hallazgos clave.
 
-Estrategia: {step3}
+Estrategia: {o['search_strategy']}
 
 Hallazgos resumidos:
 - Fuente principal: título, URL, relevancia (0-1)
@@ -178,16 +126,14 @@ Formato JSON:
   "afirmaciones": ["..."],
   "contradicciones": ["..."]
 }}
-""")
+"""
 
-        steps.append(("search_results", step4))
-
-        # PASO 5: Extracción y evaluación de claims
-        step5 = self._llm_generate(f"""
+        def step5(o):
+            return f"""
 PASO 5 - EXTRACCIÓN DE CLAIMS:
 Extrae claims verificables de los hallazgos.
 
-Hallazgos: {step4}
+Hallazgos: {o['search_results']}
 
 Para cada claim, proporciona:
 - claim: texto exacto
@@ -204,16 +150,14 @@ JSON array:
     "verificable": true/false
   }}
 ]
-""")
+"""
 
-        steps.append(("claim_extraction", step5))
-
-        # PASO 6: Evaluación de evidencia
-        step6 = self._llm_generate(f"""
+        def step6(o):
+            return f"""
 PASO 6 - EVALUACIÓN DE EVIDENCIA:
 Evalúa cada claim contra la evidencia disponible.
 
-Claims: {step5}
+Claims: {o['claim_extraction']}
 
 Para cada claim, determina:
 - verdict: "supported" | "contradicted" | "not_addressed"
@@ -231,16 +175,14 @@ JSON array:
     "reasoning": "..."
   }}
 ]
-""")
+"""
 
-        steps.append(("evidence_eval", step6))
-
-        # PASO 7: Síntesis y conclusiones
-        step7 = self._llm_generate(f"""
+        def step7(o):
+            return f"""
 PASO 7 - SÍNTESIS Y CONCLUSIONES:
 Sintetiza todos los hallazgos evaluados.
 
-Evidencia evaluada: {step6}
+Evidencia evaluada: {o['evidence_eval']}
 
 Produce:
 1. Conclusiones principales (máximo 3, con niveles de confianza)
@@ -260,69 +202,48 @@ Formato JSON:
   "gaps": ["..."],
   "recomendaciones": ["..."]
 }}
-""")
+"""
 
-        steps.append(("synthesis", step7))
+        return [
+            ("analysis", step1),
+            ("plan", step2),
+            ("search_strategy", step3),
+            ("search_results", step4),
+            ("claim_extraction", step5),
+            ("evidence_eval", step6),
+            ("synthesis", step7),
+        ]
 
-        # Construir reporte final
-        thought_process = f"""
-        CAPA DE PENSAMIENTO: {self.name}
-        ============================
-
-        PASO 1 - ANÁLISIS: {steps[0][1][:200]}
-        PASO 2 - PLAN: {steps[1][1][:200]}
-        PASO 3 - ESTRATEGIA: {steps[2][1][:200]}
-        PASO 4 - RESULTADOS: {steps[3][1][:200]}
-        PASO 5 - CLAIMS: {steps[4][1][:200]}
-        PASO 6 - EVALUACIÓN: {steps[5][1][:200]}
-        PASO 7 - SÍNTESIS: {steps[6][1][:200]}
-
-        PASOS COMPLETADOS: {len(steps)}/{self.max_steps}
-        CONFIANZA GENERAL: {self._compute_overall_confidence(steps)}
-        VALIDEZ: {'VALID' if all(self._validate_step(s[1], None) for s in steps) else 'REVISAR'}
-        """
-
-        invalid_steps = [name for name, content in steps if not self._validate_step(content, None)]
-        valid = not invalid_steps
-
-        self.step_count = len(steps)
-
-        return {
-            "thought": thought_process,
-            "decision": self._extract_decision(steps),
-            "confidence": self._compute_overall_confidence(steps),
-            "valid": valid,
-            "invalid_steps": invalid_steps,
-            "steps": steps,
-            "step_count": len(steps)
+    def _render_thought(self, steps: List[Tuple[str, str]]) -> str:
+        by_name = dict(steps)
+        lines = [
+            f"        CAPA DE PENSAMIENTO: {self.name}",
+            "        ============================",
+            "",
+        ]
+        etiquetas = {
+            "analysis": "ANÁLISIS",
+            "plan": "PLAN",
+            "search_strategy": "ESTRATEGIA",
+            "search_results": "RESULTADOS",
+            "claim_extraction": "CLAIMS",
+            "evidence_eval": "EVALUACIÓN",
+            "synthesis": "SÍNTESIS",
         }
+        numero = 0
+        for name, _ in self._step_builders():
+            if name not in by_name:
+                continue
+            numero += 1
+            lines.append(f"        PASO {numero} - {etiquetas[name]}: {by_name[name][:200]}")
 
-    def _llm_generate(self, prompt: str, **kwargs) -> str:
-        """Genera respuesta con el proveedor LLM inyectado.
-
-        Si no hay proveedor (`llm_provider=None`), usa MockLLM: offline,
-        determinista y declarado como simulado. Nunca hace llamadas de
-        red ocultas.
-        """
-        if self.llm is None:
-            from deep_research_system import MockLLM
-            self.llm = MockLLM()
-        return self.llm.generate(prompt, **kwargs)
-
-    def _extract_decision(self, steps: List[Tuple[str, str]]) -> Any:
-        """Extrae la decisión final de los pasos de pensamiento."""
-        if len(steps) >= 7:
-            last_step = steps[-1][0]
-            return f"decision_from_{last_step}"
-        return None
-
-    def _compute_overall_confidence(self, steps: List[Tuple[str, str]]) -> float:
-        """Compute overall confidence from all steps."""
-        if not steps:
-            return 0.0
-        # Promedio simple de que los pasos tienen contenido
-        valid_steps = sum(1 for s in steps if s[1] and s[1].strip())
-        return round(valid_steps / len(steps), 2)
+        lines.extend([
+            "",
+            f"        PASOS COMPLETADOS: {len(steps)}/{self.max_steps}",
+            f"        CONFIANZA GENERAL: {self._compute_confidence(steps)}",
+            f"        VALIDEZ: {'VALID' if self.validate_step(steps[-1][1]) and all(self.validate_step(c) for _, c in steps) else 'REVISAR'}",
+        ])
+        return "\n".join(lines)
 
 
 class ResearchOrchestratorWithThinking:
@@ -466,8 +387,8 @@ def main():
     print("  • Patrón anti-repitencia con reinicio automático")
     print()
     print("Arquitectura:")
-    print("  ThinkingLayer (abstracto)")
-    print("  └── DeepResearchThinkingLayer (concreto, 7 pasos)")
+    print("  StepThinkingEngine (thinking_engine.py, común)")
+    print("  └── DeepResearchThinkingLayer (7 pasos de investigación)")
     print("       → Análisis, Plan, Estrategia, Búsqueda, Claims, Evidencia, Síntesis")
     print()
     print("=" * 70)
@@ -477,7 +398,6 @@ def main():
     # Para un modelo real: DeepResearchThinkingLayer(llm_provider=OpenRouterLLM())
     thinking_layer = DeepResearchThinkingLayer(llm_provider=None, name="deep_research")
 
-    # Ejecutar un ciclo de pensamiento
     result = thinking_layer.think(
         "¿Cuál es el estado actual de la fusión nuclear y sus perspectivas a 2030?"
     )

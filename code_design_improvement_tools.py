@@ -17,8 +17,10 @@ Principios clave:
 import ast
 import re
 import time
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from abc import abstractmethod
+from typing import Any, Dict, List, Optional
+
+from thinking_engine import StepThinkingEngine
 
 # Orden de severidad para priorizar issues (menor = más urgente)
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -89,38 +91,38 @@ class CodeAnalysisContext:
         return min(round(total_issues / 50.0, 2), 1.0)
 
 
-class ThinkingDecisionEngine(ABC):
-    """Motor de decisiones con capa de pensamiento estructurado."""
+class ThinkingDecisionEngine(StepThinkingEngine):
+    """Motor de decisiones con capa de pensamiento estructurado.
 
-    def __init__(self, name: str = "thinking_decision_engine", llm_provider=None):
-        self.name = name
-        self.llm = llm_provider
-        self.step_count = 0
-        self.max_thinking_steps = 7
+    Reutiliza el validador, el cálculo de confianza y la extracción de
+    decisión comunes (`thinking_engine.StepThinkingEngine`); aquí sólo se
+    añade la interfaz `decide(context, prompt)`.
+    """
+
+    def __init__(self, name: str = "thinking_decision_engine", llm_provider=None,
+                 max_steps: int = 7):
+        super().__init__(llm_provider, name, max_steps=max_steps)
+        self.max_thinking_steps = max_steps
 
     def decide(self, context: CodeAnalysisContext, prompt: str) -> Dict[str, Any]:
         """Ejecuta un ciclo de pensamiento para tomar una decisión de diseño."""
         self.step_count = 0
-        result = self._execute_thinking_cycle(context, prompt)
-        return result
+        return self._execute_thinking_cycle(context, prompt)
 
     @abstractmethod
     def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str) -> Dict[str, Any]:
         pass
 
     def _validate_thought(self, thought: str) -> bool:
-        """Valida que un paso de pensamiento tenga contenido sustancial.
+        """Compatibilidad: delega en el validador común."""
+        return self.validate_step(thought)
 
-        Rechaza respuestas vacías o plantillas; NO veta "etc." ni "..." dentro
-        de una respuesta con contenido (falsos positivos con modelos reales).
-        """
-        if not thought or not thought.strip():
-            return False
-        stripped = thought.strip()
-        if len(stripped) < 3:
-            return False
-        meaningful = re.sub(r'[\s\.·…"\'`{}\[\]:,;0-9\-_()|=]', "", stripped)
-        return len(meaningful) >= 10
+    # Este motor define su propio ciclo, así que no aporta constructores.
+    def _step_builders(self):
+        return []
+
+    def _render_thought(self, steps):
+        return ""
 
 
 class CodeDesignThinker(ThinkingDecisionEngine):
@@ -166,6 +168,7 @@ Respuesta en JSON:
                 "confidence": 0.0,
                 "valid": False,
                 "error": "Paso 1 inválido (respuesta vacía o plantilla)",
+                "invalid_steps": ["analysis"],
                 "steps": steps,
                 "step_count": len(steps),
             }
@@ -330,52 +333,24 @@ Criterios de éxito en JSON:
         PASO 7 - VALIDACIÓN: {steps[6][1][:150]}
 
         PASOS COMPLETADOS: {len(steps)}/{self.max_thinking_steps}
-        DECISIÓN FINAL: {self._extract_final_decision(steps)}
+        DECISIÓN FINAL: {self._extract_decision(steps)}
         CONFIANZA: {self._compute_confidence(steps)}
         """
 
-        invalid_steps = [name for name, content in steps if not self._validate_thought(content)]
-        valid = not invalid_steps
+        invalid_steps = [name for name, content in steps if not self.validate_step(content)]
 
         self.step_count = len(steps)
 
         return {
             "thought": thought_process,
-            "decision": self._extract_final_decision(steps),
+            "decision": self._extract_decision(steps),
             "confidence": self._compute_confidence(steps),
-            "valid": valid,
+            "valid": not invalid_steps,
             "invalid_steps": invalid_steps,
             "steps": steps,
-            "step_count": len(steps)
+            "step_count": len(steps),
+            "error": (f"Paso inválido: {invalid_steps[0]}" if invalid_steps else None),
         }
-
-    def _llm_generate(self, prompt: str, **kwargs) -> str:
-        """Genera respuesta con el proveedor LLM inyectado.
-
-        Sin proveedor, usa MockLLM (offline, determinista, declarado como
-        simulado). Nunca hace llamadas de red ocultas.
-        """
-        if self.llm is None:
-            from deep_research_system import MockLLM
-            self.llm = MockLLM()
-        return self.llm.generate(prompt, **kwargs)
-
-    def _extract_final_decision(self, steps: List[Tuple[str, str]]) -> Optional[str]:
-        """Extrae la decisión final de los pasos."""
-        if len(steps) >= 5:
-            last_meaningful = next(
-                (s for s in reversed(steps) if self._validate_thought(s[1])),
-                None
-            )
-            return last_meaningful[0] if last_meaningful else None
-        return None
-
-    def _compute_confidence(self, steps: List[Tuple[str, str]]) -> float:
-        """Compute confidence from valid steps."""
-        if not steps:
-            return 0.0
-        valid = sum(1 for s in steps if self._validate_thought(s[1]))
-        return round(valid / len(steps), 2)
 
 
 class CodeImprovementOrchestrator:

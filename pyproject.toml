@@ -1,0 +1,29 @@
+[project]
+name = "thinker"
+version = "0.1.0"
+description = "Sistema de investigación profunda con LLM: pensamiento estructurado, recuperación de fuentes y reportes trazables"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "openai>=1.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+local = ["ollama>=0.3"]
+dev = ["ruff>=0.6", "coverage>=7.0"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]

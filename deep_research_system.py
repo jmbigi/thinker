@@ -19,6 +19,9 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
+from web_search import (DuckDuckGoSearchAPI, MockSearchAPI, SearchAPI,  # noqa: F401
+                        WikipediaSearchAPI, formulate_query)
+
 
 class ResearchContext:
     """Context object holding research state, sources, and decisions."""
@@ -102,20 +105,51 @@ class SourceRetriever(DecisionEngine):
 
     def decide(self, context: ResearchContext, subquestion: str) -> List[Dict[str, Any]]:
         context.iteration += 1
-        results = self.search_api.search(subquestion)
 
+        # Los buscadores por palabras clave no entienden preguntas largas:
+        # se formula la consulta anclada al tema (términos de la pregunta
+        # original) y, si no hay resultados, se amplía progresivamente.
+        # Cada reintento se registra (nunca en silencio).
+        anchors = formulate_query(context.question, 3).split()
+        candidatas = [
+            formulate_query(subquestion, 4, anchor_terms=anchors),
+            formulate_query(subquestion, 6, anchor_terms=anchors),
+            " ".join(anchors),
+            subquestion.strip(),
+        ]
+        queries = [q for q in dict.fromkeys(candidatas) if q]
+
+        results: List[Dict[str, Any]] = []
+        query = queries[0]
+        for query in queries:
+            results = self.search_api.search(query)
+            if results:
+                break
+            context.add_decision("source_retrieval", "requery",
+                                 f"Sin resultados para '{query[:40]}'; "
+                                 f"se amplía la consulta")
+
+        known_urls = {s.get("url") for s in context.sources}
+        added = 0
         for result in results[:5]:
+            url = result.get("url", "")
+            if url and url in known_urls:
+                continue  # no repetir fuentes ya recuperadas
+            known_urls.add(url)
             source = {
                 "title": result.get("title", ""),
-                "url": result.get("url", ""),
+                "url": url,
                 "snippet": result.get("snippet", ""),
                 "source": result.get("source", "unknown"),
                 "retrieved_at": time.time(),
-                "related_to": subquestion
+                "related_to": subquestion,
+                "query_used": query,
             }
             context.sources.append(source)
-            context.add_decision("source_retrieval", "retrieve",
-                                 f"Found source for: {subquestion[:50]}...")
+            added += 1
+
+        context.add_decision("source_retrieval", "retrieve",
+                             f"{added} fuentes nuevas para: {subquestion[:50]}")
 
         return results
 
@@ -538,21 +572,9 @@ class MockLLM(LLMProvider):
                 "el prompt no corresponde a un patrón conocido.")
 
 
-# Mock search API for demonstration
-class MockSearchAPI:
-    """Mock search API for demonstration purposes."""
-
-    def search(self, query: str) -> List[Dict[str, Any]]:
-        return [
-            {
-                "title": f"Article about {query}",
-                "url": f"https://example.com/{query.replace(' ', '-')}",
-                "snippet": f"This is sample content about {query}. "
-                         f"Important facts include that research shows various results "
-                         f"and data points relevant to the query topic.",
-                "source": "example-search"
-            }
-        ]
+# Los proveedores de búsqueda viven en web_search.py:
+#   MockSearchAPI (offline/simulado), WikipediaSearchAPI y DuckDuckGoSearchAPI
+#   (reales, sin API key). Se importan arriba.
 
 
 # Demo/CLI entry point
