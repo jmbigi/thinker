@@ -227,6 +227,16 @@ mejora de código (`code_design_improvement_tools.py`).
   los identificadores existentes, texto de usuario en español).
 - P2.5 Si una tarea puede tardar o tener efectos amplios: avisa antes.
 
+## Licencia y atribución
+
+- Licencia del proyecto: **GPL-3.0-only** (`LICENSE`, copia verbatim del texto
+  oficial: no modificarlo).
+- Las reglas de este `AGENTS.md` derivan de `jmbigi/better-ai` (CC BY-SA 4.0) y
+  `jmbigi/better-project` (GPL-3.0-or-later); **mantener la atribución** al
+  copiar o adaptar reglas.
+- Al añadir dependencias o contenido de terceros: verificar compatibilidad de
+  licencias (P1.18) y registrarla.
+
 ## Checklist pre-entrega (obligatorio)
 
 - [ ] ¿Verifiqué con evidencia real? ¿No inventé nada? (P0.1/P0.2)

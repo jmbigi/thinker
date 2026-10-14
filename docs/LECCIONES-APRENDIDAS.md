@@ -290,3 +290,30 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `scripts/scan-secrets.sh` integrado en el hook pre-commit; su política de
   placeholders (valores vacíos o `...` son seguros) evita falsos positivos en
   `.env.example` y README, documentada para no relajar el patrón por pereza.
+
+---
+
+## 2026-10-14 (ronda 7) — Licencia y último resto simulado
+
+### Hallazgo 28: El texto de una licencia se verifica, no se transcribe a ojo
+- **Acción**: `LICENSE` con la GNU GPL v3. La propia licencia prohíbe
+  modificarla, así que se comprobó con `diff` contra la fuente oficial
+  (`https://www.gnu.org/licenses/gpl-3.0.txt`): **idénticos, 35.149 bytes**.
+- **Decisión declarada**: `license = "GPL-3.0-only"` en `pyproject.toml`
+  (SPDX). Cambiar a `GPL-3.0-or-later` es una palabra, pero es decisión del
+  titular; se documenta en vez de asumirse.
+- **Atribución**: se conserva la de `better-ai` (CC BY-SA 4.0) y
+  `better-project` (GPL-3.0-or-later) en README y AGENTS.md.
+
+### Hallazgo 29: Simular una pipeline completa es deuda, aunque esté declarada
+- **Problema**: `ResearchOrchestratorWithThinking` tenía 70 líneas de
+  heurísticas propias (claims/evaluaciones/síntesis "simuladas") que duplicaban
+  y empobrecían el pipeline real: dos formas de hacer lo mismo, una de ellas
+  fingida.
+- **Solución**: delega en `ResearchOrchestrator` (el pipeline real). Se
+  eliminaron los tres métodos simulados y su resultado ahora expone el
+  `report`, las `sources`, los `claims` y las `evaluaciones` reales.
+- **Evidencia**: el mismo caso offline pasó de 1 claim simulado con veredicto
+  fijo a 3 fuentes / 3 claims / 3 evaluaciones del pipeline; `pensamiento_layer`
+  bajó de 416 a ~330 líneas y su cobertura quedó en 100%. Test de regresión que
+  verifica que los métodos simulados **ya no existen**.

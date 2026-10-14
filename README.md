@@ -109,12 +109,25 @@ escaneo de secretos, `py_compile` y la suite antes de cada commit.
 - El pipeline con `MockSearchAPI` **no hace investigación real**: las fuentes son
   ficticias. Con `WikipediaSearchAPI`/`DuckDuckGoSearchAPI` sí recupera fuentes
   reales, pero la calidad depende de esas fuentes.
-- `ResearchOrchestratorWithThinking` usa heurísticas locales **simuladas** para
-  extraer y evaluar claims (está declarado en el resultado).
+- Los dos orquestadores (`ResearchOrchestrator` y
+  `ResearchOrchestratorWithThinking`) usan **el mismo pipeline real** de
+  evidencias; la calidad del informe depende del modelo y del buscador
+  configurados, no de heurísticas locales.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
-- No hay empaquetado publicado (PyPI) ni integración continua en la nube.
-- Sin licencia declarada.
+- No hay integración continua en la nube (la verificación es local, por diseño).
+
+## Licencia
+
+**GNU General Public License v3.0** (`GPL-3.0-only`). Texto legal completo en
+[`LICENSE`](LICENSE) (copia verbatim de
+<https://www.gnu.org/licenses/gpl-3.0.txt>).
+
+Las reglas de `AGENTS.md` derivan de
+[better-ai](https://github.com/jmbigi/better-ai) (CC BY-SA 4.0) y
+[better-project](https://github.com/jmbigi/better-project) (GPL-3.0-or-later),
+con atribución conservada. Esto no constituye asesoramiento legal: si vas a
+distribuir el proyecto, revisa la compatibilidad de licencias con tu caso.
 
 ## Reglas del proyecto
 

@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Sistema de investigación profunda con LLM: pensamiento estructurado, recuperación de fuentes y reportes trazables"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 dependencies = [
     "requests>=2.31",
     "openai>=1.0",

@@ -20,6 +20,7 @@ Principios clave:
 
 from typing import Any, Dict, List, Tuple
 
+from deep_research_system import ResearchOrchestrator
 from thinking_engine import StepThinkingEngine
 
 # Nombre histórico mantenido por compatibilidad.
@@ -247,127 +248,60 @@ Formato JSON:
 
 
 class ResearchOrchestratorWithThinking:
-    """
-    Orquestador que integra la capa de pensamiento en el flujo de investigación.
+    """Investigación con capa de pensamiento + pipeline REAL de evidencias.
 
-    Honestidad: la extracción/evaluación de claims de esta clase usa
-    heurísticas locales SIMULADAS (declaradas en el resultado). Para
-    extracción real con LLM, usar `ResearchOrchestrator` de
-    `deep_research_system`.
+    El pensamiento estructura el razonamiento en 7 pasos (validados antes de
+    avanzar); la recuperación de fuentes, la extracción de claims y su
+    evaluación las realiza `ResearchOrchestrator` (`deep_research_system`) con
+    el LLM y el buscador configurados. Sin heurísticas simuladas: lo que no se
+    puede hacer, se reporta en vez de rellenarse.
     """
 
     def __init__(self, llm_provider, search_api, thinking_layer: DeepResearchThinkingLayer):
         self.llm = llm_provider
         self.search = search_api
         self.thinking = thinking_layer
-        self.context = None
         self.results = None
 
     def research_with_thinking(self, question: str) -> Dict[str, Any]:
-        """Ejecuta investigación con la capa de pensamiento completa."""
+        """Ejecuta el pensamiento estructurado y luego el pipeline real."""
 
         print("\n=== INICIANDO INVESTIGACIÓN CON CAPA DE PENSAMIENTO ===")
         print(f"Pregunta: {question}\n")
 
-        # Paso 1: ciclo de pensamiento estructurado (7 pasos internos, una sola vez)
         print(">>> Ciclo de pensamiento estructurado (7 pasos)...")
         thinking_result = self.thinking.think(question)
         print(f"   Pasos: {thinking_result['step_count']}, "
               f"Confianza: {thinking_result['confidence']:.2f}, "
               f"Válido: {thinking_result['valid']}")
 
-        if not thinking_result['valid']:
+        if not thinking_result["valid"]:
             return {
                 "error": "Ciclo de pensamiento no válido; replantear la pregunta (anti-repitencia)",
                 "thinking": thinking_result,
             }
 
-        # Paso 2: búsqueda real con la API de búsqueda configurada
-        print(">>> Ejecutando búsqueda...")
-        search_results = self.search.search(question)
-        print(f"   {len(search_results)} resultados")
-
-        # Pasos 3-5: heurísticas locales SIMULADAS (declaradas en el resultado)
-        print(">>> Extrayendo claims (heurística local simulada)...")
-        claims = self._extract_claims_with_thought(search_results)
-        print(f"   {len(claims)} claims extraídos")
-
-        print(">>> Evaluando evidencia (heurística local simulada)...")
-        evaluations = self._evaluate_evidence_with_thought(claims)
-        print(f"   {len(evaluations)} claims evaluados")
-
-        print(">>> Sintetizando conclusiones (heurística local simulada)...")
-        synthesis = self._synthesize_with_thought(evaluations)
-        print("   Síntesis completada")
+        print(">>> Ejecutando pipeline de evidencias (LLM + búsqueda)...")
+        report, context = ResearchOrchestrator(self.llm, self.search).research(question)
+        print(f"   {len(context.sources)} fuentes, {len(context.claims)} claims, "
+              f"{len(context.evaluations)} evaluaciones")
 
         self.results = {
             "question": question,
             "thinking": thinking_result,
-            "num_search_results": len(search_results),
-            "claims": claims,
-            "evaluations": evaluations,
-            "synthesis": synthesis,
+            "report": report,
+            "context": context,
+            "sources": context.sources,
+            "claims": context.claims,
+            "evaluations": context.evaluations,
             "total_thinking_steps": thinking_result["step_count"],
-            "simulated_steps": ["claim_extraction", "evidence_evaluation", "synthesis"],
-            "nota": ("claims/evaluations/synthesis son heurísticas locales SIMULADAS. "
-                     "Para extracción real con LLM, usar ResearchOrchestrator de "
-                     "deep_research_system."),
         }
 
         print("\n=== INVESTIGACIÓN COMPLETADA ===")
         print(f"Pasos de pensamiento ejecutados: {thinking_result['step_count']}")
-        print(f"Confianza del pensamiento: {thinking_result['confidence']:.2f}")
+        print(f"Informe generado: {len(report)} caracteres")
 
         return self.results
-
-    def _extract_claims_with_thought(self, search_results: List[Dict]) -> List[Dict]:
-        """Extrae claims de los snippets reales (heurística local, SIMULADA)."""
-        claims = []
-        for i, result in enumerate(search_results[:3]):
-            snippet = (result.get("snippet") or "").strip()
-            claims.append({
-                "claim": snippet[:200] if snippet else f"Contenido de {result.get('title', 'fuente desconocida')}",
-                "confidence": round(0.5 + i * 0.1, 2),
-                "source_quality": round(0.6 + i * 0.1, 2),
-                "verificable": True,
-                "simulado": True,
-            })
-        return claims
-
-    def _evaluate_evidence_with_thought(self, claims: List[Dict]) -> List[Dict]:
-        """Evalúa evidencia con heurística local (SIMULADA, veredicto por umbral)."""
-        evaluations = []
-        for claim in claims:
-            evaluations.append({
-                "claim": claim["claim"],
-                "verdict": "supported" if claim["confidence"] > 0.7 else "not_addressed",
-                "credibility": round(claim["source_quality"] * 0.9, 2),
-                "strength": round(claim["confidence"] * 0.8, 2),
-                "reasoning": f"Heurística local sobre: {claim['claim'][:50]}",
-                "simulado": True,
-            })
-        return evaluations
-
-    def _synthesize_with_thought(self, evaluations: List[Dict]) -> Dict:
-        """Síntesis final con heurística local (SIMULADA)."""
-        supported = sum(1 for e in evaluations if e["verdict"] == "supported")
-        contradicted = sum(1 for e in evaluations if e["verdict"] == "contradicted")
-
-        return {
-            "conclusiones": [
-                {
-                    "enunciado": f"Heurística local: {supported} claims supported, {contradicted} contradicted",
-                    "confianza": round((supported / max(len(evaluations), 1)) * 0.8, 2),
-                    "basada_en": [f"claim_{i}" for i in range(len(evaluations))],
-                }
-            ],
-            "gaps": [f"{len(evaluations) - supported - contradicted} claims sin evaluar"],
-            "recomendaciones": [
-                "Continuar investigación con fuentes primarias",
-                "Verificar claims con documentación original",
-            ],
-            "simulado": True,
-        }
 
 
 # Demo / Usage

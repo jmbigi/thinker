@@ -81,15 +81,14 @@ class TestResearchOrchestratorWithThinking(unittest.TestCase):
             result = orchestrator.research_with_thinking("¿Fusión nuclear?")
 
         self.assertEqual(result["question"], "¿Fusión nuclear?")
-        self.assertEqual(result["num_search_results"], 1)
         self.assertEqual(result["total_thinking_steps"], 7)
-        self.assertEqual(len(result["claims"]), 1)
-        self.assertTrue(result["claims"][0]["simulado"])
-        # confidence 0.5 del primer claim → por debajo del umbral 0.7
-        self.assertEqual(result["evaluations"][0]["verdict"], "not_addressed")
-        self.assertIn("conclusiones", result["synthesis"])
-        self.assertEqual(result["simulated_steps"],
-                         ["claim_extraction", "evidence_evaluation", "synthesis"])
+        # Delega en el pipeline REAL: fuentes, claims y evaluaciones las
+        # produce ResearchOrchestrator, no heurísticas locales.
+        self.assertGreater(len(result["sources"]), 0)
+        self.assertGreater(len(result["claims"]), 0)
+        self.assertEqual(len(result["claims"]), len(result["evaluations"]))
+        self.assertTrue(result["report"])
+        self.assertIs(result["context"].sources, result["sources"])
         self.assertIs(orchestrator.results, result)
         self.assertIn("INVESTIGACIÓN COMPLETADA", buffer.getvalue())
 
@@ -106,51 +105,15 @@ class TestResearchOrchestratorWithThinking(unittest.TestCase):
         self.assertIn("no válido", result["error"])
         self.assertEqual(result["thinking"]["invalid_steps"], ["analysis"])
 
-
-class TestHeuristicasSimuladas(unittest.TestCase):
-    def setUp(self):
-        self.orchestrator = ResearchOrchestratorWithThinking(
+    def test_ya_no_existen_heuristicas_simuladas(self):
+        """Regresión: se eliminaron las heurísticas simuladas del orquestador."""
+        orchestrator = ResearchOrchestratorWithThinking(
             MockLLM(), MockSearchAPI(), DeepResearchThinkingLayer(MockLLM()))
-
-    def test_extract_claims_usa_snippet_o_titulo(self):
-        claims = self.orchestrator._extract_claims_with_thought([
-            {"title": "Fuente A", "snippet": "  texto del snippet  "},
-            {"title": "Fuente B", "snippet": ""},
-        ])
-        self.assertEqual(claims[0]["claim"], "texto del snippet")
-        self.assertEqual(claims[0]["confidence"], 0.5)
-        self.assertEqual(claims[1]["claim"], "Contenido de Fuente B")
-        self.assertEqual(claims[1]["confidence"], 0.6)
-        self.assertTrue(all(c["verificable"] for c in claims))
-
-    def test_extract_claims_recorta_a_200(self):
-        claims = self.orchestrator._extract_claims_with_thought([
-            {"title": "T", "snippet": "x" * 500},
-        ])
-        self.assertEqual(len(claims[0]["claim"]), 200)
-
-    def test_evaluate_evidence_umbral_de_confianza(self):
-        evaluations = self.orchestrator._evaluate_evidence_with_thought([
-            {"claim": "alta", "confidence": 0.9, "source_quality": 0.8},
-            {"claim": "baja", "confidence": 0.5, "source_quality": 0.6},
-        ])
-        self.assertEqual(evaluations[0]["verdict"], "supported")
-        self.assertEqual(evaluations[0]["credibility"], 0.72)
-        self.assertEqual(evaluations[1]["verdict"], "not_addressed")
-        self.assertTrue(all(e["simulado"] for e in evaluations))
-
-    def test_synthesize_cuenta_veredictos(self):
-        synthesis = self.orchestrator._synthesize_with_thought([
-            {"claim": "a", "verdict": "supported"},
-            {"claim": "b", "verdict": "contradicted"},
-            {"claim": "c", "verdict": "not_addressed"},
-        ])
-        self.assertIn("1 claims supported, 1 contradicted",
-                      synthesis["conclusiones"][0]["enunciado"])
-        self.assertEqual(synthesis["conclusiones"][0]["basada_en"],
-                         ["claim_0", "claim_1", "claim_2"])
-        self.assertEqual(synthesis["gaps"], ["1 claims sin evaluar"])
-        self.assertTrue(synthesis["simulado"])
+        for metodo in ("_extract_claims_with_thought",
+                       "_evaluate_evidence_with_thought",
+                       "_synthesize_with_thought"):
+            self.assertFalse(hasattr(orchestrator, metodo),
+                             f"sigue existiendo el método simulado {metodo}")
 
 
 class TestMain(unittest.TestCase):
