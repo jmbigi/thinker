@@ -75,10 +75,10 @@ mejora de código (`code_design_improvement_tools.py`).
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
 - Fuerza de la suite: `make mutation` (mutmut). Puntuación medida 2026-10-14:
-  **61,2% de mutantes muertos** (1631/2664). De los 1033 supervivientes, 330
-  son las funciones `main()` de demo (impresiones) y 193 el orquestador y el
-  reporte de código (también con mucha impresión); el resto es lógica sin
-  asertar del todo. La cobertura (99%) y la mutación miden cosas distintas.
+  **64,0% de mutantes muertos** (1675/2617). De los 942 supervivientes, 330 son
+  las funciones `main()` de demo (impresiones) y 41 el generador de reporte de
+  código; el resto está repartido en lógica sin asertar del todo. La cobertura
+  (99%) y la mutación miden cosas distintas.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

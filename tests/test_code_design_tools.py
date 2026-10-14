@@ -68,7 +68,8 @@ class TestCodeAnalysisContext(unittest.TestCase):
         self.assertEqual(d["issue_breakdown"],
                          {"critical": 1, "high": 0, "medium": 0, "low": 1})
         self.assertEqual(d["thinking_steps"], 1)
-        self.assertEqual(d["efficiency_score"], 0.04)
+        # Referencia única (EFFICIENCY_REFERENCE_ISSUES = 30): 2/30 → 0.07
+        self.assertEqual(d["efficiency_score"], 0.07)
 
     def test_efficiency_score_sin_project_path_es_cero(self):
         ctx = CodeAnalysisContext("")

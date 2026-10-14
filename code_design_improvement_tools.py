@@ -25,6 +25,11 @@ from thinking_engine import StepThinkingEngine
 # Orden de severidad para priorizar issues (menor = más urgente)
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
+# Referencia única del "score de eficiencia": issues detectados / este valor,
+# acotado a 1. Se usa en el contexto y en el analizador para no tener dos
+# definiciones distintas del mismo concepto (antes: /50 y /30).
+EFFICIENCY_REFERENCE_ISSUES = 30
+
 
 class CodeAnalysisContext:
     """Contexto que mantiene el estado del análisis de código."""
@@ -82,13 +87,14 @@ class CodeAnalysisContext:
         }
 
     def _compute_efficiency_score(self) -> float:
-        """Compute efficiency based on issues found vs. project size."""
+        """Cobertura del análisis: issues detectados / referencia, acotado a 1.
+
+        Es una medida heurística de cuánto se ha inspeccionado, no de calidad
+        del código: más issues detectados suben el score.
+        """
         if not self.project_path:
             return 0.0
-        total_issues = len(self.issues)
-        # Score más alto = más issues detectados (mejor cobertura)
-        # Normalizado artificialmente a 0-1
-        return min(round(total_issues / 50.0, 2), 1.0)
+        return min(round(len(self.issues) / EFFICIENCY_REFERENCE_ISSUES, 2), 1.0)
 
 
 class ThinkingDecisionEngine(StepThinkingEngine):
@@ -365,14 +371,14 @@ class CodeImprovementOrchestrator:
         self.context = CodeAnalysisContext("project_analysis")
         self.results: Dict[str, Any] = {}
 
-    def analyze_and_improve(self) -> Dict[str, Any]:
-        """Ejecuta el ciclo completo de análisis y mejora."""
+    def run_analysis(self, progress=None) -> Dict[str, Any]:
+        """Núcleo del análisis: SIN impresión, sólo lógica y resultados.
 
-        print("=" * 70)
-        print("ANÁLISIS Y MEJORA DE PROYECTO DE CÓDIGO")
-        print("=" * 70)
-        print("Aplicando capa de pensamiento estructurado (7 pasos)")
-        print("Principio rector: 'Hacer las cosas de manera eficiente'\n")
+        `progress` es un callback opcional (recibe el texto del paso) para que
+        la presentación sea responsabilidad del llamador. Así el núcleo es
+        comprobable de forma precisa (valores y efectos) sin capturar stdout.
+        """
+        decir = progress or (lambda _mensaje: None)
 
         # Análisis estático real del código fuente: alimenta el contexto
         if self.source_code:
@@ -380,78 +386,72 @@ class CodeImprovementOrchestrator:
             for issue in static.get("metrics", {}).get("issues", []):
                 self.context.add_issue(**issue)
             self.context.metrics = static.get("source_summary", {})
-            print(f">>> Análisis estático: {self.context.to_dict()['total_issues']} issues detectados\n")
+            decir(f">>> Análisis estático: "
+                  f"{self.context.to_dict()['total_issues']} issues detectados")
 
-        # PASO 1: Análisis inicial con pensamiento
-        print(">>> PASO 1: Análisis estructurado del código...")
-        analysis = self.thinking.decide(self.context, self.source_code)
-        print(f"   Pasos: {analysis['step_count']}, Válida: {analysis['valid']}")
-        print(f"   Confianza: {analysis['confidence']:.2f}")
+        fases = [
+            ("PASO 1: Análisis estructurado del código", self.source_code, "analysis"),
+            ("PASO 2: Definir objetivos de mejora", "Mejora de código maintainable", "objectives"),
+            ("PASO 3: Generar opciones de diseño", "Opciones de refactoring", "design_options_considered"),
+            ("PASO 4: Evaluar opciones de diseño", "Evaluar opciones", "evaluations"),
+            ("PASO 5: Seleccionar enfoque", "Seleccionar mejor opción", "selection"),
+            ("PASO 6: Plan de implementación", "Plan de refactoring", "implementation_plan"),
+            ("PASO 7: Definir criterios de validación", "Criterios de éxito", "validation_criteria"),
+        ]
 
-        if not analysis['valid']:
-            return {"error": "Análisis estructurado falló, reiniciando", "steps": [("fallido", analysis)]}
+        resultados: Dict[str, Any] = {}
+        for etiqueta, prompt, clave in fases:
+            decir(f">>> {etiqueta}...")
+            resultado = self.thinking.decide(self.context, prompt)
+            resultados[clave] = resultado
+            decir(f"   pasos={resultado['step_count']} válido={resultado['valid']}")
 
-        # PASO 2: Definir objetivos
-        print(">>> PASO 2: Definir objetivos de mejora...")
-        objectives = self.thinking.decide(self.context, "Mejora de código maintainable")
-        print(f"   Objetivos definidos: {objectives['decision']}")
+        analisis = resultados["analysis"]
+        if not analisis["valid"]:
+            return {
+                "error": "Análisis estructurado falló, reiniciando",
+                "steps": [("fallido", analisis)],
+            }
 
-        # PASO 3: Generar opciones de diseño
-        print(">>> PASO 3: Generar opciones de diseño...")
-        design_options = self.thinking.decide(self.context, "Opciones de refactoring")
-        print(f"   {len(design_options.get('steps', []) or [])} opciones consideradas")
-
-        # PASO 4: Evaluar opciones
-        print(">>> PASO 4: Evaluar opciones de diseño...")
-        evaluations = self.thinking.decide(self.context, "Evaluar opciones")
-        print(f"   {len(evaluations.get('steps', []) or [])} opciones evaluadas")
-
-        # PASO 5: Seleccionar enfoque
-        print(">>> PASO 5: Seleccionar enfoque...")
-        selection = self.thinking.decide(self.context, "Seleccionar mejor opción")
-        print(f"   Enfoque seleccionado: {selection.get('decision', 'N/A')}")
-
-        # PASO 6: Plan de implementación
-        print(">>> PASO 6: Plan de implementación...")
-        implementation = self.thinking.decide(self.context, "Plan de refactoring")
-        print(f"   Plan con {len(implementation.get('steps', []) or [])} pasos")
-
-        # PASO 7: Definir validación
-        print(">>> PASO 7: Definir criterios de validación...")
-        validation = self.thinking.decide(self.context, "Criterios de éxito")
-        print("   Métricas de validación definidas")
-
-        # Compilar resultados
         self.results = {
-            "analysis": analysis,
-            "objectives": objectives,
-            "design_options_considered": design_options,
-            "evaluations": evaluations,
-            "selection": selection,
-            "implementation_plan": implementation,
-            "validation_criteria": validation,
+            **resultados,
             "total_thinking_steps": self.thinking.step_count,
             "efficiency_principle": "Hacer las cosas de manera eficiente",
-            "project_metrics": self.context.to_dict()
+            "project_metrics": self.context.to_dict(),
         }
+        return self.results
 
+    def analyze_and_improve(self) -> Dict[str, Any]:
+        """Ejecuta el ciclo completo y muestra el progreso por consola."""
+
+        print("=" * 70)
+        print("ANÁLISIS Y MEJORA DE PROYECTO DE CÓDIGO")
+        print("=" * 70)
+        print("Aplicando capa de pensamiento estructurado (7 pasos)")
+        print("Principio rector: 'Hacer las cosas de manera eficiente'\n")
+
+        resultado = self.run_analysis(progress=lambda mensaje: print(f"   {mensaje}"))
+
+        if "error" in resultado:
+            # Igual que antes: en el fallo no hay resultados que reportar
+            # (`self.results` queda vacío y generate_report lo avisa).
+            return resultado
+
+        metricas = self.results["project_metrics"]
         print(f"\n{'=' * 70}")
         print("ANÁLISIS COMPLETADO")
         print("=" * 70)
         print(f"Pasos de pensamiento ejecutados: {self.results['total_thinking_steps']}")
-        print(f"Problemas identificados: {self.results['project_metrics']['total_issues']}")
-        print(f"Score de eficiencia: {self.results['project_metrics']['efficiency_score']:.2f}")
+        print(f"Problemas identificados: {metricas['total_issues']}")
+        print(f"Score de eficiencia: {metricas['efficiency_score']:.2f}")
         print(f"Principio aplicado: {self.results['efficiency_principle']}")
         print("=" * 70)
 
         return self.results
 
-    def generate_report(self) -> str:
-        """Genera reporte markdown del análisis."""
+    def report_lines(self) -> List[str]:
+        """Líneas del reporte markdown (sin unir): núcleo comprobable."""
         r = self.results
-        if not r:
-            return "No results to report."
-
         lines = [
             "# Análisis y Mejora de Proyecto de Código",
             "",
@@ -479,12 +479,11 @@ class CodeImprovementOrchestrator:
             "## Plan de Implementación",
         ])
 
-        implementation = r.get('implementation_plan', {})
-        steps = implementation.get('steps', [])
+        steps = r.get('implementation_plan', {}).get('steps', [])
         if isinstance(steps, list):
             for i, step in enumerate(steps[:5], 1):  # Máx 5 pasos en reporte
-                step_desc = step[1][:80] if isinstance(step, tuple) else str(step)[:80]
-                lines.append(f"{i}. {step_desc}")
+                descripcion = step[1][:80] if isinstance(step, tuple) else str(step)[:80]
+                lines.append(f"{i}. {descripcion}")
         else:
             lines.append("No steps detail available")
 
@@ -498,11 +497,15 @@ class CodeImprovementOrchestrator:
             "*Generado por sistema de diseño de código con capa de pensamiento estructurado*",
             f"*Pasos deliberados: {r['total_thinking_steps']}/7*"
         ])
+        return lines
 
-        return "\n".join(lines)
+    def generate_report(self) -> str:
+        """Reporte markdown completo (presentación sobre `report_lines`)."""
+        if not self.results:
+            return "No results to report."
+        return "\n".join(self.report_lines())
 
 
-# Análisis estático real de Python
 def analyze_python_source(source_code: str) -> Dict[str, Any]:
     """Analiza código Python (string) y retorna métricas estructuradas."""
     try:
@@ -559,8 +562,8 @@ def analyze_python_source(source_code: str) -> Dict[str, Any]:
     max_issues = 50
     metrics["issues"] = metrics["issues"][:max_issues]
 
-    # Recalcular score
-    metrics["efficiency_score"] = min(len(metrics["issues"]) / 30.0, 1.0)
+    # Recalcular score (misma referencia que el contexto)
+    metrics["efficiency_score"] = min(len(metrics["issues"]) / EFFICIENCY_REFERENCE_ISSUES, 1.0)
 
     return {
         "metrics": metrics,

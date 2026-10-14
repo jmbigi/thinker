@@ -385,3 +385,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   requirements.txt`.
 - **Evidencia**: **199 tests OK en 3.12** (antes solo se había verificado 3.11).
   El código no depende de APIs exclusivas de una versión ni de rutas de sistema.
+
+---
+
+## 2026-10-14 (ronda 9) — Separar lógica de presentación
+
+### Hallazgo 36: La lógica mezclada con impresión es intestable (y no mata mutantes)
+- **Medición**: 193 de los mutantes supervivientes estaban en
+  `analyze_and_improve` (que imprimía en cada fase) y `generate_report`.
+- **Solución**: `run_analysis(progress=None)` (núcleo puro, sin `print`) y
+  `report_lines()` (devuelve la lista de líneas); `analyze_and_improve()` y
+  `generate_report()` quedan como presentación fina. Se añaden 16 tests que
+  comprueban mensajes, claves, contenido exacto de cada sección y formato.
+- **Evidencia**: mutación **61,2% → 64,0%** (1675/2617); el código total bajó
+  de 2664 a 2617 mutantes porque desapareció lógica duplicada.
+- **Regla derivada**: separar núcleo y presentación no es cosmética: es lo que
+  permite comprobar valores en lugar de capturar stdout.
+
+### Hallazgo 37: Dos definiciones del mismo concepto ("score de eficiencia")
+- **Problema**: `CodeAnalysisContext` calculaba `issues/50` y
+  `analyze_python_source` calculaba `issues/30`; el reporte mostraba una y el
+  análisis la otra. Dos números distintos para lo mismo.
+- **Solución**: constante única `EFFICIENCY_REFERENCE_ISSUES = 30` usada por
+  ambos, con docstring que explica que mide cobertura del análisis, no calidad.
+- **Regla derivada**: si dos módulos calculan la misma métrica, extraer una
+  única referencia; si no, cualquier cambio la desincroniza.
