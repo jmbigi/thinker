@@ -1,0 +1,24 @@
+# Secretos — NUNCA versionar (P0.6/P0.10)
+.env
+.env.*
+!.env.example
+
+# Artefactos generados / temporales
+__pycache__/
+*.py[cod]
+.ruff_cache/
+install_check.json
+install_result.json
+test_openrouter_result.txt
+test_results.txt
+lessons_context.txt
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
