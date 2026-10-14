@@ -52,6 +52,9 @@ mejora de código (`code_design_improvement_tools.py`).
 9. **Secretos**: `.env` existe en este repo y contiene una API key real.
    Nunca leerlo, imprimirlo, copiarlo ni comitearlo. Los scripts leen keys
    solo vía `os.environ`/`dotenv`, sin escribir fragmentos de key en archivos.
+   `scripts/scan-secrets.sh` (en el hook) escanea credenciales y datos
+   personales en archivos versionados; `.env.example` es seguro (valores
+   vacíos o `...`). Ante un hallazgo: reportar y proponer variable de entorno.
 
 ## Entorno y verificación (comandos del proyecto)
 
@@ -68,18 +71,25 @@ mejora de código (`code_design_improvement_tools.py`).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
   con el modelo gratuito por defecto.
-- Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + py_compile + tests).
+- Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
+  + py_compile + tests). Instalación: `make hook`.
+- Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
+  `make vuln-scan` (pip-audit). Instalación reproducible:
+  `python3 -m pip install --require-hashes -r requirements.lock`.
 - Antes de entregar: todo lo anterior en verde + checklist pre-entrega.
 
 ## Arquitectura de módulos
 
-- `deep_research_system.py` — pipeline de investigación y proveedores LLM.
+- `deep_research_system.py` — pipeline de investigación (descomposición,
+  recuperación, claims, evaluación, reporte).
+- `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, Ollama,
+  Mock) con reintentos y backoff. **No duplicar** clientes en otros módulos.
 - `thinking_engine.py` — motor común de ciclos de pensamiento (validación,
   confianza, forma de resultado). **No duplicar** su lógica en otros módulos.
 - `pensamiento_layer.py` / `code_design_improvement_tools.py` — pasos concretos
   sobre ese motor.
 - `web_search.py` — búsqueda: `MockSearchAPI` (offline), `WikipediaSearchAPI`
-  y `DuckDuckGoSearchAPI` (reales, sin API key).
+  y `DuckDuckGoSearchAPI` (reales, sin API key) + `formulate_query`.
 
 ---
 

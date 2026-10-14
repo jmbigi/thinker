@@ -248,3 +248,45 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: si una herramienta CLI se comporta distinto que
   `python3 -m <herramienta>`, sospechar del shebang y verificar con
   `head -1 $(which <herramienta>)` (P0.16).
+
+---
+
+## 2026-10-14 (ronda 6) — Reproducibilidad, arquitectura y seguridad
+
+### Hallazgo 24: Un contador como señal de estado es un acoplamiento frágil
+- **Problema**: `QuestionDecomposer` decidía si descomponer mirando
+  `context.iteration == 0`, un contador que incrementaba el recuperador de
+  fuentes. Funcionaba por casualidad: cualquier cambio en el orden del pipeline
+  lo rompía.
+- **Solución**: flag explícito `ResearchContext.decomposed`, expuesto en
+  `to_dict()`. **Evidencia de que la suite protege el contrato**: al cambiar el
+  diseño, el test `test_decomposer_no_recalcula_si_iteracion_avanzada` falló
+  (era el único acoplado al diseño viejo) y se actualizó a la nueva semántica
+  más un test del flag.
+
+### Hallazgo 25: Separar por cohesión sin romper consumidores
+- **Acción**: los proveedores LLM salieron de `deep_research_system.py`
+  (642 → 435 líneas) a `llm_providers.py` (228 líneas); el pipeline ya no sabe
+  cómo se habla con un modelo.
+- **Cómo sin romper nada**: re-export con `# noqa: F401` en el módulo original,
+  así los consumidores (tests incluidos) siguen importando del mismo sitio.
+  Verificado: `MockLLM is llm_providers.MockLLM` y los 134 tests en verde.
+- **Regla derivada**: al mover código, re-exportar en el origen y comprobar la
+  identidad de objetos, no solo que "importa".
+
+### Hallazgo 26: SBOM honesto cuando falta la herramienta estándar
+- **Problema**: `syft` no está instalado; fingir un SPDX completo sería
+  deshonesto.
+- **Solución**: `scripts/generate-sbom.sh` usa syft si existe y, si no,
+  `scripts/sbom_fallback.py`, que etiqueta el resultado como
+  `"conformsTo": "ninguno (inventario propio...)"`. Inventario real: 20
+  paquetes con 462 hashes.
+
+### Hallazgo 27: Instalación reproducible verificada, no supuesta
+- **Acción**: `uv pip compile --generate-hashes` → `requirements.lock`
+  (20 paquetes, 462 hashes). Instalación comprobada con
+  `python3 -m pip install --dry-run --require-hashes -r requirements.lock`.
+- **Extra**: `pip-audit` sobre el lockfile → "No known vulnerabilities found".
+  `scripts/scan-secrets.sh` integrado en el hook pre-commit; su política de
+  placeholders (valores vacíos o `...` son seguros) evita falsos positivos en
+  `.env.example` y README, documentada para no relajar el patrón por pereza.

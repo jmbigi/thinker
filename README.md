@@ -13,11 +13,12 @@ herramientas de análisis estático de código.
 
 | Módulo | Función |
 |---|---|
-| `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. Proveedores LLM (OpenAI, OpenRouter, Kilo, Ollama, Mock). |
+| `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. |
+| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, Ollama, Mock) con reintentos y backoff. |
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
-| `web_search.py` | Búsqueda real sin API key (Wikipedia, DuckDuckGo) y mock offline. |
+| `web_search.py` | Búsqueda real sin API key (Wikipedia, DuckDuckGo) y mock offline, con formulación de consulta. |
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
@@ -32,6 +33,11 @@ herramientas de análisis estático de código.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+
+# Opción reproducible (versiones fijadas con hashes):
+python3 -m pip install --require-hashes -r requirements.lock
+
+# Opción rápida (rangos de versión):
 pip install -r requirements.txt
 ```
 
@@ -74,12 +80,29 @@ report, ctx = ResearchOrchestrator(OpenRouterLLM(), WikipediaSearchAPI()).resear
 ## Verificación
 
 ```bash
-ruff check .                                  # lint
-python3 -m unittest discover -s tests -v      # suite de tests (stdlib)
-coverage run --source=. -m unittest discover -s tests && coverage report -m
-python3 honest_test.py                        # comprobación honesta del sistema
-bash scripts/hooks/pre-commit                 # lo mismo que ejecuta el hook de git
+make check                                    # lint + tests + escaneo de secretos + hook
+make lint                                     # ruff check .
+make test                                     # suite unittest (stdlib)
+make coverage                                 # cobertura de los módulos de producción
+make secrets                                  # escaneo de secretos/datos personales
+make sbom                                     # inventario de dependencias (syft si está)
+make vuln-scan                                # pip-audit sobre requirements.lock
+make lock                                     # regenera requirements.lock con hashes
+make hook                                     # instala el hook pre-commit de git
 ```
+
+Equivalente sin `make`:
+
+```bash
+ruff check .
+python3 -m unittest discover -s tests -v
+coverage run --source=. -m unittest discover -s tests && coverage report -m
+bash scripts/scan-secrets.sh
+python3 honest_test.py                        # comprobación honesta del sistema
+```
+
+El hook `.git/hooks/pre-commit` (instalado con `make hook`) ejecuta ruff, el
+escaneo de secretos, `py_compile` y la suite antes de cada commit.
 
 ## Limitaciones conocidas (sin adornos)
 

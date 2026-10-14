@@ -271,14 +271,25 @@ class TestDecisionEngines(unittest.TestCase):
         subs = QuestionDecomposer(llm).decide(ResearchContext("q"))
         self.assertEqual(len(subs), 5)
 
-    def test_decomposer_no_recalcula_si_iteracion_avanzada(self):
+    def test_decomposer_no_recalcula_si_ya_descompuso(self):
+        # El contrato ya no depende del contador de iteraciones (vestigial):
+        # ahora lo indica el flag explícito `decomposed`.
         llm = StubLLM(lambda p: "única")
         ctx = ResearchContext("q")
         ctx.iteration = 3
+        ctx.decomposed = True
         ctx.subquestions = ["ya calculada"]
         subs = QuestionDecomposer(llm).decide(ctx)
         self.assertEqual(subs, ["ya calculada"])
         self.assertEqual(llm.prompts, [])
+
+    def test_decomposer_marca_el_contexto_como_descompuesto(self):
+        llm = StubLLM(lambda p: "una pregunta")
+        ctx = ResearchContext("q")
+        self.assertFalse(ctx.decomposed)
+        QuestionDecomposer(llm).decide(ctx)
+        self.assertTrue(ctx.decomposed)
+        self.assertTrue(ctx.to_dict()["decomposed"])
 
     def test_retriever_agrega_fuentes_y_una_decision(self):
         search = StubSearch([

@@ -11,6 +11,9 @@ else
     echo "  ruff no instalado: OMITIDO"
 fi
 
+echo "[pre-commit] scan-secrets"
+bash scripts/scan-secrets.sh
+
 echo "[pre-commit] py_compile"
 for f in *.py; do
     python3 -m py_compile "$f"
