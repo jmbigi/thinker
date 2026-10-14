@@ -127,9 +127,9 @@ escaneo de secretos, `py_compile` y la suite antes de cada commit.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
-- La suite mata el 64% de los mutantes de `mutmut`: cobertura alta no equivale
-  a tests fuertes. Las funciones de demo (`main()`) aportan un tercio de los
-  mutantes supervivientes.
+- La suite mata el **75%** de los mutantes de `mutmut` (65,7% si se incluyen las
+  líneas `print`, que solo generan mutantes equivalentes): cobertura alta no
+  equivale a tests fuertes.
 
 ## Licencia
 

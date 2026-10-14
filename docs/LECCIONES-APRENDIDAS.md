@@ -410,3 +410,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   ambos, con docstring que explica que mide cobertura del análisis, no calidad.
 - **Regla derivada**: si dos módulos calculan la misma métrica, extraer una
   única referencia; si no, cualquier cambio la desincroniza.
+
+---
+
+## 2026-10-14 (ronda 10) — Configuración real de mutmut y 75% de mutación
+
+### Hallazgo 38: Tres opciones de mutmut que parecen iguales y solo una funciona
+- **Comprobado en el código de mutmut 3** (no por suposición):
+  - `# pragma: no mutate`: el visitante de pragmas solo marca **su propia
+    línea** (no el bloque), así que no sirve para excluir una función entera.
+  - `do_not_mutate = [...]`: la clave existe en `configuration.py` pero el
+    motor **nunca la lee**; ponerla no cambió ninguna cifra.
+  - `do_not_mutate_patterns = [...]`: es la que el motor aplica
+    (`pragma_handling.get_lines_ignored_by_pattern`, por línea de código).
+- **Uso**: se excluyen las líneas `print(...)`, que no alteran estado y generan
+  mutantes equivalentes (inmatables de forma útil).
+- **Resultados publicados (ambos reales)**:
+  - Sin excluir nada: **65,7%** (1720/2617 mutantes muertos).
+  - Excluyendo líneas `print`: **75,0%** (1604/2139).
+  - Progresión de la sesión: 54,2% → 57,5% → 61,2% → 64,0% → **75,0%**.
+- **Supervivientes restantes** (535): `EvidenceEvaluator.decide` 59,
+  `SourceRetriever.decide` 35, `run_analysis` 34, `MockLLM.generate` 31,
+  `ClaimExtractor.decide` 25, `report_lines` 25.
+- **Regla derivada**: antes de usar una opción de configuración para mejorar una
+  métrica, comprobar en el código de la herramienta que esa opción se lee y se
+  aplica; si no, es un cambio cosmético que no debe reportarse como mejora.

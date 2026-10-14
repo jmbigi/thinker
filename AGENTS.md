@@ -74,10 +74,12 @@ mejora de código (`code_design_improvement_tools.py`).
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
-- Fuerza de la suite: `make mutation` (mutmut). Puntuación medida 2026-10-14:
-  **64,0% de mutantes muertos** (1675/2617). De los 942 supervivientes, 330 son
-  las funciones `main()` de demo (impresiones) y 41 el generador de reporte de
-  código; el resto está repartido en lógica sin asertar del todo. La cobertura
+- Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-14:
+  **75,0% de mutantes muertos** (1604/2139) **excluyendo las líneas `print(...)`**
+  —no alteran estado y solo producen mutantes equivalentes—, y **65,7%**
+  (1720/2617) incluyéndolas. La exclusión usa `do_not_mutate_patterns`, la
+  opción que el motor aplica de verdad (la lista `do_not_mutate` no se usa y el
+  pragma `# pragma: no mutate` afecta solo a su propia línea). La cobertura
   (99%) y la mutación miden cosas distintas.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).

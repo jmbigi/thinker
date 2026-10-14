@@ -44,3 +44,9 @@ source_paths = [
     "web_search.py",
 ]
 pytest_add_cli_args_test_selection = ["tests"]
+# Las líneas `print(...)` no alteran estado: mutarlas genera mutantes
+# equivalentes que ninguna prueba puede matar. Se excluyen con la opción que el
+# motor SÍ implementa (`do_not_mutate_patterns`; la lista `do_not_mutate` no la
+# usa el motor y el pragma `# pragma: no mutate` solo afecta a su propia línea).
+# La cifra con y sin esta exclusión se publica en AGENTS.md.
+do_not_mutate_patterns = ["^\\s*print\\("]
