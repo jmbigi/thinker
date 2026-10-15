@@ -438,7 +438,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 
 ---
 
-## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–44)
+## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–46)
 
 ### Hallazgo 39: Anotaciones de tipo sin importar rompen el import en Python ≤3.13 (pero pasan en 3.14)
 - **Problema**: los 6 plugins usaban `List`, `Dict`, `Any` en firmas sin
@@ -533,3 +533,47 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   comprobar QUÉ intérprete resuelve `python3` en el shell (sobre todo en
   Windows/Git Bash) antes de tocar el código; distinguir fallo de entorno de
   fallo real, y documentarlo.
+
+### Hallazgo 45: Restos de depuración sin trackear mantenían rojo el lint del árbol de trabajo
+
+- **Problema**: `ruff check .` del árbol de trabajo acumulaba 13 avisos (E722
+  `except:` desnudo, F541 f-strings sin placeholders, F401 imports sin usar) en
+  9 de los 14 scripts de depuración sin trackear (búsqueda de logs,
+  configuración de opencode, etc.). El entregable (copia limpia de HEAD) estaba
+  limpio y el CI verde, pero el lint local — y por tanto el hook pre-commit —
+  quedaba inutilizable por restos ajenos al proyecto.
+- **Solución**: arreglarlos de forma mínima y no destructiva sin tocar ningún
+  archivo versionado: 5 reemplazos de `except:` → `except Exception:`
+  (check_logs.py, check_plugin_ts.py, find_logs.py, search_plugin_load.py,
+  search_plugin_validation.py, leídos antes de editar) y 8 auto-fixes con
+  `ruff check --fix` (F541/F401). Los scripts siguen sin trackear y sin
+  comitear; el borrado queda a decisión del usuario.
+- **Evidencia**: antes: `ruff check .` → 13 errores en 9 scripts, todos sin
+  trackear; después: `ruff check --fix .` → «Found 8 errors (8 fixed,
+  0 remaining)» + `ruff check .` → «All checks passed!»; py_compile de los 5
+  editados OK; `git status --short` posterior → ningún archivo trackeado
+  modificado.
+- **Regla derivada**: distinguir el lint del ENTREGABLE (copia limpia de HEAD)
+  del lint del ÁRBOL DE TRABAJO (herramienta local, que puede ensuciarse con
+  restos locales); ante avisos que el CI no reproduce, comprobar si los
+  archivos están versionados antes de tocar código del proyecto; los restos
+  locales se arreglan mínimo o se retiran, nunca se comitean.
+
+### Hallazgo 46: Una sola campaña de benchmark no calibra; hacen falta ≥2 dominios
+
+- **Problema**: con una única campaña real (science_tech, n=3) no se podía
+  distinguir si los scores bajos (0,235) eran del sistema, del dominio o de
+  las tareas; la evaluación previa pedía ampliar la calibración.
+- **Solución**: segunda campaña real con DeepSeek en otro dominio (medicine,
+  n=3, mismas complejidades simple/moderate/complex) y comparación entre
+  dominios y complejidades con el mismo esquema (modo lineal, 5 fuentes,
+  LLM-as-judge).
+- **Evidencia**: medicine → general 0,381 (IR 0,538 / AN 0,257 / PR 0,389;
+  simple 0,458; moderate 0,606; complex 0,079) frente a science_tech → 0,235
+  (0,291 / 0,287 / 0,127); mejor score individual acumulado:
+  med_moderate_02 = 0,606 (IR 0,92); en ambos dominios las tareas complejas
+  caen (0,127 y 0,079); ~104–110 s/tarea; 7 tareas reales acumuladas en 2
+  dominios (DeepSeek).
+- **Regla derivada**: calibrar el framework en al menos 2 dominios antes de
+  extrapolar conclusiones por modelo; al reportar, declarar n por celda y que
+  el modelo juez es el mismo modelo evaluado como límites de validez.
