@@ -21,7 +21,7 @@ Principios clave:
 from typing import Any, Dict, List, Tuple
 
 from deep_research_system import ResearchOrchestrator
-from thinking_engine import StepThinkingEngine, ToTEngine, SearchStrategy
+from thinking_engine import StepThinkingEngine, ToTEngine
 
 # Nombre histórico mantenido por compatibilidad.
 ThinkingLayer = StepThinkingEngine
@@ -412,7 +412,7 @@ def main():
     print(f"Score mejor: {result_tot['best_score']:.2f}")
     print(f"Nodos explorados: {result_tot['explored_nodes']}")
     print(f"Nodos podados: {result_tot['pruned_nodes']}")
-    print(f"Mejor camino:")
+    print("Mejor camino:")
     for name, content in result_tot['best_path']:
         print(f"  [{name}] {content[:80]}...")
     print("\nÁrbol explorado:")

@@ -424,7 +424,8 @@ Responde SOLO con el JSON."""
         try:
             response = self._llm_generate(prompt)
             # Parsear JSON de la respuesta
-            import json, re
+            import json
+            import re
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 eval_data = json.loads(json_match.group())

@@ -438,7 +438,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 
 ---
 
-## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–42)
+## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–43)
 
 ### Hallazgo 39: Anotaciones de tipo sin importar rompen el import en Python ≤3.13 (pero pasan en 3.14)
 - **Problema**: los 6 plugins usaban `List`, `Dict`, `Any` en firmas sin
@@ -496,3 +496,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: medir antes de fijar un valor por defecto; 403/404 →
   probar siguiente modelo, 429 → reintento con backoff; documentar los límites
   del tier gratuito como límite externo.
+
+### Hallazgo 43: El CI en copia limpia como última red (avisos ruff post-commit)
+- **Problema**: tras el commit 4e9dd1b, el CI en copia limpia (`scripts/ci.sh`)
+  encontró 3 avisos ruff en código recién comiteado: F401 (`SearchStrategy`
+  importado sin usar en `pensamiento_layer.py`), F541 (f-string sin placeholders)
+  y E401 (`import json, re` en una línea). El árbol de trabajo no los había
+  señalado porque no se ejecutó `ruff check .` completo tras los últimos edits
+  del núcleo (solo sobre `plugins/` y `tests/benchmarks/`), y el hook
+  pre-commit no está instalado.
+- **Solución**: corregir los 3 avisos (import limpio, print sin `f`, imports
+  separados) y añadir a la rutina la ejecución de `ruff check .` completo
+  inmediatamente antes de cada commit.
+- **Evidencia**: `ci.sh` falló con los 3 avisos en la copia limpia de HEAD; tras
+  el fix, `ruff check pensamiento_layer.py thinking_engine.py` →
+  «All checks passed!» y `py_compile` OK.
+- **Regla derivada**: la verificación previa al commit incluye `ruff check .`
+  sobre TODO el árbol (o instalar el hook); verificar solo subconjuntos deja
+  pasar avisos, y el CI en copia limpia es la última red, no la primera.
