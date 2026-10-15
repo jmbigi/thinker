@@ -438,7 +438,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 
 ---
 
-## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–46)
+## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–48)
 
 ### Hallazgo 39: Anotaciones de tipo sin importar rompen el import en Python ≤3.13 (pero pasan en 3.14)
 - **Problema**: los 6 plugins usaban `List`, `Dict`, `Any` en firmas sin
@@ -577,3 +577,41 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: calibrar el framework en al menos 2 dominios antes de
   extrapolar conclusiones por modelo; al reportar, declarar n por celda y que
   el modelo juez es el mismo modelo evaluado como límites de validez.
+
+### Hallazgo 47: El reinicio canceló el monitoreo, no los resultados
+
+- **Problema**: tras el reinicio del servidor, la notificación «Command cancelled
+  because the server restarted» dio por perdida la campaña de calibración
+  economics→law_policy→climate (9 tareas reales, ~17 min de cómputo y coste de
+  API); el impulso natural era relanzarla entera.
+- **Solución**: antes de relanzar, inspeccionar `benchmark_results/` — los tres
+  dominios YA habían escrito sus resultados completos (timestamps
+  17:02/17:10/17:19, anteriores al reinicio). Cero trabajo duplicado.
+- **Evidencia**: economics 0,234 / law_policy 0,204 / climate 0,291 con 3/3
+  tareas cada uno; matriz completa 5 dominios: science_tech 0,235 | medicine
+  0,381 | economics 0,234 | law_policy 0,204 | climate 0,291 (media 0,269);
+  complejidad agregada: simple 0,302, moderate 0,353, complex 0,152 (climate
+  complex 0,316 > climate simple 0,252: la debilidad de las complejas no es
+  universal); latencias 103–129 s/tarea.
+- **Regla derivada**: ante un trabajo «cancelado» (reinicio, timeout de shell,
+  desconexión), inspeccionar los artefactos de salida ANTES de relanzar; lo
+  cancelado es la supervisión, no necesariamente la ejecución.
+
+### Hallazgo 48: Restos locales en cuarentena y hook no instalado en Windows
+
+- **Problema**: 14 scripts de depuración del entorno local (opencode: plugins,
+  logs, config, scaffolding) ensuciaban `git status` y, antes de arreglarlos,
+  rompían `ruff check .`; además el hook pre-commit no está instalado y en este
+  Windows fallaría (python3 sin dependencias), bloqueando commits del usuario.
+- **Solución**: cuarentena no destructiva: mover los 14 archivos a
+  `_local_debug/` (dentro del repo) + patrón `_local_debug/` en `.gitignore`;
+  decisión razonada de NO instalar el hook (el CI en copia limpia cubre las
+  mismas comprobaciones; el hook exigiría el shim python3). Todo reversible y
+  documentado.
+- **Evidencia**: `git status --short` → solo « M .gitignore»; `ruff check .` →
+  «All checks passed!»; 14 archivos listados en `_local_debug/`; CI en copia
+  limpia verde con el shim.
+- **Regla derivada**: los restos locales se aíslan en cuarentena ignorada (ni
+  al repo ni a la papelera sin decisión); no instalar hooks que exijan
+  herramientas no ejecutables en el entorno — documentar la alternativa (CI)
+  en su lugar.

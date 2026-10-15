@@ -32,3 +32,6 @@ Thumbs.db
 
 # Salidas de benchmark (JSON generados)
 benchmark_*/
+
+# Scripts locales de depuración (no forman parte del proyecto)
+_local_debug/
