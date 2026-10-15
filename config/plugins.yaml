@@ -1,0 +1,54 @@
+# Plugin Configuration for Deep Research System
+# 
+# All plugins are defined here with their runtime configuration.
+# Priority: higher = preferred when multiple plugins of same type are loaded.
+
+plugins:
+  # LLM Providers
+  openrouter:
+    enabled: true
+    priority: 100
+    params:
+      model: "poolside/laguna-xs-2.1:free"
+      use_fallback: true
+      max_retries: 3
+
+  deepseek:
+    enabled: true
+    priority: 90
+    params:
+      model: "deepseek-chat"
+      max_retries: 3
+      base_url: "https://api.deepseek.com/v1"
+
+  mock_llm:
+    enabled: true
+    priority: 10
+    params: {}
+
+  # Search Providers
+  duckduckgo:
+    enabled: true
+    priority: 100
+    params:
+      max_results: 5
+      timeout: 10
+
+  wikipedia:
+    enabled: true
+    priority: 90
+    params:
+      language: "en"
+      max_results: 5
+      timeout: 10
+
+  mock_search:
+    enabled: true
+    priority: 10
+    params: {}
+
+  # Core Plugins (for future extensions)
+  # example_core_plugin:
+  #   enabled: false
+  #   priority: 50
+  #   params: {}

@@ -21,24 +21,72 @@ Principios clave:
 from typing import Any, Dict, List, Tuple
 
 from deep_research_system import ResearchOrchestrator
-from thinking_engine import StepThinkingEngine
+from thinking_engine import StepThinkingEngine, ToTEngine, SearchStrategy
 
 # Nombre histórico mantenido por compatibilidad.
 ThinkingLayer = StepThinkingEngine
 
 
-class DeepResearchThinkingLayer(StepThinkingEngine):
+class DeepResearchThinkingLayer(ToTEngine):
     """
     Capa de pensamiento profunda específicamente para sistemas de investigación.
     Implementa 7 pasos deliberados para evitar decisiones precipitadas.
+    
+    Hereda de ToTEngine que extiende StepThinkingEngine, añadiendo:
+    - Modo ToT: ramificación, evaluación de estado, búsqueda (BFS/DFS/Beam)
+    - Modo lineal: API original `think()` intacta para compatibilidad total
     """
 
-    def __init__(self, llm_provider, name: str = "deep_research_thinking"):
-        super().__init__(llm_provider, name, max_steps=7)
+    def __init__(self, llm_provider, name: str = "deep_research_thinking",
+                 use_tot: bool = False, **tot_kwargs):
+        super().__init__(llm_provider, name, max_steps=7, **tot_kwargs)
+        self._use_tot = use_tot
 
     def _validate_step(self, thought: str, decision: Any = None) -> bool:
         """Compatibilidad: delega en el validador común."""
         return self.validate_step(thought)
+
+    def think_tot(self, prompt: str, context: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+        """
+        Ejecuta pensamiento con Tree of Thoughts (ToT).
+        
+        Args:
+            prompt: Pregunta de investigación
+            context: Contexto adicional
+            **kwargs: Parámetros ToT (branch_factor, beam_width, search_strategy, etc.)
+            
+        Returns:
+            Dict con claves del modo lineal + best_path, explored_nodes, pruned_nodes, best_score
+        """
+        # Guardar parámetros originales
+        orig_branch = self.branch_factor
+        orig_beam = self.beam_width
+        orig_strategy = self.search_strategy
+        orig_threshold = self.min_score_threshold
+        orig_depth = self.max_depth
+        
+        # Aplicar overrides temporales
+        if "branch_factor" in kwargs:
+            self.branch_factor = kwargs["branch_factor"]
+        if "beam_width" in kwargs:
+            self.beam_width = kwargs["beam_width"]
+        if "search_strategy" in kwargs:
+            self.search_strategy = kwargs["search_strategy"]
+        if "min_score_threshold" in kwargs:
+            self.min_score_threshold = kwargs["min_score_threshold"]
+        if "max_depth" in kwargs:
+            self.max_depth = kwargs["max_depth"]
+        
+        try:
+            # Usar el método heredado de ToTEngine directamente
+            return super().think_tot(prompt, context)
+        finally:
+            # Restaurar parámetros originales
+            self.branch_factor = orig_branch
+            self.beam_width = orig_beam
+            self.search_strategy = orig_strategy
+            self.min_score_threshold = orig_threshold
+            self.max_depth = orig_depth
 
     def _step_builders(self) -> List[Tuple[str, Any]]:
         def step1(o):
@@ -242,7 +290,7 @@ Formato JSON:
             "",
             f"        PASOS COMPLETADOS: {len(steps)}/{self.max_steps}",
             f"        CONFIANZA GENERAL: {self._compute_confidence(steps)}",
-            f"        VALIDEZ: {'VALID' if self.validate_step(steps[-1][1]) and all(self.validate_step(c) for _, c in steps) else 'REVISAR'}",
+            f"        VALIDEZ: {'VALID' if steps and self.validate_step(steps[-1][1]) and all(self.validate_step(c) for _, c in steps) else 'REVISAR'}",
         ])
         return "\n".join(lines)
 
@@ -319,11 +367,13 @@ def main():
     print("  • Evita decisiones precipitadas")
     print("  • Confianza explícita en cada paso")
     print("  • Patrón anti-repitencia con reinicio automático")
+    print("  • NUEVO: Tree of Thoughts (ToT) con ramificación y búsqueda")
     print()
     print("Arquitectura:")
     print("  StepThinkingEngine (thinking_engine.py, común)")
-    print("  └── DeepResearchThinkingLayer (7 pasos de investigación)")
-    print("       → Análisis, Plan, Estrategia, Búsqueda, Claims, Evidencia, Síntesis")
+    print("  └── ToTEngine (ramificación + búsqueda BFS/DFS/Beam)")
+    print("       └── DeepResearchThinkingLayer (7 pasos de investigación)")
+    print("            → Análisis, Plan, Estrategia, Búsqueda, Claims, Evidencia, Síntesis")
     print()
     print("=" * 70)
 
@@ -332,17 +382,41 @@ def main():
     # Para un modelo real: DeepResearchThinkingLayer(llm_provider=OpenRouterLLM())
     thinking_layer = DeepResearchThinkingLayer(llm_provider=None, name="deep_research")
 
+    print("\n--- MODO LINEAL (API original) ---")
     result = thinking_layer.think(
         "¿Cuál es el estado actual de la fusión nuclear y sus perspectivas a 2030?"
     )
 
     print("\n" + "=" * 70)
-    print("RESULTADO DEL PENSAMIENTO ESTRUCTURADO")
+    print("RESULTADO MODO LINEAL")
     print("=" * 70)
     print(result["thought"])
     print(f"\nConfianza: {result['confidence']:.2f}")
     print(f"Válido: {result['valid']}")
     print(f"Pasos ejecutados: {result['step_count']}")
+    print("=" * 70)
+
+    print("\n--- MODO ToT (Tree of Thoughts, Beam Search) ---")
+    result_tot = thinking_layer.think_tot(
+        "¿Cuál es el estado actual de la fusión nuclear y sus perspectivas a 2030?",
+        branch_factor=3,
+        beam_width=2,
+    )
+
+    print("\n" + "=" * 70)
+    print("RESULTADO MODO ToT (Beam Search)")
+    print("=" * 70)
+    print(f"Válido: {result_tot['valid']}")
+    print(f"Pasos: {result_tot['step_count']}")
+    print(f"Confianza: {result_tot['confidence']:.2f}")
+    print(f"Score mejor: {result_tot['best_score']:.2f}")
+    print(f"Nodos explorados: {result_tot['explored_nodes']}")
+    print(f"Nodos podados: {result_tot['pruned_nodes']}")
+    print(f"Mejor camino:")
+    for name, content in result_tot['best_path']:
+        print(f"  [{name}] {content[:80]}...")
+    print("\nÁrbol explorado:")
+    print(thinking_layer.get_tree_visualization() if hasattr(thinking_layer, 'get_tree_visualization') else "N/A")
     print("=" * 70)
 
 

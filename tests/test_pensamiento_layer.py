@@ -122,9 +122,14 @@ class TestMain(unittest.TestCase):
         with contextlib.redirect_stdout(buffer):
             pl.main()
         salida = buffer.getvalue()
-        self.assertIn("RESULTADO DEL PENSAMIENTO ESTRUCTURADO", salida)
+        # Verificar modo lineal
+        self.assertIn("RESULTADO MODO LINEAL", salida)
         self.assertIn("Pasos ejecutados: 7", salida)
         self.assertIn("Válido: True", salida)
+        # Verificar modo ToT
+        self.assertIn("RESULTADO MODO ToT", salida)
+        self.assertIn("Nodos explorados:", salida)
+        self.assertIn("Score mejor:", salida)
 
 
 if __name__ == "__main__":

@@ -29,3 +29,6 @@ mutants/
 Thumbs.db
 .idea/
 .vscode/
+
+# Salidas de benchmark (JSON generados)
+benchmark_*/

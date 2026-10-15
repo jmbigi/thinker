@@ -435,3 +435,64 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: antes de usar una opción de configuración para mejorar una
   métrica, comprobar en el código de la herramienta que esa opción se lee y se
   aplica; si no, es un cambio cosmético que no debe reportarse como mejora.
+
+---
+
+## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–42)
+
+### Hallazgo 39: Anotaciones de tipo sin importar rompen el import en Python ≤3.13 (pero pasan en 3.14)
+- **Problema**: los 6 plugins usaban `List`, `Dict`, `Any` en firmas sin
+  importarlos de `typing`. En Python 3.14 (PEP 649, anotaciones perezosas) el
+  import funciona; en 3.12.7 falla con
+  `NameError: name 'List' is not defined`. El proyecto declara 3.11/3.12 como
+  plataformas verificadas, así que era un bug real de compatibilidad.
+- **Solución**: importar en cada archivo los tipos usados en sus firmas y
+  verificar el import con el Python 3.12 real instalado.
+- **Evidencia**: con Python 3.12.7 → `NameError` antes del fix; tras el fix,
+  `deepseek_plugin import OK`; ruff F821 en 0.
+- **Regla derivada**: verificar imports en la VERSIÓN MÍNIMA soportada, no solo
+  en la más nueva instalada; en Python ≤3.13 las anotaciones se evalúan al
+  importar.
+
+### Hallazgo 40: Descubrir un plugin no es cargarlo (ni ejecutarlo)
+- **Problema**: los 6 plugins se descubrían bien, pero DuckDuckGo y Wikipedia
+  fallaban al CARGAR: llamaban a `DuckDuckGoSearchAPI(max_results=...)` y
+  `WikipediaSearchAPI(language=..., max_results=...)` — argumentos que no
+  existen. Las firmas reales son `DuckDuckGoSearchAPI(timeout=20)` y
+  `WikipediaSearchAPI(language="es", timeout=20)`, con
+  `search(query, max_results=5)`. Wikipedia además accedía a
+  `self._search.max_results` (atributo inexistente). El discovery no ejecuta
+  constructores, por eso no lo detectaba.
+- **Solución**: pasar los argumentos reales y eliminar el acceso al atributo
+  inexistente; verificar la carga completa de los 6.
+- **Evidencia**: «Load duckduckgo: FAILED» / «Load wikipedia: FAILED» antes;
+  tras el fix, los 6 cargan («Loaded plugin ... v1.0.0») y
+  `python test_plugin_system.py` pasa 8/8.
+- **Regla derivada**: una verificación debe cargar Y ejecutar el componente;
+  la presencia en un registro (o un discovery) no prueba nada.
+
+### Hallazgo 41: Definiciones duplicadas = código muerto silenciado (F811)
+- **Problema**: `tests/benchmarks/rubrics.py` acabó con DOS versiones de
+  `evaluate_dimension` y `evaluate_all_dimensions`: las nuevas (con soporte
+  `domain`) se añadieron sin borrar las viejas, que quedaron anuladas (gana la
+  última definición) — código muerto y engañoso.
+- **Solución**: eliminar las versiones viejas; conservar `_heuristic_check`,
+  que sí usa la versión nueva.
+- **Evidencia**: ruff F811 antes; «All checks passed!» después.
+- **Regla derivada**: al reemplazar una función por una "mejorada", sustituir la
+  anterior; dejarlas convivir crea código muerto que el lint ve y las personas no.
+
+### Hallazgo 42: Los IDs de modelos gratis se miden contra la API, no se eligen de memoria
+- **Problema**: el modelo por defecto de OpenRouter (Nemotron 3 Super) tardaba
+  ~11 s por llamada y no terminaba los tests reales. Varios "gratuitos" de
+  páginas de terceros fallaban de verdad: 403 por límite de la key, 403 "solo
+  para harnesses agénticos", 429 del proveedor.
+- **Solución**: script de benchmark real (13 modelos, latencia medida) + cadena
+  de fallback ordenada por velocidad que salta al siguiente modelo ante
+  429/403/404; por defecto `poolside/laguna-xs-2.1:free` (1,58 s medido).
+- **Evidencia**: 9/13 modelos respondieron; latencias 1,58–10,97 s; el pipeline
+  real completo se corta por rate limit del tier gratis (50 req/día) — se
+  declara como límite de la prueba, no se oculta.
+- **Regla derivada**: medir antes de fijar un valor por defecto; 403/404 →
+  probar siguiente modelo, 429 → reintento con backoff; documentar los límites
+  del tier gratuito como límite externo.

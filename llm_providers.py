@@ -92,6 +92,20 @@ class OpenAILLM(LLMProvider):
 # Se puede sobreescribir con la variable de entorno OPENROUTER_MODEL.
 DEFAULT_FREE_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
+# Lista de fallback ordenada por velocidad (benchmark 2026-10-15).
+# Se recorre en orden hasta que uno responde (fallo ruidoso tras agotar).
+OPENROUTER_FALLBACK_CHAIN = [
+    "poolside/laguna-xs-2.1:free",                    # 1.58s — Small, más rápido
+    "cohere/north-mini-code:free",                    # 1.64s — Small, código
+    "nvidia/nemotron-3-ultra-550b-a55b:free",        # 1.65s — Frontier, potente
+    "liquid/lfm-2.5-2.6b:free",                       # 2.27s — Small
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",  # 2.93s — Mid-size, reasoning
+    "google/gemma-4-26b-a4b-it:free",                 # 4.24s — Mid-size
+    "nvidia/nemotron-3.5-lightning:free",             # 5.04s — Mid-size
+    "poolside/laguna-s-2.1:free",                     # 5.77s — Small
+    "nvidia/nemotron-3-super-120b-a12b:free",         # 10.97s — Frontier (original)
+]
+
 
 class OpenRouterLLM(OpenAILLM):
     """Cliente para OpenRouter (https://openrouter.ai/api/v1).
@@ -99,15 +113,59 @@ class OpenRouterLLM(OpenAILLM):
     Usa OPENROUTER_API_KEY del entorno si no se pasa `api_key`.
     Modelo por defecto: OPENROUTER_MODEL si está definido, si no un modelo
     GRATUITO (`:free`, coste 0). Modelos con formato "proveedor/modelo".
+
+    Incluye FALLBACK AUTOMÁTICO: si el modelo principal falla con error
+    no transitorio (403, 404, 401, etc.), prueba el siguiente en la cadena
+    OPENROUTER_FALLBACK_CHAIN hasta agotar opciones (fallo ruidoso).
     """
 
     def __init__(self, api_key: str = None, model: str = None,
-                 base_url: str = "https://openrouter.ai/api/v1"):
+                 base_url: str = "https://openrouter.ai/api/v1",
+                 use_fallback: bool = True):
+        self._fallback_chain = OPENROUTER_FALLBACK_CHAIN
+        self._use_fallback = use_fallback
+        self._current_model_index = 0
+        
+        # Modelo inicial: variable de entorno > parámetro > defecto
+        initial_model = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_FREE_MODEL)
+        
         super().__init__(
             api_key=api_key or os.environ.get("OPENROUTER_API_KEY", ""),
-            model=model or os.environ.get("OPENROUTER_MODEL", DEFAULT_FREE_MODEL),
+            model=initial_model,
             base_url=base_url,
         )
+
+    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+        # Si se pasa modelo explícito, usarlo sin fallback (compatibilidad)
+        if model is not None:
+            return super().generate(prompt, model=model, **kwargs)
+        
+        if not self._use_fallback:
+            return super().generate(prompt, model=self.model, **kwargs)
+
+        # Cadena de fallback: modelo actual + resto de la cadena
+        modelos_a_probar = [self.model] + [m for m in self._fallback_chain if m != self.model]
+        
+        last_error = None
+        for i, modelo in enumerate(modelos_a_probar):
+            try:
+                if i > 0:
+                    print(f"[OpenRouterLLM] Fallback a modelo: {modelo}", file=sys.stderr)
+                return super().generate(prompt, model=modelo, **kwargs)
+            except Exception as exc:
+                last_error = exc
+                status = getattr(exc, "status_code", None)
+                # Fallback también en 429 tras agotar reintentos (rate limit del modelo gratis)
+                # y en errores no transitorios (403, 404, 401, etc.)
+                if status and (status == 429 or status not in {429, 500, 502, 503, 504}):
+                    print(f"[OpenRouterLLM] Modelo {modelo} falló con {status}, probando siguiente...", file=sys.stderr)
+                    continue  # Probar siguiente modelo
+                else:
+                    # Error de red/timeout (sin status) o 5xx tras reintentos: elevar
+                    raise
+        
+        # Agotados todos los modelos
+        raise last_error
 
 
 # Ollama implementation (local)
@@ -156,6 +214,25 @@ class KiloGatewayLLM(LLMProvider):
         client = OpenAI(api_key=key, base_url=self.base_url)
         return _chat_completion(client, model or self.model, prompt,
                                 self.max_retries, "KiloGatewayLLM")
+
+
+# DeepSeek implementation (OpenAI-compatible API)
+class DeepSeekLLM(OpenAILLM):
+    """Cliente para DeepSeek API (https://api.deepseek.com).
+
+    Compatible con OpenAI SDK. Usa DEEPSEEK_API_KEY del entorno si no se pasa `api_key`.
+    Modelos principales: deepseek-chat, deepseek-coder, deepseek-reasoner.
+    """
+
+    def __init__(self, api_key: str = None, model: str = "deepseek-chat",
+                 base_url: str = "https://api.deepseek.com/v1",
+                 max_retries: int = 3):
+        super().__init__(
+            api_key=api_key or os.environ.get("DEEPSEEK_API_KEY", ""),
+            model=model,
+            base_url=base_url,
+            max_retries=max_retries,
+        )
 
 
 # Mock LLM for offline demos and tests

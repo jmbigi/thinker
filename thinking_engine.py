@@ -13,14 +13,68 @@ Principios:
    se detiene y lo reporta (`invalid_steps`), en vez de continuar a ciegas.
 3. Forma de resultado estable: éxito y error devuelven las MISMAS claves
    (evita `KeyError` en el consumidor).
+
+Extensión ToT (Tree of Thoughts): añade ramificación, evaluación de estado y
+búsqueda (BFS/DFS) manteniendo compatibilidad total con la interfaz lineal.
 """
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # Nombres públicos del módulo
-__all__ = ["StepThinkingEngine"]
+__all__ = ["StepThinkingEngine", "ThinkingNode", "ToTEngine", "SearchStrategy"]
+
+
+@dataclass
+class ThinkingNode:
+    """
+    Nodo en el árbol de pensamientos (ToT).
+    
+    Cada nodo representa un estado de razonamiento parcial con:
+    - El contenido del pensamiento
+    - Su puntuación de calidad (0-1)
+    - Referencias a padre e hijos para navegación
+    - Metadatos del paso (nombre, profundidad, etc.)
+    """
+    content: str
+    step_name: str
+    score: float = 0.0
+    parent: Optional["ThinkingNode"] = None
+    children: List["ThinkingNode"] = field(default_factory=list)
+    depth: int = 0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def add_child(self, child: "ThinkingNode") -> "ThinkingNode":
+        child.parent = self
+        child.depth = self.depth + 1
+        self.children.append(child)
+        return child
+    
+    def path_to_root(self) -> List["ThinkingNode"]:
+        """Retorna la cadena de nodos desde la raíz hasta este nodo."""
+        path = []
+        node = self
+        while node:
+            path.append(node)
+            node = node.parent
+        return list(reversed(path))
+    
+    def is_leaf(self) -> bool:
+        return len(self.children) == 0
+    
+    def best_child(self) -> Optional["ThinkingNode"]:
+        if not self.children:
+            return None
+        return max(self.children, key=lambda c: c.score)
+
+
+class SearchStrategy:
+    """Estrategias de búsqueda para ToT."""
+    BFS = "bfs"
+    DFS = "dfs"
+    BEAM = "beam"  # Beam search: mantiene top-k por nivel
 
 
 class StepThinkingEngine(ABC):
@@ -47,9 +101,9 @@ class StepThinkingEngine(ABC):
     def _render_thought(self, steps: List[Tuple[str, str]]) -> str:
         """Representación legible del ciclo completo."""
 
-    # --- Ciclo común -------------------------------------------------------
+    # --- Ciclo común (lineal, compatible hacia atrás) ----------------------
     def think(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Ejecuta el ciclo completo de pensamiento estructurado."""
+        """Ejecuta el ciclo completo de pensamiento estructurado (lineal)."""
         self.step_count = 0
         return self._run_cycle(prompt, context or {})
 
@@ -125,3 +179,367 @@ class StepThinkingEngine(ABC):
                          if content and content.strip()), None)
             return f"decision_from_{last}" if last else None
         return None
+
+
+# --- Tree of Thoughts Engine -----------------------------------------------
+
+class ToTEngine(StepThinkingEngine):
+    """
+    Motor de pensamiento con Tree of Thoughts (ToT).
+    
+    Extiende StepThinkingEngine añadiendo:
+    - Ramificación: genera múltiples candidatos por paso
+    - Evaluación de estado: puntúa cada pensamiento (0-1)
+    - Búsqueda: BFS/DFS/Beam search con poda configurable
+    - Backtracking automático cuando una rama falla
+    
+    Mantiene compatibilidad total: si se llama a `think()`, ejecuta el ciclo
+    lineal original. El modo ToT se activa con `think_tot()`.
+    """
+    
+    def __init__(
+        self,
+        llm_provider=None,
+        name: str = "tot_engine",
+        max_steps: int = 7,
+        branch_factor: int = 3,
+        beam_width: int = 3,
+        search_strategy: str = SearchStrategy.BEAM,
+        min_score_threshold: float = 0.3,
+        max_depth: Optional[int] = None,
+    ):
+        super().__init__(llm_provider, name, max_steps)
+        self.branch_factor = branch_factor
+        self.beam_width = beam_width
+        self.search_strategy = search_strategy
+        self.min_score_threshold = min_score_threshold
+        self.max_depth = max_depth or max_steps
+        self._root: Optional[ThinkingNode] = None
+        self._all_nodes: List[ThinkingNode] = []
+    
+    def think_tot(
+        self,
+        prompt: str,
+        context: Dict[str, Any] = None,
+        return_tree: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Ejecuta pensamiento con Tree of Thoughts.
+        
+        Args:
+            prompt: Pregunta/problema inicial
+            context: Contexto adicional
+            return_tree: Si True, incluye el árbol completo en el resultado
+            
+        Returns:
+            Dict con las mismas claves que `think()` más:
+            - tree: ThinkingNode raíz (si return_tree=True)
+            - best_path: Lista de (step_name, content) del mejor camino
+            - explored_nodes: Total de nodos explorados
+            - pruned_nodes: Nodos podados por score bajo
+        """
+        self._root = None
+        self._all_nodes = []
+        
+        # Inicializar raíz
+        self._root = ThinkingNode(
+            content=prompt,
+            step_name="root",
+            score=1.0,
+            depth=0,
+            metadata={"is_root": True, "prompt": prompt, "context": context or {}}
+        )
+        self._all_nodes.append(self._root)
+        
+        # Ejecutar búsqueda según estrategia
+        if self.search_strategy == SearchStrategy.BFS:
+            best_leaf = self._bfs_search(prompt, context or {})
+        elif self.search_strategy == SearchStrategy.DFS:
+            best_leaf = self._dfs_search(prompt, context or {})
+        else:  # BEAM
+            best_leaf = self._beam_search(prompt, context or {})
+        
+        # Extraer mejor camino
+        best_path = [(n.step_name, n.content) for n in best_leaf.path_to_root()[1:]]  # skip root
+        
+        # Calcular métricas
+        pruned = sum(1 for n in self._all_nodes if n.score < self.min_score_threshold and n != self._root)
+        
+        result = {
+            "thought": self._render_thought(best_path),
+            "decision": self._extract_decision(best_path),
+            "confidence": self._compute_confidence(best_path),
+            "valid": best_leaf.score >= self.min_score_threshold,
+            "invalid_steps": [] if best_leaf.score >= self.min_score_threshold else [best_leaf.step_name],
+            "steps": best_path,
+            "step_count": len(best_path),
+            "error": None if best_leaf.score >= self.min_score_threshold else f"Score bajo: {best_leaf.score:.2f}",
+            "best_path": best_path,
+            "explored_nodes": len(self._all_nodes),
+            "pruned_nodes": pruned,
+            "best_score": best_leaf.score,
+        }
+        
+        if return_tree:
+            result["tree"] = self._root
+        
+        return result
+    
+    def _generate_branches(
+        self,
+        node: ThinkingNode,
+        step_name: str,
+        builder: Callable[[Dict[str, Any]], str],
+        context: Dict[str, Any],
+    ) -> List[ThinkingNode]:
+        """Genera múltiples ramas (candidatos) para un paso dado."""
+        # Construir outputs previos desde el camino a la raíz
+        outputs = {"prompt": node.metadata.get("prompt", ""), "context": node.metadata.get("context", {})}
+        for n in node.path_to_root()[1:]:  # skip root
+            outputs[n.step_name] = n.content
+        
+        # Generar branch_factor candidatos
+        branches = []
+        for i in range(self.branch_factor):
+            # Variar ligeramente el prompt para diversidad
+            varied_prompt = builder(outputs)
+            if i > 0:
+                varied_prompt += f"\n\n[Variante {i+1}/{self.branch_factor}: ofrece una perspectiva distinta o enfoque alternativo]"
+            
+            content = self._llm_generate(varied_prompt)
+            score = self._evaluate_state(content, step_name, outputs)
+            
+            child = ThinkingNode(
+                content=content,
+                step_name=step_name,
+                score=score,
+                parent=node,
+                depth=node.depth + 1,
+                metadata={"variant": i + 1, "builder_output": varied_prompt[:200]}
+            )
+            node.add_child(child)
+            self._all_nodes.append(child)
+            branches.append(child)
+        
+        return branches
+    
+    def _evaluate_state(self, content: str, step_name: str, outputs: Dict[str, Any]) -> float:
+        """
+        Evalúa la calidad de un estado de pensamiento (0-1).
+        
+        Modo híbrido:
+        - Si hay llm_provider: usa LLM-as-judge con prompt estructurado
+        - Fallback: heurística simple (keywords/longitud/coherencia)
+        
+        El LLM-as-judge evalúa: relevancia, profundidad, coherencia, razonamiento.
+        """
+        if not self.validate_step(content):
+            return 0.0
+        
+        # Intentar LLM-as-judge si hay proveedor disponible (atributo self.llm)
+        if self.llm is not None:
+            try:
+                return self._evaluate_state_llm(content, step_name, outputs)
+            except Exception:
+                # Silencioso: caer a heurística si LLM falla
+                pass
+        
+        # Fallback heurístico (código original)
+        return self._evaluate_state_heuristic(content, step_name, outputs)
+    
+    def _evaluate_state_heuristic(self, content: str, step_name: str, outputs: Dict[str, Any]) -> float:
+        """Heurística original: keywords, longitud, coherencia."""
+        score = 0.5  # base por pasar validación
+        
+        # Longitud (normalizada, óptima ~200-500 chars)
+        length_score = min(len(content) / 500, 1.0) * 0.2
+        score += length_score
+        
+        # Marcadores de razonamiento
+        reasoning_markers = [
+            "porque", "por tanto", "sin embargo", "además", "por lo tanto",
+            "en consecuencia", "dado que", "puesto que", "así que",
+            "because", "therefore", "however", "moreover", "thus",
+            "given that", "since", "so"
+        ]
+        marker_count = sum(1 for m in reasoning_markers if m in content.lower())
+        score += min(marker_count * 0.05, 0.15)
+        
+        # Coherencia con pasos previos (keywords compartidos)
+        if outputs:
+            prev_text = " ".join(str(v) for v in outputs.values() if isinstance(v, str))
+            if prev_text:
+                prev_words = set(w.lower() for w in prev_text.split() if len(w) > 4)
+                curr_words = set(w.lower() for w in content.split() if len(w) > 4)
+                overlap = len(prev_words & curr_words) / max(len(prev_words), 1)
+                score += min(overlap * 0.2, 0.15)
+        
+        return min(round(score, 2), 1.0)
+    
+    def _evaluate_state_llm(self, content: str, step_name: str, outputs: Dict[str, Any]) -> float:
+        """
+        LLM-as-judge para evaluar calidad de pensamiento.
+        
+        Prompt estructurado pide puntuación 0-10 en 4 dimensiones:
+        - Relevancia: ¿responde al paso actual?
+        - Profundidad: ¿va más allá de lo superficial?
+        - Coherencia: ¿conecta con pasos previos?
+        - Razonamiento: ¿muestra cadena lógica (no solo assertions)?
+        """
+        # Construir contexto previo
+        prev_steps = ""
+        for n in outputs:
+            if isinstance(outputs[n], str) and n not in ("prompt", "context"):
+                prev_steps += f"\n--- {n} ---\n{outputs[n][:300]}"
+        
+        prompt = f"""Eres un evaluador experto de calidad de razonamiento. Evalúa el siguiente pensamiento en una tarea de investigación.
+
+PASO ACTUAL: {step_name}
+PENSAMIENTO A EVALUAR:
+{content[:1500]}
+
+CONTEXTO PREVIO (pasos ya ejecutados):
+{prev_steps if prev_steps else "(ninguno - primer paso)"}
+
+INSTRUCCIONES:
+Puntúa cada dimensión de 0 a 10 (enteros). Sé estricto pero justo.
+
+DIMENSIONES:
+1. RELEVANCIA: ¿El pensamiento aborda directamente lo que se pide en este paso?
+2. PROFUNDIDAD: ¿Va más allá de definiciones superficiales? ¿Aporta análisis, matices, conexiones?
+3. COHERENCIA: ¿Conecta lógicamente con los pasos previos? ¿No contradice ni repite?
+4. RAZONAMIENTO: ¿Muestra cadena lógica (porque/por tanto/sin embargo) o solo assertions?
+
+FORMATO DE RESPUESTA (JSON exacto):
+{{
+  "relevance": <0-10>,
+  "depth": <0-10>,
+  "coherence": <0-10>,
+  "reasoning": <0-10>,
+  "brief_justification": "una frase explicando la puntuación global"
+}}
+
+Responde SOLO con el JSON."""
+        
+        try:
+            response = self._llm_generate(prompt)
+            # Parsear JSON de la respuesta
+            import json, re
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                eval_data = json.loads(json_match.group())
+                # Promedio ponderado: reasoning pesa más
+                weights = {"relevance": 0.25, "depth": 0.25, "coherence": 0.2, "reasoning": 0.3}
+                weighted = sum(eval_data.get(k, 0) * w for k, w in weights.items())
+                return round(min(max(weighted / 10.0, 0.0), 1.0), 2)
+        except Exception:
+            pass
+        
+        # Si falla el parsing, usar heurística
+        return self._evaluate_state_heuristic(content, step_name, outputs)
+    
+    def _bfs_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
+        """Búsqueda en anchura (BFS) - explora nivel por nivel."""
+        from collections import deque
+        
+        queue = deque([self._root])
+        
+        for step_name, builder in self._step_builders():
+            level_size = len(queue)
+            if level_size == 0:
+                break
+            
+            next_level = []
+            for _ in range(level_size):
+                node = queue.popleft()
+                if node.depth >= self.max_depth:
+                    next_level.append(node)
+                    continue
+                
+                branches = self._generate_branches(node, step_name, builder, context)
+                # Filtrar por threshold
+                valid_branches = [b for b in branches if b.score >= self.min_score_threshold]
+                next_level.extend(valid_branches)
+            
+            queue.extend(next_level)
+        
+        # Retornar la mejor hoja
+        leaves = [n for n in self._all_nodes if n.is_leaf()]
+        if not leaves:
+            return self._root
+        return max(leaves, key=lambda n: n.score)
+    
+    def _dfs_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
+        """Búsqueda en profundidad (DFS) - explora una rama hasta el final."""
+        def dfs(node: ThinkingNode, step_idx: int) -> ThinkingNode:
+            if step_idx >= len(self._step_builders()) or node.depth >= self.max_depth:
+                return node
+            
+            step_name, builder = self._step_builders()[step_idx]
+            branches = self._generate_branches(node, step_name, builder, context)
+            valid_branches = [b for b in branches if b.score >= self.min_score_threshold]
+            
+            if not valid_branches:
+                return node
+            
+            # Ordenar por score descendente y explorar la mejor primero
+            valid_branches.sort(key=lambda b: b.score, reverse=True)
+            return dfs(valid_branches[0], step_idx + 1)
+        
+        return dfs(self._root, 0)
+    
+    def _beam_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
+        """Beam search - mantiene top-k candidatos por nivel."""
+        current_beam = [self._root]
+        previous_beam = [self._root]
+        
+        for step_name, builder in self._step_builders():
+            all_candidates = []
+            
+            for node in current_beam:
+                if node.depth >= self.max_depth:
+                    all_candidates.append(node)
+                    continue
+                
+                branches = self._generate_branches(node, step_name, builder, context)
+                all_candidates.extend(branches)
+            
+            # Filtrar y ordenar por score
+            valid_candidates = [c for c in all_candidates if c.score >= self.min_score_threshold]
+            valid_candidates.sort(key=lambda n: n.score, reverse=True)
+            
+            # Mantener solo top-k (beam_width)
+            previous_beam = current_beam
+            current_beam = valid_candidates[:self.beam_width]
+            
+            if not current_beam:
+                break
+        
+        # Retornar el mejor de los finalistas
+        # Si current_beam vacío, usar previous_beam (último nivel con candidatos válidos)
+        final_beam = current_beam if current_beam else previous_beam
+        if not final_beam or final_beam == [self._root]:
+            return self._root
+        return max(final_beam, key=lambda n: n.score)
+    
+    def _render_tot_tree(self, node: Optional[ThinkingNode] = None, indent: int = 0) -> str:
+        """Renderiza el árbol completo para debugging."""
+        if node is None:
+            node = self._root
+        if node is None:
+            return "(árbol vacío)"
+        
+        lines = []
+        prefix = "  " * indent
+        marker = "●" if node == self._root else ("└─" if indent > 0 else "●")
+        score_str = f" [{node.score:.2f}]" if node.step_name != "root" else ""
+        lines.append(f"{prefix}{marker} {node.step_name}{score_str}: {node.content[:80]}...")
+        
+        for child in node.children:
+            lines.append(self._render_tot_tree(child, indent + 1))
+        
+        return "\n".join(lines)
+    
+    def get_tree_visualization(self) -> str:
+        """Retorna visualización ASCII del árbol explorado."""
+        return self._render_tot_tree(self._root)
