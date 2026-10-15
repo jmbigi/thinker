@@ -438,7 +438,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 
 ---
 
-## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–43)
+## 2026-10-15 — ToT con evaluación LLM, benchmark framework, plugins y fixes pre-commit (hallazgos 39–44)
 
 ### Hallazgo 39: Anotaciones de tipo sin importar rompen el import en Python ≤3.13 (pero pasan en 3.14)
 - **Problema**: los 6 plugins usaban `List`, `Dict`, `Any` en firmas sin
@@ -514,3 +514,22 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: la verificación previa al commit incluye `ruff check .`
   sobre TODO el árbol (o instalar el hook); verificar solo subconjuntos deja
   pasar avisos, y el CI en copia limpia es la última red, no la primera.
+
+### Hallazgo 44: El CI bash en Windows falla por el intérprete, no por el código
+- **Problema**: al re-ejecutar `scripts/ci.sh` con Git Bash en Windows, el
+  unittest de la copia limpia falló con 11 `ModuleNotFoundError: No module
+  named 'requests'`; el `python3` que resolvía Git Bash apuntaba a un intérprete
+  sin las dependencias del proyecto (y además imprimía «Could not find platform
+  independent libraries <prefix>»). El código estaba bien: `ruff` pasaba y la
+  misma suite daba 227/227 con el intérprete de desarrollo.
+- **Solución**: shim `python3` temporal (`#!/bin/sh` +
+  `exec /c/Python314/python.exe "$@"`) en un directorio añadido a `PATH`;
+  re-ejecutar `PATH=<shim>:$PATH bash scripts/ci.sh` → verde total. No se tocó
+  `ci.sh` (correcto en Linux) ni se instalaron paquetes de sistema.
+- **Evidencia**: CI con 11 errors ModuleNotFoundError vs CI con shim →
+  «ruff All checks passed!», py_compile limpio, «Ran 227 tests … OK»,
+  «OK: sin secretos…», «…la copia limpia de HEAD verifica entera».
+- **Regla derivada**: ante un fallo del CI con mensajes de imports ausentes,
+  comprobar QUÉ intérprete resuelve `python3` en el shell (sobre todo en
+  Windows/Git Bash) antes de tocar el código; distinguir fallo de entorno de
+  fallo real, y documentarlo.
