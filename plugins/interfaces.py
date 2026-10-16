@@ -6,7 +6,7 @@ All plugins must implement one of these interfaces for type safety and hot-swapp
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 from enum import Enum
 
 
@@ -149,7 +149,7 @@ class CorePlugin(PluginBase):
         self.metadata.plugin_type = PluginType.CORE
 
     @abstractmethod
-    def get_hooks(self) -> Dict[str, callable]:
+    def get_hooks(self) -> Dict[str, Callable]:
         """
         Return a dict of hook_name -> callable.
         

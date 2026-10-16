@@ -25,7 +25,7 @@ class WikipediaSearchPlugin(SearchProviderPlugin):
             config_schema={
                 "type": "object",
                 "properties": {
-                    "language": {"type": "string", "default": "en"},
+                    "language": {"type": "string", "default": "es"},
                     "max_results": {"type": "integer", "default": 5},
                     "timeout": {"type": "integer", "default": 10},
                 },
@@ -35,7 +35,7 @@ class WikipediaSearchPlugin(SearchProviderPlugin):
     def initialize(self) -> bool:
         try:
             from web_search import WikipediaSearchAPI
-            language = self.config.params.get("language", "en")
+            language = self.config.params.get("language", "es")
             timeout = self.config.params.get("timeout", 10)
             self._search = WikipediaSearchAPI(language=language, timeout=timeout)
             self._initialized = True

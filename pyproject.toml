@@ -10,6 +10,7 @@ dependencies = [
     "requests>=2.31",
     "openai>=1.0",
     "python-dotenv>=1.0",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]

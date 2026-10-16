@@ -9,7 +9,6 @@ import sys
 import time
 import importlib
 import importlib.util
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Callable
 from dataclasses import dataclass
 from collections import defaultdict
@@ -54,13 +53,14 @@ class PluginRegistry:
         
         self._plugins: Dict[str, PluginEntry] = {}
         self._hooks: Dict[str, List[Callable]] = defaultdict(list)
+        self._plugin_hooks: Dict[str, Dict[str, Callable]] = {}
         self._active_llm: Optional[str] = None
         self._active_search: Optional[str] = None
         self._config_cache: Dict[str, Any] = {}
         
-        # Ensure plugin directories exist
-        for d in self.plugin_dirs:
-            Path(d).mkdir(parents=True, exist_ok=True)
+        # Los directorios de plugins NO se crean aquí: `discover_plugins` ya
+        # omite los que no existen, y crear carpetas al importar el módulo
+        # ensuciaba el árbol de trabajo como efecto colateral (P0.3).
 
     def discover_plugins(self) -> int:
         """
@@ -112,6 +112,13 @@ class PluginRegistry:
         temp_instance = plugin_class()
         metadata = temp_instance.metadata
         metadata.status = PluginStatus.UNLOADED
+
+        existing = self._plugins.get(metadata.name)
+        if existing and existing.metadata.status in (PluginStatus.LOADED,
+                                                     PluginStatus.LOADING):
+            # Un descubrimiento posterior NO debe pisar una entrada viva:
+            # se perdería la instancia cargada (y sus hooks quedarían huérfanos).
+            return
         
         entry = PluginEntry(
             metadata=metadata,
@@ -146,6 +153,10 @@ class PluginRegistry:
             # Create instance
             instance = entry.plugin_class(final_config)
             entry.instance = instance
+            # Una única fuente de metadatos: el instance comparte el objeto
+            # `metadata` del registro, de modo que `get_stats()` (dashboard/CLI)
+            # y el ciclo de vida (status, load_time, error) no puedan divergir.
+            instance.metadata = entry.metadata
             
             # Initialize
             if not instance.initialize():
@@ -227,7 +238,12 @@ class PluginRegistry:
         return base_config
 
     def _load_config_file(self) -> Dict[str, Any]:
-        """Load plugin configuration from YAML/TOML file."""
+        """Load plugin configuration from YAML/TOML file.
+
+        Un archivo ilegible o una dependencia ausente NO se ignoran en
+        silencio (P1.19/P1.26): se eleva un RuntimeError con el motivo, en vez
+        de seguir con los valores por defecto como si la config fuera válida.
+        """
         if self._config_cache:
             return self._config_cache
         
@@ -241,22 +257,38 @@ class PluginRegistry:
                 elif self.config_path.endswith(".toml"):
                     import toml
                     config = toml.load(self.config_path)
+            except ImportError as e:
+                raise RuntimeError(
+                    f"No se puede leer {self.config_path}: falta la dependencia "
+                    f"de YAML ({e}). Instala PyYAML (ver requirements.txt) o usa "
+                    "un archivo .toml."
+                ) from e
             except Exception as e:
-                print(f"[PluginRegistry] Failed to load config: {e}", file=sys.stderr)
+                raise RuntimeError(
+                    f"No se pudo leer la configuración de plugins "
+                    f"({self.config_path}): {e}"
+                ) from e
         
         self._config_cache = config.get("plugins", {})
         return self._config_cache
 
     def _register_hooks(self, plugin: CorePlugin) -> None:
-        """Register plugin hooks."""
-        hooks = plugin.get_hooks()
+        """Register plugin hooks.
+
+        Se guardan los callables EXACTOS que se registran: `get_hooks()` puede
+        devolver objetos nuevos en cada llamada (p. ej. lambdas), así que dar
+        de baja con una llamada nueva no encontraría nada y el hook seguiría
+        activo tras el hot-swap.
+        """
+        hooks = dict(plugin.get_hooks())
+        self._plugin_hooks[plugin.metadata.name] = hooks
         for hook_name, hook_func in hooks.items():
             self._hooks[hook_name].append(hook_func)
 
     def _unregister_hooks(self, plugin: CorePlugin) -> None:
-        """Unregister plugin hooks."""
-        hooks = plugin.get_hooks()
-        for hook_name, hook_func in hooks.items():
+        """Unregister plugin hooks (los registrados exactamente al cargar)."""
+        registered = self._plugin_hooks.pop(plugin.metadata.name, {})
+        for hook_name, hook_func in registered.items():
             if hook_func in self._hooks[hook_name]:
                 self._hooks[hook_name].remove(hook_func)
 
@@ -365,11 +397,18 @@ class PluginRegistry:
         }
 
     def load_all(self, plugin_type: PluginType = None) -> Dict[str, bool]:
-        """Load all discovered plugins (or of specific type)."""
+        """Load all discovered plugins that are enabled (or of specific type).
+
+        El `enabled` se consulta en la configuración YA FUSIONADA con el
+        archivo: en el descubrimiento aún no se ha leído `config/plugins.yaml`,
+        y comprobar `entry.config.enabled` ahí cargaba plugins deshabilitados.
+        Una llamada explícita a `load_plugin(name)` sigue cargando el plugin
+        aunque esté deshabilitado (la acción es deliberada).
+        """
         results = {}
         for name, entry in self._plugins.items():
             if plugin_type is None or entry.metadata.plugin_type == plugin_type:
-                if entry.config.enabled:
+                if self._merge_config(name).enabled:
                     results[name] = self.load_plugin(name)
         return results
 
