@@ -134,6 +134,10 @@ class OpenRouterLLM(OpenAILLM):
             model=initial_model,
             base_url=base_url,
         )
+        # Igual que en DeepSeekLLM: `OpenAILLM.__init__` cae a OPENAI_API_KEY si
+        # la clave es vacía, y este cliente habla con OTRO proveedor
+        # (openrouter.ai): no se debe enviar allí la clave de OpenAI.
+        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY", "")
 
     def generate(self, prompt: str, model: str = None, **kwargs) -> str:
         # Si se pasa modelo explícito, usarlo sin fallback (compatibilidad)
@@ -233,6 +237,10 @@ class DeepSeekLLM(OpenAILLM):
             base_url=base_url,
             max_retries=max_retries,
         )
+        # `OpenAILLM.__init__` cae a OPENAI_API_KEY cuando la clave es vacía; en
+        # un cliente de OTRO proveedor eso enviaría la clave de OpenAI a un
+        # tercero (api.deepseek.com). Se fija aquí la clave propia, o vacía.
+        self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
 
 
 # Mock LLM for offline demos and tests

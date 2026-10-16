@@ -856,3 +856,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   localizar los focos por función y atacar con aserciones exactas dirigidas por
   datos; perseguir mutantes equivalentes (p. ej. el recorte inalcanzable
   `min(round(score, 2), 1.0)`) no aporta valor.
+
+### Hallazgo 61: Una aserción de test imprimió la clave real (y un cliente de otro proveedor la heredaba)
+
+- **Problema (seguridad)**: al escribir los tests del constructor de
+  `DeepSeekLLM` se comprobó `llm.api_key == ""` sin aislar el entorno; la clave
+  no era vacía y `assertEqual` imprimió su valor REAL en la salida de unittest
+  (una clave `sk-proj-…` de OpenAI). La causa de fondo era un bug: `DeepSeekLLM`
+  y `OpenRouterLLM` heredaban `OPENAI_API_KEY` porque `OpenAILLM.__init__` cae a
+  esa variable cuando la clave propia está vacía — un cliente de OTRO proveedor
+  habría enviado la clave de OpenAI a `api.deepseek.com` / `openrouter.ai`.
+- **Solución**: (1) `DeepSeekLLM` y `OpenRouterLLM` fijan su propia clave tras
+  `super().__init__()`, sin heredar la de OpenAI; (2) los tests de claves usan
+  SIEMPRE valores ficticios o vacíos (fijados con `patch.dict`, incluida
+  `OPENAI_API_KEY`) para que un fallo no pueda imprimir una clave real;
+  (3) regresiones `test_no_hereda_la_clave_de_openai` y
+  `test_openrouter_no_hereda_la_clave_de_openai`.
+- **Evidencia**: el fallo imprimió `sk-proj-…` en la salida de unittest;
+  `grep -rl "sk-proj-" .` y `scripts/scan-secrets.sh` → sin rastro en ningún
+  archivo del repo (el escape fue solo a la salida de esa ejecución); tras el
+  arreglo, 312/312 tests OK.
+- **Regla derivada**: un test nunca debe asertar contra valores del entorno sin
+  fijarlos antes (una aserción fallida imprime ambos lados), y la clave de un
+  proveedor no debe poder caer en el cliente de otro.

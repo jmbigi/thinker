@@ -364,5 +364,52 @@ class TestToTEngineDetalle(unittest.TestCase):
         self.assertNotIn("uno", capturado[0])
 
 
+class TestVisualizacionDelArbol(unittest.TestCase):
+    """`_render_tot_tree`/`get_tree_visualization`: 35 mutantes sin ningún test."""
+
+    def test_arbol_vacio(self):
+        self.assertEqual(TinyToT(llm_provider=None).get_tree_visualization(),
+                         "(árbol vacío)")
+
+    def test_incluye_raiz_pasos_indentacion_y_puntuacion(self):
+        engine = TinyToT(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                         branch_factor=1)
+        engine.think_tot("mi pregunta")
+
+        lineas = engine.get_tree_visualization().split("\n")
+        self.assertEqual(len(lineas), 3)
+        # la raíz no muestra puntuación y conserva su contenido
+        self.assertTrue(lineas[0].startswith("● root:"))
+        self.assertNotIn("[", lineas[0])
+        self.assertIn("mi pregunta", lineas[0])
+        # los hijos van indentados con "└─" y la puntuación con 2 decimales
+        self.assertTrue(lineas[1].startswith("  └─ uno ["))
+        self.assertTrue(lineas[2].startswith("    └─ dos ["))
+
+    def test_contenido_se_trunca_a_80_caracteres(self):
+        def responder(prompt):
+            if "evaluador experto" in prompt:
+                return '{"relevance": 5, "depth": 5, "coherence": 5, "reasoning": 5}'
+            return "x" * 100
+
+        engine = TinyToT(llm_provider=StubLLM(responder), branch_factor=1)
+        engine.think_tot("p")
+
+        linea = engine.get_tree_visualization().split("\n")[1]
+        self.assertIn("x" * 80 + "...", linea)
+        self.assertNotIn("x" * 81, linea)
+
+    def test_renderiza_un_nodo_concreto_sin_raiz(self):
+        engine = TinyToT(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                         branch_factor=1)
+        engine.think_tot("p")
+
+        dibujo = engine._render_tot_tree(engine._root.children[0])
+
+        self.assertTrue(dibujo.startswith("● uno ["))
+        self.assertNotIn("root", dibujo)
+        self.assertIn("└─ dos [", dibujo)
+
+
 if __name__ == "__main__":
     unittest.main()

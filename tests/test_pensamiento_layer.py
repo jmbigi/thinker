@@ -132,5 +132,82 @@ class TestMain(unittest.TestCase):
         self.assertIn("Score mejor:", salida)
 
 
+class LayerQueCaptura(DeepResearchThinkingLayer):
+    """Capa de un solo paso real ('analysis') que anota los parámetros ToT.
+
+    El nombre del paso debe ser uno de los de la capa real: `_render_thought`
+    indexa `etiquetas[name]` y lanzaría KeyError con un nombre inventado.
+    """
+
+    visto = None
+
+    def _step_builders(self):
+        def builder(o):
+            if self.visto is not None:
+                self.visto.append((self.branch_factor, self.beam_width,
+                                   self.search_strategy,
+                                   self.min_score_threshold, self.max_depth))
+            return "prompt del paso"
+        return [("analysis", builder)]
+
+
+class TestThinkTotConOverrides(unittest.TestCase):
+    """`DeepResearchThinkingLayer.think_tot` aplica y RESTAURA sus overrides."""
+
+    def _layer(self, **kwargs):
+        layer = LayerQueCaptura(
+            StubLLM(lambda p: '{"relevance": 5, "depth": 5, "coherence": 5, '
+                              '"reasoning": 5}'),
+            **kwargs)
+        layer.visto = []
+        return layer
+
+    def test_aplica_overrides_durante_la_llamada(self):
+        layer = self._layer(branch_factor=1)
+
+        layer.think_tot("pregunta", branch_factor=5, beam_width=2,
+                        search_strategy="dfs", min_score_threshold=0.9,
+                        max_depth=3)
+
+        self.assertEqual(layer.visto[0], (5, 2, "dfs", 0.9, 3))
+
+    def test_restaura_los_valores_originales(self):
+        layer = self._layer(branch_factor=1, beam_width=4)
+
+        layer.think_tot("pregunta", branch_factor=5, search_strategy="dfs")
+
+        self.assertEqual(layer.branch_factor, 1)
+        self.assertEqual(layer.beam_width, 4)
+        self.assertEqual(layer.search_strategy, "beam")
+        self.assertEqual(layer.min_score_threshold, 0.3)
+        self.assertEqual(layer.max_depth, 7)
+
+    def test_sin_kwargs_no_cambia_nada(self):
+        layer = self._layer(branch_factor=1)
+
+        layer.think_tot("pregunta")
+
+        self.assertEqual(layer.visto[0], (1, 3, "beam", 0.3, 7))
+
+    def test_restaura_tambien_si_el_llm_falla(self):
+        def explotar(prompt):
+            raise RuntimeError("fallo simulado de red")
+
+        layer = DeepResearchThinkingLayer(StubLLM(explotar), branch_factor=1)
+        with self.assertRaises(RuntimeError):
+            layer.think_tot("pregunta", branch_factor=5, max_depth=2)
+
+        self.assertEqual(layer.branch_factor, 1)
+        self.assertEqual(layer.max_depth, 7)
+
+    def test_devuelve_el_resultado_del_motor(self):
+        layer = self._layer(branch_factor=1)
+
+        result = layer.think_tot("pregunta")
+
+        self.assertEqual([n for n, _ in result["best_path"]], ["analysis"])
+        self.assertIn("best_score", result)
+
+
 if __name__ == "__main__":
     unittest.main()

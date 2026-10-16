@@ -22,6 +22,7 @@ from deep_research_system import (DEFAULT_FREE_MODEL, ClaimExtractor,
                                   _parse_json_response)
 from tests.helpers import (FakeAPIError, StubLLM, StubSearch,
                            make_chat_client, ok_chat_response)
+from llm_providers import DeepSeekLLM
 from web_search import MockSearchAPI
 
 
@@ -169,6 +170,13 @@ class TestLLMProviders(unittest.TestCase):
             llm = OpenRouterLLM()
         self.assertEqual(llm.api_key, "clave-ficticia-de-test")
 
+    def test_openrouter_no_hereda_la_clave_de_openai(self):
+        """Regresión de seguridad: sin clave propia NO debe usar OPENAI_API_KEY."""
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "",
+                                     "OPENAI_API_KEY": "clave-de-openai-ficticia"}):
+            llm = OpenRouterLLM()
+        self.assertEqual(llm.api_key, "")
+
     def test_openrouter_fallback_salta_modelo_con_error_no_transitorio(self):
         from llm_providers import OPENROUTER_FALLBACK_CHAIN
 
@@ -269,6 +277,58 @@ class TestLLMProviders(unittest.TestCase):
         with patch("requests.post", return_value=resp):
             with self.assertRaises(real_requests.HTTPError):
                 OllamaLLM().generate("p")
+
+
+class TestDeepSeekLLM(unittest.TestCase):
+    """`DeepSeekLLM`: su constructor no tenía ningún test (21 mutantes sin ejecutar).
+
+    Ningún assert usa claves reales del entorno: se fijan valores ficticios o
+    vacíos, para que un fallo NUNCA imprima una clave (P0.6).
+    """
+
+    SIN_CLAVES = {"DEEPSEEK_API_KEY": "", "OPENAI_API_KEY": ""}
+
+    def test_valores_por_defecto(self):
+        with patch.dict(os.environ, self.SIN_CLAVES):
+            llm = DeepSeekLLM()
+
+        self.assertEqual(llm.model, "deepseek-chat")
+        self.assertEqual(llm.base_url, "https://api.deepseek.com/v1")
+        self.assertEqual(llm.max_retries, 3)
+        self.assertEqual(llm.api_key, "")
+
+    def test_no_hereda_la_clave_de_openai(self):
+        """Regresión de seguridad: sin clave propia NO debe usar OPENAI_API_KEY.
+
+        `OpenAILLM.__init__` cae a OPENAI_API_KEY si la clave es vacía; en un
+        cliente de otro proveedor eso enviaría la clave de OpenAI a un tercero.
+        """
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "",
+                                     "OPENAI_API_KEY": "clave-de-openai-ficticia"}):
+            llm = DeepSeekLLM()
+
+        self.assertEqual(llm.api_key, "")
+
+    def test_key_desde_entorno(self):
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "clave-ficticia-de-test"}):
+            llm = DeepSeekLLM()
+
+        self.assertEqual(llm.api_key, "clave-ficticia-de-test")
+
+    def test_parametros_explicitos_ganan(self):
+        llm = DeepSeekLLM(api_key="otra-clave-ficticia", model="deepseek-reasoner",
+                          base_url="https://ejemplo.invalid/v1", max_retries=7)
+
+        self.assertEqual(llm.api_key, "otra-clave-ficticia")
+        self.assertEqual(llm.model, "deepseek-reasoner")
+        self.assertEqual(llm.base_url, "https://ejemplo.invalid/v1")
+        self.assertEqual(llm.max_retries, 7)
+
+    def test_sin_key_eleva_value_error_al_generar(self):
+        with patch.dict(os.environ, self.SIN_CLAVES):
+            llm = DeepSeekLLM(api_key="")
+            with self.assertRaises(ValueError):
+                llm.generate("hola")
 
 
 class TestMockLLM(unittest.TestCase):
