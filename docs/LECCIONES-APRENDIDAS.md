@@ -931,3 +931,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: un registro de decisión no debe prometer una acción que ya
   no va a ocurrir; los tests con aserciones exactas encuentran incoherencias que
   el «camino feliz» no ve.
+
+### Hallazgo 64: Aserciones exactas en los cuatro motores (mutación 66,3% → 79,4%)
+
+- **Problema**: `deep_research_system` era el módulo más débil en mutación
+  (66,3%; 208 supervivientes) y los cuatro motores del pipeline
+  (`EvidenceEvaluator` 59, `SourceRetriever` 34, `ReportGenerator` 27,
+  `ClaimExtractor` 25) estaban cubiertos solo por tests de «camino feliz».
+- **Solución**: 24 tests de valores EXACTOS — selección de fuentes por URL del
+  claim (y respaldo a las 3 primeras), truncados (snippet 200, claim 500,
+  conclusión 100), formato exacto de las decisiones, diccionario de fallo del
+  evaluador, orden y agotamiento de las consultas candidatas, contadores del
+  prompt del informe — más el Hallazgo 63 que destaparon.
+- **Evidencia** (campaña completa, antes→después): matados 2086→2237,
+  supervivientes 713→641; `deep_research_system` 208→133 supervivientes
+  (66,3%→79,4%); global 74,5%→77,7%.
+- **Regla derivada**: los motores con prompts largos se testean por partes (qué
+  entra en el prompt, qué se anota en el resultado, qué se registra en la
+  decisión), no solo por el resultado final: ahí viven los mutantes vivos.
