@@ -169,6 +169,63 @@ class TestLLMProviders(unittest.TestCase):
             llm = OpenRouterLLM()
         self.assertEqual(llm.api_key, "clave-ficticia-de-test")
 
+    def test_openrouter_fallback_salta_modelo_con_error_no_transitorio(self):
+        from llm_providers import OPENROUTER_FALLBACK_CHAIN
+
+        client = make_chat_client([
+            FakeAPIError("modelo caído", status_code=404),
+            ok_chat_response("respuesta del segundo modelo"),
+        ])
+        with patch("openai.OpenAI", return_value=client):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test", model="modelo-a:free")
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "respuesta del segundo modelo")
+        self.assertEqual([c["model"] for c in client.calls],
+                         ["modelo-a:free", OPENROUTER_FALLBACK_CHAIN[0]])
+
+    def test_openrouter_429_agota_reintentos_y_salta_de_modelo(self):
+        client = make_chat_client(
+            [FakeAPIError("rate limit", status_code=429)] * 3
+            + [ok_chat_response("respuesta del siguiente modelo")]
+        )
+        with patch("openai.OpenAI", return_value=client), \
+                patch("deep_research_system.time.sleep"):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test", model="modelo-a:free")
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "respuesta del siguiente modelo")
+        self.assertEqual(len(client.calls), 4)  # 3 reintentos + 1 modelo nuevo
+
+    def test_openrouter_fallback_agotado_eleva_el_ultimo_error(self):
+        from llm_providers import OPENROUTER_FALLBACK_CHAIN
+
+        intentos = len(OPENROUTER_FALLBACK_CHAIN)
+        client = make_chat_client([FakeAPIError("no", status_code=404)] * intentos)
+        with patch("openai.OpenAI", return_value=client):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+            with self.assertRaises(FakeAPIError):
+                llm.generate("p")
+
+        self.assertEqual(len(client.calls), intentos)
+
+    def test_openrouter_sin_fallback_usa_solo_el_modelo_configurado(self):
+        client = make_chat_client([FakeAPIError("no", status_code=404)])
+        with patch("openai.OpenAI", return_value=client):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test", use_fallback=False)
+            with self.assertRaises(FakeAPIError):
+                llm.generate("p")
+
+        self.assertEqual(len(client.calls), 1)
+
+    def test_openrouter_modelo_explicito_no_usa_fallback(self):
+        client = make_chat_client([ok_chat_response("ok")])
+        with patch("openai.OpenAI", return_value=client):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+            llm.generate("p", model="otro/modelo:free")
+
+        self.assertEqual([c["model"] for c in client.calls], ["otro/modelo:free"])
+
     def test_kilo_sin_key_eleva_value_error(self):
         with patch.dict(os.environ, {"KILO_API_KEY": ""}):
             llm = KiloGatewayLLM(api_key="")

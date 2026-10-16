@@ -169,6 +169,21 @@ class TestToTEngine(unittest.TestCase):
         self.assertNotIn("tree", engine.think_tot("prueba"))
         self.assertIn("tree", engine.think_tot("prueba", return_tree=True))
 
+    def test_estrategias_bfs_y_dfs_exploran_el_arbol(self):
+        from thinking_engine import SearchStrategy
+
+        for estrategia in (SearchStrategy.BFS, SearchStrategy.DFS):
+            with self.subTest(estrategia=estrategia):
+                engine = TinyToT(
+                    llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                    branch_factor=2, beam_width=2, search_strategy=estrategia,
+                )
+                result = engine.think_tot("prueba")
+
+                self.assertEqual([n for n, _ in result["best_path"]], ["uno", "dos"])
+                self.assertGreater(result["explored_nodes"], 0)
+                self.assertTrue(result["valid"])
+
     def test_juez_con_json_usa_su_puntuacion(self):
         def juez(prompt):
             if "evaluador experto" in prompt:

@@ -768,3 +768,64 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   281/281 de la suite.
 - **Regla derivada**: un descubrimiento/escaneo debe ser idempotente respecto a
   lo ya cargado; sobrescribir sin comprobar el estado destruye trabajo vivo.
+
+### Hallazgo 57: La sonda por muestreo separa «key rota» de «rate limit», y la regla de mínima calidad de modelos
+
+- **Problema**: `test_openrouter_real.py` no completó por 429 repetidos
+  (re-verificación del Hallazgo 42) y quedaba la duda de si la causa era la
+  key, la red, el servicio o el modelo. Un único intento no distingue causa ni
+  permanencia, y la prueba completa agota el cupo al reintentar.
+- **Solución**: sondear en el tiempo en vez de repetir la prueba completa: 9
+  llamadas mínimas (`"Helo"`) cada 15 s durante 2 minutos contra el modelo por
+  defecto, con timeout explícito por muestra; la sonda queda reutilizable en
+  `scripts/probe_model.py` (sin key definida: no prueba y se omite).
+- **Evidencia** (2026-10-16, `poolside/laguna-xs-2.1:free`): 8/9 respuestas OK
+  con latencias 2,37–21,52 s y 1 solo fallo 429. Es decir: key y servicio
+  correctos, con rate limit intermitente del tier gratuito; el defecto cumple
+  la regla con margen (máximo 21,52 s frente a 60 s).
+- **Regla del programador derivada**: no se prueba ni se fija como defecto un
+  modelo que tarde SIEMPRE más de 1 minuto en responder `"Helo"` (no es
+  práctico ni realista); si no hay key definida, no se prueba. Documentada como
+  regla propia 10 en `AGENTS.md` y verificable con `scripts/probe_model.py`.
+- **Regla derivada (técnica)**: ante un fallo intermitente de API, muestrear
+  llamadas mínimas en el tiempo —distingue causa (key/red/servicio/rate limit)
+  y permanencia— antes de repetir la prueba completa, que consume cupo.
+
+### Hallazgo 58: La cifra de mutación publicada era anterior al código de ToT
+
+- **Problema**: `AGENTS.md` publicaba «75,0% de mutantes muertos (1604/2139)»
+  (2026-10-14) como fuerza actual de la suite, pero el Tree of Thoughts entró al
+  día siguiente (commit 4e9dd1b) y nadie volvió a medir: la cifra publicada
+  describía un árbol de código que ya no existía entero. Además decía «la
+  cobertura (99%)» cuando dos de los seis módulos mutados estaban muy por
+  debajo (77% y 82%).
+- **Solución**: re-medir con `make mutation` y publicar el resultado con fecha,
+  contexto y desglose por archivo; corregir la afirmación de cobertura.
+- **Evidencia** (2026-10-16, HEAD): 1895 matados / 787 supervivientes / 99 sin
+  test = 2781 mutantes → 68,1% matados; por archivo (matados/total, incluyendo
+  los sin test): `thinking_engine` 59,0%, `deep_research_system` 66,3%,
+  `llm_providers` 73,7%, `code_design_improvement_tools` 79,0%,
+  `pensamiento_layer` 80,8%, `web_search` 84,0%. El código nuevo (ToT) es el
+  punto débil, no una regresión de los tests viejos.
+- **Regla derivada**: una métrica publicada se re-mide tras cada cambio grande
+  de código y se anota su fecha y alcance; un porcentaje sin fecha ni
+  denominador comparable es una afirmación no verificada.
+
+### Hallazgo 59: Tests que importan módulos fuera de `source_paths` rompen la campaña
+
+- **Problema**: los tests nuevos del subsistema de plugins importan `plugins/`,
+  que no está en `[tool.mutmut] source_paths` y por tanto no existe en el
+  sandbox `mutants/`: `make mutation` moría al colectar
+  (`ModuleNotFoundError: No module named 'plugins'`) sin ejecutar ni un mutante.
+  El fallo solo aparecía en el sandbox: `make test` y el CI seguían verdes.
+- **Solución**: excluir esos tres ficheros de la selección de pytest de mutmut
+  (`pytest_add_cli_args_test_selection` con `--ignore=...`), documentando que
+  siguen corriendo en `make test` (miden el subsistema de plugins, que no se
+  muta).
+- **Evidencia**: antes → «ERROR collecting tests/test_plugin_cli.py … Failed to
+  collect list of tests» y `make: *** [Makefile:40: mutation] Error 1`; después
+  → campaña completa (2781 mutantes medidos, resultados por archivo del
+  Hallazgo 58).
+- **Regla derivada**: al añadir tests, comprobar también la herramienta que los
+  ejecuta en OTRO entorno (mutmut): un test que pasa en `make test` puede romper
+  una campaña que corre en un sandbox con solo parte del árbol.

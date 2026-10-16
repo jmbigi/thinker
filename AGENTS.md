@@ -55,6 +55,11 @@ mejora de código (`code_design_improvement_tools.py`).
    `scripts/scan-secrets.sh` (en el hook) escanea credenciales y datos
    personales en archivos versionados; `.env.example` es seguro (valores
    vacíos o `...`). Ante un hallazgo: reportar y proponer variable de entorno.
+10. **Mínima calidad de modelos** (regla del programador, 2026-10-16): no se
+    prueba ni se fija como defecto un modelo que tarde SIEMPRE más de 1 minuto
+    en responder `"Helo"` —no es práctico ni realista—. Verificable con
+    `python3 scripts/probe_model.py` (opt-in, key + red, coste 0 con `:free`).
+    **Si no hay key definida, no se prueba**: se reporta y se omite.
 
 ## Entorno y verificación (comandos del proyecto)
 
@@ -71,16 +76,27 @@ mejora de código (`code_design_improvement_tools.py`).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
   con el modelo gratuito por defecto.
+- Sonda de modelo (opt-in, key + red, coste 0 con `:free`):
+  `python3 scripts/probe_model.py --samples 5` — mide latencias reales de
+  `"Helo"` y dictamina APTO/NO APTO según la regla propia 10 (sin key, no
+  prueba).
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
-- Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-14:
-  **75,0% de mutantes muertos** (1604/2139) **excluyendo las líneas `print(...)`**
-  —no alteran estado y solo producen mutantes equivalentes—, y **65,7%**
-  (1720/2617) incluyéndolas. La exclusión usa `do_not_mutate_patterns`, la
+- Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-16 (HEAD con
+  ToT y tests de plugins): **68,1% de mutantes muertos** (1895/2781; 99 más sin
+  ningún test que los ejercite) **excluyendo las líneas `print(...)`** —no
+  alteran estado y solo producen mutantes equivalentes—. NO es comparable con
+  la medición anterior (75,0%, 1604/2139, 2026-10-14): aquella es anterior al
+  código de ToT, que entró sin tests propios y hoy es el punto débil (el
+  desglose por archivo, con su caveat, está en `docs/LECCIONES-APRENDIDAS.md`,
+  Hallazgo 58). La exclusión de `print` usa `do_not_mutate_patterns`, la
   opción que el motor aplica de verdad (la lista `do_not_mutate` no se usa y el
-  pragma `# pragma: no mutate` afecta solo a su propia línea). La cobertura
-  (99%) y la mutación miden cosas distintas.
+  pragma `# pragma: no mutate` afecta solo a su propia línea). Los tests del
+  subsistema de plugins se excluyen de la campaña (importan `plugins/`, fuera
+  de `source_paths`): siguen corriendo en `make test`. La cobertura y la
+  mutación miden cosas distintas: cuatro de los seis módulos mutados están al
+  97-100% de cobertura y la suite solo mata 68,1% de los mutantes.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

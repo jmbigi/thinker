@@ -22,7 +22,7 @@ venv/
 
 # Pruebas de mutación (mutmut)
 mutants/
-.mutmut-cache/
+.mutmut-cache
 
 # Sistema operativo / editores
 .DS_Store
