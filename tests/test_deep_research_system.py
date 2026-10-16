@@ -609,5 +609,358 @@ class TestMain(unittest.TestCase):
         self.assertIn("End of Research Session", salida)
 
 
+class TestMotoresConAsercionesExactas(unittest.TestCase):
+    """Aserciones exactas sobre prompts, contadores y decisiones (matan mutantes).
+
+    Los tests anteriores comprobaban el «camino feliz» en grande; estos fijan
+    los valores concretos que los mutantes cambian sin que nadie lo note.
+    """
+
+    def _contexto_con_fuentes(self, n=2, snippet="snip"):
+        ctx = ResearchContext("¿pregunta?")
+        for i in range(n):
+            ctx.sources.append({"url": f"u{i}", "title": f"T{i}",
+                                "snippet": snippet})
+        return ctx
+
+    # --- EvidenceEvaluator -------------------------------------------------
+    def test_evaluator_prompt_lleva_solo_las_fuentes_del_claim(self):
+        llm = StubLLM(lambda p: '{"verdict": "supported", "credibility": 0.5, '
+                                '"confidence": 0.5, "reasoning": "r"}')
+        ctx = self._contexto_con_fuentes(3)
+
+        EvidenceEvaluator(llm).decide(ctx, {"claim": "algo", "source_url": "u1"})
+
+        prompt = llm.prompts[0]
+        self.assertIn("Source 1: T1: snip", prompt)
+        self.assertNotIn("T0", prompt)
+        self.assertNotIn("T2", prompt)
+        self.assertIn("Claim: algo", prompt)
+
+    def test_evaluator_sin_fuente_propia_usa_las_tres_primeras(self):
+        llm = StubLLM(lambda p: '{"verdict": "supported", "credibility": 0.5, '
+                                '"confidence": 0.5, "reasoning": "r"}')
+        ctx = self._contexto_con_fuentes(5)
+
+        EvidenceEvaluator(llm).decide(ctx, {"claim": "algo", "source_url": "otra"})
+
+        prompt = llm.prompts[0]
+        self.assertIn("Source 3: T2: snip", prompt)
+        self.assertNotIn("T3", prompt)
+
+    def test_evaluator_trunca_el_snippet_a_200(self):
+        llm = StubLLM(lambda p: '{"verdict": "supported", "credibility": 0.5, '
+                                '"confidence": 0.5, "reasoning": "r"}')
+        ctx = ResearchContext("q")
+        ctx.sources.append({"url": "u0", "title": "T",
+                            "snippet": "x" * 250})
+
+        EvidenceEvaluator(llm).decide(ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertIn("x" * 200 + "\n", llm.prompts[0])
+        self.assertNotIn("x" * 201, llm.prompts[0])
+
+    def test_evaluator_anota_claim_url_y_marca_tiempo(self):
+        llm = StubLLM(lambda p: '{"verdict": "contradicted", "credibility": 0.25, '
+                                '"confidence": 0.5, "reasoning": "r"}')
+        ctx = self._contexto_con_fuentes(1)
+
+        ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "c1", "source_url": "u0"})
+
+        self.assertEqual(ev["claim"], "c1")
+        self.assertEqual(ev["source_url"], "u0")
+        self.assertIsInstance(ev["evaluated_at"], float)
+        self.assertIs(ctx.evaluations[0], ev)
+        self.assertEqual(ctx.decision_log[0]["decision"], "evaluate")
+        self.assertEqual(ctx.decision_log[0]["rationale"],
+                         "Verdict: contradicted, Credibility: 0.25")
+
+    def test_evaluator_sin_credibilidad_usa_cero(self):
+        llm = StubLLM(lambda p: '{"verdict": "supported"}')
+        ctx = self._contexto_con_fuentes(1)
+
+        EvidenceEvaluator(llm).decide(ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(ctx.decision_log[0]["rationale"],
+                         "Verdict: supported, Credibility: 0.00")
+
+    def test_evaluator_json_no_objeto_usa_el_fallo_exacto(self):
+        llm = StubLLM(lambda p: "[1, 2, 3]")
+        ctx = self._contexto_con_fuentes(1)
+
+        ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(ev, {
+            "verdict": "not_addressed",
+            "credibility": 0.0,
+            "confidence": 0.0,
+            "reasoning": "Failed to parse evaluation",
+            "claim": "c",
+            "source_url": "u0",
+            "evaluated_at": ev["evaluated_at"],
+        })
+        self.assertIs(ctx.evaluations[0], ev)
+
+    # --- SourceRetriever ---------------------------------------------------
+    def test_retriever_prueba_las_candidatas_en_orden(self):
+        search = StubSearch([])
+        ctx = ResearchContext("¿pregunta?")
+        retriever = SourceRetriever(search)
+
+        retriever.decide(ctx, "subpregunta concreta")
+
+        consultas = search.queries
+        self.assertEqual(len(consultas), len(set(consultas)))
+        self.assertEqual(consultas[-1], "subpregunta concreta")
+        self.assertEqual(ctx.decision_log[-1]["decision"], "retrieve")
+        self.assertEqual(ctx.decision_log[-1]["rationale"],
+                         "0 fuentes nuevas para: subpregunta concreta")
+
+    def test_retriever_registra_cada_reintento_y_el_agotamiento(self):
+        search = StubSearch([])
+        ctx = ResearchContext("¿pregunta?")
+        retriever = SourceRetriever(search)
+
+        retriever.decide(ctx, "subpregunta")
+
+        decisiones = [d["decision"] for d in ctx.decision_log]
+        # un requery por cada candidata con próxima oportunidad...
+        self.assertEqual(decisiones.count("requery"), len(search.queries) - 1)
+        # ...y un aviso honesto cuando ya no queda ninguna (no "se amplía")
+        self.assertEqual(decisiones[-2], "no_results")
+        self.assertEqual(decisiones[-1], "retrieve")
+        self.assertIn("Sin resultados tras", ctx.decision_log[-2]["rationale"])
+
+    def test_retriever_con_subpregunta_vacia_no_revienta(self):
+        search = StubSearch([])
+        ctx = ResearchContext("")
+
+        devueltos = SourceRetriever(search).decide(ctx, "")
+
+        self.assertEqual(devueltos, [])
+        self.assertEqual(search.queries, [])
+        self.assertEqual(ctx.decision_log[0]["decision"], "no_results")
+
+    def test_retriever_usa_la_consulta_que_dio_resultados(self):
+        class BuscadorConSegundaOportunidad:
+            def __init__(self):
+                self.queries = []
+
+            def search(self, query, max_results=5):
+                self.queries.append(query)
+                if len(self.queries) < 2:
+                    return []
+                return [{"title": "T", "url": "u", "snippet": "s"}]
+
+        search = BuscadorConSegundaOportunidad()
+        ctx = ResearchContext("¿pregunta?")
+
+        SourceRetriever(search).decide(ctx, "subpregunta")
+
+        self.assertEqual(ctx.sources[0]["query_used"], search.queries[1])
+        self.assertEqual(ctx.sources[0]["related_to"], "subpregunta")
+        self.assertEqual(ctx.sources[0]["source"], "unknown")
+        self.assertEqual(ctx.decision_log[-1]["decision"], "retrieve")
+
+    def test_retriever_trunca_a_cinco_fuentes_pero_devuelve_todo(self):
+        resultados = [{"title": f"T{i}", "url": f"u{i}", "snippet": "s"}
+                      for i in range(7)]
+
+        class BuscadorCompleto:
+            """Devuelve todos los resultados (StubSearch recortaría a 5)."""
+
+            def search(self, query, max_results=5):
+                return resultados
+
+        ctx = ResearchContext("q")
+
+        devueltos = SourceRetriever(BuscadorCompleto()).decide(ctx, "sub")
+
+        self.assertEqual(len(devueltos), 7)
+        self.assertEqual(len(ctx.sources), 5)
+        self.assertEqual(ctx.sources[4]["url"], "u4")
+
+    def test_retriever_deduplica_por_url_solo_si_hay_url(self):
+        ctx = ResearchContext("q")
+        ctx.sources.append({"url": "u0", "title": "ya", "snippet": "s"})
+        resultados = [
+            {"title": "repe", "url": "u0", "snippet": "s"},
+            {"title": "nueva", "url": "u1", "snippet": "s"},
+            {"title": "sin url 1", "snippet": "s"},
+            {"title": "sin url 2", "snippet": "s"},
+        ]
+
+        SourceRetriever(StubSearch(resultados)).decide(ctx, "sub")
+
+        urls = [s["url"] for s in ctx.sources]
+        self.assertEqual(urls, ["u0", "u1", "", ""])
+        self.assertEqual(ctx.decision_log[-1]["rationale"],
+                         "3 fuentes nuevas para: sub")
+
+    def test_retriever_campos_por_defecto_de_un_resultado_pobre(self):
+        ctx = ResearchContext("q")
+
+        SourceRetriever(StubSearch([{"url": "u1"}])).decide(ctx, "sub")
+
+        self.assertEqual(ctx.sources[0]["title"], "")
+        self.assertEqual(ctx.sources[0]["snippet"], "")
+        self.assertTrue(ctx.sources[0]["retrieved_at"] > 0)
+
+    # --- ClaimExtractor ----------------------------------------------------
+    def test_extractor_prompt_trunca_el_snippet_a_500(self):
+        llm = StubLLM(lambda p: "[]")
+        ctx = ResearchContext("q")
+
+        ClaimExtractor(llm).decide(ctx, {"url": "u", "snippet": "y" * 600})
+
+        self.assertIn("y" * 500 + "\n", llm.prompts[0])
+        self.assertNotIn("y" * 501, llm.prompts[0])
+
+    def test_extractor_anota_url_y_devuelve_la_misma_lista(self):
+        llm = StubLLM(lambda p: '[{"claim": "c1", "confidence": 0.4, '
+                                '"source_url": "interna"}]')
+        ctx = ResearchContext("q")
+
+        claims = ClaimExtractor(llm).decide(ctx, {"url": "u-real", "snippet": "s"})
+
+        self.assertEqual(claims[0]["source_id"], "u-real")
+        self.assertEqual(claims[0]["source_url"], "interna")
+        self.assertIsInstance(claims[0]["extracted_at"], float)
+        self.assertIs(ctx.claims[0], claims[0])
+        self.assertEqual(ctx.decision_log[0]["step"], "claim_extraction")
+        self.assertEqual(ctx.decision_log[0]["decision"], "extract")
+
+    def test_extractor_fallo_registra_la_decision_y_devuelve_vacio(self):
+        llm = StubLLM(lambda p: '{"no": "es un array"}')
+        ctx = ResearchContext("q")
+
+        claims = ClaimExtractor(llm).decide(ctx, {"url": "u", "snippet": "s"})
+
+        self.assertEqual(claims, [])
+        self.assertEqual(ctx.claims, [])
+        self.assertEqual(ctx.decision_log[0]["decision"], "fail")
+        self.assertEqual(ctx.decision_log[0]["rationale"],
+                         "Failed to parse LLM response")
+
+    # --- ReportGenerator ---------------------------------------------------
+    def test_report_generator_prompt_lleva_los_contadores_exactos(self):
+        llm = StubLLM(lambda p: "informe")
+        ctx = ResearchContext("¿q?")
+        ctx.claims.extend([{"claim": "c1"}, {"claim": "c2"}, {"claim": "c3"}])
+        ctx.evaluations.extend([{"claim": "c1", "verdict": "supported"},
+                                {"claim": "c2", "verdict": "contradicted"}])
+        ctx.sources.append({"url": "u"})
+
+        ReportGenerator(llm).decide(ctx)
+
+        prompt = llm.prompts[0]
+        self.assertIn("- Total claims extracted: 3", prompt)
+        self.assertIn("- Supported: 1", prompt)
+        self.assertIn("- Contradictions: 1", prompt)
+        self.assertIn("- Uncertain/Unsupported: 2", prompt)
+        self.assertIn("- Total sources retrieved: 1", prompt)
+        self.assertIn("Evidence evaluations: 2", prompt)
+
+    def test_report_generator_trunca_las_conclusiones_a_100(self):
+        llm = StubLLM(lambda p: "# T\n\n## S\n\n" + "x" * 150 + "\n")
+        ctx = ResearchContext("q")
+
+        ReportGenerator(llm).decide(ctx)
+
+        ultima = ctx.conclusions[-1]
+        self.assertEqual(len(ultima["section"]), 100)
+        self.assertGreater(ultima["length"], 100)
+        self.assertEqual(ctx.decision_log[0]["decision"], "generate")
+
+    def test_report_generator_usa_solo_las_tres_ultimas_secciones(self):
+        informe = "\n".join(f"## S{i}\n\ntexto {i}\n" for i in range(5))
+        ctx = ResearchContext("q")
+
+        ReportGenerator(StubLLM(lambda p: informe)).decide(ctx)
+
+        self.assertEqual(len(ctx.conclusions), 3)
+
+    # --- ResearchContext y decomposer --------------------------------------
+    def test_context_to_dict_exacto(self):
+        ctx = ResearchContext("¿q?", max_iterations=4)
+        ctx.subquestions = ["a", "b"]
+        ctx.sources.append({"url": "u"})
+        ctx.claims.extend([{}, {}])
+        ctx.evaluations.append({})
+        ctx.conclusions.append({})
+        ctx.add_decision("paso", "decidir")
+
+        self.assertEqual(ctx.to_dict(), {
+            "question": "¿q?",
+            "decomposed": False,
+            "iterations": 0,
+            "subquestions": ["a", "b"],
+            "num_sources": 1,
+            "num_claims": 2,
+            "num_evaluations": 1,
+            "num_conclusions": 1,
+            "decisions": 1,
+        })
+
+    def test_add_decision_guarda_la_iteracion_actual(self):
+        ctx = ResearchContext("q")
+        ctx.iteration = 3
+
+        ctx.add_decision("paso", "decidir", "porque sí")
+
+        entrada = ctx.decision_log[0]
+        self.assertEqual(set(entrada), {"step", "decision", "rationale",
+                                        "timestamp", "iteration"})
+        self.assertEqual(entrada["iteration"], 3)
+        self.assertIsInstance(entrada["timestamp"], float)
+
+    def test_decomposer_prompt_incluye_la_pregunta(self):
+        llm = StubLLM(lambda p: "una subpregunta")
+
+        QuestionDecomposer(llm).decide(ResearchContext("¿pregunta exacta?"))
+
+        self.assertIn("¿pregunta exacta?", llm.prompts[0])
+        self.assertIn("Decompose this into", llm.prompts[0])
+
+    # --- Orquestador -------------------------------------------------------
+    def test_orchestrator_extrae_como_maximo_tres_fuentes_por_subpregunta(self):
+        llamadas = []
+
+        def responder(prompt):
+            if "Decompose this into" in prompt:
+                llamadas.append("decompose")
+                return "subpregunta uno"
+            if "Extract factual claims" in prompt:
+                llamadas.append("extract")
+                return '[{"claim": "c", "confidence": 0.5, "source_url": "u"}]'
+            if "Evaluate this claim" in prompt:
+                llamadas.append("evaluate")
+                return ('{"verdict": "supported", "credibility": 0.5, '
+                        '"confidence": 0.5, "reasoning": "r"}')
+            return "informe"
+
+        search = StubSearch([{"title": f"T{i}", "url": f"u{i}", "snippet": "s"}
+                             for i in range(5)])
+        _, ctx = ResearchOrchestrator(StubLLM(responder), search).research("q")
+
+        self.assertEqual(llamadas.count("decompose"), 1)
+        self.assertEqual(llamadas.count("extract"), 3)
+        self.assertEqual(llamadas.count("evaluate"), 3)
+        self.assertEqual(ctx.iteration, 1)
+
+    def test_orchestrator_init_guarda_los_motores(self):
+        llm, search = MockLLM(), MockSearchAPI()
+        orchestrator = ResearchOrchestrator(llm, search, max_iterations=2)
+
+        self.assertIs(orchestrator.llm, llm)
+        self.assertIs(orchestrator.search, search)
+        self.assertEqual(orchestrator.context.max_iterations, 2)
+        self.assertIsInstance(orchestrator.decomposer, QuestionDecomposer)
+        self.assertIsInstance(orchestrator.retriever, SourceRetriever)
+        self.assertIsInstance(orchestrator.extractor, ClaimExtractor)
+        self.assertIsInstance(orchestrator.evaluator, EvidenceEvaluator)
+        self.assertIsInstance(orchestrator.generator, ReportGenerator)
+
+
 if __name__ == "__main__":
     unittest.main()

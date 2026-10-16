@@ -121,16 +121,26 @@ class SourceRetriever(DecisionEngine):
             subquestion.strip(),
         ]
         queries = [q for q in dict.fromkeys(candidatas) if q]
+        if not queries:
+            context.add_decision("source_retrieval", "no_results",
+                                 "Sin consulta posible (subpregunta vacía)")
+            return []
 
         results: List[Dict[str, Any]] = []
         query = queries[0]
-        for query in queries:
+        for posicion, query in enumerate(queries):
             results = self.search_api.search(query)
             if results:
                 break
-            context.add_decision("source_retrieval", "requery",
-                                 f"Sin resultados para '{query[:40]}'; "
-                                 f"se amplía la consulta")
+            if posicion < len(queries) - 1:
+                context.add_decision("source_retrieval", "requery",
+                                     f"Sin resultados para '{query[:40]}'; "
+                                     f"se amplía la consulta")
+            else:
+                # Última candidata: no se promete una ampliación que ya no existe.
+                context.add_decision("source_retrieval", "no_results",
+                                     f"Sin resultados tras {len(queries)} "
+                                     f"consultas para: {subquestion[:50]}")
 
         known_urls = {s.get("url") for s in context.sources}
         added = 0

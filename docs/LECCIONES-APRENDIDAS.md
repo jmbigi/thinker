@@ -913,3 +913,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: la eficiencia se mide contando llamadas reales (totales vs
   únicas), no se supone; y un timeout por defecto de una librería (600 s) es una
   decisión que el proyecto debe tomar explícitamente.
+
+### Hallazgo 63: El registro decía «se amplía la consulta» cuando ya no había más
+
+- **Problema**: en `SourceRetriever.decide`, el bucle de candidatas registraba
+  «requery: sin resultados; se amplía la consulta» TAMBIÉN en la última
+  candidata, cuando ya no quedaba ninguna por probar; y con una subpregunta sin
+  términos (todas las candidatas vacías) el acceso `queries[0]` habría elevado
+  `IndexError`. Lo destaparon los tests de aserciones exactas escritos para
+  matar mutantes.
+- **Solución**: se registra `requery` solo si queda una próxima candidata; en la
+  última se registra `no_results` con el número de consultas probadas; y una
+  subpregunta sin consulta posible devuelve `[]` sin llamar al buscador.
+- **Evidencia**: con un buscador que siempre devuelve `[]` → 3 consultas,
+  2 `requery` + 1 `no_results` (antes 3 `requery`); `test_retriever_con_subpregunta_vacia_no_revienta`
+  en verde; 349/349 tests OK.
+- **Regla derivada**: un registro de decisión no debe prometer una acción que ya
+  no va a ocurrir; los tests con aserciones exactas encuentran incoherencias que
+  el «camino feliz» no ve.
