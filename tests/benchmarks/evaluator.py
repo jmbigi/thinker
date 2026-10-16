@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Callable
 from pathlib import Path
 
 from .tasks import BenchmarkTask, BENCHMARK_TASKS
-from .rubrics import evaluate_all_dimensions, get_rubrics_for_domain
+from .rubrics import evaluar_fidelidad, evaluate_all_dimensions, get_rubrics_for_domain
 
 
 @dataclass
@@ -180,6 +180,14 @@ def run_benchmark(
             else:
                 evaluation = evaluate_all_dimensions(report, task.expected_elements, domain=task.domain)
             
+            # Fidelidad a las fuentes (estilo RAGAS): proporción de cifras del
+            # informe que aparecen en las fuentes que recuperó el pipeline.
+            fuentes = []
+            contexto = result.get("context")
+            for s in (getattr(contexto, "sources", None) or result.get("sources") or []):
+                fuentes.append(f"{s.get('title', '')} {s.get('snippet', '')}")
+            evaluation["fidelidad"] = evaluar_fidelidad(report, fuentes)
+
             bench_result = BenchmarkResult(
                 task_id=task.id,
                 domain=task.domain,
@@ -198,6 +206,7 @@ def run_benchmark(
                   f"(IR:{evaluation['dimensions']['information_recall']['score']:.2f} "
                   f"AN:{evaluation['dimensions']['analysis']['score']:.2f} "
                   f"PR:{evaluation['dimensions']['presentation']['score']:.2f}) "
+                  f"| fid:{evaluation['fidelidad']['fidelidad']:.2f} "
                   f"| {latency:.1f}s")
             
         except Exception as e:

@@ -962,5 +962,150 @@ class TestMotoresConAsercionesExactas(unittest.TestCase):
         self.assertIsInstance(orchestrator.generator, ReportGenerator)
 
 
+class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
+    """Métrica de fidelidad (RAGAS-like) y segunda pasada CoVe (opt-in)."""
+
+    def _llm(self, respuestas):
+        cola = list(respuestas)
+
+        def responder(prompt):
+            return cola.pop(0) if cola else "{}"
+
+        return StubLLM(responder)
+
+    def _contexto(self):
+        ctx = ResearchContext("q")
+        ctx.sources.extend([{"url": "u0", "title": "T0", "snippet": "s0"},
+                            {"url": "u1", "title": "T1", "snippet": "s1"}])
+        return ctx
+
+    # --- CoVe -------------------------------------------------------------
+    def test_verificacion_desactivada_por_defecto_hace_una_llamada(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+
+        ev = EvidenceEvaluator(llm).decide(self._contexto(),
+                                           {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertNotIn("verificacion_independiente", ev)
+
+    def test_activa_mira_fuentes_alternativas_y_marca_contestado(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "contradicted", "credibility": 0.2}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            self._contexto(), {"claim": "c", "source_url": "u0"})
+
+        self.assertIn("T1", llm.prompts[1])
+        self.assertNotIn("T0", llm.prompts[1])
+        info = ev["verificacion_independiente"]
+        self.assertEqual(info["verdict"], "contradicted")
+        self.assertEqual(info["verdict_principal"], "supported")
+        self.assertTrue(info["contested"])
+        self.assertEqual(info["fuentes_alternativas"], 1)
+
+    def test_registra_la_decision_de_verificacion(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "contradicted", "credibility": 0.2}'])
+        ctx = self._contexto()
+
+        EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        verificaciones = [d for d in ctx.decision_log
+                          if d["step"] == "independent_verification"]
+        self.assertEqual(len(verificaciones), 1)
+        self.assertIn("contestado", verificaciones[0]["rationale"])
+
+    def test_coincidencia_no_marca_contestado(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "supported", "credibility": 0.8}'])
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertFalse(ev["verificacion_independiente"]["contested"])
+        self.assertIn("coincide", ctx.decision_log[-1]["rationale"])
+
+    def test_no_addressed_no_cuenta_como_contestado(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "not_addressed", "credibility": 0.0}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            self._contexto(), {"claim": "c", "source_url": "u0"})
+
+        self.assertFalse(ev["verificacion_independiente"]["contested"])
+
+    def test_sin_fuentes_alternativas_no_inventa_verificacion(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+        ctx = ResearchContext("q")
+        ctx.sources.append({"url": "u0", "title": "T0", "snippet": "s0"})
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertIsNone(ev["verificacion_independiente"])
+        self.assertEqual(ctx.decision_log[-1]["decision"], "skip")
+
+    def test_independiente_sin_json_no_marca_contestado(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}', "no json"])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            self._contexto(), {"claim": "c", "source_url": "u0"})
+
+        info = ev["verificacion_independiente"]
+        self.assertFalse(info["contested"])
+        self.assertEqual(info["error"], "Failed to parse evaluation")
+
+    def test_orchestrator_pasa_el_flag(self):
+        con = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
+                                   verificacion_independiente=True)
+        sin = ResearchOrchestrator(MockLLM(), MockSearchAPI())
+
+        self.assertTrue(con.evaluator.verificacion_independiente)
+        self.assertFalse(sin.evaluator.verificacion_independiente)
+
+    # --- Fidelidad --------------------------------------------------------
+    def test_fidelidad_cifras_respaldadas_y_no(self):
+        from tests.benchmarks.rubrics import evaluar_fidelidad
+
+        informe = "El reactor alcanzó 150 millones de grados y 1.234 segundos."
+        fuentes = ["Se lograron 150 millones de grados en el experimento.",
+                   "La duración fue de 1234 segundos según el informe."]
+
+        resultado = evaluar_fidelidad(informe, fuentes)
+
+        self.assertEqual(resultado["fidelidad"], 1.0)
+        self.assertEqual(resultado["cifras_informe"], 2)
+        self.assertEqual(resultado["sin_respaldo"], [])
+
+    def test_fidelidad_detecta_cifra_inventada(self):
+        from tests.benchmarks.rubrics import evaluar_fidelidad
+
+        resultado = evaluar_fidelidad("Se logró un 99.9% de eficiencia.",
+                                      ["La eficiencia fue alta."])
+
+        self.assertEqual(resultado["fidelidad"], 0.0)
+        self.assertEqual(resultado["sin_respaldo"], ["99.9"])
+
+    def test_fidelidad_sin_cifras_es_uno(self):
+        from tests.benchmarks.rubrics import evaluar_fidelidad
+
+        resultado = evaluar_fidelidad("Informe sin números.", ["Fuente sin números."])
+
+        self.assertEqual(resultado["fidelidad"], 1.0)
+        self.assertEqual(resultado["cifras_informe"], 0)
+
+    def test_fidelidad_sin_fuentes_detecta_todo_sin_respaldo(self):
+        from tests.benchmarks.rubrics import evaluar_fidelidad
+
+        resultado = evaluar_fidelidad("Cita el 42 y el 7.", [])
+
+        self.assertEqual(resultado["fidelidad"], 0.0)
+        self.assertEqual(sorted(resultado["sin_respaldo"]), ["42", "7"])
+
+
 if __name__ == "__main__":
     unittest.main()

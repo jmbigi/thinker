@@ -14,7 +14,7 @@ import json
 import re
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from web_search import (DuckDuckGoSearchAPI, MockSearchAPI, SearchAPI,  # noqa: F401
                         WikipediaSearchAPI, formulate_query)
@@ -223,25 +223,27 @@ Return ONLY a JSON array (no markdown fences, no extra text) with fields:
 
 
 class EvidenceEvaluator(DecisionEngine):
-    """Evaluates claims against evidence and assesses credibility."""
+    """Evaluates claims against evidence and assesses credibility.
 
-    def __init__(self, llm_provider):
+    Con `verificacion_independiente=True` añade una segunda pasada tipo CoVe
+    (arXiv:2309.11495): el mismo claim se evalúa contra las fuentes que NO lo
+    originaron, para detectar confirmaciones circulares (el evaluador normal
+    mira los snippets que produjeron el claim). Cuesta una llamada extra por
+    claim: está desactivado por defecto.
+    """
+
+    def __init__(self, llm_provider, verificacion_independiente: bool = False):
         self.llm_provider = llm_provider
+        self.verificacion_independiente = verificacion_independiente
 
-    def decide(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
-        relevant_sources = [
-            s for s in context.sources
-            if s.get("url") == claim.get("source_url")
-        ]
-
-        if not relevant_sources:
-            relevant_sources = context.sources[:3]
-
+    @staticmethod
+    def _prompt_evaluacion(claim: Dict[str, Any], fuentes: List[Dict[str, Any]]) -> str:
         source_parts = ""
-        for i, s in enumerate(relevant_sources):
-            source_parts += f"Source {i+1}: {s.get('title', 'Unknown')}: {s.get('snippet', '')[:200]}\n"
+        for i, s in enumerate(fuentes):
+            source_parts += (f"Source {i+1}: {s.get('title', 'Unknown')}: "
+                             f"{s.get('snippet', '')[:200]}\n")
 
-        prompt = f"""Evaluate this claim against the provided sources. Determine:
+        return f"""Evaluate this claim against the provided sources. Determine:
 1. Is the claim supported, contradicted, or not addressed?
 2. What is the overall credibility score (0-1) of the supporting sources?
 3. Are there contradictions from other sources?
@@ -252,7 +254,24 @@ Claim: {claim.get("claim", "")}
 Return ONLY JSON (no markdown fences, no extra text):
 {{"verdict": "supported|contradicted|not_addressed", "credibility": 0-1, "confidence": 0-1, "reasoning": "..."}}"""
 
-        response = self.llm_provider.generate(prompt)
+    def decide(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
+        evaluation = self._evaluar(context, claim)
+        if self.verificacion_independiente:
+            evaluation["verificacion_independiente"] = self._evaluar_independiente(
+                context, claim, evaluation.get("verdict", "not_addressed"))
+        return evaluation
+
+    def _evaluar(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
+        relevant_sources = [
+            s for s in context.sources
+            if s.get("url") == claim.get("source_url")
+        ]
+
+        if not relevant_sources:
+            relevant_sources = context.sources[:3]
+
+        response = self.llm_provider.generate(
+            self._prompt_evaluacion(claim, relevant_sources))
         try:
             evaluation = _parse_json_response(response)
             if not isinstance(evaluation, dict):
@@ -278,6 +297,45 @@ Return ONLY JSON (no markdown fences, no extra text):
             }
             context.evaluations.append(eval_result)
             return eval_result
+
+    def _evaluar_independiente(self, context: ResearchContext, claim: Dict[str, Any],
+                               verdict_principal: str) -> Optional[Dict[str, Any]]:
+        """Segunda pasada CoVe contra fuentes que NO originaron el claim.
+
+        Devuelve `None` (y lo registra) si no hay fuentes alternativas: no se
+        inventa una verificación sin evidencia distinta que mirar.
+        """
+        alternativas = [s for s in context.sources
+                        if s.get("url") and s.get("url") != claim.get("source_url")]
+        if not alternativas:
+            context.add_decision("independent_verification", "skip",
+                                 "Sin fuentes alternativas para verificar el claim")
+            return None
+
+        response = self.llm_provider.generate(
+            self._prompt_evaluacion(claim, alternativas[:3]))
+        try:
+            datos = _parse_json_response(response)
+            if not isinstance(datos, dict):
+                raise json.JSONDecodeError("se esperaba un objeto JSON", str(datos), 0)
+        except (json.JSONDecodeError, TypeError):
+            return {"verdict": "not_addressed", "credibility": 0.0,
+                    "confidence": 0.0, "verdict_principal": verdict_principal,
+                    "contested": False, "fuentes_alternativas": len(alternativas),
+                    "error": "Failed to parse evaluation"}
+
+        verdict = datos.get("verdict", "not_addressed")
+        contested = (verdict != verdict_principal) and (verdict != "not_addressed")
+        context.add_decision("independent_verification", "verify",
+                             f"Independiente: {verdict} vs principal: "
+                             f"{verdict_principal} -> "
+                             f"{'contestado' if contested else 'coincide'}")
+        return {"verdict": verdict,
+                "credibility": datos.get("credibility", 0),
+                "confidence": datos.get("confidence", 0),
+                "verdict_principal": verdict_principal,
+                "contested": contested,
+                "fuentes_alternativas": len(alternativas)}
 
 
 class ReportGenerator(DecisionEngine):
@@ -338,14 +396,16 @@ matching the sources retrieved. Be factual and acknowledge uncertainties."""
 class ResearchOrchestrator:
     """Orchestrates the complete research process with decision-making."""
 
-    def __init__(self, llm_provider, search_api, max_iterations: int = 5):
+    def __init__(self, llm_provider, search_api, max_iterations: int = 5,
+                 verificacion_independiente: bool = False):
         self.llm = llm_provider
         self.search = search_api
         self.context = ResearchContext("pending", max_iterations)
         self.decomposer = QuestionDecomposer(llm_provider)
         self.retriever = SourceRetriever(search_api)
         self.extractor = ClaimExtractor(llm_provider)
-        self.evaluator = EvidenceEvaluator(llm_provider)
+        self.evaluator = EvidenceEvaluator(
+            llm_provider, verificacion_independiente=verificacion_independiente)
         self.generator = ReportGenerator(llm_provider)
 
     def research(self, question: str) -> Tuple[str, ResearchContext]:

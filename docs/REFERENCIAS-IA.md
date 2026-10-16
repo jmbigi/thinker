@@ -93,6 +93,22 @@ Cada propuesta indica **qué**, **dónde**, **por qué** y **cómo se mide**.
    Dónde: `tests/benchmarks/rubrics.py`. Por qué: hoy se premia recordar datos,
    no que el informe **no invente** respecto a las fuentes citadas.
 
+### Estado de las propuestas (2026-10-16)
+
+- ✅ **1** (caché de respuestas) y **2** (timeout explícito): implementadas en
+  `_chat_completion`/`OpenAILLM`; ahorro medido en ToT 2×2: 52 llamadas, solo 21
+  únicas (**60% eliminable**).
+- ✅ **4** (verificación independiente tipo CoVe): segunda pasada opt-in en
+  `EvidenceEvaluator` (`verificacion_independiente=True`), que evalúa el claim
+  contra las fuentes que NO lo originaron y marca `contested`; sin fuentes
+  alternativas registra `skip` y **no inventa** la verificación.
+- ✅ **9** (fidelidad a las fuentes): `rubrics.evaluar_fidelidad` mide qué cifras
+  del informe están respaldadas por las fuentes y queda en el JSON de cada tarea
+  del benchmark (campo `evaluation.fidelidad`).
+- Pendientes: **3** (paralelización), **5** (evaluador de recuperación tipo
+  CRAG), **6** (voto entre las top-k hojas del ToT), **7** (routing por tarea),
+  **8** (optimizar prompts con el benchmark).
+
 ## 4. Límites y responsabilidad
 
 - Los papers validan en sus propios entornos y modelos; aquí **solo cuenta la

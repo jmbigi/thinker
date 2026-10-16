@@ -8,6 +8,7 @@ Tres dimensiones principales:
 Cada rúbrica es una lista de criterios binarios (Sí/No = 1/0).
 """
 
+import re
 from typing import Dict, List, Any
 from dataclasses import dataclass
 
@@ -95,6 +96,48 @@ def _heuristic_check(report: str, expected: Dict[str, List[str]], criterion: Rub
     # Buscar al menos 50% de keywords esperadas
     found = sum(1 for kw in keywords if kw.lower() in report_lower)
     return 1 if found >= max(1, len(keywords) // 2) else 0
+
+
+# --- FIDELIDAD A LAS FUENTES (métrica aparte, estilo RAGAS) ---
+
+def _normalizar_cifra(cifra: str) -> str:
+    """Normaliza una cifra para comparar informe y fuentes."""
+    if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", cifra):   # 1.234 / 1,234 -> 1234
+        return cifra.replace(".", "").replace(",", "")
+    return cifra.replace(",", ".")
+
+
+def _cifras(texto: str) -> set:
+    """Conjunto de cifras normalizadas de un texto."""
+    return {_normalizar_cifra(c) for c in re.findall(r"\d+(?:[.,]\d+)*", texto or "")}
+
+
+def evaluar_fidelidad(report: str, fuentes: List[str]) -> Dict[str, Any]:
+    """Fidelidad a las fuentes: qué cifras del informe están respaldadas.
+
+    Heurística transparente y barata (estilo RAGAS): extrae las cifras del
+    informe y comprueba cuántas aparecen en el texto de las fuentes
+    recuperadas. Mide lo más falsificable (los números), no los matices; para
+    eso está el juez LLM. `fidelidad` = 1.0 si el informe no cita cifras.
+
+    Devuelve {"fidelidad", "cifras_informe", "cifras_respaldadas", "sin_respaldo"}.
+    """
+    cifras_informe = _cifras(report)
+    if not cifras_informe:
+        return {"fidelidad": 1.0, "cifras_informe": 0, "cifras_respaldadas": 0,
+                "sin_respaldo": []}
+
+    cifras_fuentes = set()
+    for fuente in fuentes or []:
+        cifras_fuentes |= _cifras(fuente)
+
+    respaldadas = cifras_informe & cifras_fuentes
+    return {
+        "fidelidad": round(len(respaldadas) / len(cifras_informe), 3),
+        "cifras_informe": len(cifras_informe),
+        "cifras_respaldadas": len(respaldadas),
+        "sin_respaldo": sorted(cifras_informe - cifras_fuentes)[:10],
+    }
 
 
 # --- RÚBRICAS ESPECÍFICAS POR DOMINIO ---

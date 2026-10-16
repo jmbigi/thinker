@@ -949,3 +949,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: los motores con prompts largos se testean por partes (qué
   entra en el prompt, qué se anota en el resultado, qué se registra en la
   decisión), no solo por el resultado final: ahí viven los mutantes vivos.
+
+### Hallazgo 65: CoVe opt-in y fidelidad a las fuentes (del estudio a la práctica)
+
+- **Problema**: (a) `EvidenceEvaluator` evaluaba cada claim contra los snippets
+  que lo ORIGINARON → confirmación circular (Self-RAG/CoVe, arXiv:2309.11495);
+  (b) el benchmark premiaba recordar datos, pero no medía si el informe inventa
+  cifras respecto a las fuentes (RAGAS, arXiv:2309.15217).
+- **Solución**: (a) segunda pasada `verificacion_independiente` (opt-in, una
+  llamada extra por claim) que evalúa contra las fuentes que no lo originaron y
+  marca `contested`; si no hay alternativas registra `skip` y no inventa nada;
+  (b) `rubrics.evaluar_fidelidad(report, fuentes)` — proporción de cifras del
+  informe presentes en las fuentes, con normalización de miles/decimales —,
+  integrada en `run_benchmark` (campo `evaluation.fidelidad` del JSON) y en la
+  línea de progreso.
+- **Evidencia**: 12 tests nuevos (CoVe: activa/desactivada, fuentes
+  alternativas, coincidencia vs contestado, sin alternativas, JSON inválido,
+  paso del flag; fidelidad: cifras respaldadas, cifra inventada 99.9 → 0.0, sin
+  cifras → 1.0 documentado como vacío, sin fuentes); 361/361 tests OK; campaña
+  de humo del benchmark (mock, 1 tarea) con `fidelidad` en el JSON.
+- **Decisión de diseño**: la fidelidad es una métrica APARTE, no un criterio más
+  de las rúbricas: añadirla cambiaría las puntuaciones y rompería la
+  comparabilidad con las campañas ya calibradas (Hallazgos 46-47).
+- **Regla derivada**: una mejora del estudio se implementa opt-in y con medición
+  propia, sin alterar las métricas ya publicadas.
