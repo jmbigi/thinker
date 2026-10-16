@@ -849,6 +849,15 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   (matados/supervivientes/sin test): `web_search` 204/39/0, `code_design`
   556/148/0, `thinking_engine` 411/148/34, `deep_research_system` 410/208/0,
   `llm_providers` 281/108/21, `pensamiento_layer` 128/41/44.
+- **Tercera medición** (misma fecha, tras cubrir los 99 «sin test» con tests de
+  `_render_tot_tree`/`get_tree_visualization`, `DeepResearchThinkingLayer.think_tot`
+  y `DeepSeekLLM.__init__`): matados 1990→2086, supervivientes 692→713, **sin
+  ningún mutante sin ejecutar**; global 2086/2799 = 74,5% (el total creció
+  2781→2799 por las líneas del arreglo de claves del Hallazgo 61). Por archivo
+  (matados/supervivientes de su total): `web_search` 204/39 de 243,
+  `code_design` 556/148 de 704, `thinking_engine` 448/145 de 593,
+  `deep_research_system` 410/208 de 618, `llm_providers` 299/129 de 428,
+  `pensamiento_layer` 169/44 de 213.
 - **Un caso del test estaba mal, no el código**: esperaba 0,60 y salía 0,57,
   porque "alfa" tiene 4 letras y el filtro es `len(w) > 4`; se corrigió la
   expectativa y se documentó en el propio test.
