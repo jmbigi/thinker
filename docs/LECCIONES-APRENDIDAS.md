@@ -829,3 +829,30 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: al añadir tests, comprobar también la herramienta que los
   ejecuta en OTRO entorno (mutmut): un test que pasa en `make test` puede romper
   una campaña que corre en un sandbox con solo parte del árbol.
+
+### Hallazgo 60: Diez tests dirigidos por datos mataron 95 mutantes del ToT
+
+- **Problema**: tras la re-medición (Hallazgo 58), `thinking_engine` era el punto
+  débil con 243 mutantes supervivientes, concentrados en el código de ToT
+  (`_evaluate_state_heuristic` 64, `think_tot` 52, `_generate_branches` 40,
+  `_evaluate_state_llm` 30).
+- **Solución**: en vez de un test por mutante, aserciones EXACTAS dirigidas por
+  datos: una tabla de 11 casos para la heurística (base, tope de longitud, topes
+  de marcadores y de coherencia, filtro `len(w) > 4`), una tabla de 5 casos para
+  la ponderación del juez, y valores exactos de `think_tot` (poda total,
+  `max_depth`, `pruned_nodes`, `best_score`) y de `_generate_branches`
+  (`variant`, `depth`, prompts con variante, prompt/contexto en las ramas).
+- **Evidencia** (misma campaña, antes→después): matados 1895→1990,
+  supervivientes 787→692; `thinking_engine` 243→148 supervivientes (−95, −39%)
+  con 10 tests nuevos (297 en total). Global: 1990/2781 = 71,6% (74,2% sin los
+  99 mutantes que ningún test ejecuta). Por archivo
+  (matados/supervivientes/sin test): `web_search` 204/39/0, `code_design`
+  556/148/0, `thinking_engine` 411/148/34, `deep_research_system` 410/208/0,
+  `llm_providers` 281/108/21, `pensamiento_layer` 128/41/44.
+- **Un caso del test estaba mal, no el código**: esperaba 0,60 y salía 0,57,
+  porque "alfa" tiene 4 letras y el filtro es `len(w) > 4`; se corrigió la
+  expectativa y se documentó en el propio test.
+- **Regla derivada (eficiencia + inteligencia)**: para subir mutación, primero
+  localizar los focos por función y atacar con aserciones exactas dirigidas por
+  datos; perseguir mutantes equivalentes (p. ej. el recorte inalcanzable
+  `min(round(score, 2), 1.0)`) no aporta valor.

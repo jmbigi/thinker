@@ -26,7 +26,10 @@ pensamiento estructurado (`pensamiento_layer.py`) y herramientas de análisis y
 mejora de código (`code_design_improvement_tools.py`).
 
 1. **Principio rector**: "hacer las cosas de manera eficiente" — minimizar
-   redundancia, maximizar mantenibilidad.
+   redundancia, maximizar mantenibilidad. Y con **inteligencia** (regla del
+   programador, 2026-10-16): thinker debe tener mucha eficiencia e
+   inteligencia — valor medido, no volumen: ni más llamadas, ni más código, ni
+   más tests, ni más salida equivalen a un mejor resultado.
 2. **Pensamiento estructurado**: toda decisión se razona en pasos explícitos,
    validados antes de avanzar. Nada de "prueba y error" a ciegas.
 3. **Anti-repitencia**: si un enfoque falla 2 veces, DETENERSE, replantear y
@@ -84,19 +87,20 @@ mejora de código (`code_design_improvement_tools.py`).
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
 - Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-16 (HEAD con
-  ToT y tests de plugins): **68,1% de mutantes muertos** (1895/2781; 99 más sin
-  ningún test que los ejercite) **excluyendo las líneas `print(...)`** —no
-  alteran estado y solo producen mutantes equivalentes—. NO es comparable con
-  la medición anterior (75,0%, 1604/2139, 2026-10-14): aquella es anterior al
-  código de ToT, que entró sin tests propios y hoy es el punto débil (el
-  desglose por archivo, con su caveat, está en `docs/LECCIONES-APRENDIDAS.md`,
-  Hallazgo 58). La exclusión de `print` usa `do_not_mutate_patterns`, la
-  opción que el motor aplica de verdad (la lista `do_not_mutate` no se usa y el
-  pragma `# pragma: no mutate` afecta solo a su propia línea). Los tests del
-  subsistema de plugins se excluyen de la campaña (importan `plugins/`, fuera
-  de `source_paths`): siguen corriendo en `make test`. La cobertura y la
-  mutación miden cosas distintas: cuatro de los seis módulos mutados están al
-  97-100% de cobertura y la suite solo mata 68,1% de los mutantes.
+  ToT y tests de plugins): **71,6% de mutantes muertos** (1990/2781; 74,2%
+  excluyendo los 99 mutantes que ningún test ejecuta) **excluyendo las líneas
+  `print(...)`** —no alteran estado y solo producen mutantes equivalentes—. NO
+  es comparable con la medición de 2026-10-14 (75,0%, 1604/2139): aquella era
+  anterior al código de ToT, que era el punto débil (`thinking_engine` tiene hoy
+  148 supervivientes; 243 antes de sus tests de ToT). El desglose por archivo
+  está en `docs/LECCIONES-APRENDIDAS.md` (Hallazgo 60). La exclusión de `print`
+  usa `do_not_mutate_patterns`, la opción que el motor aplica de verdad (la
+  lista `do_not_mutate` no se usa y el pragma `# pragma: no mutate` afecta solo
+  a su propia línea). Los tests del subsistema de plugins se excluyen de la
+  campaña (importan `plugins/`, fuera de `source_paths`): siguen corriendo en
+  `make test`. La cobertura y la mutación miden cosas distintas: cuatro de los
+  seis módulos mutados están al 97-100% de cobertura y la mutación global es
+  71,6%.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

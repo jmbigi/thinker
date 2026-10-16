@@ -210,5 +210,159 @@ class TestToTEngine(unittest.TestCase):
         self.assertLess(result["best_score"], 1.0)
 
 
+class TestEvaluacionHeuristica(unittest.TestCase):
+    """Valores EXACTOS de la heurística: sin ellos sobrevivían 64 mutantes."""
+
+    def setUp(self):
+        self.engine = TinyToT(llm_provider=None)
+
+    def test_valores_exactos(self):
+        casos = [
+            ("a" * 100, {}, 0.54),                        # base 0.5 + longitud
+            ("a" * 500, {}, 0.70),                        # longitud en el tope
+            ("a" * 1000, {}, 0.70),                       # por encima del tope
+            ("porque " + "b" * 20, {}, 0.56),             # 1 marcador
+            ("porque además " + "c" * 7, {}, 0.61),       # 2 marcadores
+            ("porque dado que así que puesto que " + "d" * 465, {}, 0.85),  # 4 -> tope
+            ("alfa bravo charlie delta",
+             {"prompt": "alfa bravo charlie delta"}, 0.66),  # solapamiento total
+            # "alfa" (4 letras) queda fuera del filtro len(w) > 4: la intersección
+            # es {bravo} sobre 3 palabras previas -> 1/3
+            ("alfa bravo", {"prompt": "alfa bravo charlie delta"}, 0.57),
+            ("a", {"prompt": "a b c"}, 0.50),             # sin palabras largas
+            ("a", {"dato": 42}, 0.50),                    # sin valores str
+            ("a", {}, 0.50),                              # outputs vacío
+        ]
+        for contenido, outputs, esperado in casos:
+            with self.subTest(contenido=contenido[:24], esperado=esperado):
+                self.assertEqual(
+                    self.engine._evaluate_state_heuristic(contenido, "uno", outputs),
+                    esperado)
+
+
+class TestJuezLLM(unittest.TestCase):
+    def setUp(self):
+        self.engine = TinyToT(llm_provider=None)
+
+    def test_ponderacion_exacta(self):
+        casos = [
+            ('{"relevance": 8, "depth": 6, "coherence": 4, "reasoning": 10}', 0.73),
+            ('{"relevance": 10, "depth": 10, "coherence": 10, "reasoning": 10}', 1.0),
+            ('{"relevance": 0, "depth": 0, "coherence": 0, "reasoning": 0}', 0.0),
+            ('{"relevance": 10}', 0.25),                  # claves ausentes -> 0
+            ('{"relevance": 20, "depth": 20, "coherence": 20, "reasoning": 20}', 1.0),
+        ]
+        for respuesta, esperado in casos:
+            with self.subTest(respuesta=respuesta):
+                self.engine.llm = StubLLM(lambda p, r=respuesta: r)
+                self.assertEqual(
+                    self.engine._evaluate_state_llm("contenido", "uno", {}), esperado)
+
+    def test_json_embebido_en_texto(self):
+        respuesta = ('bla {"relevance": 10, "depth": 10, "coherence": 10, '
+                     '"reasoning": 10} fin')
+        self.engine.llm = StubLLM(lambda p: respuesta)
+
+        self.assertEqual(self.engine._evaluate_state_llm("contenido", "uno", {}), 1.0)
+
+    def test_sin_json_eleva_value_error(self):
+        self.engine.llm = StubLLM(lambda p: "esto no es JSON")
+
+        with self.assertRaises(ValueError):
+            self.engine._evaluate_state_llm("contenido", "uno", {})
+
+    def test_prompt_incluye_paso_contenido_y_previos(self):
+        capturado = {}
+
+        def responder(prompt):
+            capturado["prompt"] = prompt
+            return '{"relevance": 5, "depth": 5, "coherence": 5, "reasoning": 5}'
+
+        self.engine.llm = StubLLM(responder)
+        self.engine._evaluate_state_llm(
+            "contenido evaluado", "dos",
+            {"uno": "paso previo largo", "prompt": "pregunta", "context": {}})
+
+        prompt = capturado["prompt"]
+        self.assertIn("PASO ACTUAL: dos", prompt)
+        self.assertIn("contenido evaluado", prompt)
+        self.assertIn("--- uno ---", prompt)
+        self.assertIn("paso previo largo", prompt)
+        self.assertNotIn("--- prompt ---", prompt)
+        self.assertNotIn("--- context ---", prompt)
+
+
+class TestToTEngineDetalle(unittest.TestCase):
+    def test_valores_por_defecto(self):
+        engine = TinyToT(llm_provider=None)
+
+        self.assertEqual(engine.branch_factor, 3)
+        self.assertEqual(engine.beam_width, 3)
+        self.assertEqual(engine.search_strategy, "beam")
+        self.assertEqual(engine.min_score_threshold, 0.3)
+        self.assertEqual(engine.max_steps, 7)
+        self.assertEqual(engine.max_depth, 7)
+        self.assertIsNone(engine._root)
+        self.assertEqual(engine._all_nodes, [])
+
+    def test_max_depth_limita_el_camino(self):
+        engine = TinyToT(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                         branch_factor=1, max_depth=1)
+        result = engine.think_tot("prueba")
+
+        self.assertEqual([n for n, _ in result["best_path"]], ["uno"])
+
+    def test_todo_podado_vuelve_a_la_raiz(self):
+        engine = TinyToT(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                         branch_factor=2, min_score_threshold=0.95)
+        result = engine.think_tot("prueba")
+
+        self.assertEqual(result["best_path"], [])
+        self.assertEqual(result["best_score"], 1.0)   # la raíz vale 1.0
+        self.assertEqual(result["pruned_nodes"], 2)
+        self.assertEqual(result["explored_nodes"], 3)
+        self.assertEqual(result["step_count"], 0)
+
+    def test_branch_factor_crea_ramas_con_variantes(self):
+        def responder(prompt):
+            if "evaluador experto" in prompt:
+                return '{"relevance": 5, "depth": 5, "coherence": 5, "reasoning": 5}'
+            return "contenido sustancial y largo"
+
+        llm = StubLLM(responder)
+        engine = TinyToT(llm_provider=llm, branch_factor=3, beam_width=1)
+        result = engine.think_tot("prueba")
+
+        self.assertEqual(len(engine._root.children), 3)
+        self.assertEqual([c.metadata["variant"] for c in engine._root.children],
+                         [1, 2, 3])
+        self.assertTrue(all(c.depth == 1 for c in engine._root.children))
+        self.assertEqual(result["explored_nodes"], 7)   # raíz + 3 + 3
+
+        generados = [p for p in llm.prompts if p.startswith("paso 1")]
+        self.assertEqual(len(generados), 3)
+        self.assertNotIn("Variante", generados[0])
+        self.assertIn("[Variante 2/3", generados[1])
+        self.assertIn("[Variante 3/3", generados[2])
+
+    def test_las_ramas_reciben_prompt_y_contexto(self):
+        capturado = []
+
+        class Captura(TinyToT):
+            def _step_builders(self):
+                def uno(o):
+                    capturado.append(dict(o))
+                    return "paso 1"
+                return [("uno", uno)]
+
+        engine = Captura(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                         branch_factor=1)
+        engine.think_tot("mi pregunta", context={"clave": "valor"})
+
+        self.assertEqual(capturado[0]["prompt"], "mi pregunta")
+        self.assertEqual(capturado[0]["context"], {"clave": "valor"})
+        self.assertNotIn("uno", capturado[0])
+
+
 if __name__ == "__main__":
     unittest.main()
