@@ -151,6 +151,14 @@ class TestLLMProviders(unittest.TestCase):
         self.assertTrue(llm.model.endswith(":free"))
         self.assertEqual(llm.base_url, "https://openrouter.ai/api/v1")
 
+    def test_modelo_por_defecto_es_gratuito_y_esta_en_la_cadena(self):
+        """Coherencia entre el defecto y la cadena de fallback (Hallazgo 42)."""
+        from llm_providers import OPENROUTER_FALLBACK_CHAIN
+
+        self.assertTrue(DEFAULT_FREE_MODEL.endswith(":free"))
+        self.assertIn(DEFAULT_FREE_MODEL, OPENROUTER_FALLBACK_CHAIN)
+        self.assertEqual(OPENROUTER_FALLBACK_CHAIN[0], DEFAULT_FREE_MODEL)
+
     def test_openrouter_modelo_sobreescribible_por_entorno(self):
         with patch.dict(os.environ, {"OPENROUTER_MODEL": "proveedor/modelo-x:free"}):
             llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
@@ -428,6 +436,28 @@ class TestResearchOrchestrator(unittest.TestCase):
         resumen = ctx.to_dict()
         self.assertEqual(resumen["num_claims"], 3)
         self.assertGreater(resumen["decisions"], 0)
+
+    def test_max_iterations_limita_las_subpreguntas_procesadas(self):
+        """El parámetro limita de verdad (antes era decorativo)."""
+        orchestrator = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
+                                            max_iterations=2)
+        _, ctx = orchestrator.research("¿Estado de la fusión nuclear?")
+
+        # MockLLM descompone en 3 subpreguntas: solo se procesan 2
+        self.assertEqual(len(ctx.subquestions), 2)
+        self.assertEqual(ctx.iteration, 2)
+        recortes = [d for d in ctx.decision_log if d["step"] == "iteration_limit"]
+        self.assertEqual(len(recortes), 1)
+        self.assertEqual(recortes[0]["decision"], "truncate")
+
+    def test_max_iterations_suficiente_no_recorta(self):
+        orchestrator = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
+                                            max_iterations=5)
+        _, ctx = orchestrator.research("¿Estado de la fusión nuclear?")
+
+        self.assertEqual(len(ctx.subquestions), 3)
+        recortes = [d for d in ctx.decision_log if d["step"] == "iteration_limit"]
+        self.assertEqual(recortes, [])
 
     def test_pregunta_no_descomponible(self):
         orchestrator = ResearchOrchestrator(StubLLM(lambda p: ""),

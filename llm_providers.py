@@ -88,9 +88,9 @@ class OpenAILLM(LLMProvider):
 
 
 # OpenRouter implementation (endpoint compatible con OpenAI)
-# Modelo gratuito por defecto (verificado 2026-10-14 con llamada real).
-# Se puede sobreescribir con la variable de entorno OPENROUTER_MODEL.
-DEFAULT_FREE_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+# Modelo gratuito por defecto: el más rápido medido (1,58 s) en el benchmark
+# real (Hallazgo 42). Se sobreescribe con la variable OPENROUTER_MODEL.
+DEFAULT_FREE_MODEL = "poolside/laguna-xs-2.1:free"
 
 # Lista de fallback ordenada por velocidad (benchmark 2026-10-15).
 # Se recorre en orden hasta que uno responde (fallo ruidoso tras agotar).

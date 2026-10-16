@@ -19,6 +19,7 @@ búsqueda (BFS/DFS) manteniendo compatibilidad total con la interfaz lineal.
 """
 
 import re
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -142,7 +143,7 @@ class StepThinkingEngine(ABC):
         hacen llamadas de red ocultas.
         """
         if self.llm is None:
-            from deep_research_system import MockLLM
+            from llm_providers import MockLLM
             self.llm = MockLLM()
         return self.llm.generate(prompt, **kwargs)
 
@@ -336,13 +337,16 @@ class ToTEngine(StepThinkingEngine):
         if not self.validate_step(content):
             return 0.0
         
-        # Intentar LLM-as-judge si hay proveedor disponible (atributo self.llm)
+        # LLM-as-judge si hay proveedor; si falla, se REPORTA la causa por
+        # stderr y se degrada a la heurística local (nunca en silencio,
+        # P1.19/P1.26).
         if self.llm is not None:
             try:
                 return self._evaluate_state_llm(content, step_name, outputs)
-            except Exception:
-                # Silencioso: caer a heurística si LLM falla
-                pass
+            except Exception as exc:  # noqa: BLE001 - se reporta y se degrada
+                print(f"[ToTEngine] LLM-as-judge falló "
+                      f"({type(exc).__name__}: {exc}); se usa la heurística local",
+                      file=sys.stderr)
         
         # Fallback heurístico (código original)
         return self._evaluate_state_heuristic(content, step_name, outputs)
@@ -421,23 +425,21 @@ FORMATO DE RESPUESTA (JSON exacto):
 
 Responde SOLO con el JSON."""
         
-        try:
-            response = self._llm_generate(prompt)
-            # Parsear JSON de la respuesta
-            import json
-            import re
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                eval_data = json.loads(json_match.group())
-                # Promedio ponderado: reasoning pesa más
-                weights = {"relevance": 0.25, "depth": 0.25, "coherence": 0.2, "reasoning": 0.3}
-                weighted = sum(eval_data.get(k, 0) * w for k, w in weights.items())
-                return round(min(max(weighted / 10.0, 0.0), 1.0), 2)
-        except Exception:
-            pass
-        
-        # Si falla el parsing, usar heurística
-        return self._evaluate_state_heuristic(content, step_name, outputs)
+        response = self._llm_generate(prompt)
+        # Parsear JSON de la respuesta
+        import json
+        import re
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            eval_data = json.loads(json_match.group())
+            # Promedio ponderado: reasoning pesa más
+            weights = {"relevance": 0.25, "depth": 0.25, "coherence": 0.2, "reasoning": 0.3}
+            weighted = sum(eval_data.get(k, 0) * w for k, w in weights.items())
+            return round(min(max(weighted / 10.0, 0.0), 1.0), 2)
+
+        # Sin JSON utilizable se eleva el error: `_evaluate_state` lo reporta
+        # por stderr y degrada a la heurística en un único punto (P1.26).
+        raise ValueError(f"Respuesta del juez sin JSON: {response[:120]!r}")
     
     def _bfs_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
         """Búsqueda en anchura (BFS) - explora nivel por nivel."""

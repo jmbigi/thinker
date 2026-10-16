@@ -496,6 +496,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: medir antes de fijar un valor por defecto; 403/404 →
   probar siguiente modelo, 429 → reintento con backoff; documentar los límites
   del tier gratuito como límite externo.
+- **Re-verificación 2026-10-16**: con el defecto ya unificado en laguna,
+  `python3 test_openrouter_real.py` no completó en 280 s: la API devolvió 429
+  repetidos y el cliente recorrió la cadena de fallback (laguna →
+  cohere/north-mini-code) sin llegar al final antes del corte. Es el mismo
+  límite externo documentado aquí, no un fallo del código: los reintentos con
+  backoff y el salto de modelo funcionaron como se diseñaron. El último
+  resultado completo sigue siendo el del 2026-10-14
+  (`test_openrouter_result.txt`), y esta prueba sigue siendo opt-in.
 
 ### Hallazgo 43: El CI en copia limpia como última red (avisos ruff post-commit)
 - **Problema**: tras el commit 4e9dd1b, el CI en copia limpia (`scripts/ci.sh`)
@@ -615,3 +623,148 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   al repo ni a la papelera sin decisión); no instalar hooks que exijan
   herramientas no ejecutables en el entorno — documentar la alternativa (CI)
   en su lugar.
+
+## 2026-10-16 (ronda 11) — Revisión del subsistema de plugins (hallazgos 49–51)
+
+### Hallazgo 49: Un flag de configuración leído donde no se decide
+
+- **Problema**: `enabled: false` en `config/plugins.yaml` no impedía la carga:
+  `load_all` comprobaba `entry.config.enabled`, fijado en el descubrimiento con
+  el valor por defecto (`PluginConfig()`, `enabled=True`), ANTES de fusionar el
+  archivo (la fusión solo ocurría dentro de `load_plugin`). La configuración
+  documentada como `enabled`/`priority`/`params` era decorativa para `enabled`.
+- **Solución**: `load_all` consulta `self._merge_config(name).enabled` (config
+  ya fusionada). La llamada explícita `load_plugin(name)` sigue cargando el
+  plugin deshabilitado: la acción deliberada prevalece.
+- **Evidencia**: con `mock_llm: enabled: false` en un archivo temporal,
+  `load_all` lo cargaba igualmente («estado mock_llm pese a enabled:false ->
+  loaded») ANTES; tras el fix, la regresión queda cubierta por
+  `test_enabled_false_impide_que_load_all_cargue_el_plugin`.
+- **Regla derivada**: la configuración que gobierna una decisión debe estar
+  fusionada EN el punto donde se decide; probar el flag desactivándolo, no
+  solo el camino feliz.
+
+### Hallazgo 50: Dependencia no declarada + fallo silencioso = config ignorada
+
+- **Problema**: el subsistema de plugins lee `config/plugins.yaml`, pero PyYAML
+  no estaba en `requirements.txt` ni en `requirements.lock`; además,
+  `_load_config_file` capturaba cualquier error de lectura y continuaba con los
+  valores por defecto (`except Exception` → print a stderr → `{}`). En una
+  instalación limpia TODA la configuración se ignoraba sin que ninguna prueba
+  lo notara (funcionaba solo porque PyYAML estaba instalado en el entorno de
+  desarrollo).
+- **Solución**: declarar `PyYAML==6.0.3` en `requirements.txt`/`pyproject.toml`
+  y regenerar el lock con hashes (`make lock`: única línea añadida,
+  `pyyaml==6.0.3`, 0 versiones alteradas); y elevar `RuntimeError` con el
+  motivo si el archivo no se puede leer o falta la dependencia (fallo ruidoso,
+  P1.19/P1.26).
+- **Evidencia**: `grep -i yaml requirements.lock` → vacío antes; tras `make
+  lock`, `pyyaml==6.0.3` con hashes; test
+  `test_config_ilegible_eleva_error_en_vez_de_ignorarse` en verde.
+- **Regla derivada**: toda dependencia que el código importa —aunque sea dentro
+  de una función— va declarada en el manifiesto; un error al leer configuración
+  se eleva, no se degrada a defaults silenciosos.
+
+### Hallazgo 51: La baja de hooks no encontraba lo que la alta registró
+
+- **Problema**: `_unregister_hooks` volvía a llamar a `plugin.get_hooks()`, que
+  devuelve objetos NUEVOS en cada llamada (lambdas): `hook_func in
+  self._hooks[...]` era siempre falso y, al descargar un CorePlugin (o hacer
+  hot-swap), sus hooks seguían ejecutándose. Lo destapó el test nuevo
+  `test_hook_se_registra_al_cargar_y_se_retira_al_descargar`.
+- **Solución**: guardar los callables exactos registrados por plugin
+  (`self._plugin_hooks[name]`) y retirar esos mismos en la baja.
+- **Evidencia**: antes → `AssertionError: ['hook-ejecutado'] != []` tras
+  `unload_plugin`; después → 21/21 tests de plugins y 248/248 de la suite.
+- **Regla derivada**: si una API devuelve objetos nuevos en cada llamada, guarda
+  los que registraste; no asumas que dos llamadas producen lo mismo.
+
+## 2026-10-16 (ronda 12) — Coherencia del defecto, silencios del ToT y límites reales (hallazgos 52–54)
+
+### Hallazgo 52: El valor por defecto vivía en cuatro sitios y decía tres cosas distintas
+
+- **Problema**: el modelo por defecto de OpenRouter aparecía como
+  `nvidia/nemotron-3-super-120b-a12b:free` en `llm_providers.py`, `README.md`,
+  `AGENTS.md` y `.env.example`, pero como `poolside/laguna-xs-2.1:free` en
+  `config/plugins.yaml` y en el plugin OpenRouter, mientras el Hallazgo 42 ya
+  afirmaba que el defecto medido era laguna (1,58 s). El código construía el
+  cliente con nemotron (10,97 s medidos) pese a que la cadena de fallback
+  empezaba por laguna: «defecto documentado» y «defecto real» no coincidían.
+- **Solución**: unificar a `poolside/laguna-xs-2.1:free` (el más rápido medido y
+  el que usa el `.env` del programador) en código, README, AGENTS.md,
+  `.env.example` y el docstring del test real; anclar la invariante con
+  `test_modelo_por_defecto_es_gratuito_y_esta_en_la_cadena`.
+- **Evidencia**: `grep -rn nemotron` antes → apariciones en 5 archivos con dos
+  valores distintos; después → solo entradas legítimas de la cadena de fallback;
+  `DEFAULT_FREE_MODEL == OPENROUTER_FALLBACK_CHAIN[0]` verificado en ejecución.
+- **Regla derivada**: un valor por defecto es un dato único; si aparece en
+  documentación, configuración y código, se unifica y se ancla con un test que
+  compare las fuentes entre sí.
+
+### Hallazgo 53: Dos silencios anidados en el juez del ToT
+
+- **Problema**: `_evaluate_state` envolvía `_evaluate_state_llm` en
+  `except Exception: pass`, y este último tenía su propio `except Exception:
+  pass` interno: si el juez devolvía algo que no era JSON, el sistema degradaba
+  a la heurística sin dejar rastro. Dos capas de silencio para el mismo fallo
+  (P1.19/P1.26).
+- **Solución**: un único punto de degradación: `_evaluate_state_llm` eleva
+  `ValueError` si no hay JSON y `_evaluate_state` reporta la causa por stderr
+  antes de usar la heurística local.
+- **Evidencia**: con un juez que no devuelve JSON, stderr muestra «[ToTEngine]
+  LLM-as-judge falló (ValueError: Respuesta del juez sin JSON…); se usa la
+  heurística local»; el score pasa de 1.0 (juez válido) a 0.66 (heurística);
+  cubierto por `test_juez_sin_json_se_reporta_y_usa_heuristica` y
+  `test_juez_con_json_usa_su_puntuacion`.
+- **Regla derivada**: una degradación prevista se implementa UNA vez y se
+  reporta; envolver un fallo ya envuelto produce silencio doble.
+
+### Hallazgo 54: Un parámetro de límite que no limitaba nada
+
+- **Problema**: `max_iterations` se guardaba en `ResearchContext` y se pasaba por
+  el orquestador, pero ninguna comparación lo usaba: el bucle procesaba todas
+  las subpreguntas. Un límite declarado y no aplicado es peor que no tenerlo
+  (da falsa sensación de control de tiempo/coste).
+- **Solución**: aplicarlo en `ResearchOrchestrator.research` (cada subpregunta =
+  una iteración), registrando el recorte en `decision_log`
+  (`iteration_limit`/`truncate`) y ajustando `context.subquestions` a lo
+  realmente procesado.
+- **Evidencia**: con `max_iterations=2`, `len(ctx.subquestions) == 2`,
+  `ctx.iteration == 2` y una decisión `truncate`; con 5, las 3 subpreguntas de
+  MockLLM se procesan sin recorte.
+- **Regla derivada**: un parámetro de límite se prueba con un caso que lo
+  exceda; si ningún test distingue «límite aplicado» de «límite ignorado», el
+  parámetro no existe de verdad.
+
+### Hallazgo 55: Dos objetos `metadata` para el mismo plugin (y el dashboard mentía)
+
+- **Problema**: `_register_plugin_class` creaba una instancia temporal y guardaba
+  SU metadata en el registro; al cargar, el registro marcaba
+  `status`/`load_time`/`error_message` en esa copia, pero la instancia real tenía
+  su propio objeto `metadata` (creado en su `__init__`, con
+  `status="unloaded"`). Y `get_stats()` —lo que leen `list_plugins`, el
+  dashboard y el CLI— devuelve los del INSTANCE: un plugin cargado se mostraba
+  como «unloaded», con `uptime` y `load_time` a 0 y `healthy_plugins` a 0.
+- **Solución**: una única fuente de metadatos: tras crear la instancia,
+  `instance.metadata = entry.metadata` (el instance comparte el objeto del
+  registro).
+- **Evidencia**: antes → `test_uptime_solo_cuenta_si_esta_cargado` (uptime 0) y
+  `test_health_healthy_sin_degradados` (healthy 0 ≠ 1) fallaban; después →
+  «status tras cargar: loaded | load_time > 0: True» y «status tras descargar:
+  unloaded»; `dashboard.py` pasa de 0% a 100% de cobertura.
+- **Regla derivada**: si el estado vive en dos objetos, alguien leerá el
+  equivocado; comparte el objeto o sincroniza en un único punto verificable.
+
+### Hallazgo 56: Un `discover_plugins()` posterior descartaba lo ya cargado
+
+- **Problema**: `_register_plugin_class` sobrescribía la entrada existente sin
+  condiciones. Cualquier descubrimiento posterior (el CLI lo ejecuta al inicio
+  de CADA comando) descartaba la instancia viva: el plugin volvía a «unloaded»,
+  se perdía su estado y sus hooks quedaban registrados sin dueño.
+- **Solución**: si la entrada existente está LOADED/LOADING, no se pisa.
+- **Evidencia**: antes → los tests del CLI `test_test_plugin_llm` y
+  `test_set_active_llm_y_rechazo_por_tipo` fallaban porque la carga del primer
+  comando se perdía al ejecutar el segundo; después → 47/47 tests de plugins y
+  281/281 de la suite.
+- **Regla derivada**: un descubrimiento/escaneo debe ser idempotente respecto a
+  lo ya cargado; sobrescribir sin comprobar el estado destruye trabajo vivo.

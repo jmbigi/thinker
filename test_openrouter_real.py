@@ -3,7 +3,7 @@
 Test REAL de OpenRouter con la key del .env (modelo GRATUITO).
 
 Hace llamadas reales al modelo gratuito por defecto
-(`nvidia/nemotron-3-super-120b-a12b:free`, coste 0) y verifica de extremo
+(`poolside/laguna-xs-2.1:free`, coste 0) y verifica de extremo
 a extremo:
 1. Conexión con OpenRouterLLM (key desde .env, nunca se imprime)
 2. Pipeline de investigación completo (pensamiento + extracción + evaluación)

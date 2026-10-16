@@ -15,10 +15,12 @@ herramientas de análisis estático de código.
 |---|---|
 | `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. |
 | `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, Ollama, Mock) con reintentos y backoff. |
-| `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación). |
+| `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
 | `web_search.py` | Búsqueda real sin API key (Wikipedia, DuckDuckGo) y mock offline, con formulación de consulta. |
+| `plugins/` | Sistema de plugins con hot-swap (proveedores LLM y búsqueda, extensiones del núcleo) + CLI de gestión. Config: `config/plugins.yaml`; guía: `docs/PLUGINS.md`. |
+| `tests/benchmarks/` | Framework de benchmark por dominio con rúbricas y LLM-as-judge opcional (`--list` para ver las tareas). |
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
@@ -57,7 +59,7 @@ simulados: sirven para verificar el pipeline, no producen investigación real.
 1. Copia `.env.example` a `.env` y pon tu clave de OpenRouter:
    `OPENROUTER_API_KEY=...` (el archivo `.env` está en `.gitignore`).
 2. Opcional: elige otro modelo gratuito con `OPENROUTER_MODEL`
-   (por defecto `nvidia/nemotron-3-super-120b-a12b:free`, coste 0).
+   (por defecto `poolside/laguna-xs-2.1:free`, coste 0).
 3. Ejecuta la verificación real de extremo a extremo:
 
 ```bash

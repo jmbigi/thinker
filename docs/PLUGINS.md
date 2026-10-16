@@ -162,21 +162,23 @@ python -m plugins.cli dashboard
 1. Crea el archivo en el directorio correspondiente
    (`plugins/llm_providers/`, `plugins/search_providers/` o `plugins/core/`).
 2. Hereda de la interfaz adecuada e implementa sus métodos.
-3. Define `metadata` con `PluginMetadata`.
+3. Declara los metadatos sobrescribiendo `_get_metadata()`.
 4. Registra la clase al final del archivo:
 
 ```python
 class MiPlugin(LLMProviderPlugin):
-    metadata = PluginMetadata(
-        name="miplugin",
-        version="1.0.0",
-        plugin_type=PluginType.LLM_PROVIDER,
-        description="Mi proveedor personalizado",
-        author="...",
-    )
+    def _get_metadata(self):
+        return PluginMetadata(
+            name="miplugin",
+            version="1.0.0",
+            plugin_type=PluginType.LLM_PROVIDER,
+            description="Mi proveedor personalizado",
+            author="...",
+        )
 
     def initialize(self):
         ...
+        return True
 
     def generate(self, prompt, model=None, **kwargs):
         return "..."
@@ -191,6 +193,12 @@ class MiPlugin(LLMProviderPlugin):
 plugin_registry._register_plugin_class(MiPlugin, __file__)
 ```
 
+Ojo: los metadatos se declaran en `_get_metadata()`, **no** como atributo de
+clase `metadata = PluginMetadata(...)`. `PluginBase.__init__` asigna
+`self.metadata` con el resultado de `_get_metadata()`, así que el atributo de
+clase quedaría anulado y el plugin se registraría con el nombre de la clase y
+versión `0.0.0` (verificado).
+
 Nota (Python ≤3.13): las anotaciones de tipo se evalúan al importar el módulo;
 si usas `List`, `Dict`, `Any`, etc. en firmas, IMPÓRTALOS de `typing` en el
 mismo archivo. En Python 3.14 (PEP 649) son perezosas y el fallo queda oculto.
@@ -204,6 +212,9 @@ vía CLI (`dashboard`, `health`) o programáticamente con
 
 ## Verificación
 
-- `python test_plugin_system.py` — 8 pruebas: descubrimiento, carga,
+- `python -m unittest discover -s tests -p "test_plugin_*.py"` — 47 pruebas
+  automatizadas (descubrimiento, config YAML, ciclo de vida, hooks, dashboard
+  y CLI, plugins simulados offline). Forman parte de la suite: `make test`.
+- `python test_plugin_system.py` — 8 pruebas de humo: descubrimiento, carga,
   proveedor activo, ejecución, hot-reload, dashboard, config, apagado.
 - `ruff check plugins/ config/` — sin errores.

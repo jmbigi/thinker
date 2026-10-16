@@ -347,6 +347,16 @@ class ResearchOrchestrator:
         if not subquestions:
             return "Could not decompose research question", self.context
 
+        # `max_iterations` limita de verdad el bucle (antes era un parámetro
+        # decorativo): cada subpregunta consume una iteración de recuperación.
+        if len(subquestions) > self.context.max_iterations:
+            self.context.add_decision(
+                "iteration_limit", "truncate",
+                f"Se procesan {self.context.max_iterations} de "
+                f"{len(subquestions)} subpreguntas (max_iterations)")
+            subquestions = subquestions[: self.context.max_iterations]
+            self.context.subquestions = subquestions
+
         # Step 2: For each subquestion, retrieve sources and extract claims
         for sq in subquestions:
             results = self.retriever.decide(self.context, sq)

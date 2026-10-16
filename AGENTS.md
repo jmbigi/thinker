@@ -40,7 +40,7 @@ mejora de código (`code_design_improvement_tools.py`).
    (`MockLLM`/`MockSearchAPI`). Los proveedores reales (OpenRouter, Kilo,
    Ollama) solo se usan de forma opt-in y explícita. Para OpenRouter se usan
    **modelos gratuitos** (`:free`, coste 0): por defecto
-   `nvidia/nemotron-3-super-120b-a12b:free`, sobreescribible con la variable
+   `poolside/laguna-xs-2.1:free`, sobreescribible con la variable
    de entorno `OPENROUTER_MODEL`.
 7. **Rutas portables**: prohibidas rutas absolutas de Windows (`C:\...`);
    rutas relativas al proyecto o `pathlib`.
@@ -59,7 +59,7 @@ mejora de código (`code_design_improvement_tools.py`).
 ## Entorno y verificación (comandos del proyecto)
 
 - SO: **Linux**. Python 3.11. Dependencias fijadas en `requirements.txt`
-  (`requests`, `openai>=1.0`, `python-dotenv`); `ollama` opcional.
+  (`requests`, `openai>=1.0`, `python-dotenv`, `PyYAML`); `ollama` opcional.
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
 - Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).

@@ -1,10 +1,12 @@
 """Tests de thinking_engine.py: ciclo de pasos, validación, confianza y decisión."""
 
+import io
 import unittest
+from contextlib import redirect_stderr
 
 from deep_research_system import MockLLM
 from tests.helpers import StubLLM
-from thinking_engine import StepThinkingEngine
+from thinking_engine import StepThinkingEngine, ToTEngine
 
 
 class TinyEngine(StepThinkingEngine):
@@ -133,6 +135,64 @@ class TestRunCycle(unittest.TestCase):
         engine = CtxEngine(llm_provider=StubLLM(lambda p: "contenido " + p))
         engine.think("entrada", context={"clave": "valor"})
         self.assertEqual(capturado, {"clave": "valor"})
+
+
+class TinyToT(ToTEngine):
+    """Motor ToT mínimo de 2 pasos para ejercitar ramificación y poda (SIMULADO)."""
+
+    def _step_builders(self):
+        return [
+            ("uno", lambda o: "paso 1"),
+            ("dos", lambda o: "paso 2"),
+        ]
+
+    def _render_thought(self, steps):
+        return "tot:" + ",".join(name for name, _ in steps)
+
+
+class TestToTEngine(unittest.TestCase):
+    def test_think_tot_devuelve_arbol_y_metricas(self):
+        engine = TinyToT(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
+                         branch_factor=2, beam_width=2)
+        result = engine.think_tot("prueba")
+
+        for clave in ("best_path", "explored_nodes", "pruned_nodes", "best_score"):
+            self.assertIn(clave, result)
+        self.assertEqual([name for name, _ in result["best_path"]], ["uno", "dos"])
+        # raíz + 2 ramas del primer paso + 4 del segundo
+        self.assertEqual(result["explored_nodes"], 7)
+        self.assertEqual(len(engine._root.children), 2)
+
+    def test_arbol_solo_se_incluye_si_se_pide(self):
+        engine = TinyToT(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"))
+
+        self.assertNotIn("tree", engine.think_tot("prueba"))
+        self.assertIn("tree", engine.think_tot("prueba", return_tree=True))
+
+    def test_juez_con_json_usa_su_puntuacion(self):
+        def juez(prompt):
+            if "evaluador experto" in prompt:
+                return '{"relevance": 10, "depth": 10, "coherence": 10, "reasoning": 10}'
+            return "contenido sustancial y largo"
+
+        engine = TinyToT(llm_provider=StubLLM(juez), branch_factor=1)
+        self.assertEqual(engine.think_tot("prueba")["best_score"], 1.0)
+
+    def test_juez_sin_json_se_reporta_y_usa_heuristica(self):
+        def juez(prompt):
+            if "evaluador experto" in prompt:
+                return "esto no es JSON"
+            return "contenido sustancial y largo"
+
+        engine = TinyToT(llm_provider=StubLLM(juez), branch_factor=1)
+        capturado = io.StringIO()
+        with redirect_stderr(capturado):
+            result = engine.think_tot("prueba")
+
+        # El fallo NO se silencia (P1.26) y se degrada a la heurística local.
+        self.assertIn("LLM-as-judge falló", capturado.getvalue())
+        self.assertGreater(result["best_score"], 0.0)
+        self.assertLess(result["best_score"], 1.0)
 
 
 if __name__ == "__main__":
