@@ -888,3 +888,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: un test nunca debe asertar contra valores del entorno sin
   fijarlos antes (una aserción fallida imprime ambos lados), y la clave de un
   proveedor no debe poder caer en el cliente de otro.
+
+## 2026-10-16 (ronda 13) — Eficiencia medida: timeout explícito y caché (hallazgo 62)
+
+### Hallazgo 62: En modo ToT, el 60% de las llamadas repetían un prompt ya hecho
+
+- **Problema**: el cuello de botella real medido hoy es el cupo del tier
+  gratuito (429, Hallazgo 57) y el pipeline repetía prompts idénticos; además el
+  SDK usa 600 s de timeout por defecto, así que una llamada colgada bloquea la
+  campaña entera.
+- **Solución** (propuestas 1 y 2 de `docs/REFERENCIAS-IA.md`): `ResponseCache`
+  por instancia de cliente (solo respuestas exitosas; los errores NO se cachean)
+  y `DEFAULT_TIMEOUT = 60 s` explícito por petición, ambos configurables
+  (`use_cache=`, `timeout=`); la caché expone `hits` y puede desactivarse.
+  Además `_chat_completion` rechaza `max_retries < 1` (antes elevaba `None`).
+- **Medición** (offline, con la capa de pensamiento real y un LLM contador):
+  modo lineal 7 llamadas / 7 únicas (0% de ahorro); modo ToT
+  (`branch_factor=2`, `beam_width=2`) **52 llamadas / 21 únicas → 31 duplicadas
+  (60% eliminable)**; el prompt más repetido aparecía 4 veces.
+- **Evidencia**: 13 tests nuevos (`tests/test_llm_cache_y_timeout.py`), incluidos
+  «los errores no se cachean», «la caché es por instancia» y «el timeout llega a
+  la petición» (`cliente.calls[0]["timeout"] == 60.0`); 325/325 tests OK; ruff
+  sin avisos.
+- **Regla derivada**: la eficiencia se mide contando llamadas reales (totales vs
+  únicas), no se supone; y un timeout por defecto de una librería (600 s) es una
+  decisión que el proyecto debe tomar explícitamente.

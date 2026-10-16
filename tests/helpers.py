@@ -50,8 +50,8 @@ def make_chat_client(outcomes):
     """
     calls = []
 
-    def create(model, messages):
-        calls.append({"model": model, "messages": messages})
+    def create(model, messages, **kwargs):
+        calls.append({"model": model, "messages": messages, **kwargs})
         outcome = outcomes[len(calls) - 1]
         if isinstance(outcome, BaseException):
             raise outcome

@@ -7,6 +7,7 @@ mantener la cohesión de módulos: aquí vive todo lo relacionado con hablar con
 modelos. `MockLLM` es SIMULADO: offline, determinista, sin red.
 """
 
+import hashlib
 import json
 import os
 import random
@@ -14,7 +15,7 @@ import re
 import sys
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List  # noqa: F401
+from typing import Any, Dict, List, Optional  # noqa: F401
 
 
 # LLM Provider Interface
@@ -29,22 +30,71 @@ class LLMProvider(ABC):
 # Errores transitorios de proveedor que justifican reintento (P1.34)
 TRANSIENT_STATUS = {429, 500, 502, 503, 504}
 
+# Timeout explícito por petición (P1.34): el SDK usa 600 s por defecto, que en
+# una campaña real es tiempo perdido (una llamada colgada bloquea el pipeline).
+DEFAULT_TIMEOUT = 60.0
 
-def _chat_completion(client, model: str, prompt: str, max_retries: int, label: str) -> str:
-    """Llama al endpoint de chat con reintentos y backoff exponencial + jitter.
+
+class ResponseCache:
+    """Caché de respuestas por (modelo, prompt), en memoria y por instancia.
+
+    - Solo guarda respuestas EXITOSAS: un error no se cachea (un reintento debe
+      volver a la red).
+    - Es por cliente: una instancia nueva empieza vacía, así los tests siguen
+      siendo deterministas y el efecto se limita a la vida del cliente.
+    - `hits`/`entradas` hacen medible el ahorro (eficiencia medida, no supuesta).
+    """
+
+    def __init__(self) -> None:
+        self.entradas: Dict[str, str] = {}
+        self.hits = 0
+
+    @staticmethod
+    def _clave(model: str, prompt: str) -> str:
+        return hashlib.sha256(f"{model}\x00{prompt}".encode("utf-8")).hexdigest()
+
+    def get(self, model: str, prompt: str) -> Optional[str]:
+        respuesta = self.entradas.get(self._clave(model, prompt))
+        if respuesta is not None:
+            self.hits += 1
+        return respuesta
+
+    def set(self, model: str, prompt: str, respuesta: str) -> None:
+        self.entradas[self._clave(model, prompt)] = respuesta
+
+
+def _chat_completion(client, model: str, prompt: str, max_retries: int, label: str,
+                     timeout: float = DEFAULT_TIMEOUT,
+                     cache: Optional["ResponseCache"] = None) -> str:
+    """Llama al endpoint de chat con reintentos, backoff y timeout explícito.
 
     Reintenta solo errores transitorios (5xx, 429, red/timeout), informando
     cada reintento por stderr. Al agotar los intentos eleva el último error
     (fallo ruidoso, nunca silencioso). P1.34/P1.19.
+
+    Con `cache` (por instancia de cliente), un (modelo, prompt) ya respondido
+    con éxito se devuelve sin tocar la red; los errores NO se cachean.
     """
+    if max_retries < 1:
+        raise ValueError(f"max_retries debe ser >= 1 (recibido {max_retries})")
+
+    if cache is not None:
+        guardada = cache.get(model, prompt)
+        if guardada is not None:
+            return guardada
+
     last_error = None
     for attempt in range(1, max_retries + 1):
         try:
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
+                timeout=timeout,
             )
-            return response.choices[0].message.content or ""
+            salida = response.choices[0].message.content or ""
+            if cache is not None:
+                cache.set(model, prompt, salida)
+            return salida
         except Exception as exc:  # noqa: BLE001 - se reeleva tras agotar
             last_error = exc
             status = getattr(exc, "status_code", None)
@@ -65,14 +115,21 @@ class OpenAILLM(LLMProvider):
 
     La API key se toma del argumento `api_key`, de kwargs en `generate()`,
     o de las variables de entorno OPENAI_API_KEY / OPENROUTER_API_KEY.
+
+    `timeout` es explícito (por defecto 60 s; el SDK usa 600 s) y `use_cache`
+    activa la caché de respuestas por instancia (medible con `self.cache.hits`).
     """
 
     def __init__(self, api_key: str = None, model: str = "gpt-4o-mini",
-                 base_url: str = None, max_retries: int = 3):
+                 base_url: str = None, max_retries: int = 3,
+                 timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.model = model
         self.base_url = base_url
         self.max_retries = max_retries
+        self.timeout = timeout
+        self.use_cache = use_cache
+        self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
 
     def generate(self, prompt: str, model: str = None, **kwargs) -> str:
         key = kwargs.pop("api_key", None) or self.api_key
@@ -84,7 +141,8 @@ class OpenAILLM(LLMProvider):
         from openai import OpenAI
         client = OpenAI(api_key=key, base_url=base_url)
         return _chat_completion(client, model or self.model, prompt,
-                                self.max_retries, "OpenAILLM")
+                                self.max_retries, "OpenAILLM",
+                                timeout=self.timeout, cache=self.cache)
 
 
 # OpenRouter implementation (endpoint compatible con OpenAI)
