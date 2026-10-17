@@ -83,10 +83,13 @@ mejora de código (`code_design_improvement_tools.py`).
   `python3 scripts/probe_model.py --samples 5` — mide latencias reales de
   `"Helo"` y dictamina APTO/NO APTO según la regla propia 10 (sin key, no
   prueba).
-- Evaluación de un proyecto externo (estática, read-only, sin LLM):
-  `python3 evaluar_proyecto.py RUTA [--json] [--sin-red]` — 6 dimensiones × 4
-  criterios binarios, con evidencia por hallazgo y mejoras propuestas con su
-  verificación. Informes de ejemplo en `docs/EVALUACIONES.md`.
+- Evaluación de un proyecto externo (estática, read-only; LLM opt-in):
+  `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]
+  [--sintesis-llm] [--investigar]` — 6 dimensiones × 4-5 criterios binarios, con
+  evidencia por hallazgo, plan de mejora derivado de las métricas (sitios,
+  esfuerzo, secuencia y verificación) y, opt-in, propuestas de fondo del modelo
+  con control anti-invención y dudas investigadas con fuentes citadas. Informes
+  de ejemplo en `docs/EVALUACIONES.md`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).

@@ -113,6 +113,93 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertIn("Plan de mejora:", resumen)
         self.assertIn("alta", resumen)
 
+    def test_sintesis_llm_marca_el_respaldo_de_cada_propuesta(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        respuesta = ('{"propuestas": [{"dimension": "calidad", "propuesta": "unificar", '
+                     '"por_que": "x", "evidencia": "requirements.txt", '
+                     '"como_verificar": "y"}, '
+                     '{"dimension": "calidad", "propuesta": "inventada", '
+                     '"por_que": "x", "evidencia": "otro/archivo.py:1", '
+                     '"como_verificar": "y"}], '
+                     '"preguntas_abiertas": ["¿está mantenida la dependencia?"]}')
+
+        sintesis = sintetizar_con_llm(evaluar(self._fixture(), con_red=False),
+                                      StubLLM(lambda p: respuesta))
+
+        self.assertEqual(len(sintesis["propuestas"]), 2)
+        self.assertTrue(sintesis["propuestas"][0]["con_respaldo"])
+        self.assertFalse(sintesis["propuestas"][1]["con_respaldo"])
+        self.assertEqual(sintesis["sin_respaldo"], 1)
+        self.assertEqual(sintesis["preguntas_abiertas"],
+                         ["¿está mantenida la dependencia?"])
+
+    def test_sintesis_llm_acepta_el_contrato_antiguo_de_array(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        respuesta = '[{"propuesta": "p", "evidencia": "requirements.txt"}]'
+
+        sintesis = sintetizar_con_llm(evaluar(self._fixture(), con_red=False),
+                                      StubLLM(lambda p: respuesta))
+
+        self.assertEqual(len(sintesis["propuestas"]), 1)
+        self.assertEqual(sintesis["preguntas_abiertas"], [])
+
+    def test_investigar_preguntas_cita_fuentes_y_declara_fallos(self):
+        from evaluar_proyecto import investigar_preguntas
+        from tests.helpers import StubSearch
+
+        search = StubSearch([{"title": "Doc oficial", "url": "https://ejemplo.invalid/d"}])
+        con_fuentes = investigar_preguntas(["¿cuál es la práctica recomendada?"], search)
+        self.assertEqual(con_fuentes[0]["fuentes"],
+                         [{"titulo": "Doc oficial", "url": "https://ejemplo.invalid/d"}])
+        self.assertFalse(con_fuentes[0]["sin_resultados"])
+
+        class BuscadorRoto:
+            def search(self, query, max_results=5):
+                raise RuntimeError("sin red")
+
+        con_error = investigar_preguntas(["¿y esto?"], BuscadorRoto())
+        self.assertIn("RuntimeError", con_error[0]["error"])
+
+    def test_sintesis_llm_sin_array_eleva_value_error(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        with self.assertRaises(ValueError):
+            sintetizar_con_llm(evaluar(self._fixture(), con_red=False),
+                               StubLLM(lambda p: "no json"))
+
+    def test_sintesis_llm_ignora_elementos_que_no_son_objetos(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        respuesta = '["texto suelto", {"propuesta": "ok", "evidencia": ""}]'
+
+        sintesis = sintetizar_con_llm(evaluar(self._fixture(), con_red=False),
+                                      StubLLM(lambda p: respuesta))
+
+        self.assertEqual(len(sintesis["propuestas"]), 1)
+        self.assertFalse(sintesis["propuestas"][0]["con_respaldo"])
+
+    def test_evaluar_con_llm_incluye_la_sintesis_y_sin_llm_no(self):
+        from tests.helpers import StubLLM
+
+        raiz = self._fixture()
+        respuesta = ('[{"dimension": "calidad", "propuesta": "p", "por_que": "q", '
+                     '"evidencia": "requirements.txt", "como_verificar": "v"}]')
+        llm = StubLLM(lambda p: respuesta)
+
+        con = evaluar(raiz, con_red=False, llm=llm)
+        sin = evaluar(raiz, con_red=False)
+
+        self.assertIn("sintesis_llm", con)
+        self.assertNotIn("sintesis_llm", sin)
+        self.assertIn("INFORME MEDIDO", llm.prompts[0])
+        self.assertIn(str(raiz), llm.prompts[0])
+
     def test_no_cambia_el_proyecto_evaluado(self):
         raiz = self._fixture()
         antes = {p: p.stat().st_mtime_ns for p in raiz.rglob("*")}

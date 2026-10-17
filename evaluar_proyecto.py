@@ -38,6 +38,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from deep_research_system import _parse_json_response  # reutilizado, no duplicado
+
 IGNORAR = {".venv", "venv", "__pycache__", "node_modules", ".git", ".mypy_cache",
            ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist"}
 PESADAS = ("paddle", "torch", "tensorflow", "playwright", "openpyxl", "pandas",
@@ -720,8 +722,120 @@ def plan_texto(informe: Dict[str, Any]) -> List[str]:
             f"ordenadas por prioridad, secuencia y esfuerzo."]
 
 
+# --- Síntesis con LLM (opt-in): lo que el plan mecánico no ve ----------------
+
+PROMPT_SINTESIS = """Eres un ingeniero de software senior. Con SOLO la evidencia
+medida que se te da (no inventes archivos, métricas, APIs ni líneas), propón
+mejoras de FONDO que un plan mecánico por criterios no vería: diseño, estructura,
+algoritmos, eficiencia o riesgos del proyecto.
+
+Si algo no se puede decidir con la evidencia medida, NO lo inventes: formúlalo
+como pregunta abierta (se investigará después).
+
+Responde SOLO un objeto JSON con estas dos claves:
+{"propuestas": [{"dimension": "funcionalidades|calidad|vigencia|herramientas|inteligencia|eficiencia",
+                 "propuesta": "acción concreta",
+                 "por_que": "razón breve",
+                 "evidencia": "archivo:línea o medición tomada del informe",
+                 "como_verificar": "métrica que la cerraría"}],
+ "preguntas_abiertas": ["qué no puedes decidir sin más información"]}
+
+Máximo 5 propuestas, ordenadas por impacto.
+
+INFORME MEDIDO:"""
+
+
+def investigar_preguntas(preguntas: List[str], search_api,
+                         max_por_pregunta: int = 2) -> List[Dict[str, Any]]:
+    """Resuelve las dudas declaradas por el modelo con búsqueda real y citada.
+
+    Reutiliza `web_search` (Wikipedia/DuckDuckGo, sin API key). Cada hallazgo
+    lleva su URL para poder verificarlo; si la búsqueda falla o no devuelve nada,
+    se declara (nunca se rellena con texto inventado).
+    """
+    from web_search import formulate_query
+
+    hallazgos = []
+    for pregunta in preguntas:
+        try:
+            resultados = search_api.search(formulate_query(pregunta, 5))
+        except Exception as exc:  # noqa: BLE001 - se declara el fallo
+            hallazgos.append({"pregunta": pregunta,
+                              "error": f"{type(exc).__name__}: {exc}"})
+            continue
+        fuentes = [{"titulo": r.get("title", ""), "url": r.get("url", "")}
+                   for r in resultados[:max_por_pregunta]]
+        hallazgos.append({"pregunta": pregunta, "fuentes": fuentes,
+                          "sin_resultados": not fuentes})
+    return hallazgos
+
+
+def _digesto(informe: Dict[str, Any], max_hallazgos: int = 20) -> str:
+    """Resumen del informe medido para el prompt (solo datos del propio informe)."""
+    lineas = [f"ruta: {informe['ruta']}",
+              f"python: {informe['archivos_python']} archivos / "
+              f"{informe['lineas_python']} líneas"]
+    for nombre, datos in informe["dimensiones"].items():
+        fallos = [c for c, ok in datos["criterios"].items() if not ok]
+        lineas.append(f"- {nombre}: {datos['puntuacion']:.2f} | "
+                      f"fallos: {fallos or '—'}")
+        for h in datos["hallazgos"][:max_hallazgos]:
+            lineas.append(f"    ({h['severidad']}) {h['descripcion'][:110]} "
+                          f"— {h['evidencia']}")
+        for nota in datos["notas"]:
+            lineas.append(f"    · {nota}")
+    return "\n".join(lineas)
+
+
+def sintetizar_con_llm(informe: Dict[str, Any], llm) -> Dict[str, Any]:
+    """Genera propuestas con un LLM a partir del informe medido (opt-in).
+
+    Control anti-invención (mecánico): cada propuesta se marca `con_respaldo`
+    solo si su campo `evidencia` aparece en la evidencia medida del informe. Las
+    que no lo tengan se conservan pero quedan marcadas: son juicio, no medición.
+    """
+    evidencia_medida = " ".join(
+        [h["evidencia"] for d in informe["dimensiones"].values()
+         for h in d["hallazgos"]]
+        + [n for d in informe["dimensiones"].values() for n in d["notas"]]
+        + [informe["ruta"]])
+
+    respuesta = llm.generate(PROMPT_SINTESIS + "\n" + _digesto(informe))
+    datos = _parse_json_response(respuesta)
+    if isinstance(datos, dict):
+        crudas = datos.get("propuestas", [])
+        preguntas = [str(p) for p in datos.get("preguntas_abiertas", [])]
+    elif isinstance(datos, list):          # contrato antiguo: solo propuestas
+        crudas, preguntas = datos, []
+    else:
+        raise ValueError("La síntesis debe ser un objeto o array JSON")
+    if not isinstance(crudas, list):
+        raise ValueError("`propuestas` debe ser una lista")
+
+    propuestas = []
+    for item in crudas:
+        if not isinstance(item, dict):
+            continue
+        propuesta = {
+            "dimension": str(item.get("dimension", "")),
+            "propuesta": str(item.get("propuesta", "")),
+            "por_que": str(item.get("por_que", "")),
+            "evidencia": str(item.get("evidencia", "")),
+            "como_verificar": str(item.get("como_verificar", "")),
+        }
+        clave = propuesta["evidencia"].split()[0] if propuesta["evidencia"] else ""
+        propuesta["con_respaldo"] = bool(clave) and clave in evidencia_medida
+        propuestas.append(propuesta)
+
+    return {"modelo": getattr(llm, "model", "?"),
+            "propuestas": propuestas,
+            "preguntas_abiertas": preguntas,
+            "sin_respaldo": sum(1 for p in propuestas if not p["con_respaldo"])}
+
+
 def evaluar(ruta: Path, con_red: bool = True,
-            ejecutar_tests_flag: bool = False) -> Dict[str, Any]:
+            ejecutar_tests_flag: bool = False, llm=None,
+            investigar: bool = False, search_api=None) -> Dict[str, Any]:
     """Evalúa un proyecto y devuelve el informe completo (sin escribir nada).
 
     `ejecutar_tests_flag` es un opt-in EXPLÍCITO: es lo único que ejecuta código
@@ -761,6 +875,14 @@ def evaluar(ruta: Path, con_red: bool = True,
         "no_verificado": no_verificado,
     }
     informe["mejoras"] = proponer_mejoras(informe)
+    if llm is not None:
+        informe["sintesis_llm"] = sintetizar_con_llm(informe, llm)
+        preguntas = informe["sintesis_llm"]["preguntas_abiertas"]
+        if investigar and preguntas:
+            if search_api is None:
+                from web_search import WikipediaSearchAPI
+                search_api = WikipediaSearchAPI()
+            informe["investigacion"] = investigar_preguntas(preguntas, search_api)
     return informe
 
 
@@ -785,6 +907,34 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
         lineas.append(f"  [{m['prioridad']:>5}] {m['dimension']}: {m['propuesta']}")
         lineas.append(f"          sitios: {m['sitios']} | esfuerzo: {m['esfuerzo']}")
         lineas.append(f"          verificación: {m['metrica']}")
+    if "sintesis_llm" in informe:
+        sintesis = informe["sintesis_llm"]
+        lineas.append("")
+        lineas.append(f"== PROPUESTAS DEL MODELO ({sintesis['modelo']}) — juicio, no "
+                      f"medición; sin respaldo medido: {sintesis['sin_respaldo']} ==")
+        for propuesta in sintesis["propuestas"]:
+            marca = "con respaldo medido" if propuesta["con_respaldo"] else "SIN RESPALDO"
+            lineas.append(f"  [{propuesta['dimension']}] {propuesta['propuesta']} "
+                          f"({marca})")
+            lineas.append(f"          por qué: {propuesta['por_que']}")
+            lineas.append(f"          evidencia citada: {propuesta['evidencia']}")
+            lineas.append(f"          verificación: {propuesta['como_verificar']}")
+        if sintesis["preguntas_abiertas"]:
+            lineas.append(f"  Preguntas abiertas (lo que el modelo declara NO saber): "
+                          f"{len(sintesis['preguntas_abiertas'])}")
+            for pregunta in sintesis["preguntas_abiertas"]:
+                lineas.append(f"    · {pregunta}")
+    if "investigacion" in informe:
+        lineas.append("")
+        lineas.append("== INVESTIGACIÓN DE LAS DUDAS (fuentes citadas, verificables) ==")
+        for hallazgo in informe["investigacion"]:
+            lineas.append(f"  ? {hallazgo['pregunta']}")
+            if hallazgo.get("error"):
+                lineas.append(f"    ERROR: {hallazgo['error']}")
+            elif hallazgo.get("sin_resultados"):
+                lineas.append("    sin resultados (se declara, no se inventa)")
+            for fuente in hallazgo.get("fuentes", []):
+                lineas.append(f"    - {fuente['titulo']}: {fuente['url']}")
     lineas.append("")
     lineas.append("No verificado: " + "; ".join(informe["no_verificado"]))
     return lineas
@@ -801,11 +951,25 @@ def main() -> int:
                         help="EJECUTA el comando de tests declarado por el proyecto "
                              "(opt-in explícito: es lo único que corre código "
                              "ajeno, P0.8)")
+    parser.add_argument("--sintesis-llm", action="store_true",
+                        help="pide a un LLM propuestas de FONDO a partir del informe "
+                             "medido (opt-in; requiere key y red; coste 0 con :free)")
+    parser.add_argument("--modelo", default=None,
+                        help="modelo para la síntesis (defecto: el gratuito del proyecto)")
+    parser.add_argument("--investigar", action="store_true",
+                        help="resuelve las dudas del modelo con búsqueda real y cita "
+                             "las fuentes (implica --sintesis-llm; requiere red)")
     args = parser.parse_args()
+
+    llm = None
+    if args.sintesis_llm or args.investigar:
+        from llm_providers import OpenRouterLLM
+        llm = OpenRouterLLM(model=args.modelo) if args.modelo else OpenRouterLLM()
 
     try:
         informe = evaluar(Path(args.ruta).resolve(), con_red=not args.sin_red,
-                          ejecutar_tests_flag=args.ejecutar_tests)
+                          ejecutar_tests_flag=args.ejecutar_tests, llm=llm,
+                          investigar=args.investigar)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

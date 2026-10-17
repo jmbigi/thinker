@@ -1079,3 +1079,24 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   sale el dato) y su **estructura** (orden, secuencia, verificación), no por lo
   elocuente que suene; y ninguna cifra que alimente una decisión puede llevar
   tope oculto.
+
+### Hallazgo 69: Síntesis del modelo con control anti-invención y dudas declaradas
+
+- **Problema**: el plan mecánico (Hallazgo 68) es reproducible pero no ve lo que
+  no cabe en un criterio binario (diseño, algoritmos, riesgos); y un LLM suelto
+  puede inventar archivos, métricas o APIs al proponer mejoras.
+- **Solución**: `--sintesis-llm` (opt-in; coste 0 con modelos `:free`) pide
+  propuestas de FONDO a partir del informe **medido**. Control mecánico
+  anti-invención: cada propuesta se marca `con_respaldo` solo si la evidencia que
+  cita aparece en la evidencia medida del informe. Lo que el modelo no puede
+  decidir se declara en `preguntas_abiertas` en vez de inventarse, y
+  `--investigar` resuelve esas dudas con búsqueda real (reutiliza `web_search`)
+  citando fuentes (o declarando «sin resultados» y los errores).
+- **Evidencia** (ejecución real 2026-10-16 sobre better-ocr, modelo `:free`): el
+  modelo devolvió propuestas sobre carga de modelos y caché —marcadas **SIN
+  RESPALDO** al no coincidir su cita con la evidencia medida— y **2 preguntas
+  abiertas** (arquitectura, flujo de datos) que no inventó; 403/403 tests OK
+  (6 nuevos, offline con dobles).
+- **Regla derivada**: cuando un modelo propone sobre datos medidos, la evidencia
+  citada se verifica mecánicamente y lo desconocido se declara como pregunta —con
+  su investigación citada— nunca como afirmación.
