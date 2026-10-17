@@ -208,6 +208,7 @@ class ToTEngine(StepThinkingEngine):
         search_strategy: str = SearchStrategy.BEAM,
         min_score_threshold: float = 0.3,
         max_depth: Optional[int] = None,
+        voto_top_k: int = 1,
     ):
         super().__init__(llm_provider, name, max_steps)
         self.branch_factor = branch_factor
@@ -215,6 +216,8 @@ class ToTEngine(StepThinkingEngine):
         self.search_strategy = search_strategy
         self.min_score_threshold = min_score_threshold
         self.max_depth = max_depth or max_steps
+        # Self-Consistency (arXiv:2203.11171) opt-in: 1 = mejor hoja por score.
+        self.voto_top_k = voto_top_k
         self._root: Optional[ThinkingNode] = None
         self._all_nodes: List[ThinkingNode] = []
     
@@ -259,6 +262,23 @@ class ToTEngine(StepThinkingEngine):
             best_leaf = self._dfs_search(prompt, context or {})
         else:  # BEAM
             best_leaf = self._beam_search(prompt, context or {})
+
+        # Self-Consistency (arXiv:2203.11171) opt-in: entre las k mejores hojas
+        # gana el camino más repetido (consenso); empate -> mayor score. Con
+        # `voto_top_k=1` no cambia nada (comportamiento original).
+        hojas = sorted((n for n in self._all_nodes if n.is_leaf()),
+                       key=lambda n: n.score, reverse=True)[:max(1, self.voto_top_k)]
+        consenso = 1.0
+        if len(hojas) > 1:
+            from collections import Counter
+
+            def firma(nodo):
+                return "|".join(n.content for n in nodo.path_to_root())
+
+            conteo = Counter(firma(h) for h in hojas)
+            firma_ganadora, votos = conteo.most_common(1)[0]
+            consenso = round(votos / len(hojas), 3)
+            best_leaf = next(h for h in hojas if firma(h) == firma_ganadora)
         
         # Extraer mejor camino
         best_path = [(n.step_name, n.content) for n in best_leaf.path_to_root()[1:]]  # skip root
@@ -279,6 +299,8 @@ class ToTEngine(StepThinkingEngine):
             "explored_nodes": len(self._all_nodes),
             "pruned_nodes": pruned,
             "best_score": best_leaf.score,
+            "consenso": consenso,
+            "hojas_votadas": len(hojas),
         }
         
         if return_tree:

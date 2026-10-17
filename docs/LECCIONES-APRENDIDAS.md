@@ -973,3 +973,36 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   comparabilidad con las campañas ya calibradas (Hallazgos 46-47).
 - **Regla derivada**: una mejora del estudio se implementa opt-in y con medición
   propia, sin alterar las métricas ya publicadas.
+
+### Hallazgo 66: CRAG, Self-Consistency y routing por tarea (y por qué NO paralelizar)
+
+- **Problema**: cerrar las propuestas 5, 6, 7 y 3 del estudio sin comprometer la
+  eficiencia ni la comparabilidad de las métricas ya calibradas.
+- **Solución**:
+  (5) `RelevanceJudge` + acción correctiva en `SourceRetriever`: si la
+  relevancia puntúa bajo el umbral y quedan candidatas, se reformula la consulta;
+  en la última se acepta lo recuperado y se registra; un juez sin JSON es
+  fail-open REGISTRADO (nunca silencioso). Opt-in.
+  (6) `voto_top_k` en `ToTEngine.think_tot`: entre las k mejores hojas gana el
+  camino mayoritario y el resultado reporta `consenso` (k=1 = comportamiento
+  original).
+  (7) `llm_rapido` en `ResearchOrchestrator`: descompone y extrae el modelo
+  rápido; evalúa y redacta el principal (enrutado por tarea).
+- **Evidencia**: 15 tests nuevos (routing 3, CRAG 9, voto 3); **376/376 tests
+  OK**; coste del juez CRAG medido en un pipeline mock: **8 → 11 llamadas** (una
+  por subpregunta), declarado porque es un intercambio inteligencia/eficiencia;
+  el voto se probó con un juez que puntúa MEJOR a la minoría, para que el test
+  discrimine el voto y no el score.
+- **Decisión razonada (propuesta 3, paralelización)**: el cuello de botella
+  medido es el cupo del tier gratuito (429 repetidos, Hallazgo 57); paralelizar
+  multiplicaría la presión sobre ese límite. Se aparca y se documenta, en vez de
+  implementarla por completar la lista.
+- **Mutación del lote** (misma campaña, antes→después): matados 2237→2354,
+  supervivientes 641→846; global 77,7%→**73,6%**. La tasa baja porque `deep_research_system`
+  pasó de 647 a 925 mutantes (63,9% hoy) con las funciones nuevas: **medir
+  después de añadir código cambia el denominador** (mismo efecto que el ToT,
+  Hallazgo 58). Las aserciones de prompt EXACTO (`TestPromptsExactos`) mataron
+  22 mutantes de fragmento de los prompts nuevos.
+- **Regla derivada**: una propuesta de eficiencia se implementa solo si ataca el
+  cuello de botella MEDIDO; si la evidencia dice que lo empeora, se documenta el
+  motivo.

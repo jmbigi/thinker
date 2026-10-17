@@ -100,11 +100,66 @@ perspectives. Return only the sub-questions, one per line, no numbering or bulle
         return context.subquestions
 
 
-class SourceRetriever(DecisionEngine):
-    """Retrieves sources for sub-questions using web search or document search."""
+class RelevanceJudge:
+    """Evaluador ligero de relevancia de la recuperación (tipo CRAG).
 
-    def __init__(self, search_api):
+    Referencia: arXiv:2401.15884 (Corrective RAG). Pregunta al LLM si los
+    resultados de una consulta son relevantes para la subpregunta. Devuelve un
+    float 0-1, o `None` si el juez no responde JSON válido (el llamador decide:
+    aquí se documenta y se acepta la evidencia — fail-open, nunca silencioso).
+    """
+
+    def __init__(self, llm_provider):
+        self.llm_provider = llm_provider
+
+    def evaluar(self, subquestion: str,
+                resultados: List[Dict[str, Any]]) -> Optional[float]:
+        muestras = "\n".join(
+            f"- {r.get('title', '')}: {r.get('snippet', '')[:150]}"
+            for r in resultados[:3])
+        prompt = f"""Evalúa si estos resultados de búsqueda son RELEVANTES para la
+subpregunta. Responde SOLO JSON: {{"relevancia": 0-1, "motivo": "..."}}
+
+Subpregunta: {subquestion}
+
+Resultados:
+{muestras}"""
+        try:
+            datos = _parse_json_response(self.llm_provider.generate(prompt))
+            if not isinstance(datos, dict):
+                raise json.JSONDecodeError("se esperaba un objeto JSON",
+                                           str(datos), 0)
+            return float(datos.get("relevancia", 0))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return None
+
+
+class SourceRetriever(DecisionEngine):
+    """Retrieves sources for sub-questions using web search or document search.
+
+    Con `evaluador_relevancia` (opt-in) aplica la acción correctiva de CRAG:
+    si los resultados de una consulta puntúan por debajo de `umbral_relevancia`
+    y quedan candidatas, se reformula la consulta en vez de aceptar ruido.
+    """
+
+    def __init__(self, search_api, evaluador_relevancia=None,
+                 umbral_relevancia: float = 0.5):
         self.search_api = search_api
+        self.evaluador_relevancia = evaluador_relevancia
+        self.umbral_relevancia = umbral_relevancia
+
+    def _relevante(self, context: ResearchContext, subquestion: str,
+                   candidatos: List[Dict[str, Any]]) -> bool:
+        """Sin evaluador, todo es relevante; con él, se consulta al juez."""
+        if self.evaluador_relevancia is None:
+            return True
+        puntuacion = self.evaluador_relevancia.evaluar(subquestion, candidatos)
+        if puntuacion is None:
+            context.add_decision("source_retrieval", "crag_sin_juez",
+                                 "El juez de relevancia no devolvió JSON: se "
+                                 "acepta la evidencia (fail-open, registrado)")
+            return True
+        return puntuacion >= self.umbral_relevancia
 
     def decide(self, context: ResearchContext, subquestion: str) -> List[Dict[str, Any]]:
         context.iteration += 1
@@ -129,9 +184,22 @@ class SourceRetriever(DecisionEngine):
         results: List[Dict[str, Any]] = []
         query = queries[0]
         for posicion, query in enumerate(queries):
-            results = self.search_api.search(query)
-            if results:
-                break
+            candidatos = self.search_api.search(query)
+            if candidatos:
+                relevante = self._relevante(context, subquestion, candidatos)
+                if relevante or posicion >= len(queries) - 1:
+                    if not relevante:
+                        context.add_decision(
+                            "source_retrieval", "crag_aceptar",
+                            "Relevancia baja pero no quedan candidatas: se "
+                            "acepta lo recuperado")
+                    results = candidatos
+                    break
+                context.add_decision(
+                    "source_retrieval", "crag_reformular",
+                    f"Resultados poco relevantes para '{query[:40]}'; "
+                    f"se reformula la consulta")
+                continue
             if posicion < len(queries) - 1:
                 context.add_decision("source_retrieval", "requery",
                                      f"Sin resultados para '{query[:40]}'; "
@@ -397,13 +465,25 @@ class ResearchOrchestrator:
     """Orchestrates the complete research process with decision-making."""
 
     def __init__(self, llm_provider, search_api, max_iterations: int = 5,
-                 verificacion_independiente: bool = False):
+                 verificacion_independiente: bool = False, llm_rapido=None,
+                 evaluador_relevancia: bool = False,
+                 umbral_relevancia: float = 0.5):
+        """Monta el pipeline.
+
+        `llm_rapido` (enrutado por tarea): si se pasa, descompone y extrae con
+        él —tareas estructuradas— y reserva `llm_provider` para evaluar y
+        redactar. `evaluador_relevancia=True` activa el juez CRAG en la
+        recuperación (una llamada extra por consulta con resultados).
+        """
         self.llm = llm_provider
+        self.llm_rapido = llm_rapido or llm_provider
         self.search = search_api
         self.context = ResearchContext("pending", max_iterations)
-        self.decomposer = QuestionDecomposer(llm_provider)
-        self.retriever = SourceRetriever(search_api)
-        self.extractor = ClaimExtractor(llm_provider)
+        self.decomposer = QuestionDecomposer(self.llm_rapido)
+        juez = RelevanceJudge(self.llm_rapido) if evaluador_relevancia else None
+        self.retriever = SourceRetriever(search_api, evaluador_relevancia=juez,
+                                         umbral_relevancia=umbral_relevancia)
+        self.extractor = ClaimExtractor(self.llm_rapido)
         self.evaluator = EvidenceEvaluator(
             llm_provider, verificacion_independiente=verificacion_independiente)
         self.generator = ReportGenerator(llm_provider)

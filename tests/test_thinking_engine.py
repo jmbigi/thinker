@@ -411,5 +411,59 @@ class TestVisualizacionDelArbol(unittest.TestCase):
         self.assertIn("└─ dos [", dibujo)
 
 
+class TestVotoPorConsenso(unittest.TestCase):
+    """Self-Consistency opt-in (`voto_top_k`): gana el camino mayoritario."""
+
+    def _motor(self, cola, **kwargs):
+        def responder(prompt):
+            if "evaluador experto" in prompt:
+                # La minoría ('beta') puntúa MEJOR: si ganara el score, el test
+                # no discriminaría el voto.
+                valor = "10" if "beta" in prompt else "5"
+                return ('{"relevance": %s, "depth": %s, "coherence": %s, '
+                        '"reasoning": %s}' % (valor, valor, valor, valor))
+            return cola.pop(0)
+
+        class ToTUnPaso(TinyToT):
+            def _step_builders(self):
+                return [("uno", lambda o: "paso 1")]
+
+        return ToTUnPaso(llm_provider=StubLLM(responder), branch_factor=3,
+                         beam_width=3, **kwargs)
+
+    def test_voto_top_k_uno_mantiene_el_comportamiento_original(self):
+        motor = self._motor(["contenido alfa suficientemente largo"] * 3,
+                            voto_top_k=1)
+
+        result = motor.think_tot("p")
+
+        self.assertEqual(result["hojas_votadas"], 1)
+        self.assertEqual(result["consenso"], 1.0)
+
+    def test_la_mayoria_gana_aunque_la_minoria_puntue_mejor(self):
+        motor = self._motor(["contenido alfa suficientemente largo",
+                             "contenido alfa suficientemente largo",
+                             "contenido beta suficientemente largo"],
+                            voto_top_k=3)
+
+        result = motor.think_tot("p")
+
+        self.assertEqual(result["hojas_votadas"], 3)
+        self.assertEqual(result["consenso"], 0.667)
+        self.assertIn("alfa", result["best_path"][-1][1])
+        self.assertLess(result["best_score"], 1.0)   # ganó el voto, no el score
+
+    def test_sin_mayoria_gana_el_mayor_score(self):
+        motor = self._motor(["contenido alfa suficientemente largo",
+                             "contenido gamma suficientemente largo",
+                             "contenido beta suficientemente largo"],
+                            voto_top_k=3)
+
+        result = motor.think_tot("p")
+
+        self.assertEqual(result["consenso"], 0.333)
+        self.assertIn("beta", result["best_path"][-1][1])
+
+
 if __name__ == "__main__":
     unittest.main()

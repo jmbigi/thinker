@@ -87,21 +87,22 @@ mejora de código (`code_design_improvement_tools.py`).
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
 - Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-16 (HEAD con
-  ToT, tests de plugins y aserciones exactas en los cuatro motores del pipeline):
-  **77,7% de mutantes muertos** (2237/2878; ningún mutante queda sin ejecutar)
+  ToT, plugins, CoVe/fidelidad, CRAG, routing y voto por consenso): **73,6% de
+  mutantes muertos** (2354/3200; ningún mutante queda sin ejecutar)
   **excluyendo las líneas `print(...)`** —no alteran estado y solo producen
-  mutantes equivalentes—. Focos que quedan: `llm_providers` (72,4%) y
-  `thinking_engine` (75,5%); `deep_research_system` subió de 66,3% a 79,4% en el
-  último lote. El desglose por archivo y su evolución están en
-  `docs/LECCIONES-APRENDIDAS.md` (Hallazgos 60 y 64). NO es comparable con la
-  medición de 2026-10-14 (75,0%, 1604/2139): aquella era anterior al código de
-  ToT. La exclusión de `print` usa `do_not_mutate_patterns`, la opción que el
-  motor aplica de verdad (la lista `do_not_mutate` no se usa y el pragma
+  mutantes equivalentes—. La tasa BAJÓ desde 77,7% (2237/2878) porque las
+  funciones nuevas añadieron 322 mutantes, la mayoría en
+  `deep_research_system` (pasó de 647 a 925; hoy 63,9%): es el mismo efecto que
+  documentó el ToT —medir después de añadir código cambia el denominador—. El
+  desglose y su evolución están en `docs/LECCIONES-APRENDIDAS.md` (Hallazgos 60,
+  64 y 66). NO es comparable con la medición de 2026-10-14 (75,0%, 1604/2139).
+  La exclusión de `print` usa `do_not_mutate_patterns`, la opción que el motor
+  aplica de verdad (la lista `do_not_mutate` no se usa y el pragma
   `# pragma: no mutate` afecta solo a su propia línea). Los tests del subsistema
   de plugins se excluyen de la campaña (importan `plugins/`, fuera de
   `source_paths`): siguen corriendo en `make test`. La cobertura y la mutación
   miden cosas distintas: cuatro de los seis módulos mutados están al 97-100% de
-  cobertura y la mutación global es 77,7%.
+  cobertura y la mutación global es 73,6%.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

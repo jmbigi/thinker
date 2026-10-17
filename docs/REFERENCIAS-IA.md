@@ -102,12 +102,28 @@ Cada propuesta indica **qué**, **dónde**, **por qué** y **cómo se mide**.
   `EvidenceEvaluator` (`verificacion_independiente=True`), que evalúa el claim
   contra las fuentes que NO lo originaron y marca `contested`; sin fuentes
   alternativas registra `skip` y **no inventa** la verificación.
+- ✅ **5** (evaluador de recuperación tipo CRAG): `RelevanceJudge` + acción
+  correctiva en `SourceRetriever` (reformula si la relevancia puntúa por debajo
+  del umbral y quedan candidatas; en la última acepta lo recuperado y lo
+  registra; juez sin JSON → fail-open **registrado**). Opt-in
+  (`evaluador_relevancia=True`); coste medido en un pipeline mock: **8 → 11
+  llamadas** (una por subpregunta).
+- ✅ **6** (Self-Consistency): `voto_top_k` en `ToTEngine.think_tot` — entre las
+  k mejores hojas gana el camino mayoritario y el resultado reporta `consenso`
+  (con `k=1` no cambia nada).
+- ✅ **7** (routing por tarea): `llm_rapido` en `ResearchOrchestrator` —
+  descompone y extrae el modelo rápido; evalúa y redacta el principal.
 - ✅ **9** (fidelidad a las fuentes): `rubrics.evaluar_fidelidad` mide qué cifras
   del informe están respaldadas por las fuentes y queda en el JSON de cada tarea
   del benchmark (campo `evaluation.fidelidad`).
-- Pendientes: **3** (paralelización), **5** (evaluador de recuperación tipo
-  CRAG), **6** (voto entre las top-k hojas del ToT), **7** (routing por tarea),
-  **8** (optimizar prompts con el benchmark).
+- ⛔ **3** (paralelización): **NO implementada a propósito**. El cuello de
+  botella medido es el cupo del tier gratuito (429 repetidos, Hallazgo 57) y
+  lanzar llamadas en paralelo aumenta la presión sobre ese límite en vez de
+  resolverla. Aparcada hasta tener cupo de pago o proveedor local.
+- ⛔ **8** (optimizar prompts con DSPy): pendiente de decisión — exige una
+  dependencia nueva (P0.18) y una campaña de calibración completa; el propio
+  estudio exige medir en local antes de adoptarlo, y las rúbricas actuales no
+  cambian sin una campaña comparable.
 
 ## 4. Límites y responsabilidad
 

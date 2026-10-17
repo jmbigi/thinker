@@ -1107,5 +1107,226 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertEqual(sorted(resultado["sin_respaldo"]), ["42", "7"])
 
 
+class TestRoutingPorTarea(unittest.TestCase):
+    """`llm_rapido`: descompone y extrae el rápido; evalúa y redacta el principal."""
+
+    def test_sin_llm_rapido_todo_usa_el_principal(self):
+        principal = StubLLM(lambda p: "x")
+
+        orchestrator = ResearchOrchestrator(principal, MockSearchAPI())
+
+        self.assertIs(orchestrator.llm_rapido, principal)
+        self.assertIs(orchestrator.decomposer.llm_provider, principal)
+        self.assertIs(orchestrator.evaluator.llm_provider, principal)
+
+    def test_con_llm_rapido_se_reparten_las_tareas(self):
+        principal, rapido = StubLLM(lambda p: "x"), StubLLM(lambda p: "y")
+
+        orchestrator = ResearchOrchestrator(principal, MockSearchAPI(),
+                                            llm_rapido=rapido)
+
+        self.assertIs(orchestrator.decomposer.llm_provider, rapido)
+        self.assertIs(orchestrator.extractor.llm_provider, rapido)
+        self.assertIs(orchestrator.evaluator.llm_provider, principal)
+        self.assertIs(orchestrator.generator.llm_provider, principal)
+
+    def test_pipeline_con_routing_reparte_las_llamadas(self):
+        def responder_rapido(prompt):
+            if "Decompose this into" in prompt:
+                return "subpregunta uno"
+            return '[{"claim": "c", "confidence": 0.5, "source_url": "u"}]'
+
+        def responder_principal(prompt):
+            if "Evaluate this claim" in prompt:
+                return ('{"verdict": "supported", "credibility": 0.5, '
+                        '"confidence": 0.5, "reasoning": "r"}')
+            return "informe"
+
+        rapido = StubLLM(responder_rapido)
+        principal = StubLLM(responder_principal)
+        orchestrator = ResearchOrchestrator(
+            principal,
+            StubSearch([{"title": "T", "url": "u", "snippet": "s"}]),
+            llm_rapido=rapido)
+
+        orchestrator.research("q")
+
+        self.assertTrue(any("Decompose this into" in p for p in rapido.prompts))
+        self.assertTrue(any("Extract factual claims" in p for p in rapido.prompts))
+        self.assertTrue(any("Evaluate this claim" in p for p in principal.prompts))
+        self.assertTrue(any("Generate a comprehensive research report" in p
+                            for p in principal.prompts))
+        self.assertFalse(any("Evaluate this claim" in p for p in rapido.prompts))
+
+
+class JuezFijo:
+    """Evaluador de relevancia de prueba (SIMULADO): puntuaciones en cola."""
+
+    def __init__(self, puntuaciones):
+        self.puntuaciones = list(puntuaciones)
+        self.llamadas = 0
+
+    def evaluar(self, subquestion, resultados):
+        self.llamadas += 1
+        return self.puntuaciones.pop(0) if self.puntuaciones else None
+
+
+class TestEvaluadorDeRelevanciaCrag(unittest.TestCase):
+    """Acción correctiva de CRAG: con relevancia baja se reformula la consulta."""
+
+    RESULTADOS = [{"title": "T", "url": "u", "snippet": "s"}]
+
+    def test_sin_juez_una_sola_consulta_y_sin_decisiones_crag(self):
+        search = StubSearch(self.RESULTADOS)
+        ctx = ResearchContext("q")
+
+        SourceRetriever(search).decide(ctx, "sub")
+
+        self.assertEqual(len(search.queries), 1)
+        self.assertFalse(any("crag" in d["decision"] for d in ctx.decision_log))
+
+    def test_juez_alto_acepta_la_primera_consulta(self):
+        search = StubSearch(self.RESULTADOS)
+        juez = JuezFijo([0.9])
+        ctx = ResearchContext("q")
+
+        SourceRetriever(search, evaluador_relevancia=juez).decide(ctx, "sub")
+
+        self.assertEqual(len(search.queries), 1)
+        self.assertEqual(juez.llamadas, 1)
+        self.assertEqual(ctx.sources[0]["query_used"], search.queries[0])
+
+    def test_juez_bajo_reformula_y_usa_la_siguiente(self):
+        search = StubSearch(self.RESULTADOS)
+        juez = JuezFijo([0.1, 0.9])
+        ctx = ResearchContext("q")
+
+        SourceRetriever(search, evaluador_relevancia=juez).decide(ctx, "sub")
+
+        self.assertEqual(len(search.queries), 2)
+        self.assertEqual(ctx.sources[0]["query_used"], search.queries[1])
+        reformulaciones = [d for d in ctx.decision_log
+                           if d["decision"] == "crag_reformular"]
+        self.assertEqual(len(reformulaciones), 1)
+
+    def test_umbral_configurable(self):
+        search = StubSearch(self.RESULTADOS)
+        juez = JuezFijo([0.4, 0.9])
+        ctx = ResearchContext("q")
+
+        SourceRetriever(search, evaluador_relevancia=juez,
+                        umbral_relevancia=0.3).decide(ctx, "sub")
+
+        self.assertEqual(len(search.queries), 1)
+
+    def test_ultima_candidata_con_relevancia_baja_se_acepta_y_registra(self):
+        search = StubSearch(self.RESULTADOS)
+        juez = JuezFijo([0.1] * 10)
+        ctx = ResearchContext("q")
+
+        SourceRetriever(search, evaluador_relevancia=juez).decide(ctx, "sub")
+
+        self.assertEqual(len(search.queries), 2)          # candidatas únicas
+        self.assertEqual(len(ctx.sources), 1)             # no descarta evidencia
+        aceptaciones = [d for d in ctx.decision_log
+                        if d["decision"] == "crag_aceptar"]
+        self.assertEqual(len(aceptaciones), 1)
+
+    def test_juez_roto_no_descarta_evidencia_y_lo_registra(self):
+        search = StubSearch(self.RESULTADOS)
+        juez = JuezFijo([None])
+        ctx = ResearchContext("q")
+
+        SourceRetriever(search, evaluador_relevancia=juez).decide(ctx, "sub")
+
+        self.assertEqual(len(search.queries), 1)
+        self.assertEqual(len(ctx.sources), 1)
+        sin_juez = [d for d in ctx.decision_log if d["decision"] == "crag_sin_juez"]
+        self.assertEqual(len(sin_juez), 1)
+        self.assertIn("fail-open", sin_juez[0]["rationale"])
+
+    def test_relevance_judge_real_con_json_y_sin_json(self):
+        from deep_research_system import RelevanceJudge
+
+        con_json = RelevanceJudge(StubLLM(lambda p: '{"relevancia": 0.8}'))
+        sin_json = RelevanceJudge(StubLLM(lambda p: "no json"))
+
+        self.assertEqual(con_json.evaluar("sub", self.RESULTADOS), 0.8)
+        self.assertIsNone(sin_json.evaluar("sub", self.RESULTADOS))
+
+    def test_relevance_judge_prompt_incluye_subpregunta_y_titulos(self):
+        from deep_research_system import RelevanceJudge
+
+        llm = StubLLM(lambda p: '{"relevancia": 0.5}')
+        RelevanceJudge(llm).evaluar("mi subpregunta", self.RESULTADOS)
+
+        self.assertIn("mi subpregunta", llm.prompts[0])
+        self.assertIn("T", llm.prompts[0])
+
+    def test_orchestrator_activa_el_juez_por_flag(self):
+        con = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
+                                   evaluador_relevancia=True)
+        sin = ResearchOrchestrator(MockLLM(), MockSearchAPI())
+
+        self.assertIsNotNone(con.retriever.evaluador_relevancia)
+        self.assertIsNone(sin.retriever.evaluador_relevancia)
+        self.assertEqual(con.retriever.umbral_relevancia, 0.5)
+
+
+class TestPromptsExactos(unittest.TestCase):
+    """Prompts EXACTOS de los evaluadores nuevos.
+
+    Un prompt de ~600 caracteres genera decenas de mutantes de fragmento: solo
+    una aserción del texto completo los mata (misma técnica que
+    `tests/test_prompt_y_claves_exactas.py`).
+    """
+
+    def test_prompt_de_evaluacion_exacto(self):
+        prompt = EvidenceEvaluator._prompt_evaluacion(
+            {"claim": "el reactor alcanzó 150 millones de grados"},
+            [{"title": "Paper X", "snippet": "detalle del experimento"}])
+
+        self.assertEqual(prompt, """Evaluate this claim against the provided sources. Determine:
+1. Is the claim supported, contradicted, or not addressed?
+2. What is the overall credibility score (0-1) of the supporting sources?
+3. Are there contradictions from other sources?
+
+Claim: el reactor alcanzó 150 millones de grados
+Source 1: Paper X: detalle del experimento
+
+
+Return ONLY JSON (no markdown fences, no extra text):
+{"verdict": "supported|contradicted|not_addressed", "credibility": 0-1, "confidence": 0-1, "reasoning": "..."}""")
+
+    def test_prompt_de_evaluacion_sin_fuentes_ni_claim(self):
+        prompt = EvidenceEvaluator._prompt_evaluacion({}, [])
+
+        self.assertIn("Claim: \n\n\nReturn ONLY JSON", prompt)
+
+    def test_prompt_del_juez_de_relevancia_exacto(self):
+        from deep_research_system import RelevanceJudge
+
+        llm = StubLLM(lambda p: '{"relevancia": 0.7}')
+        RelevanceJudge(llm).evaluar("mi subpregunta",
+                                    [{"title": "T", "snippet": "s"}])
+
+        self.assertEqual(llm.prompts[0], """Evalúa si estos resultados de búsqueda son RELEVANTES para la
+subpregunta. Responde SOLO JSON: {"relevancia": 0-1, "motivo": "..."}
+
+Subpregunta: mi subpregunta
+
+Resultados:
+- T: s""")
+
+    def test_el_juez_trunca_el_snippet_a_150(self):
+        from deep_research_system import RelevanceJudge
+
+        llm = StubLLM(lambda p: '{"relevancia": 0.7}')
+        RelevanceJudge(llm).evaluar("sub", [{"title": "T", "snippet": "z" * 200}])
+
+        self.assertIn("z" * 150, llm.prompts[0])
+        self.assertNotIn("z" * 151, llm.prompts[0])
+
+
 if __name__ == "__main__":
     unittest.main()
