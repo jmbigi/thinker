@@ -125,7 +125,8 @@ class TestWikipediaSearchAPI(unittest.TestCase):
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0]["title"], "Fusión nuclear")
         self.assertEqual(
-            results[0]["url"], "https://es.wikipedia.org/wiki/Fusión_nuclear"
+            results[0]["url"],
+            "https://es.wikipedia.org/wiki/Fusi%C3%B3n_nuclear",
         )
         self.assertEqual(results[0]["snippet"], "Proceso de unión")
         self.assertEqual(results[0]["source"], "wikipedia")

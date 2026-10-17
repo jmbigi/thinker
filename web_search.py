@@ -15,7 +15,8 @@ import html
 import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
-from urllib.parse import parse_qs, unquote, urlparse
+import ipaddress
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import requests
 
@@ -86,6 +87,26 @@ def _strip_html(text: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", text or ""))).strip()
 
 
+def _es_host_publico(netloc: str) -> bool:
+    """True si el host es un nombre DNS o una IP no privada/reservada.
+
+    Rechaza localhost y rangos privados (SSRF básico): coherente con la
+    promesa de `DuckDuckGoSearchAPI` ("sólo hosts públicos", P0.13).
+    """
+    host = urlparse(f"//{netloc}").hostname
+    if not host:
+        return False
+    host = host.lower()
+    if host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True  # nombre DNS: se acepta
+    return not (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_multicast or ip.is_unspecified or ip.is_reserved)
+
+
 class MockSearchAPI(SearchAPI):
     """Búsqueda simulada, offline y determinista (NO usa red).
 
@@ -98,7 +119,7 @@ class MockSearchAPI(SearchAPI):
             "title": f"Article about {query}",
             "url": f"https://example.com/{query.replace(' ', '-')}",
             "snippet": (f"Este es contenido de ejemplo sobre {query}. "
-                        f"Incluye datos ficticios para demostración."),
+                        f"Incluye datos ficticios (modo demo offline)."),
             "source": "mock-search",
         }][:max_results]
 
@@ -114,6 +135,8 @@ class WikipediaSearchAPI(SearchAPI):
         self.timeout = timeout
 
     def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        if max_results <= 0:
+            return []
         response = requests.get(
             self.endpoint,
             params={
@@ -139,7 +162,8 @@ class WikipediaSearchAPI(SearchAPI):
             title = hit.get("title", "")
             results.append({
                 "title": title,
-                "url": f"https://{urlparse(self.endpoint).netloc}/wiki/{title.replace(' ', '_')}",
+                "url": f"https://{urlparse(self.endpoint).netloc}/wiki/"
+                       f"{quote(title.replace(' ', '_'), safe='/')}",
                 "snippet": _strip_html(hit.get("snippet", "")),
                 "source": "wikipedia",
             })
@@ -162,6 +186,8 @@ class DuckDuckGoSearchAPI(SearchAPI):
         self.timeout = timeout
 
     def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        if max_results <= 0:
+            return []
         response = requests.post(
             self.endpoint,
             data={"q": query},
@@ -208,5 +234,7 @@ class DuckDuckGoSearchAPI(SearchAPI):
                 href = unquote(uddg[0])
         parsed = urlparse(href)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return ""
+        if not _es_host_publico(parsed.netloc):
             return ""
         return href

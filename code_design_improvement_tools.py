@@ -19,7 +19,7 @@ import re
 import sys
 import time
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from thinking_engine import StepThinkingEngine
 
@@ -111,13 +111,15 @@ class ThinkingDecisionEngine(StepThinkingEngine):
         super().__init__(llm_provider, name, max_steps=max_steps)
         self.max_thinking_steps = max_steps
 
-    def decide(self, context: CodeAnalysisContext, prompt: str) -> Dict[str, Any]:
+    def decide(self, context: CodeAnalysisContext, prompt: str,
+               progress=None) -> Dict[str, Any]:
         """Ejecuta un ciclo de pensamiento para tomar una decisión de diseño."""
         self.step_count = 0
-        return self._execute_thinking_cycle(context, prompt)
+        return self._execute_thinking_cycle(context, prompt, progress)
 
     @abstractmethod
-    def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str) -> Dict[str, Any]:
+    def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str,
+                                progress=None) -> Dict[str, Any]:
         pass
 
     def _validate_thought(self, thought: str) -> bool:
@@ -140,7 +142,79 @@ class CodeDesignThinker(ThinkingDecisionEngine):
     Sin proveedor LLM usa MockLLM (offline, declarado como simulado).
     """
 
-    def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str) -> Dict[str, Any]:
+    # Orden canónico de los pasos del ciclo (índice → número de paso).
+    _NOMBRES_PASOS = ("analysis", "objectives", "design_options", "evaluation",
+                      "selection", "implementation_plan", "validation")
+
+    _ETIQUETAS_PASOS = ("ANÁLISIS", "OBJETIVOS", "OPCIONES", "EVALUACIÓN",
+                        "SELECCIÓN", "PLAN", "VALIDACIÓN")
+
+    def _resultado_valido(self, steps: List[Tuple[str, str]]) -> Dict[str, Any]:
+        self.step_count = len(steps)
+        return {
+            "thought": self._render_steps(steps),
+            "decision": self._extract_decision(steps),
+            "confidence": self._compute_confidence(steps),
+            "valid": True,
+            "invalid_steps": [],
+            "steps": steps,
+            "step_count": len(steps),
+            "error": None,
+        }
+
+    def _resultado_invalido(self, steps: List[Tuple[str, str]],
+                            nombre: str) -> Dict[str, Any]:
+        numero = self._NOMBRES_PASOS.index(nombre) + 1
+        self.step_count = len(steps)
+        return {
+            "thought": self._render_steps(steps),
+            "decision": self._extract_decision(steps),
+            "confidence": self._compute_confidence(steps),
+            "valid": False,
+            "invalid_steps": [nombre],
+            "steps": steps,
+            "step_count": len(steps),
+            "error": f"Paso {numero} inválido: {nombre}",
+        }
+
+    def _render_steps(self, steps: List[Tuple[str, str]]) -> str:
+        if not steps:
+            return ""
+        lines = [
+            f"        CAPA DE PENSAMIENTO DISEÑO: {self.name}",
+            "        ========================================",
+            "",
+        ]
+        for i, (nombre, contenido) in enumerate(steps):
+            etiqueta = self._ETIQUETAS_PASOS[self._NOMBRES_PASOS.index(nombre)]
+            lines.append(f"        PASO {i + 1} - {etiqueta}: {contenido[:150]}")
+        lines.extend([
+            "",
+            f"        PASOS COMPLETADOS: {len(steps)}/{self.max_thinking_steps}",
+            f"        DECISIÓN FINAL: {self._extract_decision(steps)}",
+            f"        CONFIANZA: {self._compute_confidence(steps)}",
+        ])
+        return "\n".join(lines)
+
+    def _registrar(self, steps: List[Tuple[str, str]], nombre: str, contenido: str,
+                   progress) -> Optional[Dict[str, Any]]:
+        """Valida y registra un paso; devuelve el cierre si hay que parar.
+
+        Validación antes de avanzar (regla 2 del proyecto): un paso inválido
+        detiene el ciclo en el momento, no al final. `max_steps` acota de
+        verdad el número de pasos ejecutados.
+        """
+        if not self.validate_step(contenido):
+            return self._resultado_invalido(steps, nombre)
+        steps.append((nombre, contenido))
+        if progress:
+            progress(f"paso {len(steps)}/{self.max_thinking_steps}: {nombre}")
+        if len(steps) >= self.max_thinking_steps:
+            return self._resultado_valido(steps)
+        return None
+
+    def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str,
+                                progress=None) -> Dict[str, Any]:
         """Ciclo de 7 pasos de pensamiento para diseño de código."""
 
         steps = []
@@ -168,19 +242,9 @@ Respuesta en JSON:
 }}
 """)
 
-        if not self._validate_thought(step1):
-            return {
-                "thought": "",
-                "decision": None,
-                "confidence": 0.0,
-                "valid": False,
-                "error": "Paso 1 inválido (respuesta vacía o plantilla)",
-                "invalid_steps": ["analysis"],
-                "steps": steps,
-                "step_count": len(steps),
-            }
-
-        steps.append(("analysis", step1))
+        fin = self._registrar(steps, "analysis", step1, progress)
+        if fin is not None:
+            return fin
 
         # PASO 2: Definición de objetivos de mejora
         step2 = self._llm_generate(f"""
@@ -206,7 +270,9 @@ Objetivos en JSON:
 }}
 """)
 
-        steps.append(("objectives", step2))
+        fin = self._registrar(steps, "objectives", step2, progress)
+        if fin is not None:
+            return fin
 
         # PASO 3: Generación de opciones de diseño
         step3 = self._llm_generate(f"""
@@ -232,7 +298,9 @@ Formato JSON:
 ]
 """)
 
-        steps.append(("design_options", step3))
+        fin = self._registrar(steps, "design_options", step3, progress)
+        if fin is not None:
+            return fin
 
         # PASO 4: Evaluación de opciones
         step4 = self._llm_generate(f"""
@@ -259,7 +327,9 @@ JSON:
 ]
 """)
 
-        steps.append(("evaluation", step4))
+        fin = self._registrar(steps, "evaluation", step4, progress)
+        if fin is not None:
+            return fin
 
         # PASO 5: Selección de enfoque
         step5 = self._llm_generate(f"""
@@ -281,7 +351,9 @@ JSON:
 }}
 """)
 
-        steps.append(("selection", step5))
+        fin = self._registrar(steps, "selection", step5, progress)
+        if fin is not None:
+            return fin
 
         # PASO 6: Plan de implementación
         step6 = self._llm_generate(f"""
@@ -306,7 +378,9 @@ Plan en JSON con:
 ]
 """)
 
-        steps.append(("implementation_plan", step6))
+        fin = self._registrar(steps, "implementation_plan", step6, progress)
+        if fin is not None:
+            return fin
 
         # PASO 7: Verificación y validación
         step7 = self._llm_generate(f"""
@@ -324,40 +398,11 @@ Criterios de éxito en JSON:
 }}
 """)
 
-        steps.append(("validation", step7))
+        fin = self._registrar(steps, "validation", step7, progress)
+        if fin is not None:
+            return fin
 
-        # Construir reporte de pensamiento
-        thought_process = f"""
-        CAPA DE PENSAMIENTO DISEÑO: {self.name}
-        ========================================
-
-        PASO 1 - ANÁLISIS: {steps[0][1][:150]}
-        PASO 2 - OBJETIVOS: {steps[1][1][:150]}
-        PASO 3 - OPCIONES: {steps[2][1][:150] if len(steps) > 2 else 'N/A'}
-        PASO 4 - EVALUACIÓN: {steps[3][1][:150]}
-        PASO 5 - SELECCIÓN: {steps[4][1][:150]}
-        PASO 6 - PLAN: {steps[5][1][:150]}
-        PASO 7 - VALIDACIÓN: {steps[6][1][:150]}
-
-        PASOS COMPLETADOS: {len(steps)}/{self.max_thinking_steps}
-        DECISIÓN FINAL: {self._extract_decision(steps)}
-        CONFIANZA: {self._compute_confidence(steps)}
-        """
-
-        invalid_steps = [name for name, content in steps if not self.validate_step(content)]
-
-        self.step_count = len(steps)
-
-        return {
-            "thought": thought_process,
-            "decision": self._extract_decision(steps),
-            "confidence": self._compute_confidence(steps),
-            "valid": not invalid_steps,
-            "invalid_steps": invalid_steps,
-            "steps": steps,
-            "step_count": len(steps),
-            "error": (f"Paso inválido: {invalid_steps[0]}" if invalid_steps else None),
-        }
+        return self._resultado_valido(steps)
 
 
 class CodeImprovementOrchestrator:
@@ -399,28 +444,42 @@ class CodeImprovementOrchestrator:
             decir(f">>> Análisis estático: "
                   f"{self.context.to_dict()['total_issues']} issues detectados")
 
-        fases = [
-            ("PASO 1: Análisis estructurado del código", self.source_code, "analysis"),
-            ("PASO 2: Definir objetivos de mejora", "Mejora de código maintainable", "objectives"),
-            ("PASO 3: Generar opciones de diseño", "Opciones de refactoring", "design_options_considered"),
-            ("PASO 4: Evaluar opciones de diseño", "Evaluar opciones", "evaluations"),
-            ("PASO 5: Seleccionar enfoque", "Seleccionar mejor opción", "selection"),
-            ("PASO 6: Plan de implementación", "Plan de refactoring", "implementation_plan"),
-            ("PASO 7: Definir criterios de validación", "Criterios de éxito", "validation_criteria"),
-        ]
+        # UN ciclo de 7 pasos (antes se repetía el ciclo completo por fase:
+        # 7 decisiones × 7 pasos = 49 llamadas con prompts de relleno, lo
+        # contrario al principio rector de eficiencia).
+        decir(">>> Ciclo de pensamiento de diseño...")
+        ciclo = self.thinking.decide(self.context, self.source_code,
+                                     progress=lambda mensaje: decir(f"   {mensaje}"))
+        decir(f"   pasos={ciclo['step_count']} válido={ciclo['valid']}")
 
-        resultados: Dict[str, Any] = {}
-        for etiqueta, prompt, clave in fases:
-            decir(f">>> {etiqueta}...")
-            resultado = self.thinking.decide(self.context, prompt)
-            resultados[clave] = resultado
-            decir(f"   pasos={resultado['step_count']} válido={resultado['valid']}")
-
-        analisis = resultados["analysis"]
-        if not analisis["valid"]:
+        if not ciclo["valid"]:
             return {
-                "error": "Análisis estructurado falló, reiniciando",
-                "steps": [("fallido", analisis)],
+                "error": f"El ciclo de diseño falló (paso inválido: "
+                         f"{ciclo['invalid_steps'][0]})",
+                "steps": [("fallido", ciclo)],
+            }
+
+        # Mapear cada paso del ciclo único a su clave histórica de fase.
+        claves = {
+            "analysis": "analysis",
+            "objectives": "objectives",
+            "design_options": "design_options_considered",
+            "evaluation": "evaluations",
+            "selection": "selection",
+            "implementation_plan": "implementation_plan",
+            "validation": "validation_criteria",
+        }
+        resultados: Dict[str, Any] = {}
+        for nombre, contenido in ciclo["steps"]:
+            resultados[claves.get(nombre, nombre)] = {
+                "thought": contenido,
+                "decision": contenido,
+                "confidence": self.thinking._compute_confidence([(nombre, contenido)]),
+                "valid": True,
+                "invalid_steps": [],
+                "steps": [(nombre, contenido)],
+                "step_count": 1,
+                "error": None,
             }
 
         self.results = {
@@ -484,8 +543,8 @@ class CodeImprovementOrchestrator:
 
         lines.extend([
             "## Decisiones de Diseño",
-            f"- **Enfoque seleccionado**: {r['selection'].get('decision', 'N/A')}",
-            f"- **Confianza**: {r['selection'].get('confidence', 'N/A')}",
+            f"- **Enfoque seleccionado**: {r.get('selection', {}).get('decision', 'N/A')}",
+            f"- **Confianza**: {r.get('selection', {}).get('confidence', 'N/A')}",
             "",
             "## Plan de Implementación",
         ])
@@ -501,8 +560,8 @@ class CodeImprovementOrchestrator:
         lines.extend([
             "",
             "## Criterios de Validación",
-            f"- **Decisión de validación**: {r['validation_criteria'].get('decision', 'N/A')}",
-            f"- **Confianza**: {r['validation_criteria'].get('confidence', 'N/A')}",
+            f"- **Decisión de validación**: {r.get('validation_criteria', {}).get('decision', 'N/A')}",
+            f"- **Confianza**: {r.get('validation_criteria', {}).get('confidence', 'N/A')}",
             "",
             "---",
             "*Generado por sistema de diseño de código con capa de pensamiento estructurado*",
@@ -535,14 +594,14 @@ def analyze_python_source(source_code: str) -> Dict[str, Any]:
     }
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             metrics["total_functions"] += 1
-            # Contar complejidad ciclomática básica
-            complexity = sum(1 for child in ast.walk(node)
-                            if isinstance(child, (ast.If, ast.While, ast.For, ast.Try)))
-            metrics["complexity"] += complexity
         elif isinstance(node, ast.ClassDef):
             metrics["total_classes"] += 1
+        elif isinstance(node, (ast.If, ast.While, ast.For, ast.AsyncFor, ast.Try)):
+            # Cada condicional se cuenta UNA vez (antes se sumaba otra vez
+            # dentro de cada función que lo contenía: doble conteo).
+            metrics["complexity"] += 1
 
     # Detectar problemas comunes
     lines = source_code.splitlines()
@@ -597,7 +656,7 @@ def analyze_python_code(file_path: str) -> Dict[str, Any]:
     return analyze_python_source(source)
 
 
-# Demo principal
+# CLI principal (modo demo offline si no se configura proveedor)
 def main():
     print("=" * 70)
     print("HERRAMIENTAS PARA DISEÑO Y MEJORA DE PROYECTOS DE CÓDIGO")

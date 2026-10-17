@@ -46,6 +46,15 @@ class DeepResearchThinkingLayer(ToTEngine):
         """Compatibilidad: delega en el validador común."""
         return self.validate_step(thought)
 
+    def think(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Ciclo lineal; con `use_tot=True` delega en `think_tot`.
+
+        El flag `use_tot` era decorativo: se guardaba y nunca se consultaba.
+        """
+        if self._use_tot:
+            return self.think_tot(prompt, context)
+        return super().think(prompt, context)
+
     def think_tot(self, prompt: str, context: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
         """
         Ejecuta pensamiento con Tree of Thoughts (ToT).
@@ -53,11 +62,21 @@ class DeepResearchThinkingLayer(ToTEngine):
         Args:
             prompt: Pregunta de investigación
             context: Contexto adicional
-            **kwargs: Parámetros ToT (branch_factor, beam_width, search_strategy, etc.)
+            **kwargs: Parámetros ToT (branch_factor, beam_width, search_strategy,
+                min_score_threshold, max_depth, return_tree)
             
         Returns:
             Dict con claves del modo lineal + best_path, explored_nodes, pruned_nodes, best_score
         """
+        # `return_tree` se reenvía (antes se descartaba en silencio); un kwarg
+        # desconocido se eleva en vez de ignorarse (P1.19).
+        return_tree = kwargs.pop("return_tree", False)
+        conocidos = {"branch_factor", "beam_width", "search_strategy",
+                     "min_score_threshold", "max_depth"}
+        desconocidos = sorted(set(kwargs) - conocidos)
+        if desconocidos:
+            raise TypeError(f"Parámetros ToT desconocidos: {desconocidos}")
+        
         # Guardar parámetros originales
         orig_branch = self.branch_factor
         orig_beam = self.beam_width
@@ -79,7 +98,7 @@ class DeepResearchThinkingLayer(ToTEngine):
         
         try:
             # Usar el método heredado de ToTEngine directamente
-            return super().think_tot(prompt, context)
+            return super().think_tot(prompt, context, return_tree=return_tree)
         finally:
             # Restaurar parámetros originales
             self.branch_factor = orig_branch
@@ -352,7 +371,7 @@ class ResearchOrchestratorWithThinking:
         return self.results
 
 
-# Demo / Usage
+# CLI principal (modo demo offline si no se configura proveedor)
 def main():
     print("=" * 70)
     print("CAPA DE PENSAMIENTO PARA SISTEMAS LLM")
@@ -377,7 +396,7 @@ def main():
     print()
     print("=" * 70)
 
-    # Demo offline: sin proveedor real, _llm_generate usa MockLLM
+    # Modo demo offline (ayuda): sin proveedor real, _llm_generate usa MockLLM
     # (determinista, sin red, declarado como simulado).
     # Para un modelo real: DeepResearchThinkingLayer(llm_provider=OpenRouterLLM())
     thinking_layer = DeepResearchThinkingLayer(llm_provider=None, name="deep_research")

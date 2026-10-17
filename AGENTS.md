@@ -63,13 +63,22 @@ mejora de código (`code_design_improvement_tools.py`).
     en responder `"Helo"` —no es práctico ni realista—. Verificable con
     `python3 scripts/probe_model.py` (opt-in, key + red, coste 0 con `:free`).
     **Si no hay key definida, no se prueba**: se reporta y se omite.
+11. **Herramienta real y coherencia total** (regla del programador, 2026-10-17):
+    el proyecto es una **herramienta real** en desarrollo activo —no conceptual
+    ni de demostración— y todo el proyecto debe ser **coherente y consistente**
+    (código ↔ textos ↔ docs ↔ cifras ↔ comandos), con la **máxima calidad**
+    como meta. Los modos **demo offline** (`MockLLM`/`MockSearchAPI`, sin red
+    ni API keys) son una **ayuda** para usuarios y programadores: sirven para
+    probar y comprender el sistema, no son la naturaleza del proyecto. Toda
+    cifra o promesa documentada se mantiene al día tras cada cambio, con
+    evidencia verificable.
 
 ## Entorno y verificación (comandos del proyecto)
 
 - SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
-  3.33.0** (suite completa 414/414 en las tres, 2026-10-17; canario en
+  3.33.0** (suite completa 433/433 en las tres, 2026-10-17; canario en
   `tests/test_openai_compatibilidad.py`).
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
 - Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
@@ -97,22 +106,25 @@ mejora de código (`code_design_improvement_tools.py`).
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
 - Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-17 (HEAD tras
-  corregir 6 bugs ALTA): **73,9% de mutantes muertos** (2467/3340; ningún
-  mutante queda sin ejecutar) **excluyendo las líneas `print(...)`** —no alteran
-  estado y solo producen mutantes equivalentes—. Subió desde 73,6% (2354/3200,
-  2026-10-16) pese a 140 mutantes nuevos, la mayoría en `deep_research_system`
-  (hoy 65,0%, 676/1040): las pruebas añadidas matan la mayoría de lo nuevo. Es
+  el pase de coherencia, Hallazgo 72): **73,9% de mutantes muertos** (2602/3521;
+  0 timeouts, 0 sospechosos, ningún mutante sin ejecutar) **excluyendo las
+  líneas `print(...)`** —no alteran estado y solo producen mutantes
+  equivalentes—. El pase añadió 181 mutantes (helpers nuevos en
+  `deep_research_system` y `code_design_improvement_tools`) y murieron 135: la
+  tasa exacta sube de 73,86% a 73,90% y el redondeo no cambia respecto a la
+  medición previa del día (2467/3340); `deep_research_system` hoy 65,1%
+  (680/1045). Es
   el mismo efecto de denominador que documentó el ToT (Hallazgos 60, 64 y 66);
-  el desglose y su evolución están en `docs/LECCIONES-APRENDIDAS.md` (Hallazgo
-  71). NO es comparable con la medición de 2026-10-14 (75,0%, 1604/2139).
+  el desglose y su evolución están en `docs/LECCIONES-APRENDIDAS.md` (Hallazgos
+  71 y 72). NO es comparable con la medición de 2026-10-14 (75,0%, 1604/2139).
   La exclusión de `print` usa `do_not_mutate_patterns`, la opción que el motor
   aplica de verdad (la lista `do_not_mutate` no se usa y el pragma
   `# pragma: no mutate` afecta solo a su propia línea). Los tests que importan
   módulos fuera de `source_paths` (`plugins/` y `evaluar_proyecto.py`) se
   excluyen de la campaña: sin esa exclusión ni arrancaba (ImportError al
   colectar en el sandbox); siguen corriendo en `make test`. La cobertura y la
-  mutación miden cosas distintas: cinco de los seis módulos mutados están al
-  97-100% de cobertura (`llm_providers` al 82%) y la mutación global es 73,9%.
+  mutación miden cosas distintas: los seis módulos mutados están al 97-99% de
+  cobertura y la mutación global es 73,9%.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

@@ -42,7 +42,7 @@ class TestWikipediaSearch(unittest.TestCase):
             resultados = WikipediaSearchAPI(language="es").search("fusión", 3)
         self.assertEqual(len(resultados), 1)
         self.assertEqual(resultados[0]["url"],
-                         "https://es.wikipedia.org/wiki/Fusión_nuclear")
+                         "https://es.wikipedia.org/wiki/Fusi%C3%B3n_nuclear")
         self.assertEqual(resultados[0]["snippet"], "La fusión & más")
         self.assertEqual(resultados[0]["source"], "wikipedia")
         # srlimit debe reflejar max_results solicitado
@@ -67,6 +67,11 @@ class TestWikipediaSearch(unittest.TestCase):
         with patch("web_search.requests.get", return_value=_Respuesta(status=500)):
             with self.assertRaises(RuntimeError):
                 WikipediaSearchAPI().search("x")
+
+    def test_max_results_cero_no_llama_a_la_red(self):
+        with patch("web_search.requests.get") as get:
+            self.assertEqual(WikipediaSearchAPI().search("x", 0), [])
+        get.assert_not_called()
 
 
 class TestDuckDuckGoSearch(unittest.TestCase):
@@ -97,6 +102,11 @@ class TestDuckDuckGoSearch(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 DuckDuckGoSearchAPI().search("q")
 
+    def test_max_results_cero_no_llama_a_la_red(self):
+        with patch("web_search.requests.post") as post:
+            self.assertEqual(DuckDuckGoSearchAPI().search("q", 0), [])
+        post.assert_not_called()
+
     def test_descarta_esquemas_no_http(self):
         html = ('<a class="result__a" href="javascript:alert(1)">Malo</a>'
                 '<a class="result__snippet">s</a>'
@@ -115,6 +125,14 @@ class TestDuckDuckGoSearch(unittest.TestCase):
         self.assertEqual(limpiar("javascript:alert(1)"), "")
         self.assertEqual(limpiar("mailto:a@b.c"), "")
         self.assertEqual(limpiar("sin-esquema"), "")
+
+    def test_clean_url_rechaza_hosts_privados(self):
+        limpiar = DuckDuckGoSearchAPI._clean_url
+        for href in ("http://localhost/x", "http://127.0.0.1/x",
+                     "http://192.168.1.10/x", "http://10.0.0.5/x",
+                     "http://[::1]/x", "http://0.0.0.0/x"):
+            with self.subTest(href=href):
+                self.assertEqual(limpiar(href), "")
 
 
 class TestMockSearchAPI(unittest.TestCase):

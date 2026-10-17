@@ -70,6 +70,19 @@ class TestDeepResearchThinkingLayer(unittest.TestCase):
         self.assertTrue(layer._validate_step("contenido suficientemente largo"))
         self.assertFalse(layer._validate_step(""))
 
+    def test_use_tot_activa_el_modo_tot_en_think(self):
+        layer = DeepResearchThinkingLayer(MockLLM(), use_tot=True,
+                                          branch_factor=1)
+        result = layer.think("¿Fusión nuclear?")
+        self.assertIn("best_path", result)
+        self.assertIn("explored_nodes", result)
+
+    def test_use_tot_false_mantiene_el_ciclo_lineal(self):
+        layer = DeepResearchThinkingLayer(MockLLM(), use_tot=False)
+        result = layer.think("¿Fusión nuclear?")
+        self.assertNotIn("best_path", result)
+        self.assertEqual(result["step_count"], 7)
+
 
 class TestResearchOrchestratorWithThinking(unittest.TestCase):
     def test_investigacion_completa_offline(self):
@@ -207,6 +220,19 @@ class TestThinkTotConOverrides(unittest.TestCase):
 
         self.assertEqual([n for n, _ in result["best_path"]], ["analysis"])
         self.assertIn("best_score", result)
+
+    def test_return_tree_se_reenvia_al_motor(self):
+        layer = self._layer(branch_factor=1)
+
+        result = layer.think_tot("pregunta", return_tree=True)
+
+        self.assertIn("tree", result)
+
+    def test_kwarg_desconocido_se_eleva(self):
+        layer = self._layer(branch_factor=1)
+
+        with self.assertRaises(TypeError):
+            layer.think_tot("pregunta", inventado=1)
 
 
 if __name__ == "__main__":

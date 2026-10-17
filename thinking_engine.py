@@ -114,7 +114,9 @@ class StepThinkingEngine(ABC):
         steps: List[Tuple[str, str]] = []
         invalid_steps: List[str] = []
 
-        for name, builder in self._step_builders():
+        # `max_steps` acota de verdad el ciclo: un motor configurado con 3
+        # pasos no ejecuta los 7 (antes el atributo era decorativo).
+        for name, builder in self._step_builders()[:self.max_steps]:
             content = self._llm_generate(builder(outputs))
             steps.append((name, content))
             outputs[name] = content

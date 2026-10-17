@@ -109,6 +109,22 @@ def _chat_completion(client, model: str, prompt: str, max_retries: int, label: s
     raise last_error
 
 
+def _cliente_openai(cache_clientes: Dict[Any, Any], key: str,
+                    base_url: Optional[str]):
+    """Cliente del SDK reutilizado por (clave, base_url).
+
+    Antes se creaba un `OpenAI(...)` por llamada: eso tiraba el pool de
+    conexiones keep-alive en cada petición.
+    """
+    clave = (key, base_url)
+    cliente = cache_clientes.get(clave)
+    if cliente is None:
+        from openai import OpenAI
+        cliente = OpenAI(api_key=key, base_url=base_url)
+        cache_clientes[clave] = cliente
+    return cliente
+
+
 # OpenAI-compatible implementation (openai>=1.0 SDK)
 class OpenAILLM(LLMProvider):
     """Cliente para la API de OpenAI o cualquier endpoint compatible.
@@ -130,6 +146,7 @@ class OpenAILLM(LLMProvider):
         self.timeout = timeout
         self.use_cache = use_cache
         self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
+        self._clientes: Dict[Any, Any] = {}
 
     def generate(self, prompt: str, model: str = None, **kwargs) -> str:
         key = kwargs.pop("api_key", None) or self.api_key
@@ -138,8 +155,7 @@ class OpenAILLM(LLMProvider):
             raise ValueError(
                 "OpenAI API key required. Provide api_key or set OPENAI_API_KEY."
             )
-        from openai import OpenAI
-        client = OpenAI(api_key=key, base_url=base_url)
+        client = _cliente_openai(self._clientes, key, base_url)
         return _chat_completion(client, model or self.model, prompt,
                                 self.max_retries, "OpenAILLM",
                                 timeout=self.timeout, cache=self.cache)
@@ -182,7 +198,6 @@ class OpenRouterLLM(OpenAILLM):
                  use_fallback: bool = True):
         self._fallback_chain = OPENROUTER_FALLBACK_CHAIN
         self._use_fallback = use_fallback
-        self._current_model_index = 0
         
         # Modelo inicial: variable de entorno > parámetro > defecto
         initial_model = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_FREE_MODEL)
@@ -213,7 +228,13 @@ class OpenRouterLLM(OpenAILLM):
             try:
                 if i > 0:
                     print(f"[OpenRouterLLM] Fallback a modelo: {modelo}", file=sys.stderr)
-                return super().generate(prompt, model=modelo, **kwargs)
+                salida = super().generate(prompt, model=modelo, **kwargs)
+                if i > 0:
+                    # Recordar el modelo que funcionó: las siguientes llamadas
+                    # empiezan por él en vez de repetir la cascada de fallos
+                    # (404/403 de modelos retirados son frecuentes).
+                    self.model = modelo
+                return salida
             except Exception as exc:
                 last_error = exc
                 status = getattr(exc, "status_code", None)
@@ -259,11 +280,16 @@ class KiloGatewayLLM(LLMProvider):
 
     def __init__(self, api_key: str = None, model: str = None,
                  base_url: str = "https://api.kilo.ai/api/gateway",
-                 max_retries: int = 3):
+                 max_retries: int = 3, timeout: float = DEFAULT_TIMEOUT,
+                 use_cache: bool = True):
         self.api_key = api_key or os.environ.get("KILO_API_KEY", "")
         self.model = model or "anthropic/claude-sonnet-4"
         self.base_url = base_url
         self.max_retries = max_retries
+        self.timeout = timeout
+        self.use_cache = use_cache
+        self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
+        self._clientes: Dict[Any, Any] = {}
 
     def generate(self, prompt: str, model: str = None, **kwargs) -> str:
         key = kwargs.pop("api_key", None) or self.api_key
@@ -272,10 +298,10 @@ class KiloGatewayLLM(LLMProvider):
                 "Kilo API key required for KiloGatewayLLM. "
                 "Provide api_key parameter or set KILO_API_KEY environment variable."
             )
-        from openai import OpenAI
-        client = OpenAI(api_key=key, base_url=self.base_url)
+        client = _cliente_openai(self._clientes, key, self.base_url)
         return _chat_completion(client, model or self.model, prompt,
-                                self.max_retries, "KiloGatewayLLM")
+                                self.max_retries, "KiloGatewayLLM",
+                                timeout=self.timeout, cache=self.cache)
 
 
 # DeepSeek implementation (OpenAI-compatible API)

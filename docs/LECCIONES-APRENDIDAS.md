@@ -1168,3 +1168,51 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: cuando un prompt exige citas, el prompt debe llevar las
   fuentes citables; y todo flag `valid` debe exigir trabajo realmente
   ejecutado, nunca el score de un nodo raíz que no hizo nada.
+
+### Hallazgo 72: Pase de coherencia «herramienta real» — asistente de pensamiento, sin silencios
+
+- **Origen**: orden del programador (2026-10-17): el proyecto es una
+  herramienta real —los modos demo offline son una ayuda para probar y
+  comprender, no la naturaleza del proyecto— y todo debe ser coherente y
+  consistente, con la máxima calidad. Queda registrado como regla 11 de
+  `AGENTS.md` y este pase baja el cambio a código, tests, textos y cifras.
+- **Qué se corrigió** (cada punto con test o medición):
+  - `code_design_improvement_tools.run_analysis` gastaba hasta 49 llamadas LLM
+    (7 fases repitiendo el ciclo de 7 pasos) y no se detenía ante un paso
+    inválido: ahora es UN ciclo de 7 pasos validado paso a paso (corta con
+    error explícito si un paso no produce resultado válido) y `max_steps` del
+    motor es efectivo.
+  - `pensamiento_layer.think()` ignoraba `use_tot` (sin enrutar a ToT) y
+    `think_tot` perdía `return_tree`; un kwarg desconocido ahora eleva
+    `TypeError` en vez de tragarse en silencio (P1.26).
+  - `llm_providers`: cliente del SDK reutilizado por (clave, base_url) —antes
+    se creaba uno por llamada, tirando el pool keep-alive—; OpenRouter
+    recuerda el modelo que funcionó para no repetir la cascada de fallos; Kilo
+    gana caché y timeout (60 s) como las rutas OpenAI.
+  - `deep_research_system._parse_json_response` fallaba con varios bloques
+    («{mal} luego [bien]») por regex codiciosa: ahora decodifica por posición y
+    devuelve el primer JSON válido.
+  - `ResearchContext.to_dict` declara `duration_seconds`; la URL de Wikipedia
+    va percent-encoded; `_clean_url` rechaza hosts privados/localhost;
+    `max_results <= 0` devuelve `[]`.
+- **El propio evaluador como control**: la primera pasada marcó
+  `c3_sin_silencios` por un `except`/`continue` recién introducido en
+  `_parse_json_response` (P1.26); se reestructuró con un helper que devuelve
+  `None`. Con `--sin-red`, `v4_dependencias_al_dia` queda sin verificar y la
+  global baja a 0.925 (no verificado ⇒ fallo, coherente con P0.1). Con red:
+  GLOBAL 1.000 y sin plan de mejora.
+- **Evidencia**: **433/433** tests en Python 3.11 (openai 1.109.1) y en los
+  venvs 2.54.0, 3.33.0 y 3.12+3.33.0; ruff limpio; demos offline 0; tests
+  honestos 0; autoevaluación con `--ejecutar-tests` GLOBAL 1.000 (sin
+  `no_verificado`); mutación re-medida: **73,9% (2602/3521; 0 timeouts, 0 sin
+  ejecutar)**, `deep_research_system` 65,1% (680/1045); los seis módulos
+  mutados quedan al 97-99% de cobertura (`llm_providers` 98%).
+- **Anomalía observada y descartada por repetición**: una primera pasada de
+  cobertura, en el minuto siguiente al final de la campaña mutmut, dio cifras
+  no reproducibles (`llm_providers` 78%); dos repeticiones inmediatas dieron
+  98% y se publica la medición reproducible (P0.1: nada se publica sin repetir
+  la medición limpia).
+- **Regla derivada**: ningún modo de compatibilidad (kwargs «extra», claves
+  heredadas, fallbacks, ciclos anidados) puede tragarse errores ni multiplicar
+  el trabajo; y cuando cambia el marco declarado del proyecto, el cambio baja a
+  código, tests, textos y cifras en el mismo pase.

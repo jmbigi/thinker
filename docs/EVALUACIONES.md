@@ -55,6 +55,15 @@ ese pendiente): autoevaluación **GLOBAL 1.000** (Vigencia 1.00, `v4` incluido),
 `python3 evaluar_proyecto.py . --ejecutar-tests`; licencias de las 4
 dependencias consultadas en PyPI.
 
+**Actualización 2026-10-17 (pase de coherencia — Hallazgo 72)**: de nuevo
+**GLOBAL 1.000**, `no_verificado` vacío y sin plan de mejora. El propio
+evaluador resultó útil como control: una primera pasada quedó en 0.925 porque
+`c3_sin_silencios` cazó un `except`/`continue` recién introducido en
+`deep_research_system._parse_json_response` (P1.26) y porque `--sin-red` deja
+`v4_dependencias_al_dia` sin verificar (no verificado ⇒ fallo, coherente con
+P0.1). Corregido el patrón y re-ejecutado con red: 1.000. Evidencia:
+`python3 evaluar_proyecto.py . --ejecutar-tests`.
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |

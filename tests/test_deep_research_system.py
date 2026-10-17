@@ -49,6 +49,10 @@ class TestParseJsonResponse(unittest.TestCase):
         with self.assertRaises(json.JSONDecodeError):
             _parse_json_response("{esto parece json pero no lo es}")
 
+    def test_varios_bloques_devuelve_el_primer_json_decodificable(self):
+        texto = 'Primero {no json} y después [1, {"a": 2}] final'
+        self.assertEqual(_parse_json_response(texto), [1, {"a": 2}])
+
 
 class TestChatCompletion(unittest.TestCase):
     def test_reintenta_error_502_y_luego_devuelve(self):
@@ -205,6 +209,24 @@ class TestLLMProviders(unittest.TestCase):
         self.assertEqual(salida, "respuesta del siguiente modelo")
         self.assertEqual(len(client.calls), 4)  # 3 reintentos + 1 modelo nuevo
 
+    def test_openrouter_recuerda_el_modelo_que_funciona(self):
+        from llm_providers import OPENROUTER_FALLBACK_CHAIN
+
+        client = make_chat_client([
+            FakeAPIError("modelo caído", status_code=404),
+            ok_chat_response("ok en el segundo"),
+            ok_chat_response("ok directo"),
+        ])
+        with patch("openai.OpenAI", return_value=client):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test", model="modelo-a:free")
+            llm.generate("p1")
+            llm.generate("p2")
+
+        self.assertEqual(llm.model, OPENROUTER_FALLBACK_CHAIN[0])
+        self.assertEqual([c["model"] for c in client.calls],
+                         ["modelo-a:free", OPENROUTER_FALLBACK_CHAIN[0],
+                          OPENROUTER_FALLBACK_CHAIN[0]])
+
     def test_openrouter_fallback_agotado_eleva_el_ultimo_error(self):
         from llm_providers import OPENROUTER_FALLBACK_CHAIN
 
@@ -252,6 +274,27 @@ class TestLLMProviders(unittest.TestCase):
             base_url="https://api.kilo.ai/api/gateway",
         )
         self.assertEqual(client.calls[0]["model"], "anthropic/claude-sonnet-4")
+
+    def test_kilo_cache_y_timeout_como_las_rutas_openai(self):
+        client = make_chat_client([ok_chat_response("respuesta kilo")])
+        with patch("openai.OpenAI", return_value=client):
+            llm = KiloGatewayLLM(api_key="clave-ficticia-de-test")
+            llm.generate("mismo prompt")
+            llm.generate("mismo prompt")
+
+        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(llm.cache.hits, 1)
+        self.assertEqual(client.calls[0]["timeout"], 60.0)
+
+    def test_kilo_sin_cache_hace_dos_llamadas(self):
+        client = make_chat_client([ok_chat_response("uno"), ok_chat_response("dos")])
+        with patch("openai.OpenAI", return_value=client):
+            llm = KiloGatewayLLM(api_key="clave-ficticia-de-test", use_cache=False)
+            llm.generate("mismo prompt")
+            llm.generate("mismo prompt")
+
+        self.assertEqual(len(client.calls), 2)
+        self.assertIsNone(llm.cache)
 
     def test_ollama_generate_con_requests_mockeado(self):
         resp = type("R", (), {})()
@@ -960,7 +1003,9 @@ class TestMotoresConAsercionesExactas(unittest.TestCase):
         ctx.conclusions.append({})
         ctx.add_decision("paso", "decidir")
 
-        self.assertEqual(ctx.to_dict(), {
+        resumen = ctx.to_dict()
+        self.assertIsInstance(resumen.pop("duration_seconds"), float)
+        self.assertEqual(resumen, {
             "question": "¿q?",
             "decomposed": False,
             "iterations": 0,

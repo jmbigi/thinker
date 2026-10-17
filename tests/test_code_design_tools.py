@@ -119,6 +119,25 @@ class TestCodeDesignThinker(unittest.TestCase):
         self.assertIn("Paso 1", result["error"])
         self.assertEqual(result["thought"], "")
 
+    def test_paso_intermedio_invalido_detiene_el_ciclo(self):
+        llm = StubLLM(lambda p: "" if "PASO 2" in p
+                      else "texto válido con contenido suficiente")
+        thinker = CodeDesignThinker(llm_provider=llm)
+        result = thinker.decide(CodeAnalysisContext("p"), "código")
+        self.assertFalse(result["valid"])
+        self.assertEqual(result["invalid_steps"], ["objectives"])
+        self.assertEqual(result["step_count"], 1)
+        self.assertEqual([n for n, _ in result["steps"]], ["analysis"])
+        self.assertIn("Paso 2", result["error"])
+
+    def test_max_steps_acota_el_ciclo(self):
+        thinker = CodeDesignThinker(llm_provider=MockLLM(), max_steps=3)
+        result = thinker.decide(CodeAnalysisContext("p"), "código")
+        self.assertTrue(result["valid"])
+        self.assertEqual(result["step_count"], 3)
+        self.assertEqual([n for n, _ in result["steps"]],
+                         ["analysis", "objectives", "design_options"])
+
     def test_sin_proveedor_usa_mock_llm_offline(self):
         thinker = CodeDesignThinker()
         result = thinker.decide(CodeAnalysisContext("p"), "código")
@@ -158,6 +177,14 @@ class TestCodeImprovementOrchestrator(unittest.TestCase):
                          {"critical": 0, "high": 0, "medium": 1, "low": 1})
         self.assertEqual(metrics["metrics"]["functions"], 1)
         self.assertIn("ANÁLISIS COMPLETADO", buffer.getvalue())
+
+    def test_run_analysis_usa_un_solo_ciclo(self):
+        llm = StubLLM(lambda p: "texto válido con contenido suficiente")
+        thinker = CodeDesignThinker(llm_provider=llm)
+        orq = CodeImprovementOrchestrator(thinker, source_code="x = 1")
+        results = orq.run_analysis()
+        self.assertEqual(results["total_thinking_steps"], 7)
+        self.assertEqual(len(llm.prompts), 7)   # antes: 49 llamadas
 
     def test_generate_report_tras_analisis(self):
         thinker = CodeDesignThinker(llm_provider=MockLLM())
@@ -260,6 +287,21 @@ class TestAnalyzePythonSource(unittest.TestCase):
         # complejidad: for+if+try en m() = 3, while en g() = 1
         self.assertEqual(summary["complexity"], 4)
         self.assertIn("efficiency_score", result["metrics"])
+
+    def test_cuenta_async_y_no_duplica_anidados(self):
+        source = (
+            "async def f(items):\n"
+            "    async for i in items:\n"
+            "        if i:\n"
+            "            def interna():\n"
+            "                if True:\n"
+            "                    return 1\n"
+            "            return interna\n"
+        )
+        result = analyze_python_source(source)
+        summary = result["source_summary"]
+        self.assertEqual(summary["functions"], 2)
+        self.assertEqual(summary["complexity"], 3)
 
     def test_efficiency_score_acotado(self):
         result = analyze_python_source("import os, sys\n")

@@ -104,6 +104,27 @@ class TestCacheEnElCliente(unittest.TestCase):
         self.assertEqual(len(cliente.calls), 2)
         self.assertEqual(llm.cache.hits, 0)
 
+    def test_cliente_reutilizado_entre_llamadas(self):
+        cliente = make_chat_client([ok_chat_response("uno"), ok_chat_response("dos")])
+        llm = self._llm()
+
+        with patch("openai.OpenAI", return_value=cliente) as fabrica:
+            llm.generate("p1")
+            llm.generate("p2")
+
+        self.assertEqual(len(cliente.calls), 2)
+        self.assertEqual(fabrica.call_count, 1)
+
+    def test_cliente_distinto_por_clave_y_base_url(self):
+        cliente = make_chat_client([ok_chat_response("uno"), ok_chat_response("dos")])
+        llm = self._llm()
+
+        with patch("openai.OpenAI", return_value=cliente) as fabrica:
+            llm.generate("p", base_url="https://uno.invalid/v1")
+            llm.generate("p", base_url="https://dos.invalid/v1")
+
+        self.assertEqual(fabrica.call_count, 2)
+
     def test_la_cache_es_por_instancia(self):
         cliente = make_chat_client([ok_chat_response("uno"), ok_chat_response("dos")])
 

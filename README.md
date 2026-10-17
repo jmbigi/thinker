@@ -5,9 +5,11 @@ fuentes reales, extrae afirmaciones, evalúa la evidencia y redacta un informe
 trazable. Incluye una capa de **pensamiento estructurado** en pasos validados y
 herramientas de análisis estático de código.
 
-> Estado honesto: es una **herramienta funcional de demostración**, reparada,
-> verificada y con las limitaciones documentadas al final. No es un producto
-> listo para producción.
+> **Herramienta real**, en desarrollo activo: funcional, verificada y con las
+> limitaciones documentadas al final. Incluye modos **demo offline** (`MockLLM`,
+> `MockSearchAPI`) como **ayuda** para probarla sin red ni API keys; con
+> proveedores reales ejecuta investigación real. Todavía no se declara lista
+> para producción.
 
 ## Qué contiene
 
@@ -48,7 +50,7 @@ python3 -m pip install --require-hashes -r requirements.lock
 pip install -r requirements.txt
 ```
 
-## Uso rápido (offline, sin red ni API keys)
+## Uso rápido — modo demo offline (sin red ni API keys)
 
 ```bash
 python3 deep_research_system.py            # pipeline completo (LLM y búsqueda simulados)
@@ -56,8 +58,9 @@ python3 pensamiento_layer.py               # ciclo de pensamiento de 7 pasos
 python3 code_design_improvement_tools.py   # análisis estático + decisiones de diseño
 ```
 
-Los proveedores simulados (`MockLLM`, `MockSearchAPI`) están declarados como
-simulados: sirven para verificar el pipeline, no producen investigación real.
+Es el modo **demo**: una ayuda para probar y comprender el sistema. `MockLLM` y
+`MockSearchAPI` están declarados como simulados y no producen investigación
+real; con proveedores y buscadores reales (sección siguiente), sí.
 
 ## Uso real (OpenRouter con modelos gratuitos)
 
@@ -136,7 +139,7 @@ escaneo de secretos, `py_compile` y la suite antes de cada commit.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
-- La suite mata el **73,9%** de los mutantes de `mutmut` (2467/3340, medición
+- La suite mata el **73,9%** de los mutantes de `mutmut` (2602/3521, medición
   2026-10-17, excluyendo las líneas `print`, que solo generan mutantes
   equivalentes): cobertura alta no equivale a tests fuertes.
 

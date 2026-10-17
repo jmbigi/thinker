@@ -56,11 +56,12 @@ class TestRunAnalysisNucleo(unittest.TestCase):
         mensajes = []
         _orquestador().run_analysis(progress=mensajes.append)
         self.assertEqual(mensajes[0], ">>> Análisis estático: 1 issues detectados")
-        self.assertEqual(mensajes[1], ">>> PASO 1: Análisis estructurado del código...")
-        self.assertEqual(mensajes[-1], "   pasos=7 válido=True")
-        pasos = [m for m in mensajes if m.startswith(">>> PASO")]
+        self.assertEqual(mensajes[1], ">>> Ciclo de pensamiento de diseño...")
+        pasos = [m for m in mensajes if m.startswith("   paso ")]
         self.assertEqual(len(pasos), 7)
-        self.assertTrue(pasos[-1].startswith(">>> PASO 7: Definir criterios"))
+        self.assertEqual(pasos[0], "   paso 1/7: analysis")
+        self.assertEqual(pasos[-1], "   paso 7/7: validation")
+        self.assertEqual(mensajes[-1], "   pasos=7 válido=True")
 
     def test_total_de_pasos_y_principio_rector(self):
         r = _orquestador().run_analysis()
@@ -106,17 +107,32 @@ class TestReportLinesNucleo(unittest.TestCase):
 
     def test_secciones_de_decisiones_y_plan(self):
         self.assertIn("## Decisiones de Diseño", self.lineas)
-        self.assertIn("- **Enfoque seleccionado**: decision_from_validation", self.lineas)
+        seleccion = next(linea for linea in self.lineas
+                         if linea.startswith("- **Enfoque seleccionado**: "))
+        # El reporte muestra el contenido del paso 5 (la selección), no una marca.
+        self.assertIn('"paso": 5', seleccion)
         self.assertIn("- **Confianza**: 1.0", self.lineas)
         self.assertIn("## Plan de Implementación", self.lineas)
         pasos = [linea for linea in self.lineas
                  if linea[:2] in ("1.", "2.", "3.", "4.", "5.", "6.")]
-        self.assertEqual(len(pasos), 5, "el reporte muestra como máximo 5 pasos")
+        # El plan muestra el contenido del paso 6 (implementación).
+        self.assertEqual(len(pasos), 1)
         self.assertTrue(pasos[0].startswith("1. "))
+        self.assertIn('"paso": 6', pasos[0])
+
+    def test_plan_muestra_como_maximo_cinco_pasos(self):
+        self.orq.results["implementation_plan"] = {
+            "steps": [(f"s{i}", f"paso {i}") for i in range(8)]}
+        lineas = self.orq.report_lines()
+        pasos = [linea for linea in lineas if linea[:3] in
+                 ("1. ", "2. ", "3. ", "4. ", "5. ", "6. ", "7. ", "8. ")]
+        self.assertEqual(len(pasos), 5)
 
     def test_pie_de_validacion_exacto(self):
         self.assertIn("## Criterios de Validación", self.lineas)
-        self.assertIn("- **Decisión de validación**: decision_from_validation", self.lineas)
+        validacion = next(linea for linea in self.lineas
+                          if linea.startswith("- **Decisión de validación**: "))
+        self.assertIn('"paso": 7', validacion)
         self.assertIn("---", self.lineas)
         self.assertEqual(self.lineas[-1], "*Pasos deliberados: 7/7*")
 

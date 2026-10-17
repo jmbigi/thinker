@@ -97,6 +97,14 @@ class TestRunCycle(unittest.TestCase):
         self.assertEqual(result["thought"], "thought:uno,dos")
         self.assertEqual([name for name, _ in result["steps"]], ["uno", "dos"])
 
+    def test_max_steps_acota_el_ciclo(self):
+        engine = TinyEngine(llm_provider=StubLLM(lambda p: "contenido " + p),
+                            max_steps=1)
+        result = engine.think("entrada")
+        self.assertTrue(result["valid"])
+        self.assertEqual(result["step_count"], 1)
+        self.assertEqual([name for name, _ in result["steps"]], ["uno"])
+
     def test_paso_invalido_detiene_el_ciclo(self):
         def responder(prompt):
             return "" if "paso 2" in prompt else "contenido válido y largo"

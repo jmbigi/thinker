@@ -58,7 +58,8 @@ class ResearchContext:
             "num_claims": len(self.claims),
             "num_evaluations": len(self.evaluations),
             "num_conclusions": len(self.conclusions),
-            "decisions": len(self.decision_log)
+            "decisions": len(self.decision_log),
+            "duration_seconds": round(time.time() - self.start_time, 3),
         }
 
 
@@ -248,10 +249,24 @@ def _parse_json_response(response: str) -> Any:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r"[\[{].*[\]}]", text, re.DOTALL)
-        if not match:
-            raise
-        return json.loads(match.group(0))
+        # Decodificador por posición en vez de regex codiciosa: con varios
+        # bloques ("{mal} luego [bien]") la regex tomaba del primer `{` al
+        # último `]` y fallaba; así se devuelve el primer JSON decodificable.
+        decoder = json.JSONDecoder()
+
+        def _decodifica_en(posicion: int) -> Any:
+            """Primer JSON válido que empieza en `posicion`, o None."""
+            try:
+                return decoder.raw_decode(text[posicion:])[0]
+            except json.JSONDecodeError:
+                return None
+
+        for i, ch in enumerate(text):
+            if ch in "[{":
+                obj = _decodifica_en(i)
+                if obj is not None:
+                    return obj
+        raise
 
 
 class ClaimExtractor(DecisionEngine):
@@ -582,14 +597,14 @@ class ResearchOrchestrator:
 #   (reales, sin API key). Se importan arriba.
 
 
-# Demo/CLI entry point
+# CLI principal
 def main():
     print("=== Deep Research Decision-Making System ===\n")
     print("This system implements autonomous decision-making for deep research.")
     print("It decomposes questions, retrieves evidence, evaluates claims,")
     print("and generates structured reports with citations.\n")
 
-    # Demo offline con componentes simulados (sin red ni API keys).
+    # Modo demo offline (ayuda): componentes simulados, sin red ni API keys.
     # Para una investigación real, sustituir por un proveedor real:
     #   llm = OpenRouterLLM()   # requiere OPENROUTER_API_KEY en el entorno
     #   llm = OllamaLLM()       # requiere Ollama corriendo en localhost:11434
