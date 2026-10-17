@@ -1036,3 +1036,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   propio informe, (b) no penalizar lo que no aplica (sin dependencias pesadas, el
   criterio de import perezoso no cuenta) y (c) verificarse contra un proyecto con
   defectos conocidos y contra sí mismo.
+- **Ampliación posterior (misma fecha)**: `--ejecutar-tests` ejecuta el comando
+  de tests **declarado** por el proyecto (Makefile → script/README → convención),
+  con timeout y salida capturada, y las licencias de las dependencias se
+  consultan en PyPI. Con eso, `no_verificado` queda **vacío** en las dos
+  evaluaciones: thinker **0,958** (suite `make test` OK en 1,0 s) y better-ocr
+  **0,733** (475 tests OK en 43,4 s).
+- **Cuatro defectos del propio instrumento**, encontrados al usarlo contra
+  proyectos reales y corregidos: rutas con carpeta del README, «TODO REAL» como
+  deuda, `python-dotenv` como «sin licencia libre» (declara BSD-3-Clause en texto
+  libre, sin clasificador OSI) y dependencias contadas dos veces cuando aparecen
+  en dos manifiestos (ahora se deduplican prefiriendo `==`).
+- **Regla derivada (ampliada)**: un instrumento de medición se valida **usándolo
+  en real**, no solo con fixtures; cada falso positivo se verifica a mano contra
+  la fuente antes de corregirlo, y la primera cifra publicada es provisional
+  hasta pasar por ese ciclo.

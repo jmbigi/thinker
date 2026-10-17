@@ -8,6 +8,7 @@ evaluación es READ-ONLY (no escribe en el proyecto evaluado).
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from evaluar_proyecto import evaluar, informe_texto
 
@@ -97,6 +98,113 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
     def test_ruta_inexistente_eleva_value_error(self):
         with self.assertRaises(ValueError):
             evaluar(Path("/ruta/que/no/existe"), con_red=False)
+
+
+class TestEjecucionDeTestsYLicencias(unittest.TestCase):
+    """Ejecución opt-in del comando DECLARADO y licencias de dependencias."""
+
+    def _proyecto(self, archivos):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        raiz = Path(tmp.name)
+        for nombre, contenido in archivos.items():
+            ruta = raiz / nombre
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            ruta.write_text(contenido, encoding="utf-8")
+        return raiz
+
+    def test_sin_flag_no_ejecuta_nada_y_lo_declara(self):
+        raiz = self._proyecto({
+            "tests/test_que_escribe.py": (
+                "import unittest\n\n\n"
+                "class T(unittest.TestCase):\n"
+                "    def test_escribe(self):\n"
+                "        open('escrito.txt', 'w').write('x')\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertNotIn("c1b_suite_pasa",
+                         informe["dimensiones"]["calidad"]["criterios"])
+        self.assertFalse((raiz / "escrito.txt").exists())
+        self.assertTrue(any("--ejecutar-tests" in n
+                            for n in informe["no_verificado"]))
+
+    def test_ejecuta_la_suite_declarada_y_la_reporta(self):
+        raiz = self._proyecto({
+            "tests/test_ok.py": ("import unittest\n\n\n"
+                                 "class T(unittest.TestCase):\n"
+                                 "    def test_ok(self):\n"
+                                 "        self.assertTrue(True)\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False, ejecutar_tests_flag=True)
+        calidad = informe["dimensiones"]["calidad"]
+
+        self.assertTrue(calidad["criterios"]["c1b_suite_pasa"])
+        self.assertTrue(any("unittest" in nota for nota in calidad["notas"]))
+
+    def test_suite_que_falla_es_hallazgo_alto(self):
+        raiz = self._proyecto({
+            "tests/test_mal.py": ("import unittest\n\n\n"
+                                  "class T(unittest.TestCase):\n"
+                                  "    def test_falla(self):\n"
+                                  "        self.assertEqual(1, 2)\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False, ejecutar_tests_flag=True)
+
+        self.assertFalse(informe["dimensiones"]["calidad"]["criterios"]["c1b_suite_pasa"])
+        self.assertTrue(any(h["severidad"] == "alta" and "NO pasa" in h["descripcion"]
+                            for h in informe["dimensiones"]["calidad"]["hallazgos"]))
+        self.assertTrue(any(m["criterio"] == "c1b_suite_pasa"
+                            for m in informe["mejoras"]))
+
+    def test_el_target_del_makefile_tiene_prioridad(self):
+        raiz = self._proyecto({
+            "Makefile": "test:\n\tpython3 -m unittest discover -s tests -q\n",
+            "tests/test_ok.py": ("import unittest\n\n\n"
+                                 "class T(unittest.TestCase):\n"
+                                 "    def test_ok(self):\n"
+                                 "        self.assertTrue(True)\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False, ejecutar_tests_flag=True)
+
+        nota = next(n for n in informe["dimensiones"]["calidad"]["notas"]
+                    if n.startswith("suite:"))
+        self.assertIn("make test", nota)
+
+    def test_licencias_omitidas_sin_red(self):
+        informe = evaluar(self._proyecto({"requirements.txt": "requests==2.31.0\n"}),
+                          con_red=False)
+
+        self.assertNotIn("h5_licencias_libres",
+                         informe["dimensiones"]["herramientas"]["criterios"])
+        self.assertTrue(any("OMITIDAS" in nota
+                            for nota in informe["dimensiones"]["herramientas"]["notas"]))
+
+    def test_licencias_libres_verificadas(self):
+        with patch("evaluar_proyecto.licencia_pypi",
+                   return_value={"licencia": "Apache-2.0", "libre": True}), \
+                patch("evaluar_proyecto.ultima_version_pypi", return_value="2.31.0"):
+            informe = evaluar(self._proyecto({"requirements.txt": "requests==2.31.0\n"}),
+                              con_red=True)
+
+        self.assertTrue(informe["dimensiones"]["herramientas"]
+                        ["criterios"]["h5_licencias_libres"])
+
+    def test_dependencia_sin_licencia_libre_se_reporta(self):
+        with patch("evaluar_proyecto.licencia_pypi",
+                   return_value={"licencia": "Propietaria", "libre": False}), \
+                patch("evaluar_proyecto.ultima_version_pypi", return_value="1.0"):
+            informe = evaluar(self._proyecto({"requirements.txt": "rara==1.0\n"}),
+                              con_red=True)
+
+        herramientas = informe["dimensiones"]["herramientas"]
+        self.assertFalse(herramientas["criterios"]["h5_licencias_libres"])
+        self.assertTrue(any("Propietaria" in h["descripcion"]
+                            for h in herramientas["hallazgos"]))
 
 
 class TestAutoevaluacionDeThinker(unittest.TestCase):

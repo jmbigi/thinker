@@ -32,6 +32,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -163,15 +164,90 @@ def evaluar_funcionalidades(ruta: Path, py: List[Path]) -> Dimension:
     return dim
 
 
-def evaluar_calidad(ruta: Path, py: List[Path]) -> Dimension:
+def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
+    """Comando de tests DECLARADO por el proyecto (nunca adivinado).
+
+    Orden de preferencia, y se registra el origen: (1) target `test:` del
+    Makefile, (2) comando explícito en un script de verificación o README,
+    (3) convención `unittest discover -s tests` si existe tests/.
+    """
+    makefile = ruta / "Makefile"
+    if makefile.exists() and re.search(r"^test:", leer(makefile), re.M):
+        return {"comando": ["make", "test"], "origen": "Makefile (target test)"}
+
+    for candidato in list((ruta / "scripts").glob("*.sh")) + [ruta / "README.md",
+                                                              ruta / "AGENTS.md"]:
+        if not candidato.exists():
+            continue
+        m = re.search(r"(python3? -m (?:unittest|pytest)[^\n`]*)", leer(candidato))
+        if m:
+            return {"comando": m.group(1).split(),
+                    "origen": f"{candidato.relative_to(ruta)}"}
+
+    if (ruta / "tests").is_dir():
+        return {"comando": ["python3", "-m", "unittest", "discover", "-s", "tests"],
+                "origen": "convención: existe tests/"}
+    return None
+
+
+def ejecutar_tests(ruta: Path, timeout: int = 900) -> Dict[str, Any]:
+    """Ejecuta el comando de tests declarado (opt-in explícito, P0.8).
+
+    Es lo ÚNICO que ejecuta código del proyecto evaluado y solo se hace con
+    `--ejecutar-tests`. Sin shell (`shell=False`), con timeout y salida capturada.
+    """
+    deteccion = detectar_comando_tests(ruta)
+    if deteccion is None:
+        return {"ejecutado": False,
+                "motivo": "no se encontró un comando de tests declarado"}
+
+    inicio = time.monotonic()
+    try:
+        proceso = subprocess.run(deteccion["comando"], cwd=str(ruta),
+                                 capture_output=True, text=True, timeout=timeout,
+                                 shell=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"ejecutado": True, "comando": " ".join(deteccion["comando"]),
+                "origen": deteccion["origen"], "error": type(exc).__name__,
+                "detalle": str(exc)[:200]}
+    duracion = round(time.monotonic() - inicio, 1)
+    salida = (proceso.stdout or "") + (proceso.stderr or "")
+    resumen = re.search(r"^Ran (\d+) tests?", salida, re.M)
+    return {
+        "ejecutado": True,
+        "comando": " ".join(deteccion["comando"]),
+        "origen": deteccion["origen"],
+        "codigo": proceso.returncode,
+        "ok": proceso.returncode == 0,
+        "tests": int(resumen.group(1)) if resumen else None,
+        "resumen": next((linea for linea in reversed(salida.splitlines())
+                         if linea.startswith(("OK", "FAILED"))), ""),
+        "duracion_s": duracion,
+    }
+
+
+def evaluar_calidad(ruta: Path, py: List[Path],
+                    ejecutar: bool = False) -> Dimension:
     dim = Dimension("calidad")
     modulos_test = [p for p in py if p.name.startswith("test_")]
     lineas_codigo = sum(len(leer(p).splitlines()) for p in py if p not in modulos_test)
     lineas_test = sum(len(leer(p).splitlines()) for p in modulos_test)
 
     dim.criterios["c1_suite_de_tests"] = bool(modulos_test)
-    dim.notas.append("suite NO ejecutada: la evaluación es estática (P0.8)")
     dim.notas.append(f"{lineas_test} líneas de test / {lineas_codigo} de código")
+
+    if ejecutar:
+        resultado = ejecutar_tests(ruta)
+        dim.notas.append(f"suite: {resultado.get('resumen') or resultado.get('motivo')}"
+                         f" ({resultado.get('comando', 'sin comando')}, "
+                         f"{resultado.get('duracion_s', '?')}s)")
+        dim.criterios["c1b_suite_pasa"] = bool(resultado.get("ok"))
+        if not resultado.get("ok"):
+            dim.hallazgos.append(Hallazgo(
+                "alta", f"La suite NO pasa: {resultado.get('resumen') or resultado.get('error')}",
+                resultado.get("comando", "?")))
+    else:
+        dim.notas.append("suite NO ejecutada (sin --ejecutar-tests): no verificado")
 
     linter = any((ruta / f).exists() for f in ("pyproject.toml", ".flake8",
                                                "setup.cfg", ".pylintrc"))
@@ -229,7 +305,14 @@ def _dependencias(ruta: Path) -> List[Dict[str, str]]:
                     deps.append({"nombre": m.group(1).lower(),
                                  "operador": m.group(2) or "",
                                  "version": m.group(3)})
-    return deps
+    # Una misma dependencia declarada en varios manifiestos se cuenta una vez,
+    # prefiriendo la declaración más específica (==).
+    unicas: Dict[str, Dict[str, str]] = {}
+    for dep in deps:
+        previa = unicas.get(dep["nombre"])
+        if previa is None or (previa["operador"] != "==" and dep["operador"] == "=="):
+            unicas[dep["nombre"]] = dep
+    return list(unicas.values())
 
 
 def ultima_version_pypi(nombre: str, timeout: int = 15) -> Optional[str]:
@@ -289,7 +372,33 @@ def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
     return dim
 
 
-def evaluar_herramientas(ruta: Path) -> Dimension:
+LICENCIAS_LIBRES = ("mit", "bsd", "apache", "gpl", "lgpl", "mpl", "isc",
+                    "unlicense", "cc0", "psf", "zlib", "python software")
+
+
+def licencia_pypi(nombre: str, timeout: int = 15) -> Optional[Dict[str, Any]]:
+    """Licencia declarada en PyPI; None si no se puede verificar (se declara).
+
+    `libre` se decide por el clasificador OSI o, si no lo hay, por el nombre de
+    la licencia en texto libre (muchos paquetes solo rellenan ese campo).
+    """
+    try:
+        with urllib.request.urlopen(f"https://pypi.org/pypi/{nombre}/json",
+                                    timeout=timeout) as respuesta:
+            info = json.load(respuesta)["info"]
+    except Exception:  # noqa: BLE001 - se reporta como "no verificado"
+        return None
+    aprobada = next((c for c in info.get("classifiers", [])
+                     if c.startswith("License :: OSI Approved")), "")
+    if aprobada:
+        return {"licencia": aprobada.split("::")[-1].strip(), "libre": True}
+    texto = ((info.get("license") or "").strip().splitlines() or [""])[0][:60]
+    return {"licencia": texto or "desconocida",
+            "libre": any(marca in texto.lower() for marca in LICENCIAS_LIBRES)}
+
+
+def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
+                         con_red: bool = True) -> Dimension:
     dim = Dimension("herramientas")
     manifiestos = [f for f in ("requirements.txt", "pyproject.toml", "setup.py",
                                "package.json", "Pipfile") if (ruta / f).exists()]
@@ -316,6 +425,31 @@ def evaluar_herramientas(ruta: Path) -> Dimension:
                  list(ruta.glob("scripts/*")) + [ruta / "Makefile"])
     dim.criterios["h4_runner_de_tests_declarado"] = runner or bool(
         list(ruta.glob("tests/*")))
+
+    # Licencias de las dependencias (P1.18): declaradas y libres.
+    deps = deps or []
+    if not deps:
+        dim.notas.append("sin dependencias declaradas: licencias no aplican")
+    elif not con_red:
+        dim.notas.append("licencias de dependencias OMITIDAS (--sin-red)")
+    else:
+        sin_verificar, no_libres = [], []
+        for dep in deps:
+            info = licencia_pypi(dep["nombre"])
+            if info is None:
+                sin_verificar.append(dep["nombre"])
+            elif not info["libre"]:
+                no_libres.append(f"{dep['nombre']} ({info['licencia']})")
+        dim.criterios["h5_licencias_libres"] = not no_libres and not sin_verificar
+        dim.notas.append(f"licencias consultadas en PyPI: {len(deps)}")
+        if no_libres:
+            dim.hallazgos.append(Hallazgo(
+                "media", f"Dependencias sin licencia libre declarada: "
+                         f"{', '.join(no_libres)}", "PyPI"))
+        if sin_verificar:
+            dim.hallazgos.append(Hallazgo(
+                "baja", f"Licencia no verificable en PyPI: "
+                        f"{', '.join(sin_verificar)}", "PyPI"))
     return dim
 
 
@@ -492,6 +626,15 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "prioridad": "baja",
         "propuesta": "Documentar mediciones reales (tiempo/RAM/coste) por ruta",
         "metrica": "docs/ contiene cifras medidas con su fecha"},
+    "c1b_suite_pasa": {
+        "prioridad": "alta",
+        "propuesta": "Dejar la suite en verde: ningún test puede fallar",
+        "metrica": "el comando de tests declarado devuelve código 0"},
+    "h5_licencias_libres": {
+        "prioridad": "media",
+        "propuesta": "Declarar o sustituir las dependencias cuya licencia libre "
+                     "no se puede verificar en PyPI",
+        "metrica": "todas las dependencias declaran licencia OSI en PyPI"},
 }
 
 
@@ -511,8 +654,14 @@ def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
     return propuestas
 
 
-def evaluar(ruta: Path, con_red: bool = True) -> Dict[str, Any]:
-    """Evalúa un proyecto y devuelve el informe completo (sin escribir nada)."""
+def evaluar(ruta: Path, con_red: bool = True,
+            ejecutar_tests_flag: bool = False) -> Dict[str, Any]:
+    """Evalúa un proyecto y devuelve el informe completo (sin escribir nada).
+
+    `ejecutar_tests_flag` es un opt-in EXPLÍCITO: es lo único que ejecuta código
+    del proyecto evaluado (P0.8), siempre con el comando que el propio proyecto
+    declara.
+    """
     if not ruta.is_dir():
         raise ValueError(f"No es un directorio: {ruta}")
     py = archivos_python(ruta)
@@ -521,13 +670,21 @@ def evaluar(ruta: Path, con_red: bool = True) -> Dict[str, Any]:
                if any(pesada in d["nombre"] for pesada in PESADAS)]
     dimensiones = [
         evaluar_funcionalidades(ruta, py),
-        evaluar_calidad(ruta, py),
+        evaluar_calidad(ruta, py, ejecutar_tests_flag),
         evaluar_vigencia(ruta, deps, con_red),
-        evaluar_herramientas(ruta),
+        evaluar_herramientas(ruta, deps, con_red),
         evaluar_inteligencia(ruta, py),
         evaluar_eficiencia(ruta, py, pesadas),
     ]
     global_ = round(sum(d.puntuacion for d in dimensiones) / len(dimensiones), 3)
+    no_verificado = []
+    if not ejecutar_tests_flag:
+        no_verificado.append(
+            "la suite de tests NO se ejecuta (usa --ejecutar-tests para "
+            "verificarla; P0.8: ejecutar código ajeno es opt-in)")
+    if not con_red:
+        no_verificado.append("versiones y licencias de dependencias no "
+                             "consultadas (--sin-red)")
     informe = {
         "ruta": str(ruta),
         "archivos_python": len(py),
@@ -535,10 +692,7 @@ def evaluar(ruta: Path, con_red: bool = True) -> Dict[str, Any]:
         "dependencias": deps,
         "dimensiones": {d.nombre: d.a_dict() for d in dimensiones},
         "global": global_,
-        "no_verificado": [
-            "la suite de tests NO se ejecuta (evaluación estática; P0.8)",
-            "licencias de las dependencias no consultadas en esta versión",
-        ],
+        "no_verificado": no_verificado,
     }
     informe["mejoras"] = proponer_mejoras(informe)
     return informe
@@ -574,11 +728,16 @@ def main() -> int:
     parser.add_argument("ruta", help="ruta del proyecto a evaluar")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--sin-red", action="store_true",
-                        help="omite la comprobación de versiones en PyPI")
+                        help="omite la comprobación de versiones y licencias en PyPI")
+    parser.add_argument("--ejecutar-tests", action="store_true",
+                        help="EJECUTA el comando de tests declarado por el proyecto "
+                             "(opt-in explícito: es lo único que corre código "
+                             "ajeno, P0.8)")
     args = parser.parse_args()
 
     try:
-        informe = evaluar(Path(args.ruta).resolve(), con_red=not args.sin_red)
+        informe = evaluar(Path(args.ruta).resolve(), con_red=not args.sin_red,
+                          ejecutar_tests_flag=args.ejecutar_tests)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
