@@ -111,8 +111,8 @@ mejora de código (`code_design_improvement_tools.py`).
   `# pragma: no mutate` afecta solo a su propia línea). Los tests del subsistema
   de plugins se excluyen de la campaña (importan `plugins/`, fuera de
   `source_paths`): siguen corriendo en `make test`. La cobertura y la mutación
-  miden cosas distintas: cuatro de los seis módulos mutados están al 97-100% de
-  cobertura y la mutación global es 73,6%.
+  miden cosas distintas: cinco de los seis módulos mutados están al 97-100% de
+  cobertura (`llm_providers` al 82%) y la mutación global es 73,6%.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

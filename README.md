@@ -23,7 +23,7 @@ herramientas de análisis estático de código.
 | `tests/benchmarks/` | Framework de benchmark por dominio con rúbricas y LLM-as-judge opcional (`--list` para ver las tareas). |
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
 | `docs/REFERENCIAS-IA.md` | Teoría y práctica de IA (referencias verificadas contra arXiv y guías de ingeniería) con propuestas medidas por el benchmark. |
-| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones (funcionalidades, calidad, vigencia, herramientas, inteligencia, eficiencia) con 24 criterios binarios, evidencia por hallazgo y **mejoras propuestas con su verificación**. Informes de ejemplo: `docs/EVALUACIONES.md`. |
+| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones (funcionalidades, calidad, vigencia, herramientas, inteligencia, eficiencia) con criterios binarios, evidencia por hallazgo, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Informes: `docs/EVALUACIONES.md`. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
 ## Requisitos
@@ -115,6 +115,8 @@ python3 -m unittest discover -s tests -v
 coverage run --source=. -m unittest discover -s tests && coverage report -m
 bash scripts/scan-secrets.sh
 python3 honest_test.py                        # comprobación honesta del sistema
+python3 evaluar_proyecto.py RUTA              # evaluación externa (6 dimensiones, read-only)
+python3 scripts/probe_model.py --samples 5    # sonda de latencia del modelo (opt-in)
 ```
 
 El hook `.git/hooks/pre-commit` (instalado con `make hook`) ejecuta ruff, el

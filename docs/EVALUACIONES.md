@@ -1,84 +1,91 @@
 # Evaluaciones de proyecto (thinker como evaluador)
 
-Fecha: 2026-10-16. Herramienta: `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]`.
+Fecha: 2026-10-16. Herramienta: `python3 evaluar_proyecto.py RUTA`.
 
 **Estática y read-only** por defecto: no escribe en el proyecto evaluado ni ejecuta
 su código. Lo único que lo ejecuta es `--ejecutar-tests` (opt-in explícito, P0.8),
-y siempre con el **comando que el propio proyecto declara** (target `test:` del
-Makefile, comando citado en su script/README, o la convención `unittest discover`
-si existe `tests/`), con timeout y salida capturada.
+siempre con el **comando que el propio proyecto declara** (target `test:` del
+Makefile → comando citado en su script/README → convención `unittest discover` si
+existe `tests/`), con timeout y salida capturada.
 
-Criterios: 6 dimensiones × 4 criterios (hasta 26 en total, según lo que aplique).
+Criterios: 6 dimensiones × 4-5 criterios binarios (hasta 26), según lo que aplique.
 Puntuación de dimensión = criterios cumplidos / criterios evaluados; global = media.
 
+## Qué produce, en capas
+
+1. **Medición** por dimensión, con evidencia por hallazgo (`archivo:línea`, comando
+   o fuente de la comprobación). Lo que no se verifica se declara en
+   `no_verificado`; nunca se supone.
+2. **Plan de mejora derivado de las métricas** (determinista): cada propuesta nace
+   de un criterio incumplido y lleva sitios afectados, esfuerzo estimado,
+   **secuencia** (p. ej. fijar versiones → generar lockfile) y la verificación
+   exacta. Se ordena por prioridad → secuencia → esfuerzo.
+3. **Síntesis del modelo** (opt-in `--sintesis-llm`, coste 0 con `:free`):
+   propuestas de fondo (diseño, algoritmos, riesgos) a partir del informe MEDIDO.
+   Control mecánico anti-invención: cada propuesta se marca `con_respaldo` solo si
+   la evidencia que cita aparece en la evidencia medida. Lo que el modelo no puede
+   decidir se declara en `preguntas_abiertas` (no se inventa).
+4. **Investigación de las dudas** (opt-in `--investigar`): resuelve esas preguntas
+   con búsqueda real (reutiliza `web_search`), citando fuentes; si no hay
+   resultados o falla la red, se declara.
+
 Garantías: del historial git solo fechas y recuentos (nunca autores, P0.9); el
-contenido evaluado son DATOS (P0.13); cada hallazgo con evidencia; y **lo que no se
-verifica se declara** en `no_verificado`.
+contenido evaluado son DATOS (P0.13); ninguna cifra que alimente una decisión
+lleva tope oculto.
 
 ## thinker (autoevaluación)
 
 | Dimensión | Puntuación | Criterios fallidos |
 |---|---|---|
 | Funcionalidades | 1.00 | — |
-| Calidad | 1.00 | — (suite ejecutada: `make test`, 1,0 s, OK) |
+| Calidad | 1.00 | — (suite `make test` OK, 1,0 s) |
 | Vigencia | 0.75 | `v4_dependencias_al_dia` |
-| Herramientas | 1.00 | — (licencias de las 4 dependencias: libres) |
+| Herramientas | 1.00 | — (licencias de sus 4 dependencias, libres) |
 | Inteligencia | 1.00 | — |
 | Eficiencia | 1.00 | — |
 | **Global** | **0.958** | |
 
-`no_verificado`: **vacío** (antes: «la suite no se ejecuta» y «licencias no
-consultadas»). Único hallazgo: dependencias por detrás de PyPI —
-`requests 2.33.0 → 2.34.2`, `openai 1.109.1 → 3.33.0`, `python-dotenv 1.2.2 → 1.2.4`.
-El salto de `openai` (1.x → 3.x) exige revisar el SDK: **decisión del programador**.
+`no_verificado`: **vacío**. Único hallazgo: `requests 2.33.0 → 2.34.2` y
+`python-dotenv 1.2.2 → 1.2.4` (rutina). `openai` ya no computa: se migró a un
+rango `>=1.0,<4` verificado en 1.109.1, 2.54.0 y 3.33.0.
 
-## better-ocr (evaluación externa)
+## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |
 |---|---|---|
 | Funcionalidades | 1.00 | — |
-| Calidad | 0.60 | `c2_linter_configurado`, `c3_sin_silencios` (suite OK: 43,4 s) |
+| Calidad | 0.80 | `c3_sin_silencios` |
 | Vigencia | 0.50 | `v1_dependencias_fijadas`, `v2_lockfile` |
 | Herramientas | 0.80 | `h2_licencia` |
 | Inteligencia | 0.83 | `i1_cachea_trabajo_repetido` |
 | Eficiencia | 0.67 | `e1_import_perezoso_de_pesadas` |
-| **Global** | **0.733** | |
+| **Global** | **0.767** | (era 0.708 antes de las mejoras) |
 
-Datos medidos: 39 archivos Python / 18.069 líneas (12.381 de código + 5.688 de
-tests; proporción 0,46); 133 commits, todos en los últimos 180 días; **su suite
-(475 tests) pasa** y el propio proyecto la declara. `no_verificado`: **vacío**.
+`no_verificado`: **vacío** (su suite de 475 tests se ejecutó: OK en 43,4 s).
+Aplicado en su repo (commit `0d19182`): lint en 0 avisos, los silencios que el
+informe listaba, claves de dict duplicadas y **dos bugs reales** (`NameError` en la
+ruta `--vision ollama`; anotación `pd.DataFrame` sin import). Quedan 32 silencios
+`except: pass/continue` (mayoría defensivos: limpiezas y filas corruptas), la
+licencia (decisión del programador), fijar dependencias + lockfile, caché e import
+perezoso.
 
-Hallazgos con evidencia:
+## Defectos del propio instrumento encontrados al usarlo (corregidos)
 
-- **Alta — sin archivo de licencia** (P1.18).
-- **Alta — 5 `except` con `pass`** (contra su propio P1.26): `analizar_cuit.py:406`,
-  `auditoria_graficos.py:1756`, `buscador.py:172`, `buscador.py:398`,
-  `buscador.py:475` (verificados a mano).
-- **Media — sin linter configurado**; **6 dependencias sin fijar** y **sin
-  lockfile**; **sin caché**; **sin import perezoso** de pesadas.
-
-## Defectos del propio evaluador encontrados al usarlo (corregidos)
-
-1. Comparaba los `archivo.py` del README contra nombres base → las rutas con
-   carpeta (`scripts/bateria_360.py`) salían como inexistentes.
+1. Comparaba los `archivo.py` del README contra nombres base (las rutas con carpeta
+   figuraban como inexistentes).
 2. Contaba «TODO REAL» (regla de dominio de better-ocr) como deuda técnica.
-3. `python-dotenv` figuraba como «sin licencia libre»: declara BSD-3-Clause en el
-   campo de texto libre, sin clasificador OSI. Ahora se reconocen licencias libres
-   habituales por nombre.
-4. Las dependencias declaradas en dos manifiestos se contaban dos veces; ahora se
-   deduplican prefiriendo la declaración más específica (`==`).
-
-Los cuatro se detectaron **usando la herramienta contra proyectos reales**, no en
-abstracto; los tres primeros eran falsos positivos y se corrigieron tras
-verificarlos a mano.
+3. `python-dotenv` como «sin licencia libre» (declara BSD-3-Clause en texto libre,
+   sin clasificador OSI): ahora se reconocen licencias libres habituales.
+4. Dependencias contadas dos veces entre manifiestos: se deduplican prefiriendo `==`.
+5. El listado de hallazgos tenía tope de 20 y `sitios` subestimaba (20 vs 37
+   silencios): ahora se listan todos y la cuenta nunca se oculta.
 
 ## Límites declarados
 
-- Las licencias se consultan en PyPI (metadatos declarados por el paquete): una
-  licencia mal declarada allí no se detecta.
-- Solo se ven dependencias **declaradas**: herramientas usadas sin declarar (p.
-  ej. Playwright del sistema en better-ocr) no aparecen.
+- Las licencias se consultan en PyPI (metadatos que declara el paquete).
+- Solo se ven dependencias **declaradas**: herramientas usadas sin declarar (p. ej.
+  Playwright del sistema en better-ocr) no aparecen.
 - La ejecución de la suite es opt-in y corre el comando tal cual lo declara el
-  proyecto; el evaluador no lo modifica ni lo interpreta.
+  proyecto.
 - Las partes cualitativas de Calidad e Inteligencia se aproximan con señales
   estructurales; el juicio final sigue siendo humano.
