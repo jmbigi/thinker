@@ -267,7 +267,10 @@ def evaluar_calidad(ruta: Path, py: List[Path],
         for linea in lineas_silenciosas(leer(p)):
             silencios.append(f"{p.relative_to(ruta)}:{linea}")
     dim.criterios["c3_sin_silencios"] = not silencios
-    for marca in silencios[:5]:
+    if silencios:
+        dim.notas.append(f"silencios detectados: {len(silencios)} "
+                         f"(se listan hasta 20)")
+    for marca in silencios[:20]:
         dim.hallazgos.append(Hallazgo(
             "media", "`except` con `pass`/`continue` (P1.26)", marca))
 

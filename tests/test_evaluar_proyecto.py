@@ -54,6 +54,8 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertFalse(dims["calidad"]["criterios"]["c3_sin_silencios"])
         self.assertTrue(any("leer.py:7" in h["evidencia"]
                             for h in dims["calidad"]["hallazgos"]))
+        self.assertTrue(any("silencios detectados: 1" in nota
+                            for nota in dims["calidad"]["notas"]))
 
         self.assertFalse(dims["vigencia"]["criterios"]["v1_dependencias_fijadas"])
         self.assertTrue(any("pandas" in h["descripcion"]

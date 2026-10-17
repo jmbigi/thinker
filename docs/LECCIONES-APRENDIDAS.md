@@ -1047,6 +1047,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   deuda, `python-dotenv` como «sin licencia libre» (declara BSD-3-Clause en texto
   libre, sin clasificador OSI) y dependencias contadas dos veces cuando aparecen
   en dos manifiestos (ahora se deduplican prefiriendo `==`).
+- **Tope de hallazgos = información oculta**: el informe listaba solo los 5
+  primeros silencios (`except: pass/continue`). Al aplicar las mejoras en
+  better-ocr se descubrió que en realidad eran **37**. Ahora la nota declara el
+  total («silencios detectados: 37, se listan hasta 20») y la cuenta nunca se
+  oculta.
 - **Regla derivada (ampliada)**: un instrumento de medición se valida **usándolo
   en real**, no solo con fixtures; cada falso positivo se verifica a mano contra
   la fuente antes de corregirlo, y la primera cifra publicada es provisional
