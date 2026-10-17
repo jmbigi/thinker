@@ -319,13 +319,14 @@ def _dependencias(ruta: Path) -> List[Dict[str, str]]:
     return list(unicas.values())
 
 
-def ultima_version_pypi(nombre: str, timeout: int = 15) -> Optional[str]:
+def ultima_version_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
+    """Última versión publicada; si falla, el MOTIVO va en `error` (no se oculta)."""
     try:
         with urllib.request.urlopen(f"https://pypi.org/pypi/{nombre}/json",
                                     timeout=timeout) as respuesta:
-            return json.load(respuesta)["info"]["version"]
-    except Exception:  # noqa: BLE001 - se reporta como "no verificado"
-        return None
+            return {"version": json.load(respuesta)["info"]["version"], "error": ""}
+    except Exception as exc:  # noqa: BLE001 - el motivo se declara en el informe
+        return {"version": None, "error": f"{type(exc).__name__}: {exc}"}
 
 
 def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
@@ -362,17 +363,25 @@ def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
         dim.notas.append("comprobación PyPI OMITIDA (--sin-red): no verificado")
         return dim
 
-    atrasadas = []
+    atrasadas, no_verificadas = [], []
     for d in deps:
         if d["operador"] != "==" or not d["version"]:
             continue
-        ultima = ultima_version_pypi(d["nombre"])
-        if ultima and ultima != d["version"]:
-            atrasadas.append(f"{d['nombre']} {d['version']} -> {ultima}")
-    dim.criterios["v4_dependencias_al_dia"] = not atrasadas
+        consulta = ultima_version_pypi(d["nombre"])
+        if consulta["error"]:
+            no_verificadas.append(f"{d['nombre']} ({consulta['error']})")
+            continue
+        if consulta["version"] != d["version"]:
+            atrasadas.append(f"{d['nombre']} {d['version']} -> {consulta['version']}")
+    # "No se pudo comprobar" NO es "está al día": el criterio exige verificación.
+    dim.criterios["v4_dependencias_al_dia"] = not atrasadas and not no_verificadas
     for marca in atrasadas:
         dim.hallazgos.append(Hallazgo("media", f"Dependencia atrasada: {marca}",
                                       "PyPI (api.pypi.org)"))
+    if no_verificadas:
+        dim.hallazgos.append(Hallazgo(
+            "baja", "No se pudo comprobar en PyPI: " + "; ".join(no_verificadas),
+            "PyPI"))
     return dim
 
 
@@ -380,8 +389,8 @@ LICENCIAS_LIBRES = ("mit", "bsd", "apache", "gpl", "lgpl", "mpl", "isc",
                     "unlicense", "cc0", "psf", "zlib", "python software")
 
 
-def licencia_pypi(nombre: str, timeout: int = 15) -> Optional[Dict[str, Any]]:
-    """Licencia declarada en PyPI; None si no se puede verificar (se declara).
+def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
+    """Licencia declarada en PyPI; si falla, el MOTIVO va en `error`.
 
     `libre` se decide por el clasificador OSI o, si no lo hay, por el nombre de
     la licencia en texto libre (muchos paquetes solo rellenan ese campo).
@@ -390,15 +399,18 @@ def licencia_pypi(nombre: str, timeout: int = 15) -> Optional[Dict[str, Any]]:
         with urllib.request.urlopen(f"https://pypi.org/pypi/{nombre}/json",
                                     timeout=timeout) as respuesta:
             info = json.load(respuesta)["info"]
-    except Exception:  # noqa: BLE001 - se reporta como "no verificado"
-        return None
+    except Exception as exc:  # noqa: BLE001 - el motivo se declara en el informe
+        return {"licencia": "desconocida", "libre": False,
+                "error": f"{type(exc).__name__}: {exc}"}
     aprobada = next((c for c in info.get("classifiers", [])
                      if c.startswith("License :: OSI Approved")), "")
     if aprobada:
-        return {"licencia": aprobada.split("::")[-1].strip(), "libre": True}
+        return {"licencia": aprobada.split("::")[-1].strip(), "libre": True,
+                "error": ""}
     texto = ((info.get("license") or "").strip().splitlines() or [""])[0][:60]
     return {"licencia": texto or "desconocida",
-            "libre": any(marca in texto.lower() for marca in LICENCIAS_LIBRES)}
+            "libre": any(marca in texto.lower() for marca in LICENCIAS_LIBRES),
+            "error": ""}
 
 
 def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
@@ -440,8 +452,8 @@ def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
         sin_verificar, no_libres = [], []
         for dep in deps:
             info = licencia_pypi(dep["nombre"])
-            if info is None:
-                sin_verificar.append(dep["nombre"])
+            if info.get("error"):
+                sin_verificar.append(f"{dep['nombre']} ({info['error']})")
             elif not info["libre"]:
                 no_libres.append(f"{dep['nombre']} ({info['licencia']})")
         dim.criterios["h5_licencias_libres"] = not no_libres and not sin_verificar

@@ -200,6 +200,37 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertIn("INFORME MEDIDO", llm.prompts[0])
         self.assertIn(str(raiz), llm.prompts[0])
 
+    def test_error_de_red_se_declara_con_su_motivo(self):
+        import urllib.error
+        from unittest.mock import patch
+
+        from evaluar_proyecto import licencia_pypi, ultima_version_pypi
+
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   side_effect=urllib.error.URLError("sin ruta al host")):
+            licencia = licencia_pypi("x")
+            version = ultima_version_pypi("x")
+
+        self.assertIn("URLError", licencia["error"])
+        self.assertIn("URLError", version["error"])
+        self.assertIsNone(version["version"])
+        self.assertFalse(licencia["libre"])
+
+    def test_dependencia_no_verificable_falla_v4_y_declara_el_motivo(self):
+        import urllib.error
+        from unittest.mock import patch
+
+        raiz = self._proyecto({"requirements.txt": "requests==2.31.0\n"})
+
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   side_effect=urllib.error.URLError("sin red")):
+            informe = evaluar(raiz, con_red=True)
+
+        vigencia = informe["dimensiones"]["vigencia"]
+        self.assertFalse(vigencia["criterios"]["v4_dependencias_al_dia"])
+        self.assertTrue(any("URLError" in h["descripcion"]
+                            for h in vigencia["hallazgos"]))
+
     def test_no_cambia_el_proyecto_evaluado(self):
         raiz = self._fixture()
         antes = {p: p.stat().st_mtime_ns for p in raiz.rglob("*")}
@@ -311,7 +342,8 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
     def test_licencias_libres_verificadas(self):
         with patch("evaluar_proyecto.licencia_pypi",
                    return_value={"licencia": "Apache-2.0", "libre": True}), \
-                patch("evaluar_proyecto.ultima_version_pypi", return_value="2.31.0"):
+                patch("evaluar_proyecto.ultima_version_pypi",
+                      return_value={"version": "2.31.0", "error": ""}):
             informe = evaluar(self._proyecto({"requirements.txt": "requests==2.31.0\n"}),
                               con_red=True)
 
@@ -321,7 +353,8 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
     def test_dependencia_sin_licencia_libre_se_reporta(self):
         with patch("evaluar_proyecto.licencia_pypi",
                    return_value={"licencia": "Propietaria", "libre": False}), \
-                patch("evaluar_proyecto.ultima_version_pypi", return_value="1.0"):
+                patch("evaluar_proyecto.ultima_version_pypi",
+                      return_value={"version": "1.0", "error": ""}):
             informe = evaluar(self._proyecto({"requirements.txt": "rara==1.0\n"}),
                               con_red=True)
 
