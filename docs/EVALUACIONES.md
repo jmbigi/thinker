@@ -64,6 +64,14 @@ evaluador resultó útil como control: una primera pasada quedó en 0.925 porque
 P0.1). Corregido el patrón y re-ejecutado con red: 1.000. Evidencia:
 `python3 evaluar_proyecto.py . --ejecutar-tests`.
 
+**Actualización 2026-10-17 (cobertura y mutación — Hallazgo 73)**: de nuevo
+**GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío. Evidencia:
+463/463 tests en 5 entornos (3.11/3.12; openai 1.109.1/2.54.0/3.33.0),
+cobertura 100% en los seis módulos mutados, mutación **78,1%** (2766/3543;
+0 timeouts, 0 sin ejecutar), `make ci` en copia limpia y `make vuln-scan` sin
+vulnerabilidades conocidas. Comando: `python3 evaluar_proyecto.py .
+--ejecutar-tests`.
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |

@@ -6,7 +6,8 @@ from contextlib import redirect_stderr
 
 from deep_research_system import MockLLM
 from tests.helpers import StubLLM
-from thinking_engine import StepThinkingEngine, ToTEngine
+from thinking_engine import (SearchStrategy, StepThinkingEngine, ThinkingNode,
+                             ToTEngine)
 
 
 class TinyEngine(StepThinkingEngine):
@@ -385,6 +386,58 @@ class TestToTEngineDetalle(unittest.TestCase):
         self.assertEqual(paso2[0]["prompt"], "mi pregunta")
         self.assertEqual(paso2[0]["context"], {"clave": "valor"})
         self.assertEqual(paso2[0]["uno"], "contenido sustancial y largo")
+
+
+class TestThinkingNode(unittest.TestCase):
+    def test_best_child_sin_hijos_es_none(self):
+        self.assertIsNone(
+            ThinkingNode(content="raíz", step_name="root").best_child())
+
+    def test_best_child_elige_el_de_mayor_score(self):
+        padre = ThinkingNode(content="raíz", step_name="root")
+        padre.add_child(ThinkingNode(content="bajo", step_name="uno", score=0.2))
+        alto = padre.add_child(
+            ThinkingNode(content="alto", step_name="dos", score=0.9))
+
+        self.assertIs(padre.best_child(), alto)
+
+
+class TestCoberturaBFS(unittest.TestCase):
+    @staticmethod
+    def _llm():
+        def responder(prompt):
+            if "evaluador experto" in prompt:
+                return ('{"relevance": 8, "depth": 8, "coherence": 8, '
+                        '"reasoning": 8}')
+            return "contenido sustancial y largo"
+        return StubLLM(responder)
+
+    def test_contenido_invalido_puntua_cero_sin_llamar_al_juez(self):
+        def no_llamar(prompt):
+            raise AssertionError("el juez no debe llamarse para contenido inválido")
+
+        engine = TinyToT(llm_provider=StubLLM(no_llamar))
+
+        self.assertEqual(engine._evaluate_state("", "uno", {}), 0.0)
+        self.assertEqual(engine._evaluate_state("{}", "uno", {}), 0.0)
+
+    def test_bfs_con_todo_podado_reporta_score_bajo(self):
+        engine = TinyToT(llm_provider=self._llm(), branch_factor=2,
+                         search_strategy=SearchStrategy.BFS,
+                         min_score_threshold=0.95)
+        result = engine.think_tot("prueba")
+
+        self.assertFalse(result["valid"])
+        self.assertTrue(result["best_path"])   # hay camino, pero puntúa bajo
+        self.assertIn("Score bajo:", result["error"])
+
+    def test_bfs_respeta_max_depth(self):
+        engine = TinyToT(llm_provider=self._llm(), branch_factor=1,
+                         search_strategy=SearchStrategy.BFS, max_depth=1)
+        result = engine.think_tot("prueba")
+
+        self.assertEqual([n for n, _ in result["best_path"]], ["uno"])
+        self.assertEqual(result["step_count"], 1)
 
 
 class TestVisualizacionDelArbol(unittest.TestCase):

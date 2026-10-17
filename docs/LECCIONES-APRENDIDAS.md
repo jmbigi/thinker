@@ -1216,3 +1216,45 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   heredadas, fallbacks, ciclos anidados) puede tragarse errores ni multiplicar
   el trabajo; y cuando cambia el marco declarado del proyecto, el cambio baja a
   código, tests, textos y cifras en el mismo pase.
+
+### Hallazgo 73: Cobertura al 100% y mutación del 78,1% — cerrar huecos, no disfrazarlos
+
+- **Origen**: pase de mejoras eficientes del programador (2026-10-17):
+  verificar HEAD en copia limpia, cerrar los 22 huecos de cobertura, reforzar
+  la mutación en los módulos débiles y probar el pipeline real.
+- **Cobertura**: de 22 líneas sin cubrir en los seis módulos mutados a 0.
+  - Tests dirigidos para ramas reales: pasos inválidos 2–7 del ciclo de
+    diseño; `max_steps > 7` (retorno final del ciclo); error de red sin status
+    en OpenRouter (reintenta y eleva, sin fallback); JSON que no es objeto en
+    `RelevanceJudge` y en CoVe; hostname vacío en `_clean_url`; `best_child`;
+    contenido inválido puntuado 0 sin llamar al juez; BFS con poda total
+    («Score bajo») y con `max_depth`; demo completa de `pensamiento_layer`.
+  - Cuerpos `abstractmethod` (3) marcados `# pragma: no cover`: nunca se
+    ejecutan.
+  - Ramas muertas eliminadas con invariante demostrado: `raise last_error`
+    inalcanzable en `_chat_completion` (el bucle siempre eleva en el último
+    intento) y `return self._root` inalcanzable en BFS (la raíz está siempre
+    en `_all_nodes` y todo árbol finito tiene hojas).
+- **Demo ToT corregida**: el demo mostraba «Mejor camino» vacío porque MockLLM
+  respondía al juez con un JSON genérico sin las claves esperadas y el juez
+  puntuaba 0 (claves ausentes = 0). MockLLM ahora responde al prompt del juez
+  con el esquema exacto (simulado, declarado): el demo muestra el camino y un
+  test lo verifica.
+- **Mutación**: 777 supervivientes frente a 919 (164 muertos más con 22
+  mutantes nuevos): **78,1% (2766/3543)** desde 73,9% (2602/3521).
+  `deep_research_system` 65,1→73,9% (772/1045) y `llm_providers`
+  73,0→81,4% (429/527). Tests nuevos de prompts exactos (informe completo
+  y evaluación), motivos CRAG exactos, salidas exactas de MockLLM,
+  constructores y reintentos exactos.
+- **Cadena y verificación real**: `make ci` OK en copia limpia de HEAD;
+  `make vuln-scan` sin vulnerabilidades conocidas; sonda «Helo» 2,98 s
+  (1 muestra, APTO); `test_openrouter_real.py` 3/3 (un 429 reintentado, sin
+  fallback) con el modelo gratis.
+- **Evidencia**: 463/463 tests (3.11 y 3.12; openai 1.109.1/2.54.0/3.33.0),
+  ruff limpio, demos 0, tests honestos 0, cobertura 100% en los seis módulos
+  mutados y autoevaluación GLOBAL 1.000 sin plan de mejora.
+- **Regla derivada**: un stub simulado que alimenta a un evaluador debe
+  responder con el esquema que ese evaluador parsea (si no, el silencio se
+  convierte en puntuaciones 0 y demos vacíos); y una rama «defensiva» que no
+  puede ocurrir se elimina con su invariante demostrado, no se cubre con un
+  test artificial.

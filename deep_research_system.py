@@ -68,7 +68,7 @@ class DecisionEngine(ABC):
 
     @abstractmethod
     def decide(self, context: ResearchContext) -> Any:
-        pass
+        pass  # pragma: no cover - cuerpo abstracto, nunca se ejecuta
 
 
 class QuestionDecomposer(DecisionEngine):

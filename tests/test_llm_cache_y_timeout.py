@@ -4,11 +4,15 @@ Referencias: `docs/REFERENCIAS-IA.md` (propuestas 1 y 2). Todo offline: el
 cliente del SDK se sustituye por un doble y no hay red.
 """
 
+import contextlib
+import io
+import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
-from llm_providers import (DEFAULT_TIMEOUT, OpenAILLM, ResponseCache,
-                           _chat_completion)
+from llm_providers import (DEFAULT_TIMEOUT, OPENROUTER_FALLBACK_CHAIN,
+                           KiloGatewayLLM, OpenAILLM, OpenRouterLLM,
+                           ResponseCache, _chat_completion)
 from tests.helpers import FakeAPIError, make_chat_client, ok_chat_response
 
 
@@ -173,6 +177,101 @@ class TestTimeoutExplicito(unittest.TestCase):
         self.assertEqual(segunda, "ok")
         self.assertEqual(len(cliente.calls), 1)
         self.assertEqual(cache.hits, 1)
+
+
+class TestReintentosExactos(unittest.TestCase):
+    def test_mensajes_y_esperas_exactas(self):
+        cliente = make_chat_client([
+            FakeAPIError("caído", status_code=429),
+            FakeAPIError("caído", status_code=429),
+            ok_chat_response("ok"),
+        ])
+        errores = io.StringIO()
+        with patch("llm_providers.random.uniform", return_value=0.0), \
+                patch("llm_providers.time.sleep") as dormir, \
+                contextlib.redirect_stderr(errores):
+            salida = _chat_completion(cliente, "modelo", "p", 3, "Test")
+
+        self.assertEqual(salida, "ok")
+        self.assertEqual(len(cliente.calls), 3)
+        self.assertEqual([c["model"] for c in cliente.calls], ["modelo"] * 3)
+        self.assertEqual([c["timeout"] for c in cliente.calls], [60.0] * 3)
+        self.assertEqual(dormir.call_args_list, [call(2.0), call(4.0)])
+        self.assertEqual(
+            errores.getvalue().splitlines(),
+            ["[Test] error transitorio (429); reintento 1/2 en 2.0s",
+             "[Test] error transitorio (429); reintento 2/2 en 4.0s"])
+
+    def test_agota_reintentos_y_eleva_el_ultimo(self):
+        cliente = make_chat_client([FakeAPIError("caído", status_code=503)] * 3)
+        with patch("llm_providers.time.sleep"):
+            with self.assertRaises(FakeAPIError):
+                _chat_completion(cliente, "m", "p", 3, "Test")
+
+        self.assertEqual(len(cliente.calls), 3)
+
+    def test_no_reintenta_error_no_transitorio(self):
+        cliente = make_chat_client([
+            FakeAPIError("no", status_code=404),
+            ok_chat_response("no debería llegar"),
+        ])
+        with self.assertRaises(FakeAPIError):
+            _chat_completion(cliente, "m", "p", 3, "Test")
+
+        self.assertEqual(len(cliente.calls), 1)
+
+    def test_error_sin_status_reintenta_y_eleva(self):
+        cliente = make_chat_client([FakeAPIError("red caída")] * 2)
+        errores = io.StringIO()
+        with patch("llm_providers.time.sleep"), \
+                contextlib.redirect_stderr(errores):
+            with self.assertRaises(FakeAPIError):
+                _chat_completion(cliente, "m", "p", 2, "Test")
+
+        self.assertEqual(len(cliente.calls), 2)
+        self.assertIn("error transitorio (FakeAPIError)", errores.getvalue())
+
+
+class TestConstructoresExactos(unittest.TestCase):
+    def test_openai_valores_por_defecto(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+            llm = OpenAILLM()
+
+        self.assertEqual(llm.api_key, "")
+        self.assertEqual(llm.model, "gpt-4o-mini")
+        self.assertIsNone(llm.base_url)
+        self.assertEqual(llm.max_retries, 3)
+        self.assertEqual(llm.timeout, 60.0)
+        self.assertTrue(llm.use_cache)
+        self.assertIsInstance(llm.cache, ResponseCache)
+        self.assertEqual(llm._clientes, {})
+
+    def test_openai_sin_cache(self):
+        llm = OpenAILLM(api_key="x", use_cache=False)
+
+        self.assertIsNone(llm.cache)
+
+    def test_kilo_valores_por_defecto(self):
+        with patch.dict(os.environ, {"KILO_API_KEY": ""}):
+            llm = KiloGatewayLLM()
+
+        self.assertEqual(llm.api_key, "")
+        self.assertEqual(llm.model, "anthropic/claude-sonnet-4")
+        self.assertEqual(llm.base_url, "https://api.kilo.ai/api/gateway")
+        self.assertEqual(llm.max_retries, 3)
+        self.assertEqual(llm.timeout, 60.0)
+        self.assertTrue(llm.use_cache)
+        self.assertIsInstance(llm.cache, ResponseCache)
+        self.assertEqual(llm._clientes, {})
+
+    def test_openrouter_cadena_y_flag(self):
+        llm = OpenRouterLLM(api_key="x")
+
+        self.assertIs(llm._fallback_chain, OPENROUTER_FALLBACK_CHAIN)
+        self.assertTrue(llm._use_fallback)
+        self.assertEqual(llm.base_url, "https://openrouter.ai/api/v1")
+        self.assertFalse(
+            OpenRouterLLM(api_key="x", use_fallback=False)._use_fallback)
 
 
 if __name__ == "__main__":

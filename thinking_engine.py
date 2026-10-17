@@ -506,10 +506,9 @@ Responde SOLO con el JSON."""
             
             queue.extend(next_level)
         
-        # Retornar la mejor hoja
+        # Retornar la mejor hoja. La raíz siempre está en `_all_nodes`, así que
+        # el conjunto de hojas nunca es vacío (todo árbol finito tiene hojas).
         leaves = [n for n in self._all_nodes if n.is_leaf()]
-        if not leaves:
-            return self._root
         return max(leaves, key=lambda n: n.score)
     
     def _dfs_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:

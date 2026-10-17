@@ -227,6 +227,20 @@ class TestLLMProviders(unittest.TestCase):
                          ["modelo-a:free", OPENROUTER_FALLBACK_CHAIN[0],
                           OPENROUTER_FALLBACK_CHAIN[0]])
 
+    def test_openrouter_error_de_red_sin_status_no_hace_fallback(self):
+        client = make_chat_client(
+            [FakeAPIError("caída de red sin status")] * 3)
+        with patch("openai.OpenAI", return_value=client), \
+                patch("deep_research_system.time.sleep"):
+            llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+            with self.assertRaises(FakeAPIError):
+                llm.generate("p")
+
+        # Se reintenta el mismo modelo y se eleva; NO se prueba el siguiente
+        # (un fallo de red no justifica cambiar de modelo).
+        self.assertEqual(len(client.calls), 3)
+        self.assertEqual({c["model"] for c in client.calls}, {llm.model})
+
     def test_openrouter_fallback_agotado_eleva_el_ultimo_error(self):
         from llm_providers import OPENROUTER_FALLBACK_CHAIN
 
@@ -403,6 +417,49 @@ class TestMockLLM(unittest.TestCase):
     def test_rama_fallback(self):
         out = MockLLM().generate("prompt sin patrón conocido")
         self.assertIn("simulada", out.lower())
+
+    def test_salidas_exactas_de_cada_rama(self):
+        llm = MockLLM()
+        self.assertEqual(
+            llm.generate("Decompose this into parts"),
+            "¿Cuáles son los avances recientes documentados sobre el tema?\n"
+            "¿Qué fuentes primarias describen el estado actual?\n"
+            "¿Qué limitaciones, riesgos e incertidumbres se reportan?")
+        self.assertEqual(
+            llm.generate("Extract factual claims now"),
+            '[{"claim": "Afirmación simulada extraída del snippet por MockLLM", '
+            '"confidence": 0.7, "source_url": "https://example.com/mock-source"}]')
+        self.assertEqual(
+            llm.generate("Evaluate this claim now"),
+            '{"verdict": "supported", "credibility": 0.75, "confidence": 0.7, '
+            '"reasoning": "Evaluación simulada por MockLLM (offline, sin modelo real)"}')
+        self.assertEqual(
+            llm.generate("Eres un evaluador experto de calidad"),
+            '{"relevance": 8, "depth": 8, "coherence": 8, "reasoning": 8, '
+            '"brief_justification": "Evaluación simulada por MockLLM (offline)"}')
+        self.assertEqual(
+            llm.generate("PASO 7 - X"),
+            '{"paso": 7, "contenido": "Respuesta simulada por MockLLM para el '
+            'paso 7", "confianza": 0.7, "nota": "Salida offline determinista, '
+            'sin modelo real"}')
+        self.assertEqual(
+            llm.generate("Generate a comprehensive research report"),
+            "# Informe de investigación (SIMULADO por MockLLM)\n\n"
+            "## Resumen ejecutivo\n\n"
+            "Este informe fue generado offline por MockLLM, sin modelo real ni "
+            "llamadas de red. Sirve para verificar que el pipeline completo "
+            "(descomposición, recuperación, extracción, evaluación y reporte) "
+            "funciona de extremo a extremo.\n\n"
+            "## Hallazgos\n\n"
+            "Los hallazgos reales requieren configurar un proveedor LLM "
+            "(OpenAILLM, OpenRouterLLM, KiloGatewayLLM u OllamaLLM).\n\n"
+            "## Conclusiones\n\n"
+            "Pipeline verificado. Sustituir MockLLM por un proveedor real "
+            "para obtener contenido genuino.\n")
+        self.assertEqual(
+            llm.generate("otra cosa"),
+            "Respuesta simulada por MockLLM (offline): el prompt no "
+            "corresponde a un patrón conocido.")
 
 
 class TestResearchContext(unittest.TestCase):
@@ -1095,6 +1152,19 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         return ctx
 
     # --- CoVe -------------------------------------------------------------
+    def test_json_que_no_es_objeto_en_verificacion_independiente(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         "[1, 2]"])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            self._contexto(), {"claim": "c", "source_url": "u0"})
+
+        info = ev["verificacion_independiente"]
+        self.assertEqual(info["verdict"], "not_addressed")
+        self.assertEqual(info["verdict_principal"], "supported")
+        self.assertFalse(info["contested"])
+        self.assertEqual(info["error"], "Failed to parse evaluation")
+
     def test_verificacion_desactivada_por_defecto_hace_una_llamada(self):
         llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
 
@@ -1132,6 +1202,75 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertIn("T1", llm.prompts[1])
         self.assertNotIn("T0", llm.prompts[1])
         self.assertEqual(ev["verificacion_independiente"]["fuentes_alternativas"], 1)
+
+    def test_resultado_y_registro_exactos(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.75, '
+                         '"confidence": 0.6, "reasoning": "r"}'])
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "c", "source_url": "u1"})
+
+        sin_ts = {k: v for k, v in ev.items() if k != "evaluated_at"}
+        self.assertEqual(sin_ts, {
+            "verdict": "supported", "credibility": 0.75, "confidence": 0.6,
+            "reasoning": "r", "claim": "c", "source_url": "u1"})
+        self.assertIsInstance(ev["evaluated_at"], float)
+        self.assertEqual(ctx.evaluations, [ev])
+        self.assertEqual(ctx.decision_log[-1]["step"], "evidence_evaluation")
+        self.assertEqual(ctx.decision_log[-1]["decision"], "evaluate")
+        self.assertEqual(ctx.decision_log[-1]["rationale"],
+                         "Verdict: supported, Credibility: 0.75")
+        self.assertIn("T1", llm.prompts[0])
+        self.assertNotIn("T0", llm.prompts[0])
+
+    def test_sin_fuente_coincidente_usa_las_tres_primeras(self):
+        llm = self._llm(['{"verdict": "not_addressed", "credibility": 0}'])
+        ctx = ResearchContext("q")
+        ctx.sources.extend([{"url": f"u{i}", "title": f"T{i}", "snippet": "s"}
+                            for i in range(4)])
+
+        EvidenceEvaluator(llm).decide(ctx, {"claim": "c", "source_url": "nada"})
+
+        prompt = llm.prompts[0]
+        for titulo in ("T0", "T1", "T2"):
+            self.assertIn(titulo, prompt)
+        self.assertNotIn("T3", prompt)
+
+    def test_limita_la_verificacion_a_tres_alternativas(self):
+        ctx = ResearchContext("q")
+        ctx.sources.extend([{"url": f"u{i}", "title": f"T{i}", "snippet": "s"}
+                            for i in range(6)])
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "not_addressed", "credibility": 0.1}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        prompt = llm.prompts[1]
+        for titulo in ("T1", "T2", "T3"):
+            self.assertIn(titulo, prompt)
+        for titulo in ("T0", "T4", "T5"):
+            self.assertNotIn(titulo, prompt)
+        self.assertEqual(ev["verificacion_independiente"], {
+            "verdict": "not_addressed", "credibility": 0.1, "confidence": 0,
+            "verdict_principal": "supported", "contested": False,
+            "fuentes_alternativas": 5})
+
+    def test_sin_alternativas_registra_motivo_exacto(self):
+        ctx = ResearchContext("q")
+        ctx.sources.append({"url": "u0", "title": "T0", "snippet": "s"})
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertIsNone(ev["verificacion_independiente"])
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertEqual(ctx.decision_log[-1]["step"],
+                         "independent_verification")
+        self.assertEqual(ctx.decision_log[-1]["decision"], "skip")
+        self.assertEqual(ctx.decision_log[-1]["rationale"],
+                         "Sin fuentes alternativas para verificar el claim")
 
     def test_registra_la_decision_de_verificacion(self):
         llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
@@ -1383,6 +1522,13 @@ class TestEvaluadorDeRelevanciaCrag(unittest.TestCase):
         self.assertEqual(con_json.evaluar("sub", self.RESULTADOS), 0.8)
         self.assertIsNone(sin_json.evaluar("sub", self.RESULTADOS))
 
+    def test_relevance_judge_json_que_no_es_objeto_devuelve_none(self):
+        from deep_research_system import RelevanceJudge
+
+        juez = RelevanceJudge(StubLLM(lambda p: "[0.8]"))
+
+        self.assertIsNone(juez.evaluar("sub", self.RESULTADOS))
+
     def test_relevance_judge_prompt_incluye_subpregunta_y_titulos(self):
         from deep_research_system import RelevanceJudge
 
@@ -1400,6 +1546,145 @@ class TestEvaluadorDeRelevanciaCrag(unittest.TestCase):
         self.assertIsNotNone(con.retriever.evaluador_relevancia)
         self.assertIsNone(sin.retriever.evaluador_relevancia)
         self.assertEqual(con.retriever.umbral_relevancia, 0.5)
+
+
+class TestReportGeneratorExacto(unittest.TestCase):
+    def _ctx(self):
+        ctx = ResearchContext("Q")
+        ctx.subquestions = ["S1"]
+        ctx.sources = [{"title": "T", "url": "https://x", "snippet": "detalle"}]
+        ctx.claims = [{"claim": "C1", "source_id": "https://x"},
+                      {"claim": "C2"}]
+        ctx.evaluations = [{"claim": "C1", "verdict": "supported"},
+                           {"claim": "C2", "verdict": "contradicted"}]
+        return ctx
+
+    def test_prompt_exacto(self):
+        llm = StubLLM(lambda p: "# R")
+        ctx = self._ctx()
+
+        report = ReportGenerator(llm).decide(ctx)
+
+        self.assertEqual(report, "# R")
+        self.assertEqual(llm.prompts[0], (
+            "Generate a comprehensive research report for: Q\n"
+            "\n"
+            "Use ONLY the retrieved sources and evaluated claims below as evidence. Cite\n"
+            "sources as [n] matching their numbers. If the evidence is insufficient for a\n"
+            "statement, say so instead of inventing it.\n"
+            "\n"
+            "Retrieved sources:\n"
+            "[1] T — https://x\n"
+            "    detalle\n"
+            "\n"
+            "Evaluated claims:\n"
+            "- [supported] C1 (source: https://x)\n"
+            "- [contradicted] C2 (source: unknown)\n"
+            "\n"
+            "Structure:\n"
+            "1. Executive Summary (2-3 paragraphs)\n"
+            "2. Findings (organized by sub-question from: ['S1'])\n"
+            "3. Evidence Assessment (supported claims with source citations, contradictions, uncertainties)\n"
+            "4. Conclusions (what can be definitively stated, what remains uncertain)\n"
+            "5. Limitations and Research Gaps\n"
+            "\n"
+            "Claim data:\n"
+            "- Total claims extracted: 2\n"
+            "- Supported: 1\n"
+            "- Contradictions: 1\n"
+            "- Uncertain/Unsupported: 1\n"
+            "\n"
+            "Source data:\n"
+            "- Total sources retrieved: 1\n"
+            "\n"
+            "Evidence evaluations: 2\n"
+            "\n"
+            "Generate the full report in markdown format with proper citations [1], [2] etc.\n"
+            "matching the sources retrieved. Be factual and acknowledge uncertainties."))
+        self.assertEqual(ctx.decision_log[-1]["step"], "report_generation")
+        self.assertEqual(ctx.decision_log[-1]["decision"], "generate")
+        self.assertEqual(ctx.decision_log[-1]["rationale"],
+                         "Report generated with 1 conclusion sections")
+
+    def test_contexto_vacio_usa_marcadores(self):
+        ctx = ResearchContext("Q")
+        llm = StubLLM(lambda p: "r")
+
+        ReportGenerator(llm).decide(ctx)
+
+        prompt = llm.prompts[0]
+        self.assertIn("(no sources retrieved)\n", prompt)
+        self.assertIn("(no claims extracted)\n", prompt)
+        self.assertIn("- Total claims extracted: 0", prompt)
+        self.assertIn("- Total sources retrieved: 0", prompt)
+
+    def test_extrae_las_tres_ultimas_secciones_con_truncado(self):
+        report = ("# A\ntexto A\n\n## B\ntexto B\n\n## C\n" + "c" * 150
+                  + "\n\n## D\ntexto D\n")
+
+        concl = ReportGenerator(StubLLM(lambda p: "r"))._extract_conclusions(
+            report)
+
+        self.assertEqual([c["section"] for c in concl],
+                         ["B\ntexto B\n", "C\n" + "c" * 98, "D\ntexto D\n"])
+        self.assertEqual([c["length"] for c in concl], [10, 153, 10])
+
+
+class TestCRAGMotivosExactos(unittest.TestCase):
+    def test_requery_reformulacion_y_aceptacion(self):
+        class Buscador:
+            def __init__(self):
+                self.queries = []
+
+            def search(self, query, max_results=5):
+                self.queries.append(query)
+                if len(self.queries) == 1:
+                    return []
+                return [{"title": "T", "url": f"u{len(self.queries)}",
+                         "snippet": "s"}]
+
+        class Juez:
+            def evaluar(self, subquestion, resultados):
+                return 0.1
+
+        search = Buscador()
+        ctx = ResearchContext("fusión nuclear")
+
+        SourceRetriever(search, evaluador_relevancia=Juez()).decide(
+            ctx, "¿Cuál es el estado actual?")
+
+        rationales = [d["rationale"] for d in ctx.decision_log]
+        self.assertEqual(rationales[0],
+                         f"Sin resultados para '{search.queries[0][:40]}'; "
+                         f"se amplía la consulta")
+        self.assertEqual(rationales[1],
+                         f"Resultados poco relevantes para "
+                         f"'{search.queries[1][:40]}'; se reformula la consulta")
+        self.assertEqual(rationales[2],
+                         "Relevancia baja pero no quedan candidatas: se "
+                         "acepta lo recuperado")
+        self.assertEqual(rationales[3], "1 fuentes nuevas para: "
+                                        "¿Cuál es el estado actual?")
+
+    def test_ultima_consulta_sin_resultados_registra_no_results(self):
+        class Vacio:
+            def __init__(self):
+                self.queries = []
+
+            def search(self, query, max_results=5):
+                self.queries.append(query)
+                return []
+
+        ctx = ResearchContext("fusión nuclear")
+
+        SourceRetriever(Vacio()).decide(ctx, "¿Cuál es el estado actual?")
+
+        sin_resultados = [d for d in ctx.decision_log
+                          if d["decision"] == "no_results"]
+        self.assertEqual(len(sin_resultados), 1)
+        self.assertEqual(
+            sin_resultados[0]["rationale"],
+            "Sin resultados tras 3 consultas para: ¿Cuál es el estado actual?")
 
 
 class TestPromptsExactos(unittest.TestCase):
@@ -1431,6 +1716,13 @@ Return ONLY JSON (no markdown fences, no extra text):
         prompt = EvidenceEvaluator._prompt_evaluacion({}, [])
 
         self.assertIn("Claim: \n\n\nReturn ONLY JSON", prompt)
+
+    def test_prompt_trunca_snippet_a_200_y_titulo_por_defecto(self):
+        prompt = EvidenceEvaluator._prompt_evaluacion(
+            {"claim": "c"}, [{"snippet": "a" * 200 + "b" * 50}])
+
+        self.assertIn("Source 1: Unknown: " + "a" * 200 + "\n", prompt)
+        self.assertNotIn("b" * 50, prompt)
 
     def test_prompt_del_juez_de_relevancia_exacto(self):
         from deep_research_system import RelevanceJudge

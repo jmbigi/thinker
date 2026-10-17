@@ -138,6 +138,27 @@ class TestCodeDesignThinker(unittest.TestCase):
         self.assertEqual([n for n, _ in result["steps"]],
                          ["analysis", "objectives", "design_options"])
 
+    def test_paso_invalido_en_cualquier_posicion_detiene_el_ciclo(self):
+        for numero in range(2, 8):
+            with self.subTest(paso=numero):
+                llm = StubLLM(lambda p, n=numero: "" if f"PASO {n}" in p
+                              else "texto válido con contenido suficiente")
+                result = CodeDesignThinker(llm_provider=llm).decide(
+                    CodeAnalysisContext("p"), "código")
+                self.assertFalse(result["valid"])
+                self.assertEqual(len(result["invalid_steps"]), 1)
+                self.assertEqual(result["step_count"], numero - 1)
+                self.assertIn(f"Paso {numero}", result["error"])
+
+    def test_max_steps_mayor_que_siete_completa_el_ciclo(self):
+        # Con max_steps=8 `_registrar` no cierra en el paso 7: el ciclo debe
+        # terminar por su retorno final (rama que antes no se ejecutaba).
+        thinker = CodeDesignThinker(llm_provider=MockLLM(), max_steps=8)
+        result = thinker.decide(CodeAnalysisContext("p"), "código")
+        self.assertTrue(result["valid"])
+        self.assertEqual(result["step_count"], 7)
+        self.assertEqual(len(result["steps"]), 7)
+
     def test_sin_proveedor_usa_mock_llm_offline(self):
         thinker = CodeDesignThinker()
         result = thinker.decide(CodeAnalysisContext("p"), "código")

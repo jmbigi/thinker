@@ -24,7 +24,7 @@ class LLMProvider(ABC):
 
     @abstractmethod
     def generate(self, prompt: str, model: str = "llama3.2") -> str:
-        pass
+        pass  # pragma: no cover - cuerpo abstracto, nunca se ejecuta
 
 
 # Errores transitorios de proveedor que justifican reintento (P1.34)
@@ -83,7 +83,6 @@ def _chat_completion(client, model: str, prompt: str, max_retries: int, label: s
         if guardada is not None:
             return guardada
 
-    last_error = None
     for attempt in range(1, max_retries + 1):
         try:
             response = client.chat.completions.create(
@@ -96,7 +95,6 @@ def _chat_completion(client, model: str, prompt: str, max_retries: int, label: s
                 cache.set(model, prompt, salida)
             return salida
         except Exception as exc:  # noqa: BLE001 - se reeleva tras agotar
-            last_error = exc
             status = getattr(exc, "status_code", None)
             transient = status is None or status in TRANSIENT_STATUS
             if attempt >= max_retries or not transient:
@@ -106,7 +104,6 @@ def _chat_completion(client, model: str, prompt: str, max_retries: int, label: s
                   f"reintento {attempt}/{max_retries - 1} en {delay:.1f}s",
                   file=sys.stderr)
             time.sleep(delay)
-    raise last_error
 
 
 def _cliente_openai(cache_clientes: Dict[Any, Any], key: str,
@@ -363,6 +360,12 @@ class MockLLM(LLMProvider):
                 "credibility": 0.75,
                 "confidence": 0.7,
                 "reasoning": "Evaluación simulada por MockLLM (offline, sin modelo real)",
+            }, ensure_ascii=False)
+
+        if "evaluador experto" in p:
+            return json.dumps({
+                "relevance": 8, "depth": 8, "coherence": 8, "reasoning": 8,
+                "brief_justification": "Evaluación simulada por MockLLM (offline)",
             }, ensure_ascii=False)
 
         if "generate a comprehensive research report" in p:

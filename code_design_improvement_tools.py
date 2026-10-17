@@ -120,7 +120,7 @@ class ThinkingDecisionEngine(StepThinkingEngine):
     @abstractmethod
     def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str,
                                 progress=None) -> Dict[str, Any]:
-        pass
+        pass  # pragma: no cover - cuerpo abstracto, nunca se ejecuta
 
     def _validate_thought(self, thought: str) -> bool:
         """Compatibilidad: delega en el validador común."""

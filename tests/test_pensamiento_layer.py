@@ -235,5 +235,21 @@ class TestThinkTotConOverrides(unittest.TestCase):
             layer.think_tot("pregunta", inventado=1)
 
 
+class TestDemo(unittest.TestCase):
+    def test_main_muestra_los_dos_modos_y_el_camino_tot(self):
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida), \
+                contextlib.redirect_stderr(io.StringIO()):
+            pl.main()
+
+        texto = salida.getvalue()
+        self.assertIn("RESULTADO MODO LINEAL", texto)
+        self.assertIn("RESULTADO MODO ToT", texto)
+        self.assertIn("Mejor camino:", texto)
+        # El ToT del demo ya produce camino (el juez simulado puntúa): cada
+        # paso se imprime con nombre y contenido.
+        self.assertIn("  [analysis]", texto)
+
+
 if __name__ == "__main__":
     unittest.main()
