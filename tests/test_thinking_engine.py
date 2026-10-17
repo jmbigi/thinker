@@ -322,6 +322,10 @@ class TestToTEngineDetalle(unittest.TestCase):
         self.assertEqual(result["pruned_nodes"], 2)
         self.assertEqual(result["explored_nodes"], 3)
         self.assertEqual(result["step_count"], 0)
+        # Sin pasos ejecutados NO puede declararse válido (antes: valid=True)
+        self.assertFalse(result["valid"])
+        self.assertEqual(result["error"],
+                         "Ninguna rama superó el umbral de score: sin camino válido")
 
     def test_branch_factor_crea_ramas_con_variantes(self):
         def responder(prompt):
@@ -353,15 +357,26 @@ class TestToTEngineDetalle(unittest.TestCase):
                 def uno(o):
                     capturado.append(dict(o))
                     return "paso 1"
-                return [("uno", uno)]
+                def dos(o):
+                    capturado.append(dict(o))
+                    return "paso 2"
+                return [("uno", uno), ("dos", dos)]
 
         engine = Captura(llm_provider=StubLLM(lambda p: "contenido sustancial y largo"),
                          branch_factor=1)
         engine.think_tot("mi pregunta", context={"clave": "valor"})
 
+        # Paso 1: la entrada completa (sin salidas previas)
         self.assertEqual(capturado[0]["prompt"], "mi pregunta")
         self.assertEqual(capturado[0]["context"], {"clave": "valor"})
         self.assertNotIn("uno", capturado[0])
+        # Paso 2: prompt y contexto NO se pierden y sí llega el paso previo
+        # (antes se construía con prompt='' y context={})
+        paso2 = [o for o in capturado if "uno" in o]
+        self.assertEqual(len(paso2), 1)
+        self.assertEqual(paso2[0]["prompt"], "mi pregunta")
+        self.assertEqual(paso2[0]["context"], {"clave": "valor"})
+        self.assertEqual(paso2[0]["uno"], "contenido sustancial y largo")
 
 
 class TestVisualizacionDelArbol(unittest.TestCase):

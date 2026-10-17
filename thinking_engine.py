@@ -286,15 +286,27 @@ class ToTEngine(StepThinkingEngine):
         # Calcular métricas
         pruned = sum(1 for n in self._all_nodes if n.score < self.min_score_threshold and n != self._root)
         
+        # Sin camino no hay pensamiento válido: si todas las ramas se podan, la
+        # búsqueda devuelve la raíz (score 1.0 por construcción) y `valid` no
+        # puede ser True sin un solo paso ejecutado (P1.19: no simular éxito).
+        hay_camino = bool(best_path)
+        valid = hay_camino and best_leaf.score >= self.min_score_threshold
+        if valid:
+            error = None
+        elif not hay_camino:
+            error = "Ninguna rama superó el umbral de score: sin camino válido"
+        else:
+            error = f"Score bajo: {best_leaf.score:.2f}"
+        
         result = {
             "thought": self._render_thought(best_path),
             "decision": self._extract_decision(best_path),
             "confidence": self._compute_confidence(best_path),
-            "valid": best_leaf.score >= self.min_score_threshold,
-            "invalid_steps": [] if best_leaf.score >= self.min_score_threshold else [best_leaf.step_name],
+            "valid": valid,
+            "invalid_steps": [] if valid else [best_leaf.step_name],
             "steps": best_path,
             "step_count": len(best_path),
-            "error": None if best_leaf.score >= self.min_score_threshold else f"Score bajo: {best_leaf.score:.2f}",
+            "error": error,
             "best_path": best_path,
             "explored_nodes": len(self._all_nodes),
             "pruned_nodes": pruned,
@@ -316,8 +328,12 @@ class ToTEngine(StepThinkingEngine):
         context: Dict[str, Any],
     ) -> List[ThinkingNode]:
         """Genera múltiples ramas (candidatos) para un paso dado."""
-        # Construir outputs previos desde el camino a la raíz
-        outputs = {"prompt": node.metadata.get("prompt", ""), "context": node.metadata.get("context", {})}
+        # Construir outputs previos desde el camino a la raíz. `prompt` y
+        # `context` viven SOLO en la raíz (los hijos guardan variant/builder);
+        # leerlos del nodo actual los perdía a partir del paso 2.
+        root = node.path_to_root()[0]
+        outputs = {"prompt": root.metadata.get("prompt", ""),
+                   "context": root.metadata.get("context", {})}
         for n in node.path_to_root()[1:]:  # skip root
             outputs[n.step_name] = n.content
         

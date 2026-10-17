@@ -1123,3 +1123,48 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: una dependencia se actualiza con un rango verificado en más
   de una versión y un canario de la superficie usada; y el lock se valida
   instalándolo con hashes en un entorno limpio, nunca leyéndolo.
+
+## 2026-10-17 (ronda 14) — Revisión con reproducción: 6 bugs ALTA (hallazgo 71)
+
+### Hallazgo 71: Seis errores silenciosos, cada uno reproducido antes y después
+
+- **Problema**: la revisión del núcleo con reproducción propia encontró 6 bugs
+  ALTA: (1) las ramas ToT perdían `prompt`/`context` desde el paso 2
+  (`_generate_branches` leía el metadata del nodo actual, y solo la raíz los
+  guarda); (2) con todas las ramas podadas ToT devolvía `valid=True` y camino
+  vacío (la búsqueda devuelve la raíz, score 1.0 por construcción); (3)
+  `run_analysis` se tragaba el `syntax_error` y reportaba «0 problemas»
+  analizando código que no compila; (4) el prompt del informe no incluía
+  ninguna fuente ni claim y sin embargo exigía citas `[1]`, `[2]`; (5)
+  `credibility` no numérico (`"0.75"`, `null`) abortaba `research()` con un
+  `ValueError` no capturado y, con `null`, registraba la evaluación dos veces;
+  (6) la verificación independiente (CoVe) excluía el origen por `source_url`
+  (lo que dijo el modelo) en vez de `source_id` (URL real que fija el
+  extractor), re-incluyendo la fuente original.
+- **Solución**: leer prompt/contexto de la raíz del árbol; `valid` exige camino
+  no vacío (`valid = hay_camino and score >= umbral`); detener `run_analysis`
+  con el error de sintaxis reportado por stderr; incluir fuentes
+  (título/URL/snippet) y claims con veredicto y origen en el prompt del
+  informe, con la instrucción de no inventar si la evidencia no alcanza;
+  normalizar `credibility` a float acotado [0,1] (guardando `credibility_raw`
+  cuando no es numérico) y registrar una sola evaluación; usar
+  `source_id or source_url` como origen en CoVe.
+- **Evidencia**: cada bug se reprodujo con script propio antes del cambio y se
+  re-ejecutó después (paso 2 ToT: `prompt=''`→`'MI PREGUNTA'`; poda total:
+  `valid=True`→`False`; sintaxis rota: «0 problemas»→error con motivo;
+  informe: URL/título/snippet ausentes→presentes; `"0.75"`: aborto→0.75 sin
+  abortar y una evaluación; CoVe: ORIGEN dentro→fuera y 1 alternativa). 7
+  tests nuevos/ampliados; **414/414** OK en 3.11; ruff limpio; mutación
+  re-medida: **73,9%** (2467/3340).
+- **Hallazgo colateral**: `make mutation` no arrancaba desde que se añadió el
+  evaluador (su test importa `evaluar_proyecto`, que el sandbox de mutmut no
+  copia). Los tests de plugins ya se excluían por el mismo motivo; faltaba el
+  nuevo. Se añadió `--ignore=tests/test_evaluar_proyecto.py` y la campaña
+  volvió a correr entera.
+- **Pendiente rutinario resuelto**: `requests` 2.33.0→**2.34.2** y
+  `python-dotenv` 1.2.2→**1.2.4** (últimas verificadas en PyPI), lock
+  regenerado con `uv` e instalado `--require-hashes` en venv aislado:
+  414/414; openai 1.109.1/2.54.0/3.33.0 re-verificado con la suite actual.
+- **Regla derivada**: cuando un prompt exige citas, el prompt debe llevar las
+  fuentes citables; y todo flag `valid` debe exigir trabajo realmente
+  ejecutado, nunca el score de un nodo raíz que no hizo nada.

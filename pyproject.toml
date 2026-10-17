@@ -51,14 +51,15 @@ source_paths = [
     "web_search.py",
 ]
 # La campaña muta solo los 6 módulos de `source_paths`, que son los que se
-# copian al sandbox `mutants/`. Los tests del subsistema de plugins importan
-# `plugins/` (fuera de source_paths y ausente en el sandbox): se excluyen para
-# que pytest pueda colectar allí. Siguen corriendo en `make test`.
+# copian al sandbox `mutants/`. Los tests que importan módulos fuera de
+# `source_paths` (plugins/ y evaluar_proyecto.py) se excluyen para que pytest
+# pueda colectar allí. Siguen corriendo en `make test`.
 pytest_add_cli_args_test_selection = [
     "tests",
     "--ignore=tests/test_plugin_registry.py",
     "--ignore=tests/test_plugin_cli.py",
     "--ignore=tests/test_plugin_dashboard.py",
+    "--ignore=tests/test_evaluar_proyecto.py",
 ]
 # Las líneas `print(...)` no alteran estado: mutarlas genera mutantes
 # equivalentes que ninguna prueba puede matar. Se excluyen con la opción que el

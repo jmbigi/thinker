@@ -16,6 +16,7 @@ Principios clave:
 
 import ast
 import re
+import sys
 import time
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
@@ -383,6 +384,15 @@ class CodeImprovementOrchestrator:
         # Análisis estático real del código fuente: alimenta el contexto
         if self.source_code:
             static = analyze_python_source(self.source_code)
+            if "syntax_error" in static:
+                # Sin sintaxis válida no hay análisis posible: se detiene y se
+                # reporta (antes seguía 7 fases sobre código roto y decía "0
+                # problemas"; error silencioso, P1.19/P1.26).
+                decir(f">>> Fuente con error de sintaxis: {static['syntax_error']}")
+                return {
+                    "error": f"Fuente con error de sintaxis: {static['syntax_error']}",
+                    "steps": [("fallido", static)],
+                }
             for issue in static.get("metrics", {}).get("issues", []):
                 self.context.add_issue(**issue)
             self.context.metrics = static.get("source_summary", {})
@@ -433,8 +443,9 @@ class CodeImprovementOrchestrator:
         resultado = self.run_analysis(progress=lambda mensaje: print(f"   {mensaje}"))
 
         if "error" in resultado:
-            # Igual que antes: en el fallo no hay resultados que reportar
-            # (`self.results` queda vacío y generate_report lo avisa).
+            # El fallo se reporta por stderr (no silencioso): `self.results`
+            # queda vacío y generate_report lo avisa.
+            print(f"ERROR: {resultado['error']}", file=sys.stderr)
             return resultado
 
         metricas = self.results["project_metrics"]

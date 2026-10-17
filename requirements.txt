@@ -1,9 +1,9 @@
-# Dependencias del proyecto (versiones verificadas instaladas el 2026-10-16)
-requests==2.33.0
+# Dependencias del proyecto (versiones verificadas instaladas el 2026-10-17)
+requests==2.34.2
 # Rango verificado en 3 versiones mayores: 1.109.1, 2.54.0 y 3.33.0 (suite
 # completa en las tres). El lock fija la versión exacta con hashes.
 openai>=1.0,<4
-python-dotenv==1.2.2
+python-dotenv==1.2.4
 # Necesaria para config/plugins.yaml (el subsistema de plugins lee YAML)
 PyYAML==6.0.3
 

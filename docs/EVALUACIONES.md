@@ -49,6 +49,12 @@ lleva tope oculto.
 `python-dotenv 1.2.2 → 1.2.4` (rutina). `openai` ya no computa: se migró a un
 rango `>=1.0,<4` verificado en 1.109.1, 2.54.0 y 3.33.0.
 
+**Actualización 2026-10-17** (tras corregir 6 bugs ALTA —Hallazgo 71— y aplicar
+ese pendiente): autoevaluación **GLOBAL 1.000** (Vigencia 1.00, `v4` incluido),
+`no_verificado` vacío y **sin plan de mejora** («nada que proponer»). Evidencia:
+`python3 evaluar_proyecto.py . --ejecutar-tests`; licencias de las 4
+dependencias consultadas en PyPI.
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |

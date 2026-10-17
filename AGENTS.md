@@ -69,7 +69,7 @@ mejora de código (`code_design_improvement_tools.py`).
 - SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
-  3.33.0** (suite completa 405/405 en las tres; canario en
+  3.33.0** (suite completa 414/414 en las tres, 2026-10-17; canario en
   `tests/test_openai_compatibilidad.py`).
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
 - Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
@@ -96,23 +96,23 @@ mejora de código (`code_design_improvement_tools.py`).
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
-- Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-16 (HEAD con
-  ToT, plugins, CoVe/fidelidad, CRAG, routing y voto por consenso): **73,6% de
-  mutantes muertos** (2354/3200; ningún mutante queda sin ejecutar)
-  **excluyendo las líneas `print(...)`** —no alteran estado y solo producen
-  mutantes equivalentes—. La tasa BAJÓ desde 77,7% (2237/2878) porque las
-  funciones nuevas añadieron 322 mutantes, la mayoría en
-  `deep_research_system` (pasó de 647 a 925; hoy 63,9%): es el mismo efecto que
-  documentó el ToT —medir después de añadir código cambia el denominador—. El
-  desglose y su evolución están en `docs/LECCIONES-APRENDIDAS.md` (Hallazgos 60,
-  64 y 66). NO es comparable con la medición de 2026-10-14 (75,0%, 1604/2139).
+- Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-17 (HEAD tras
+  corregir 6 bugs ALTA): **73,9% de mutantes muertos** (2467/3340; ningún
+  mutante queda sin ejecutar) **excluyendo las líneas `print(...)`** —no alteran
+  estado y solo producen mutantes equivalentes—. Subió desde 73,6% (2354/3200,
+  2026-10-16) pese a 140 mutantes nuevos, la mayoría en `deep_research_system`
+  (hoy 65,0%, 676/1040): las pruebas añadidas matan la mayoría de lo nuevo. Es
+  el mismo efecto de denominador que documentó el ToT (Hallazgos 60, 64 y 66);
+  el desglose y su evolución están en `docs/LECCIONES-APRENDIDAS.md` (Hallazgo
+  71). NO es comparable con la medición de 2026-10-14 (75,0%, 1604/2139).
   La exclusión de `print` usa `do_not_mutate_patterns`, la opción que el motor
   aplica de verdad (la lista `do_not_mutate` no se usa y el pragma
-  `# pragma: no mutate` afecta solo a su propia línea). Los tests del subsistema
-  de plugins se excluyen de la campaña (importan `plugins/`, fuera de
-  `source_paths`): siguen corriendo en `make test`. La cobertura y la mutación
-  miden cosas distintas: cinco de los seis módulos mutados están al 97-100% de
-  cobertura (`llm_providers` al 82%) y la mutación global es 73,6%.
+  `# pragma: no mutate` afecta solo a su propia línea). Los tests que importan
+  módulos fuera de `source_paths` (`plugins/` y `evaluar_proyecto.py`) se
+  excluyen de la campaña: sin esa exclusión ni arrancaba (ImportError al
+  colectar en el sandbox); siguen corriendo en `make test`. La cobertura y la
+  mutación miden cosas distintas: cinco de los seis módulos mutados están al
+  97-100% de cobertura (`llm_providers` al 82%) y la mutación global es 73,9%.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
   ambos, 3.12 en un venv aislado).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
@@ -128,8 +128,9 @@ mejora de código (`code_design_improvement_tools.py`).
 
 - `deep_research_system.py` — pipeline de investigación (descomposición,
   recuperación, claims, evaluación, reporte).
-- `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, Ollama,
-  Mock) con reintentos y backoff. **No duplicar** clientes en otros módulos.
+- `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
+  Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
+  Ollama y Mock no reintentan. **No duplicar** clientes en otros módulos.
 - `thinking_engine.py` — motor común de ciclos de pensamiento (validación,
   confianza, forma de resultado). **No duplicar** su lógica en otros módulos.
 - `pensamiento_layer.py` / `code_design_improvement_tools.py` — pasos concretos

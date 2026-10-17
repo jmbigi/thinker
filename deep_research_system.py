@@ -329,6 +329,20 @@ Return ONLY JSON (no markdown fences, no extra text):
                 context, claim, evaluation.get("verdict", "not_addressed"))
         return evaluation
 
+    @staticmethod
+    def _normalizar_credibilidad(valor: Any) -> Tuple[float, Optional[str]]:
+        """Convierte la credibilidad a float en [0, 1] sin tumbar el pipeline.
+
+        Los modelos reales devuelven a veces `"0.75"` (string), `null` u otro
+        formato; formatear `{credibility:.2f}` sobre eso elevaba un ValueError
+        no capturado y abortaba `research()` (P1.19: se normaliza y se sigue).
+        """
+        try:
+            numero = float(valor)
+        except (TypeError, ValueError):
+            return 0.0, str(valor)
+        return min(max(numero, 0.0), 1.0), None
+
     def _evaluar(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
         relevant_sources = [
             s for s in context.sources
@@ -344,12 +358,17 @@ Return ONLY JSON (no markdown fences, no extra text):
             evaluation = _parse_json_response(response)
             if not isinstance(evaluation, dict):
                 raise json.JSONDecodeError("se esperaba un objeto JSON", str(evaluation), 0)
+            credibility, valor_invalido = self._normalizar_credibilidad(
+                evaluation.get("credibility", 0))
+            evaluation["credibility"] = credibility
+            if valor_invalido is not None:
+                # Trazabilidad del valor original no numérico (null, "alto"...).
+                evaluation["credibility_raw"] = valor_invalido
             evaluation["claim"] = claim.get("claim", "")
             evaluation["source_url"] = claim.get("source_url", "")
             evaluation["evaluated_at"] = time.time()
             context.evaluations.append(evaluation)
             verdict = evaluation.get("verdict", "not_addressed")
-            credibility = evaluation.get("credibility", 0)
             context.add_decision("evidence_evaluation", "evaluate",
                                  f"Verdict: {verdict}, Credibility: {credibility:.2f}")
             return evaluation
@@ -373,8 +392,12 @@ Return ONLY JSON (no markdown fences, no extra text):
         Devuelve `None` (y lo registra) si no hay fuentes alternativas: no se
         inventa una verificación sin evidencia distinta que mirar.
         """
+        # Origen verificado por el pipeline (`source_id` lo fija el extractor
+        # con la URL real de la fuente); `source_url` es solo lo que dijo el
+        # modelo y puede faltar o venir mal, re-incluyendo la fuente original.
+        origen = claim.get("source_id") or claim.get("source_url")
         alternativas = [s for s in context.sources
-                        if s.get("url") and s.get("url") != claim.get("source_url")]
+                        if s.get("url") and s.get("url") != origen]
         if not alternativas:
             context.add_decision("independent_verification", "skip",
                                  "Sin fuentes alternativas para verificar el claim")
@@ -423,8 +446,36 @@ class ReportGenerator(DecisionEngine):
             e.get("verdict") == "supported" for e in context.evaluations
             if e.get("claim") == c.get("claim"))]
 
+        # Grounding: el informe debe poder citar lo recuperado. Sin fuentes ni
+        # claims en el prompt, el modelo inventaría las citas exigidas (P0.2).
+        fuentes_txt = ""
+        for i, s in enumerate(context.sources, 1):
+            fuentes_txt += (f"[{i}] {s.get('title', 'Untitled')} — {s.get('url', '')}\n"
+                            f"    {s.get('snippet', '')[:200]}\n")
+        if not fuentes_txt:
+            fuentes_txt = "(no sources retrieved)\n"
+
+        veredicto_por_claim = {e.get("claim", ""): e.get("verdict", "not_addressed")
+                               for e in context.evaluations}
+        claims_txt = ""
+        for c in context.claims:
+            texto_claim = c.get("claim", "")
+            veredicto = veredicto_por_claim.get(texto_claim, "not evaluated")
+            origen = c.get("source_id") or c.get("source_url") or "unknown"
+            claims_txt += f"- [{veredicto}] {texto_claim[:200]} (source: {origen})\n"
+        if not claims_txt:
+            claims_txt = "(no claims extracted)\n"
+
         prompt = f"""Generate a comprehensive research report for: {context.question}
 
+Use ONLY the retrieved sources and evaluated claims below as evidence. Cite
+sources as [n] matching their numbers. If the evidence is insufficient for a
+statement, say so instead of inventing it.
+
+Retrieved sources:
+{fuentes_txt}
+Evaluated claims:
+{claims_txt}
 Structure:
 1. Executive Summary (2-3 paragraphs)
 2. Findings (organized by sub-question from: {context.subquestions})

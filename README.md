@@ -14,7 +14,7 @@ herramientas de análisis estático de código.
 | Módulo | Función |
 |---|---|
 | `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. |
-| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, Ollama, Mock) con reintentos y backoff. |
+| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles; Ollama y Mock no reintentan. |
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
@@ -136,9 +136,9 @@ escaneo de secretos, `py_compile` y la suite antes de cada commit.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
-- La suite mata el **75%** de los mutantes de `mutmut` (65,7% si se incluyen las
-  líneas `print`, que solo generan mutantes equivalentes): cobertura alta no
-  equivale a tests fuertes.
+- La suite mata el **73,9%** de los mutantes de `mutmut` (2467/3340, medición
+  2026-10-17, excluyendo las líneas `print`, que solo generan mutantes
+  equivalentes): cobertura alta no equivale a tests fuertes.
 
 ## Licencia
 

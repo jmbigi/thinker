@@ -520,6 +520,47 @@ class TestDecisionEngines(unittest.TestCase):
         self.assertEqual(ev["credibility"], 0.0)
         self.assertEqual(len(ctx.evaluations), 1)
 
+    def test_evaluator_credibilidad_string_se_normaliza_sin_abortar(self):
+        llm = StubLLM(lambda p: '{"verdict": "supported", "credibility": "0.75", '
+                                '"confidence": 0.7, "reasoning": "ok"}')
+        ctx = ResearchContext("q")
+
+        ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "algo", "source_url": "u"})
+
+        self.assertEqual(ev["credibility"], 0.75)   # antes: ValueError y aborto
+        self.assertEqual(len(ctx.evaluations), 1)
+        self.assertEqual(len(ctx.decision_log), 1)
+        self.assertIn("0.75", ctx.decision_log[0]["rationale"])
+
+    def test_evaluator_credibilidad_null_no_duplica_la_evaluacion(self):
+        llm = StubLLM(lambda p: '{"verdict": "supported", "credibility": null, '
+                                '"confidence": 0.7, "reasoning": "ok"}')
+        ctx = ResearchContext("q")
+
+        ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "algo", "source_url": "u"})
+
+        self.assertEqual(ev["credibility"], 0.0)
+        self.assertEqual(ev["credibility_raw"], "None")
+        self.assertEqual(len(ctx.evaluations), 1)   # antes: 2 por el TypeError
+        self.assertEqual(len(ctx.decision_log), 1)  # antes: 0
+
+    def test_evaluator_credibilidad_se_acota_y_no_numerica_es_cero(self):
+        casos = [("1.5", 1.0, None), ("-0.2", 0.0, None), ("alta", 0.0, "alta")]
+        for bruta, esperada, raw in casos:
+            with self.subTest(bruta=bruta):
+                llm = StubLLM(lambda p, b=bruta: (
+                    '{"verdict": "supported", "credibility": "%s", '
+                    '"confidence": 0.5, "reasoning": "ok"}' % b))
+                ctx = ResearchContext("q")
+
+                ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "c"})
+
+                self.assertEqual(ev["credibility"], esperada)
+                if raw is None:
+                    self.assertNotIn("credibility_raw", ev)
+                else:
+                    self.assertEqual(ev["credibility_raw"], raw)
+
     def test_report_generator_extrae_conclusiones(self):
         llm = StubLLM(lambda p: "# Título\n\n## Sección A\n\ntexto\n\n"
                                 "## Sección B\n\nmás\n\n## Sección C\n\nfin\n")
@@ -861,6 +902,35 @@ class TestMotoresConAsercionesExactas(unittest.TestCase):
         self.assertIn("- Total sources retrieved: 1", prompt)
         self.assertIn("Evidence evaluations: 2", prompt)
 
+    def test_report_generator_prompt_incluye_fuentes_y_claims_evaluados(self):
+        llm = StubLLM(lambda p: "informe")
+        ctx = ResearchContext("¿q?")
+        ctx.sources.append({
+            "title": "Fuente Unica", "url": "https://fuente-unica.example/x",
+            "snippet": "Dato unico 12345"})
+        ctx.claims.append({"claim": "Dato unico 12345",
+                           "source_id": "https://fuente-unica.example/x"})
+        ctx.evaluations.append({"claim": "Dato unico 12345",
+                                "verdict": "supported", "credibility": 0.9})
+
+        ReportGenerator(llm).decide(ctx)
+
+        prompt = llm.prompts[0]
+        self.assertIn("[1] Fuente Unica — https://fuente-unica.example/x", prompt)
+        self.assertIn("Dato unico 12345", prompt)
+        self.assertIn("[supported] Dato unico 12345", prompt)
+        self.assertIn("(source: https://fuente-unica.example/x)", prompt)
+
+    def test_report_generator_prompt_sin_fuentes_lo_declara(self):
+        llm = StubLLM(lambda p: "informe")
+        ctx = ResearchContext("¿q?")
+
+        ReportGenerator(llm).decide(ctx)
+
+        prompt = llm.prompts[0]
+        self.assertIn("(no sources retrieved)", prompt)
+        self.assertIn("(no claims extracted)", prompt)
+
     def test_report_generator_trunca_las_conclusiones_a_100(self):
         llm = StubLLM(lambda p: "# T\n\n## S\n\n" + "x" * 150 + "\n")
         ctx = ResearchContext("q")
@@ -1003,6 +1073,20 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertEqual(info["verdict_principal"], "supported")
         self.assertTrue(info["contested"])
         self.assertEqual(info["fuentes_alternativas"], 1)
+
+    def test_origen_por_source_id_cuando_falta_source_url(self):
+        """El origen fiable es `source_id` (URL real del pipeline): si el
+        modelo no aportó `source_url`, la fuente original NO debe colarse en la
+        verificación independiente (antes se re-incluía)."""
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "supported", "credibility": 0.8}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            self._contexto(), {"claim": "c", "source_id": "u0"})
+
+        self.assertIn("T1", llm.prompts[1])
+        self.assertNotIn("T0", llm.prompts[1])
+        self.assertEqual(ev["verificacion_independiente"]["fuentes_alternativas"], 1)
 
     def test_registra_la_decision_de_verificacion(self):
         llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',

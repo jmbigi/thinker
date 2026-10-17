@@ -194,6 +194,22 @@ class TestCodeImprovementOrchestrator(unittest.TestCase):
         self.assertIn("falló", results["error"])
         self.assertEqual(results["steps"][0][0], "fallido")
 
+    def test_analyze_and_improve_falla_con_error_de_sintaxis(self):
+        thinker = CodeDesignThinker(llm_provider=MockLLM())
+        orchestrator = CodeImprovementOrchestrator(
+            thinker, source_code="def broken(:\n")
+        errores = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(errores):
+            results = orchestrator.analyze_and_improve()
+
+        self.assertIn("error", results)
+        self.assertIn("error de sintaxis", results["error"])
+        self.assertEqual(results["steps"][0][0], "fallido")
+        self.assertFalse(orchestrator.results)   # no se ejecutó ninguna fase
+        self.assertEqual(orchestrator.generate_report(), "No results to report.")
+        self.assertIn("ERROR:", errores.getvalue())
+
 
 class TestAnalyzePythonSource(unittest.TestCase):
     def test_error_de_sintaxis(self):
