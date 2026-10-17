@@ -14,8 +14,9 @@ try:
     import requests
     result["requests_installed"] = True
     result["requests_version"] = requests.__version__
-except ImportError:
-    pass
+except ImportError as exc:
+    # No se silencia (P1.26): el motivo queda registrado en el informe.
+    result["requests_error"] = f"{type(exc).__name__}: {exc}"
 
 result["ollama_installed"] = importlib.util.find_spec("ollama") is not None
 

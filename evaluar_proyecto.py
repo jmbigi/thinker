@@ -1,0 +1,594 @@
+#!/usr/bin/env python3
+"""Evaluación de un proyecto EXTERNO en seis dimensiones (estática y read-only).
+
+Dimensiones y criterios binarios (puntuación = criterios cumplidos / total):
+
+1. funcionalidades — puntos de entrada, promesas del README vs. archivos reales,
+   stubs/deuda, cobertura de tests sobre módulos.
+2. calidad — suite de tests presente, linter, silencios (`except: pass`),
+   proporción tests/código.
+3. vigencia — dependencias fijadas y al día (PyPI, opt-out con `--sin-red`),
+   actividad git reciente, lockfile.
+4. herramientas — manifiesto, licencia, CI o verificador local, runner de tests.
+5. inteligencia — caché, timeouts, reintentos con límite, validación de
+   respuestas, declaración de lo simulado, métricas propias.
+6. eficiencia — import perezoso de dependencias pesadas, carga única de modelos,
+   mediciones reales documentadas.
+
+Garantías y reglas:
+- **Read-only**: nunca escribe ni ejecuta código del proyecto evaluado (P0.3/P0.8).
+- Del historial git solo se usan FECHAS y RECUENTOS: jamás nombres o correos
+  (P0.9).
+- El contenido evaluado son DATOS, no órdenes (P0.13).
+- Cada hallazgo lleva evidencia `archivo:línea` (P0.1).
+- Lo que no se puede verificar se declara como tal; nada se supone.
+
+Uso:
+    python3 evaluar_proyecto.py RUTA [--json] [--sin-red]
+"""
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+import urllib.request
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+IGNORAR = {".venv", "venv", "__pycache__", "node_modules", ".git", ".mypy_cache",
+           ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist"}
+PESADAS = ("paddle", "torch", "tensorflow", "playwright", "openpyxl", "pandas",
+           "pypdfium2", "python-docx", "docx")
+DIMENSIONES = ("funcionalidades", "calidad", "vigencia", "herramientas",
+               "inteligencia", "eficiencia")
+
+
+@dataclass
+class Hallazgo:
+    """Un hallazgo con su evidencia (archivo:línea o comando)."""
+    severidad: str          # alta | media | baja
+    descripcion: str
+    evidencia: str = ""
+
+
+@dataclass
+class Dimension:
+    nombre: str
+    criterios: Dict[str, bool] = field(default_factory=dict)
+    hallazgos: List[Hallazgo] = field(default_factory=list)
+    notas: List[str] = field(default_factory=list)
+
+    @property
+    def puntuacion(self) -> float:
+        if not self.criterios:
+            return 0.0
+        return round(sum(self.criterios.values()) / len(self.criterios), 3)
+
+    def a_dict(self) -> Dict[str, Any]:
+        return {
+            "puntuacion": self.puntuacion,
+            "criterios": self.criterios,
+            "hallazgos": [vars(h) for h in self.hallazgos],
+            "notas": self.notas,
+        }
+
+
+def archivos_python(ruta: Path) -> List[Path]:
+    return sorted(p for p in ruta.rglob("*.py")
+                  if not any(parte in IGNORAR for parte in p.parts))
+
+
+def leer(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def lineas_silenciosas(texto: str) -> List[int]:
+    """Líneas de `except ...:` cuyo cuerpo es `pass`/`continue` (silencios)."""
+    lineas = texto.splitlines()
+    sospechosas = []
+    for i, linea in enumerate(lineas):
+        if not re.match(r"\s*except\b", linea):
+            continue
+        for siguiente in lineas[i + 1:i + 4]:
+            if not siguiente.strip():
+                continue
+            if re.match(r"\s*(pass|continue)\s*$", siguiente):
+                sospechosas.append(i + 1)
+            break
+    return sospechosas
+
+
+def _git(ruta: Path, *args: str) -> Optional[str]:
+    """Ejecuta git SOLO con argumentos de fecha/recuento (nunca autores)."""
+    try:
+        salida = subprocess.run(["git", "-C", str(ruta), *args],
+                                capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return salida.stdout.strip() if salida.returncode == 0 else None
+
+
+# --- Dimensiones -----------------------------------------------------------
+
+def evaluar_funcionalidades(ruta: Path, py: List[Path]) -> Dimension:
+    dim = Dimension("funcionalidades")
+    entradas = [p for p in py if 'if __name__ == "__main__"' in leer(p)]
+    dim.criterios["f1_puntos_de_entrada"] = len(entradas) > 0
+    dim.notas.append(f"{len(entradas)} módulos con punto de entrada")
+
+    readme = ruta / "README.md"
+    prometidos = set()
+    if readme.exists():
+        prometidos = set(re.findall(r"`([A-Za-z0-9_./-]+\.py)`", leer(readme)))
+        existentes = set()
+        for p in py:
+            existentes.add(p.name)
+            existentes.add(p.relative_to(ruta).as_posix())
+        faltan = sorted(n for n in prometidos
+                        if n not in existentes
+                        and not any(e.endswith("/" + n) for e in existentes))
+        dim.criterios["f2_readme_vs_realidad"] = not faltan
+        for nombre in faltan:
+            dim.hallazgos.append(Hallazgo(
+                "alta", f"El README promete {nombre} y no existe",
+                "README.md"))
+    else:
+        dim.criterios["f2_readme_vs_realidad"] = False
+        dim.hallazgos.append(Hallazgo("media", "Sin README.md", str(ruta)))
+
+    deuda = []
+    for p in py:
+        for i, linea in enumerate(leer(p).splitlines(), 1):
+            if "#" not in linea:
+                continue
+            comentario = linea.split("#", 1)[1]
+            # "TODO REAL" es el nombre de una regla de dominio en algunos
+            # proyectos (no una marca de deuda): se excluye.
+            if re.search(r"\b(TODO|FIXME|XXX)\b", comentario) \
+                    and "TODO REAL" not in comentario:
+                deuda.append(f"{p.relative_to(ruta)}:{i}")
+    dim.criterios["f3_sin_deuda_declarada"] = not deuda
+    if deuda:
+        dim.hallazgos.append(Hallazgo(
+            "baja", f"{len(deuda)} marcas TODO/FIXME/XXX", ", ".join(deuda[:5])))
+
+    modulos_test = [p for p in py if p.name.startswith("test_")]
+    dim.criterios["f4_tests_de_varios_modulos"] = len(modulos_test) > 1
+    dim.notas.append(f"{len(modulos_test)} archivos de test")
+    return dim
+
+
+def evaluar_calidad(ruta: Path, py: List[Path]) -> Dimension:
+    dim = Dimension("calidad")
+    modulos_test = [p for p in py if p.name.startswith("test_")]
+    lineas_codigo = sum(len(leer(p).splitlines()) for p in py if p not in modulos_test)
+    lineas_test = sum(len(leer(p).splitlines()) for p in modulos_test)
+
+    dim.criterios["c1_suite_de_tests"] = bool(modulos_test)
+    dim.notas.append("suite NO ejecutada: la evaluación es estática (P0.8)")
+    dim.notas.append(f"{lineas_test} líneas de test / {lineas_codigo} de código")
+
+    linter = any((ruta / f).exists() for f in ("pyproject.toml", ".flake8",
+                                               "setup.cfg", ".pylintrc"))
+    linter = linter or bool(list(ruta.glob(".ruff.toml")))
+    if linter:
+        linter = any(re.search(t, leer(ruta / f))
+                     for f in ("pyproject.toml", "setup.cfg", ".flake8")
+                     for t in ("ruff", "flake8", "pylint")) or (ruta / ".ruff.toml").exists()
+    dim.criterios["c2_linter_configurado"] = linter
+    if not linter:
+        dim.hallazgos.append(Hallazgo(
+            "media", "Sin linter configurado (ruff/flake8/pylint)",
+            "pyproject.toml/setup.cfg ausentes o sin configurar"))
+
+    silencios = []
+    for p in py:
+        for linea in lineas_silenciosas(leer(p)):
+            silencios.append(f"{p.relative_to(ruta)}:{linea}")
+    dim.criterios["c3_sin_silencios"] = not silencios
+    for marca in silencios[:5]:
+        dim.hallazgos.append(Hallazgo(
+            "media", "`except` con `pass`/`continue` (P1.26)", marca))
+
+    proporcion = lineas_test / lineas_codigo if lineas_codigo else 0.0
+    dim.criterios["c4_tests_sobre_codigo_30pct"] = proporcion >= 0.3
+    dim.notas.append(f"proporción test/código: {proporcion:.2f}")
+    return dim
+
+
+def _dependencias(ruta: Path) -> List[Dict[str, str]]:
+    deps = []
+    req = ruta / "requirements.txt"
+    if req.exists():
+        for linea in leer(req).splitlines():
+            linea = linea.split("#")[0].strip()
+            if not linea:
+                continue
+            m = re.match(r"([A-Za-z0-9_.\-]+)\s*(==|>=|~=|<=|>|<)?\s*([\w.]*)", linea)
+            if m:
+                deps.append({"nombre": m.group(1).lower(),
+                             "operador": m.group(2) or "",
+                             "version": m.group(3)})
+    pyproject = ruta / "pyproject.toml"
+    if pyproject.exists():
+        texto = leer(pyproject)
+        # Solo el bloque `dependencies = [...]` de [project]: el resto del
+        # archivo tiene listas (source_paths, pytest_add_cli_args_test_selection,
+        # [project.scripts]...) que NO son dependencias.
+        bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto,
+                           re.M | re.S)
+        if bloque:
+            for item in re.findall(r'"([^"]+)"', bloque.group(1)):
+                m = re.match(r"([A-Za-z0-9_.\-]+)\s*(==|>=|~=)?\s*([\w.]*)", item)
+                if m:
+                    deps.append({"nombre": m.group(1).lower(),
+                                 "operador": m.group(2) or "",
+                                 "version": m.group(3)})
+    return deps
+
+
+def ultima_version_pypi(nombre: str, timeout: int = 15) -> Optional[str]:
+    try:
+        with urllib.request.urlopen(f"https://pypi.org/pypi/{nombre}/json",
+                                    timeout=timeout) as respuesta:
+            return json.load(respuesta)["info"]["version"]
+    except Exception:  # noqa: BLE001 - se reporta como "no verificado"
+        return None
+
+
+def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
+                     con_red: bool = True) -> Dimension:
+    dim = Dimension("vigencia")
+
+    tiene_lock = any((ruta / f).exists() for f in
+                     ("requirements.lock", "poetry.lock", "uv.lock", "Pipfile.lock"))
+    sin_fijar = [d["nombre"] for d in deps if d["operador"] != "=="]
+    # Un lockfile da reproducibilidad aunque el manifiesto use rangos.
+    dim.criterios["v1_dependencias_fijadas"] = bool(deps) and (not sin_fijar or tiene_lock)
+    if sin_fijar and not tiene_lock:
+        dim.hallazgos.append(Hallazgo(
+            "media", f"Dependencias sin fijar: {', '.join(sin_fijar)}",
+            "requirements.txt/pyproject.toml"))
+    elif sin_fijar:
+        dim.notas.append("rangos en el manifiesto cubiertos por lockfile")
+
+    dim.criterios["v2_lockfile"] = tiene_lock
+    if not tiene_lock:
+        dim.hallazgos.append(Hallazgo(
+            "media", "Sin lockfile (instalación no reproducible)", str(ruta)))
+
+    fecha = _git(ruta, "log", "-1", "--format=%ad", "--date=short")
+    commits = _git(ruta, "rev-list", "--count", "HEAD")
+    recientes = _git(ruta, "log", "--since=180 days ago", "--oneline")
+    n_recientes = len(recientes.splitlines()) if recientes else 0
+    dim.criterios["v3_actividad_reciente"] = bool(fecha) and n_recientes > 0
+    dim.notas.append(f"último commit: {fecha or 'sin git'}; commits totales: "
+                     f"{commits or '?'}; últimos 180 días: {n_recientes}")
+
+    if not con_red:
+        dim.criterios["v4_dependencias_al_dia"] = False
+        dim.notas.append("comprobación PyPI OMITIDA (--sin-red): no verificado")
+        return dim
+
+    atrasadas = []
+    for d in deps:
+        if d["operador"] != "==" or not d["version"]:
+            continue
+        ultima = ultima_version_pypi(d["nombre"])
+        if ultima and ultima != d["version"]:
+            atrasadas.append(f"{d['nombre']} {d['version']} -> {ultima}")
+    dim.criterios["v4_dependencias_al_dia"] = not atrasadas
+    for marca in atrasadas:
+        dim.hallazgos.append(Hallazgo("media", f"Dependencia atrasada: {marca}",
+                                      "PyPI (api.pypi.org)"))
+    return dim
+
+
+def evaluar_herramientas(ruta: Path) -> Dimension:
+    dim = Dimension("herramientas")
+    manifiestos = [f for f in ("requirements.txt", "pyproject.toml", "setup.py",
+                               "package.json", "Pipfile") if (ruta / f).exists()]
+    dim.criterios["h1_manifiesto"] = bool(manifiestos)
+    dim.notas.append(f"manifiestos: {', '.join(manifiestos) or 'ninguno'}")
+
+    licencia = [p.name for p in ruta.iterdir()
+                if p.is_file() and re.match(r"(LICEN[CS]E|COPYING)", p.name, re.I)]
+    dim.criterios["h2_licencia"] = bool(licencia)
+    if not licencia:
+        dim.hallazgos.append(Hallazgo(
+            "alta", "Sin archivo de licencia: el uso/reutilización queda sin "
+                    "términos (P1.18)", str(ruta)))
+
+    ci = bool(list(ruta.glob(".github/workflows/*"))) or \
+        (ruta / ".gitlab-ci.yml").exists() or \
+        bool(list((ruta / "scripts").glob("*verif*"))) or (ruta / "Makefile").exists()
+    dim.criterios["h3_verificacion_automatizada"] = ci
+    if not ci:
+        dim.hallazgos.append(Hallazgo(
+            "media", "Sin CI ni script de verificación local", str(ruta)))
+
+    runner = any("unittest" in leer(p) or "pytest" in leer(p) for p in
+                 list(ruta.glob("scripts/*")) + [ruta / "Makefile"])
+    dim.criterios["h4_runner_de_tests_declarado"] = runner or bool(
+        list(ruta.glob("tests/*")))
+    return dim
+
+
+def evaluar_inteligencia(ruta: Path, py: List[Path]) -> Dimension:
+    dim = Dimension("inteligencia")
+    texto = "\n".join(leer(p) for p in py)
+
+    dim.criterios["i1_cachea_trabajo_repetido"] = bool(
+        re.search(r"\b(lru_cache|@cache|caché|cache\[|_cache)\b", texto))
+    dim.criterios["i2_timeouts_explicitos"] = bool(
+        re.search(r"timeout\s*=", texto))
+    dim.criterios["i3_reintentos_con_limite"] = bool(
+        re.search(r"(max_retries|reintent|backoff|retry)", texto, re.I))
+    dim.criterios["i4_valida_respuestas"] = bool(
+        re.search(r"json\.loads|JSONDecodeError|_parse_", texto))
+    dim.criterios["i5_declara_lo_simulado"] = bool(
+        re.search(r"(simulad|mock)", texto, re.I))
+    dim.criterios["i6_metricas_propias"] = bool(
+        re.search(r"(benchmark|rúbrica|rubrica|metric|medición|medicion)", texto, re.I))
+
+    for clave, nombre in (("i1_cachea_trabajo_repetido", "caché"),
+                          ("i2_timeouts_explicitos", "timeouts explícitos"),
+                          ("i3_reintentos_con_limite", "reintentos con límite"),
+                          ("i4_valida_respuestas", "validación de respuestas"),
+                          ("i5_declara_lo_simulado", "declaración de lo simulado"),
+                          ("i6_metricas_propias", "métricas propias")):
+        if not dim.criterios[clave]:
+            dim.hallazgos.append(Hallazgo("baja", f"Sin señal de {nombre}", "—"))
+    return dim
+
+
+def evaluar_eficiencia(ruta: Path, py: List[Path],
+                       pesadas_declaradas: List[str] = None) -> Dimension:
+    dim = Dimension("eficiencia")
+    texto_perezoso = 0
+    cargas_unicas = 0
+    for p in py:
+        contenido = leer(p)
+        for m in re.finditer(r"^\s+import |^\s+from ", contenido, re.M):
+            inicio = contenido[:m.start()].count("\n")
+            cabecera = "\n".join(contenido.splitlines()[:inicio])
+            if any(pesada in m.group() for pesada in PESADAS) and "def " in cabecera:
+                texto_perezoso += 1
+        cargas_unicas += len(re.findall(r"(create_model|cargar_modelo|_load_model)",
+                                        contenido))
+
+    if pesadas_declaradas:
+        dim.criterios["e1_import_perezoso_de_pesadas"] = texto_perezoso > 0
+        dim.notas.append(f"imports perezosos detectados: {texto_perezoso}")
+    else:
+        # Sin dependencias pesadas declaradas el criterio no aplica: no se
+        # castiga al proyecto por algo que no necesita (honestidad del informe).
+        dim.criterios["e1_import_perezoso_de_pesadas"] = True
+        dim.notas.append("sin dependencias pesadas declaradas: e1 no aplica")
+    dim.criterios["e2_carga_unica_de_modelos"] = cargas_unicas > 0
+    dim.notas.append(f"llamadas de carga de modelo: {cargas_unicas}")
+
+    docs = list((ruta / "docs").glob("*.md")) if (ruta / "docs").is_dir() else []
+    mediciones = any(re.search(r"\b\d+(\.\d+)?\s*(s|seg|MB|GB|min)\b", leer(d))
+                     for d in docs)
+    dim.criterios["e3_mediciones_documentadas"] = mediciones
+    if not mediciones:
+        dim.hallazgos.append(Hallazgo(
+            "baja", "Sin mediciones reales (tiempo/RAM) en docs/", "docs/*.md"))
+
+    dim.notas.append("sin medición en vivo: no se ejecuta código del proyecto "
+                     "evaluado (P0.8)")
+    return dim
+
+
+# --- Mejoras propuestas: cada una nace de una métrica y trae su verificación --
+
+MEJORAS: Dict[str, Dict[str, str]] = {
+    "f1_puntos_de_entrada": {
+        "prioridad": "baja",
+        "propuesta": "Exponer un punto de entrada ejecutable (CLI)",
+        "metrica": "hay módulos con `main()` y `if __name__ == \"__main__\"`"},
+    "f2_readme_vs_realidad": {
+        "prioridad": "alta",
+        "propuesta": "Alinear README y código: implementar o retirar lo prometido",
+        "metrica": "cada `archivo.py` citado en el README existe"},
+    "f3_sin_deuda_declarada": {
+        "prioridad": "baja",
+        "propuesta": "Cerrar o priorizar las marcas TODO/FIXME/XXX de producción",
+        "metrica": "0 marcas TODO/FIXME/XXX en el código de producción"},
+    "f4_tests_de_varios_modulos": {
+        "prioridad": "media",
+        "propuesta": "Cubrir con tests los módulos que hoy no tienen ninguno",
+        "metrica": "nº de archivos test_*.py > 1"},
+    "c1_suite_de_tests": {
+        "prioridad": "alta",
+        "propuesta": "Crear una suite de tests ejecutable",
+        "metrica": "`python3 -m unittest discover` devuelve OK"},
+    "c2_linter_configurado": {
+        "prioridad": "media",
+        "propuesta": "Configurar un linter (p. ej. ruff) y dejarlo en 0 avisos",
+        "metrica": "`ruff check .` sale con código 0"},
+    "c3_sin_silencios": {
+        "prioridad": "alta",
+        "propuesta": "Sustituir los `except` con `pass`/`continue` por error "
+                     "reportado o re-elevado (P1.26)",
+        "metrica": "0 coincidencias del patrón except+pass/continue"},
+    "c4_tests_sobre_codigo_30pct": {
+        "prioridad": "media",
+        "propuesta": "Acercar la proporción test/código al 30% o justificar la "
+                     "excepción por escrito",
+        "metrica": "líneas de test / líneas de código >= 0,30"},
+    "v1_dependencias_fijadas": {
+        "prioridad": "media",
+        "propuesta": "Fijar las versiones de las dependencias (==) o generar lock",
+        "metrica": "0 dependencias declaradas con operador distinto de =="},
+    "v2_lockfile": {
+        "prioridad": "media",
+        "propuesta": "Generar un lockfile con hashes e instalar desde él",
+        "metrica": "existe requirements.lock / uv.lock / poetry.lock"},
+    "v3_actividad_reciente": {
+        "prioridad": "baja",
+        "propuesta": "Mantener actividad o declarar el proyecto como inactivo",
+        "metrica": ">= 1 commit en los últimos 180 días"},
+    "v4_dependencias_al_dia": {
+        "prioridad": "media",
+        "propuesta": "Actualizar las dependencias que van por detrás de PyPI",
+        "metrica": "ninguna dependencia fijada por detrás de la última publicada"},
+    "h1_manifiesto": {
+        "prioridad": "alta",
+        "propuesta": "Declarar las dependencias en un manifiesto",
+        "metrica": "existe requirements.txt o pyproject.toml"},
+    "h2_licencia": {
+        "prioridad": "alta",
+        "propuesta": "Añadir un archivo de licencia: sin él no hay términos de uso",
+        "metrica": "existe LICENSE/COPYING"},
+    "h3_verificacion_automatizada": {
+        "prioridad": "media",
+        "propuesta": "Añadir CI local (script de verificación) o remota",
+        "metrica": "existe scripts/*verif*, Makefile o .github/workflows"},
+    "h4_runner_de_tests_declarado": {
+        "prioridad": "baja",
+        "propuesta": "Documentar el comando de tests en README/Makefile",
+        "metrica": "el comando de la suite aparece en README o Makefile"},
+    "i1_cachea_trabajo_repetido": {
+        "prioridad": "media",
+        "propuesta": "Cachear trabajo repetido (respuestas o cómputo idéntico)",
+        "metrica": "existe caché y se puede medir su tasa de aciertos"},
+    "i2_timeouts_explicitos": {
+        "prioridad": "alta",
+        "propuesta": "Poner timeout explícito en toda llamada de red (P1.34)",
+        "metrica": "cada cliente de red declara timeout y es configurable"},
+    "i3_reintentos_con_limite": {
+        "prioridad": "media",
+        "propuesta": "Reintentar solo errores transitorios, con límite y backoff",
+        "metrica": "existe max_retries/backoff y un test que agote los intentos"},
+    "i4_valida_respuestas": {
+        "prioridad": "alta",
+        "propuesta": "Validar las respuestas externas antes de usarlas",
+        "metrica": "el parseo falla de forma ruidosa (excepción) y hay test de ello"},
+    "i5_declara_lo_simulado": {
+        "prioridad": "media",
+        "propuesta": "Declarar explícitamente lo simulado/mock (regla propia 4)",
+        "metrica": "lo simulado aparece marcado como simulado en código y docs"},
+    "i6_metricas_propias": {
+        "prioridad": "media",
+        "propuesta": "Medir lo que produce el sistema (benchmark o rúbrica propia)",
+        "metrica": "existe un benchmark/rúbrica ejecutable y su salida se conserva"},
+    "e1_import_perezoso_de_pesadas": {
+        "prioridad": "media",
+        "propuesta": "Importar perezosamente las dependencias pesadas (dentro de "
+                     "la función que las usa)",
+        "metrica": "el import pesado no ocurre al importar el módulo"},
+    "e2_carga_unica_de_modelos": {
+        "prioridad": "media",
+        "propuesta": "Cargar cada modelo una sola vez (daemon o caché de proceso)",
+        "metrica": "una sola carga por proceso, verificada en ejecución"},
+    "e3_mediciones_documentadas": {
+        "prioridad": "baja",
+        "propuesta": "Documentar mediciones reales (tiempo/RAM/coste) por ruta",
+        "metrica": "docs/ contiene cifras medidas con su fecha"},
+}
+
+
+def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Mejoras derivadas de las métricas fallidas, cada una con su verificación."""
+    propuestas = []
+    for nombre, datos in informe["dimensiones"].items():
+        for criterio, ok in datos["criterios"].items():
+            if ok:
+                continue
+            plan = MEJORAS.get(criterio)
+            if plan is None:
+                continue
+            propuestas.append({"dimension": nombre, "criterio": criterio, **plan})
+    orden = {"alta": 0, "media": 1, "baja": 2}
+    propuestas.sort(key=lambda p: (orden.get(p["prioridad"], 3), p["criterio"]))
+    return propuestas
+
+
+def evaluar(ruta: Path, con_red: bool = True) -> Dict[str, Any]:
+    """Evalúa un proyecto y devuelve el informe completo (sin escribir nada)."""
+    if not ruta.is_dir():
+        raise ValueError(f"No es un directorio: {ruta}")
+    py = archivos_python(ruta)
+    deps = _dependencias(ruta)
+    pesadas = [d["nombre"] for d in deps
+               if any(pesada in d["nombre"] for pesada in PESADAS)]
+    dimensiones = [
+        evaluar_funcionalidades(ruta, py),
+        evaluar_calidad(ruta, py),
+        evaluar_vigencia(ruta, deps, con_red),
+        evaluar_herramientas(ruta),
+        evaluar_inteligencia(ruta, py),
+        evaluar_eficiencia(ruta, py, pesadas),
+    ]
+    global_ = round(sum(d.puntuacion for d in dimensiones) / len(dimensiones), 3)
+    informe = {
+        "ruta": str(ruta),
+        "archivos_python": len(py),
+        "lineas_python": sum(len(leer(p).splitlines()) for p in py),
+        "dependencias": deps,
+        "dimensiones": {d.nombre: d.a_dict() for d in dimensiones},
+        "global": global_,
+        "no_verificado": [
+            "la suite de tests NO se ejecuta (evaluación estática; P0.8)",
+            "licencias de las dependencias no consultadas en esta versión",
+        ],
+    }
+    informe["mejoras"] = proponer_mejoras(informe)
+    return informe
+
+
+def informe_texto(informe: Dict[str, Any]) -> List[str]:
+    lineas = [f"EVALUACIÓN DE PROYECTO (read-only): {informe['ruta']}",
+              f"Python: {informe['archivos_python']} archivos / "
+              f"{informe['lineas_python']} líneas", ""]
+    for nombre, datos in informe["dimensiones"].items():
+        lineas.append(f"== {nombre.upper()} — {datos['puntuacion']:.2f} ==")
+        for criterio, ok in datos["criterios"].items():
+            lineas.append(f"  [{'OK ' if ok else 'NO '}] {criterio}")
+        for h in datos["hallazgos"]:
+            lineas.append(f"  ({h['severidad']}) {h['descripcion']} — {h['evidencia']}")
+        for nota in datos["notas"]:
+            lineas.append(f"  · {nota}")
+        lineas.append("")
+    lineas.append(f"GLOBAL: {informe['global']:.3f}")
+    lineas.append("")
+    lineas.append("== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==")
+    for m in informe["mejoras"]:
+        lineas.append(f"  [{m['prioridad']:>5}] {m['dimension']}: {m['propuesta']}")
+        lineas.append(f"          verificación: {m['metrica']}")
+    lineas.append("")
+    lineas.append("No verificado: " + "; ".join(informe["no_verificado"]))
+    return lineas
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Evalúa un proyecto externo en 6 dimensiones (read-only).")
+    parser.add_argument("ruta", help="ruta del proyecto a evaluar")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--sin-red", action="store_true",
+                        help="omite la comprobación de versiones en PyPI")
+    args = parser.parse_args()
+
+    try:
+        informe = evaluar(Path(args.ruta).resolve(), con_red=not args.sin_red)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(informe, ensure_ascii=False, indent=2))
+    else:
+        print("\n".join(informe_texto(informe)))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

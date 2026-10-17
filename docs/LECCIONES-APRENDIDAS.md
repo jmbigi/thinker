@@ -1006,3 +1006,33 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: una propuesta de eficiencia se implementa solo si ataca el
   cuello de botella MEDIDO; si la evidencia dice que lo empeora, se documenta el
   motivo.
+
+### Hallazgo 67: thinker evalúa proyectos externos (y se evalúa a sí mismo)
+
+- **Problema**: no había forma de evaluar un proyecto ajeno en las seis
+  dimensiones acordadas (funcionalidades, calidad, vigencia, herramientas,
+  inteligencia, eficiencia) con evidencia, sin impresionismo y sin tocar el
+  proyecto evaluado.
+- **Solución**: `evaluar_proyecto.py` — 24 criterios BINARIOS (4 por dimensión),
+  evaluación estática y **read-only**, cero LLM, cada hallazgo con evidencia
+  `archivo:línea`, y una capa de **mejoras derivadas de las métricas**: cada
+  propuesta nace de un criterio fallido y trae su propia verificación (la métrica
+  es el criterio de aceptación).
+- **Evidencia**: 7 tests (fixture con defectos plantados, orden por prioridad,
+  read-only comprobado, autoevaluación del propio repo); 387/387 tests OK.
+  Resultados: **thinker 0,958** (único fallo: dependencias por detrás de PyPI) y
+  **better-ocr 0,708** (sin licencia, sin linter, 5 `except: pass`, sin lockfile,
+  sin caché). Informes completos en `docs/EVALUACIONES.md`.
+- **Dos falsos positivos propios, detectados y corregidos**: (1) comparaba los
+  `archivo.py` citados en el README contra nombres base, así que las rutas con
+  carpeta (`scripts/bateria_360.py`) figuraban como «prometidas y no existentes»;
+  (2) contaba «TODO REAL» —nombre de una regla de dominio en better-ocr— como
+  deuda técnica. Corregidos, y el resto de hallazgos (`except: pass`) se verificó
+  a mano contra el código real antes de darlos por buenos.
+- **Mejora derivada de la métrica**: la autoevaluación encontró el único
+  `except ImportError: pass` del repo (`verify_install.py`) y se corrigió:
+  Calidad 0,75 → 1,00.
+- **Regla derivada**: un evaluador automático debe (a) declarar sus límites en el
+  propio informe, (b) no penalizar lo que no aplica (sin dependencias pesadas, el
+  criterio de import perezoso no cuenta) y (c) verificarse contra un proyecto con
+  defectos conocidos y contra sí mismo.
