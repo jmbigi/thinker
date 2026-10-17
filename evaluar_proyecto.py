@@ -268,9 +268,8 @@ def evaluar_calidad(ruta: Path, py: List[Path],
             silencios.append(f"{p.relative_to(ruta)}:{linea}")
     dim.criterios["c3_sin_silencios"] = not silencios
     if silencios:
-        dim.notas.append(f"silencios detectados: {len(silencios)} "
-                         f"(se listan hasta 20)")
-    for marca in silencios[:20]:
+        dim.notas.append(f"silencios detectados: {len(silencios)}")
+    for marca in silencios:
         dim.hallazgos.append(Hallazgo(
             "media", "`except` con `pass`/`continue` (P1.26)", marca))
 
@@ -641,20 +640,84 @@ MEJORAS: Dict[str, Dict[str, str]] = {
 }
 
 
+# Criterios que dependen de otro (se proponen en secuencia, no sueltos).
+SECUENCIA = {
+    "v2_lockfile": 2,          # después de fijar versiones (v1)
+    "h4_runner_de_tests_declarado": 2,
+    "e2_carga_unica_de_modelos": 2,
+}
+
+
+def _esfuerzo(n_sitios: int) -> str:
+    """Esfuerzo estimado por número de sitios afectados (declarado, no oculto)."""
+    if n_sitios <= 1:
+        return "bajo"
+    if n_sitios <= 10:
+        return "medio"
+    return "alto"
+
+
+def _cifras_de_notas(notas: List[str]) -> Dict[str, str]:
+    """Cifras citadas por las notas de una dimensión (para cuantificar el plan)."""
+    cifras = {}
+    for nota in notas:
+        m = re.search(r"([a-záéíóúñ ]+):\s*(\d+)", nota)
+        if m:
+            cifras[m.group(1).strip()] = m.group(2)
+    return cifras
+
+
 def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
-    """Mejoras derivadas de las métricas fallidas, cada una con su verificación."""
+    """Plan de mejora DERIVADO de las métricas del informe.
+
+    Cada propuesta nace de un criterio incumplido y añade lo que la tabla fija
+    no puede dar: cuántos sitios afecta, qué evidencia la respalda, el esfuerzo
+    estimado, la secuencia respecto a otras propuestas y la verificación exacta
+    (la métrica es el criterio de aceptación). Se ordena por prioridad y, a
+    igualdad, por menor esfuerzo (más valor por unidad de trabajo).
+    """
     propuestas = []
     for nombre, datos in informe["dimensiones"].items():
+        cifras = _cifras_de_notas(datos["notas"])
+        evidencias = [h["evidencia"] for h in datos["hallazgos"] if h["evidencia"]]
         for criterio, ok in datos["criterios"].items():
             if ok:
                 continue
             plan = MEJORAS.get(criterio)
             if plan is None:
                 continue
-            propuestas.append({"dimension": nombre, "criterio": criterio, **plan})
+            propuestas.append({
+                "dimension": nombre,
+                "criterio": criterio,
+                "prioridad": plan["prioridad"],
+                "propuesta": plan["propuesta"],
+                "metrica": plan["metrica"],
+                "sitios": len(evidencias),
+                "esfuerzo": _esfuerzo(len(evidencias)),
+                "secuencia": SECUENCIA.get(criterio, 1),
+                "datos_medidos": cifras,
+                "evidencia": evidencias[:5],
+            })
     orden = {"alta": 0, "media": 1, "baja": 2}
-    propuestas.sort(key=lambda p: (orden.get(p["prioridad"], 3), p["criterio"]))
+    propuestas.sort(key=lambda p: (orden.get(p["prioridad"], 3), p["secuencia"],
+                                   {"bajo": 0, "medio": 1, "alto": 2}[p["esfuerzo"]],
+                                   p["criterio"]))
     return propuestas
+
+
+def plan_texto(informe: Dict[str, Any]) -> List[str]:
+    """Resumen del plan: cuántas propuestas por prioridad y el orden de trabajo."""
+    propuestas = informe.get("mejoras", [])
+    if not propuestas:
+        return ["Plan de mejora: nada que proponer (todos los criterios cumplen)."]
+    conteo: Dict[str, int] = {}
+    for p in propuestas:
+        conteo[p["prioridad"]] = conteo.get(p["prioridad"], 0) + 1
+    resumen = ", ".join(f"{n} {prioridad}" for prioridad, n in
+                        sorted(conteo.items(),
+                               key=lambda x: {"alta": 0, "media": 1, "baja": 2}[x[0]]))
+    return [f"Plan de mejora: {len(propuestas)} propuestas ({resumen}); "
+            f"ordenadas por prioridad, secuencia y esfuerzo."]
 
 
 def evaluar(ruta: Path, con_red: bool = True,
@@ -716,9 +779,11 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
         lineas.append("")
     lineas.append(f"GLOBAL: {informe['global']:.3f}")
     lineas.append("")
+    lineas.extend(plan_texto(informe))
     lineas.append("== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==")
     for m in informe["mejoras"]:
         lineas.append(f"  [{m['prioridad']:>5}] {m['dimension']}: {m['propuesta']}")
+        lineas.append(f"          sitios: {m['sitios']} | esfuerzo: {m['esfuerzo']}")
         lineas.append(f"          verificación: {m['metrica']}")
     lineas.append("")
     lineas.append("No verificado: " + "; ".join(informe["no_verificado"]))

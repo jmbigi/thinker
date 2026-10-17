@@ -78,6 +78,41 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
                             and "licencia" in m["propuesta"].lower()
                             for m in informe["mejoras"]))
 
+    def test_las_propuestas_se_cuantifican_y_ordenan_por_esfuerzo(self):
+        informe = evaluar(self._fixture(), con_red=False)
+
+        for mejora in informe["mejoras"]:
+            self.assertIn(mejora["esfuerzo"], ("bajo", "medio", "alto"))
+            self.assertGreaterEqual(mejora["sitios"], 0)
+            self.assertGreaterEqual(mejora["secuencia"], 1)
+            self.assertIsInstance(mejora["datos_medidos"], dict)
+
+        altas = [m for m in informe["mejoras"] if m["prioridad"] == "alta"]
+        esfuerzos = [{"bajo": 0, "medio": 1, "alto": 2}[m["esfuerzo"]]
+                     for m in altas]
+        self.assertEqual(esfuerzos, sorted(esfuerzos))
+
+    def test_el_lockfile_se_propone_despues_de_fijar_versiones(self):
+        raiz = self._proyecto({
+            "requirements.txt": "pandas\n",
+            "app.py": "x = 1\n",
+        })
+
+        criterios = [m["criterio"] for m in evaluar(raiz, con_red=False)["mejoras"]]
+
+        self.assertIn("v1_dependencias_fijadas", criterios)
+        self.assertIn("v2_lockfile", criterios)
+        self.assertLess(criterios.index("v1_dependencias_fijadas"),
+                        criterios.index("v2_lockfile"))
+
+    def test_plan_texto_resume_por_prioridad(self):
+        from evaluar_proyecto import plan_texto
+
+        resumen = "\n".join(plan_texto(evaluar(self._fixture(), con_red=False)))
+
+        self.assertIn("Plan de mejora:", resumen)
+        self.assertIn("alta", resumen)
+
     def test_no_cambia_el_proyecto_evaluado(self):
         raiz = self._fixture()
         antes = {p: p.stat().st_mtime_ns for p in raiz.rglob("*")}

@@ -1056,3 +1056,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   en real**, no solo con fixtures; cada falso positivo se verifica a mano contra
   la fuente antes de corregirlo, y la primera cifra publicada es provisional
   hasta pasar por ese ciclo.
+
+### Hallazgo 68: La superación es método y estructura (plan derivado de métricas)
+
+- **Problema**: las propuestas de mejora eran una tabla redactada a mano
+  (criterio → frase fija): iguales para todo proyecto, sin cuantificar el trabajo
+  ni relacionar unas propuestas con otras.
+- **Solución (método y estructura, no ingenio puntual)**: `proponer_mejoras`
+  deriva el plan de las métricas del informe — sitios afectados, esfuerzo
+  estimado por número de sitios, **secuencia** entre propuestas dependientes
+  (fijar versiones → generar lockfile) y la verificación exacta de cada una — y
+  lo ordena por prioridad, secuencia y esfuerzo (más valor por unidad de
+  trabajo). `plan_texto` resume el plan por prioridad.
+- **Evidencia**: para better-ocr el plan sale ordenado y accionable: licencia
+  (alta, esfuerzo bajo) → 37 silencios (alta, esfuerzo alto) → medias por
+  secuencia/esfuerzo, cada una con su verificación; 397/397 tests OK (3 nuevos:
+  cuantificación y orden, secuencia del lockfile, resumen del plan).
+- **Corrección de honestidad asociada**: el listado de hallazgos tenía tope de 20
+  y `sitios` subestimaba (20 en vez de 37). Ahora se listan todos y la cifra es
+  exacta: un plan con datos recortados decide sobre una realidad recortada.
+- **Regla derivada**: una propuesta de mejora vale por su **método** (de dónde
+  sale el dato) y su **estructura** (orden, secuencia, verificación), no por lo
+  elocuente que suene; y ninguna cifra que alimente una decisión puede llevar
+  tope oculto.
