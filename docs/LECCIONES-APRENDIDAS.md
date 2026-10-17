@@ -1100,3 +1100,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: cuando un modelo propone sobre datos medidos, la evidencia
   citada se verifica mecánicamente y lo desconocido se declara como pregunta —con
   su investigación citada— nunca como afirmación.
+
+### Hallazgo 70: Un rango soportado y verificado en 3 versiones (openai 1/2/3)
+
+- **Problema**: `openai` estaba fijado en 1.109.1 y la última es 3.33.0 (dos
+  versiones mayores). Saltar sin verificar podía romper el cliente; quedarse en
+  1.x dejaba la dependencia atrasada.
+- **Solución**: declarar el rango `openai>=1.0,<4` en `requirements.txt` y
+  `pyproject.toml` (el lock fija 3.33.0 con hashes), añadir un **canario** que
+  comprueba la superficie que usamos (`OpenAI(...)` y
+  `chat.completions.create` con `model`/`messages`/`timeout`) y verificar la
+  suite completa en tres versiones mayores con venvs aislados.
+- **Evidencia**: **405/405 tests** con openai **1.109.1**, **2.54.0** y
+  **3.33.0**; instalación `--require-hashes -r requirements.lock` en un venv
+  limpio → 3.33.0 y 405/405. El lock cambió de árbol de dependencias
+  (httpx2/httpcore2/truststore; fuera distro/tqdm) y se validó **instalándolo**,
+  no releyéndolo. El canario falla ruidosamente si una futura 4.x cambia la
+  superficie.
+- **Hallazgo colateral**: en el venv mínimo faltaba PyYAML y la suite falló con
+  el error ruidoso del Hallazgo 50 — la corrección funcionó como se diseñó (antes
+  la config se habría ignorado en silencio).
+- **Regla derivada**: una dependencia se actualiza con un rango verificado en más
+  de una versión y un canario de la superficie usada; y el lock se valida
+  instalándolo con hashes en un entorno limpio, nunca leyéndolo.

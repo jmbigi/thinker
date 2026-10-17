@@ -28,9 +28,12 @@ herramientas de análisis estático de código.
 
 ## Requisitos
 
-- Python 3.11 o superior (verificado en 3.11 y 3.12).
-- Dependencias: `requests`, `openai>=1.0`, `python-dotenv` (ver `requirements.txt`).
-- Opcional: [Ollama](https://ollama.com/) para modelos locales.
+- **Requisitos**
+  - Python 3.11 o superior (verificado en 3.11 y 3.12).
+  - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML` (ver
+    `requirements.txt`; el lock fija las exactas con hashes). `openai` verificado
+    en 1.109.1, 2.54.0 y 3.33.0.
+  - Opcional: [Ollama](https://ollama.com/) para modelos locales.
 
 ## Instalación
 

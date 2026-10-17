@@ -66,8 +66,11 @@ mejora de código (`code_design_improvement_tools.py`).
 
 ## Entorno y verificación (comandos del proyecto)
 
-- SO: **Linux**. Python 3.11. Dependencias fijadas en `requirements.txt`
-  (`requests`, `openai>=1.0`, `python-dotenv`, `PyYAML`); `ollama` opcional.
+- SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
+  `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
+  hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
+  3.33.0** (suite completa 405/405 en las tres; canario en
+  `tests/test_openai_compatibilidad.py`).
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
 - Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
