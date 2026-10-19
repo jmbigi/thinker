@@ -1376,3 +1376,35 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   (detección, falsos positivos y coste) o no se publica; y una mejora que
   cambia el prompt de fases posteriores debe declarar qué partes de la
   superficie (ToT, ciclo de diseño) NO la aplican, en el mismo artefacto.
+
+### Hallazgo 77: La deriva puede estar en el entorno, no en el repo — verificar lo instalado contra el lock
+
+- **Origen**: revisión general del proyecto (2026-10-19). La autoevaluación
+  offline (`--sin-red`) devolvió 0.958 con `v4_dependencias_al_dia` en NO, y
+  el estado del 2026-10-16 aún listaba «actualizar requests/python-dotenv»
+  como decisión pendiente.
+- **Diagnóstico**: ese pendiente ya se había aplicado en el repo el 2026-10-17
+  (Hallazgo 71): `requirements.txt` y `requirements.lock` fijaban
+  `requests==2.34.2` y `python-dotenv==1.2.4`. Lo desactualizado era el
+  **entorno instalado** (2.33.0/1.2.2): la suite pasaba igual porque ningún
+  test depende del cambio, así que la deriva era invisible para los tests. Y
+  el `v4` en NO offline es el instrumento funcionando (no verificado ⇒ fallo,
+  Hallazgo 72), no una dependencia por detrás.
+- **Solución**: `python3 -m pip install --require-hashes -r
+  requirements.lock` y verificación de lo instalado con
+  `importlib.metadata.version` (no `modulo.__version__`: `dotenv` no lo
+  expone — comprobado). Efecto colateral declarado: el user-site es
+  compartido con otros proyectos y pip avisó de conflictos ajenos (`ccxt`
+  fija `certifi`/`idna`/`charset-normalizer` exactos; `betterocr` pide
+  `pandas<3` con pandas 3.0.6 ya presente, preexistente a esta sesión). No se
+  tocaron: pertenecen a otros proyectos (P1.2).
+- **Evidencia**: 517/517 tests con `requests 2.34.2` / `python-dotenv 1.2.4`,
+  ruff 0, preflight 0, demos offline 0, `make vuln-scan` «No known
+  vulnerabilities found», autoevaluación con red **GLOBAL 1.000** (sin plan de
+  mejora, `no_verificado` vacío, licencias de las 4 dependencias consultadas
+  en PyPI).
+- **Regla derivada**: «dependencias al día» se comprueba en DOS sitios —
+  manifiesto/lock contra PyPI Y entorno instalado contra el lock
+  (`pip install --require-hashes` es idempotente: sirve como verificación); y
+  un NO del evaluador en modo `--sin-red` sobre un criterio que exige red se
+  lee como «no verificado», no como «por detrás».

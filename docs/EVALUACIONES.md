@@ -104,6 +104,19 @@ coste 3 llamadas / 2 extra declaradas. Evidencia: **517/517 tests** en Python
 0, demos offline 0. Mutación re-medida: **79,8%** (3022/3789; 0 timeouts,
 0 sospechosos, 0 sin ejecutar) — ver Hallazgo 76.
 
+**Actualización 2026-10-19 (revisión y puesta al día del entorno — Hallazgo
+77)**: de nuevo **GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío.
+La pasada con `--sin-red` dio 0.958 solo por `v4_dependencias_al_dia` (sin red
+⇒ no verificado ⇒ fallo; comportamiento del instrumento ya documentado en el
+Hallazgo 72, no una regresión); con red, 1.000 y licencias de las 4
+dependencias consultadas en PyPI. La deriva real estaba en el **entorno
+instalado**, no en el repo: `requirements.txt`/`requirements.lock` ya fijaban
+`requests==2.34.2` y `python-dotenv==1.2.4` (aplicado el 2026-10-17, Hallazgo
+71), pero el entorno seguía en 2.33.0/1.2.2; alineado con
+`python3 -m pip install --require-hashes -r requirements.lock`. Evidencia:
+**517/517 tests** con las versiones nuevas, ruff limpio, preflight 0, demos
+offline 0, `make vuln-scan` sin vulnerabilidades conocidas.
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |
