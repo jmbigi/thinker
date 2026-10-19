@@ -320,13 +320,25 @@ class EvidenceEvaluator(DecisionEngine):
     "proveedor-distinto" | "mismo-proveedor"): sin verificador separado (o con
     el mismo objeto) la pasada se ejecuta igual, pero queda declarada como
     degradada —nunca se finge una independencia que no existe.
+
+    Consenso por muestreo (piloto): `muestras_consenso > 1` repite la
+    evaluación del claim ese número de veces y declara `consenso_muestreo`
+    (`acuerdo` y veredictos por muestra). Si los veredictos divergen, marca
+    `discrepancia_muestreo` y lo registra en el `decision_log` para revisión
+    humana: una respuesta que cambia entre muestras es señal de alucinación o
+    de juicio inestable. Coste declarado: `muestras_consenso - 1` llamadas
+    extra por claim. Con 1 (defecto) el comportamiento es el original.
     """
 
     def __init__(self, llm_provider, verificacion_independiente: bool = False,
-                 llm_verificador=None):
+                 llm_verificador=None, muestras_consenso: int = 1):
         self.llm_provider = llm_provider
         self.verificacion_independiente = verificacion_independiente
         self.llm_verificador = llm_verificador
+        if not isinstance(muestras_consenso, int) or isinstance(muestras_consenso, bool) \
+                or muestras_consenso < 1:
+            raise ValueError("muestras_consenso debe ser un entero >= 1")
+        self.muestras_consenso = muestras_consenso
 
     @staticmethod
     def _prompt_evaluacion(claim: Dict[str, Any], fuentes: List[Dict[str, Any]]) -> str:
@@ -406,6 +418,9 @@ Return ONLY JSON (no markdown fences, no extra text):
             verdict = evaluation.get("verdict", "not_addressed")
             context.add_decision("evidence_evaluation", "evaluate",
                                  f"Verdict: {verdict}, Credibility: {credibility:.2f}")
+            if self.muestras_consenso > 1:
+                self._consolidar_consenso(context, evaluation, claim,
+                                          relevant_sources)
             return evaluation
         except (json.JSONDecodeError, TypeError):
             eval_result = {
@@ -418,7 +433,51 @@ Return ONLY JSON (no markdown fences, no extra text):
                 "evaluated_at": time.time()
             }
             context.evaluations.append(eval_result)
+            if self.muestras_consenso > 1:
+                self._consolidar_consenso(context, eval_result, claim,
+                                          relevant_sources)
             return eval_result
+
+    def _consolidar_consenso(self, context: ResearchContext,
+                             evaluation: Dict[str, Any],
+                             claim: Dict[str, Any],
+                             fuentes: List[Dict[str, Any]]) -> None:
+        """Muestreo adicional del MISMO prompt: veredictos divergentes = señal.
+
+        Una evaluación que cambia entre muestras idénticas delata un juicio
+        inestable o alucinado; se marca `discrepancia_muestreo` y se registra
+        en el `decision_log` para revisión humana (nunca en silencio).
+        """
+        veredictos = [evaluation.get("verdict", "not_addressed")]
+        for _ in range(self.muestras_consenso - 1):
+            try:
+                datos = _parse_json_response(self.llm_provider.generate(
+                    self._prompt_evaluacion(claim, fuentes)))
+                veredicto = (datos.get("verdict", "not_addressed")
+                             if isinstance(datos, dict) else "not_addressed")
+            except (json.JSONDecodeError, TypeError):
+                veredicto = "not_addressed"
+                evaluation["consenso_parse_fallo"] = True  # declarado
+            veredictos.append(veredicto)
+
+        acuerdo = all(veredicto == veredictos[0] for veredicto in veredictos)
+        evaluation["consenso_muestreo"] = {
+            "muestras": self.muestras_consenso,
+            "llamadas_extra": self.muestras_consenso - 1,
+            "verdicts": veredictos,
+            "acuerdo": acuerdo,
+        }
+        if not acuerdo:
+            evaluation["discrepancia_muestreo"] = True
+            context.add_decision(
+                "sampling_consensus", "discrepancia",
+                f"Veredictos divergentes: {', '.join(veredictos)} — "
+                "el claim queda marcado para revisión humana")
+        else:
+            context.add_decision(
+                "sampling_consensus", "acuerdo",
+                f"{self.muestras_consenso}/{self.muestras_consenso} muestras "
+                f"coinciden: {veredictos[0]}")
 
     def _evaluar_independiente(self, context: ResearchContext, claim: Dict[str, Any],
                                verdict_principal: str) -> Optional[Dict[str, Any]]:
@@ -565,7 +624,8 @@ class ResearchOrchestrator:
 
     def __init__(self, llm_provider, search_api, max_iterations: int = 5,
                  verificacion_independiente: bool = False, llm_rapido=None,
-                 llm_verificador=None, evaluador_relevancia: bool = False,
+                 llm_verificador=None, muestras_consenso: int = 1,
+                 evaluador_relevancia: bool = False,
                  umbral_relevancia: float = 0.5):
         """Monta el pipeline.
 
@@ -577,6 +637,8 @@ class ResearchOrchestrator:
         pasada CoVe con `verificacion_independiente=True`. Si es None o el
         mismo objeto que el generador, la pasada corre igual pero se declara
         como `mismo-proveedor` (independencia degradada, nunca silenciosa).
+        `muestras_consenso` (>1): repite la evaluación de cada claim para
+        detectar veredictos divergentes (ver `EvidenceEvaluator`).
         """
         self.llm = llm_provider
         self.llm_rapido = llm_rapido or llm_provider
@@ -589,7 +651,8 @@ class ResearchOrchestrator:
         self.extractor = ClaimExtractor(self.llm_rapido)
         self.evaluator = EvidenceEvaluator(
             llm_provider, verificacion_independiente=verificacion_independiente,
-            llm_verificador=llm_verificador)
+            llm_verificador=llm_verificador,
+            muestras_consenso=muestras_consenso)
         self.generator = ReportGenerator(llm_provider)
 
     def research(self, question: str) -> Tuple[str, ResearchContext]:

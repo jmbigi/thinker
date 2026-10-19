@@ -1391,6 +1391,66 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertIs(orquestador.evaluator.llm_verificador, verificador)
         self.assertTrue(orquestador.evaluator._es_verificador_distinto())
 
+    # --- Consenso por muestreo ---------------------------------------------
+    def test_muestreo_con_acuerdo_declara_consenso(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'] * 3)
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm, muestras_consenso=3).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(len(llm.prompts), 3)
+        consenso = ev["consenso_muestreo"]
+        self.assertEqual(consenso["muestras"], 3)
+        self.assertEqual(consenso["llamadas_extra"], 2)
+        self.assertEqual(consenso["verdicts"], ["supported"] * 3)
+        self.assertTrue(consenso["acuerdo"])
+        self.assertNotIn("discrepancia_muestreo", ev)
+        decision = next(d for d in ctx.decision_log
+                        if d["step"] == "sampling_consensus")
+        self.assertEqual(decision["decision"], "acuerdo")
+
+    def test_muestreo_divergente_marca_discrepancia(self):
+        llm = self._llm([
+            '{"verdict": "supported", "credibility": 0.9}',
+            '{"verdict": "contradicted", "credibility": 0.2}',
+            '{"verdict": "contradicted", "credibility": 0.3}'])
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm, muestras_consenso=3).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        consenso = ev["consenso_muestreo"]
+        self.assertFalse(consenso["acuerdo"])
+        self.assertEqual(consenso["verdicts"],
+                         ["supported", "contradicted", "contradicted"])
+        self.assertTrue(ev["discrepancia_muestreo"])
+        decision = next(d for d in ctx.decision_log
+                        if d["step"] == "sampling_consensus")
+        self.assertEqual(decision["decision"], "discrepancia")
+        self.assertIn("revisión humana", decision["rationale"])
+
+    def test_muestreo_por_defecto_mantiene_una_llamada(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+
+        ev = EvidenceEvaluator(llm).decide(self._contexto(),
+                                           {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertNotIn("consenso_muestreo", ev)
+
+    def test_muestras_consenso_invalidas_se_rechazan(self):
+        for valor in (0, -1, 1.5, "3", True):
+            with self.subTest(valor=valor):
+                with self.assertRaises(ValueError):
+                    EvidenceEvaluator(self._llm([]), muestras_consenso=valor)
+
+    def test_orchestrator_pasa_muestras_consenso(self):
+        orquestador = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
+                                           muestras_consenso=2)
+
+        self.assertEqual(orquestador.evaluator.muestras_consenso, 2)
+
     # --- Fidelidad --------------------------------------------------------
     def test_fidelidad_cifras_respaldadas_y_no(self):
         from tests.benchmarks.rubrics import evaluar_fidelidad

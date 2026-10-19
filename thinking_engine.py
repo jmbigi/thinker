@@ -18,6 +18,7 @@ Extensión ToT (Tree of Thoughts): añade ramificación, evaluación de estado y
 búsqueda (BFS/DFS) manteniendo compatibilidad total con la interfaz lineal.
 """
 
+import hashlib
 import re
 import sys
 from abc import ABC, abstractmethod
@@ -82,11 +83,17 @@ class StepThinkingEngine(ABC):
     """Ciclo de pensamiento por pasos con validación antes de avanzar."""
 
     def __init__(self, llm_provider=None, name: str = "thinking_engine",
-                 max_steps: int = 7):
+                 max_steps: int = 7, congelar_fases: bool = False):
         self.llm = llm_provider
         self.name = name
         self.step_count = 0
         self.max_steps = max_steps
+        # Phase-chain freeze (piloto, opt-in): cada fase ejecutada se registra
+        # como congelada con su hash y las fases posteriores la reciben como
+        # INMUTABLE en el prompt. Solo afecta al ciclo lineal `think()` (en ToT
+        # las ramas son exploratorias por diseño y el modo lo declara en el
+        # resultado).
+        self.congelar_fases = congelar_fases
 
     # --- A implementar por cada motor concreto -----------------------------
     @abstractmethod
@@ -113,13 +120,21 @@ class StepThinkingEngine(ABC):
 
         steps: List[Tuple[str, str]] = []
         invalid_steps: List[str] = []
+        fases: List[Dict[str, str]] = []
 
         # `max_steps` acota de verdad el ciclo: un motor configurado con 3
         # pasos no ejecuta los 7 (antes el atributo era decorativo).
         for name, builder in self._step_builders()[:self.max_steps]:
-            content = self._llm_generate(builder(outputs))
+            prompt_base = builder(outputs)
+            if self.congelar_fases and fases:
+                prompt_base += self._bloque_fases_congeladas(fases)
+            content = self._llm_generate(prompt_base)
             steps.append((name, content))
             outputs[name] = content
+            if self.congelar_fases:
+                fases.append({"nombre": name,
+                              "hash": self._hash_fase(name, content),
+                              "contenido": content})
             if not self.validate_step(content):
                 # Validación antes de avanzar: no seguir construyendo sobre
                 # un paso defectuoso (P1.11/P1.19: fallar y reportar).
@@ -127,7 +142,7 @@ class StepThinkingEngine(ABC):
                 break
 
         self.step_count = len(steps)
-        return {
+        resultado = {
             "thought": self._render_thought(steps),
             "decision": self._extract_decision(steps),
             "confidence": self._compute_confidence(steps),
@@ -137,6 +152,11 @@ class StepThinkingEngine(ABC):
             "step_count": len(steps),
             "error": (f"Paso inválido: {invalid_steps[0]}" if invalid_steps else None),
         }
+        if self.congelar_fases:
+            resultado["fases_congeladas"] = fases
+            resultado["inmutabilidad_verificada"] = self.verificar_congelacion(
+                steps, fases)
+        return resultado
 
     def _llm_generate(self, prompt: str, **kwargs) -> str:
         """Genera con el proveedor inyectado; sin proveedor usa MockLLM.
@@ -148,6 +168,44 @@ class StepThinkingEngine(ABC):
             from llm_providers import MockLLM
             self.llm = MockLLM()
         return self.llm.generate(prompt, **kwargs)
+
+    # --- Phase-chain freeze (piloto) ----------------------------------------
+    @staticmethod
+    def _hash_fase(nombre: str, contenido: str) -> str:
+        """Hash corto y estable de una fase congelada (nombre + contenido)."""
+        return hashlib.sha256(
+            f"{nombre}\x00{contenido}".encode("utf-8")).hexdigest()[:16]
+
+    @classmethod
+    def verificar_congelacion(cls, steps: List[Tuple[str, str]],
+                              fases: List[Dict[str, str]]) -> bool:
+        """True si los pasos devueltos coinciden byte a byte con las fases congeladas.
+
+        El consumidor puede mutar la lista `steps` después del ciclo: esta
+        comprobación detecta esa mutación (inmutabilidad verificable, no solo
+        declarada).
+        """
+        if len(steps) != len(fases):
+            return False
+        return all(
+            nombre == fase["nombre"]
+            and cls._hash_fase(nombre, contenido) == fase["hash"]
+            for (nombre, contenido), fase in zip(steps, fases))
+
+    def _bloque_fases_congeladas(self, fases: List[Dict[str, str]]) -> str:
+        """Bloque de prompt que declara las fases previas como INMUTABLES."""
+        lineas = [
+            "",
+            "[FASES CONGELADAS — INMUTABLES]",
+            "Cada fase congelada es inmodificable. Si una evidencia posterior "
+            "la contradice, declara la contradicción en la fase actual; NO "
+            "reescribas, resumas ni contradigas su contenido.",
+        ]
+        for fase in fases:
+            lineas.append(
+                f"- {fase['nombre']} (hash {fase['hash']}): "
+                f"{fase['contenido'][:300]}")
+        return "\n".join(lineas)
 
     # --- Utilidades comunes ------------------------------------------------
     @staticmethod
@@ -211,8 +269,10 @@ class ToTEngine(StepThinkingEngine):
         min_score_threshold: float = 0.3,
         max_depth: Optional[int] = None,
         voto_top_k: int = 1,
+        congelar_fases: bool = False,
     ):
-        super().__init__(llm_provider, name, max_steps)
+        super().__init__(llm_provider, name, max_steps,
+                         congelar_fases=congelar_fases)
         self.branch_factor = branch_factor
         self.beam_width = beam_width
         self.search_strategy = search_strategy
@@ -246,7 +306,15 @@ class ToTEngine(StepThinkingEngine):
         """
         self._root = None
         self._all_nodes = []
-        
+
+        # Phase-chain freeze NO aplica a ToT: las ramas son exploratorias por
+        # diseño. Se declara (nunca en silencio): el congelado vale para el
+        # ciclo lineal `think()`.
+        if self.congelar_fases:
+            print("[ToTEngine] congelar_fases no aplica a ToT (ramas "
+                  "exploratorias): el congelado vale para el ciclo lineal "
+                  "think()", file=sys.stderr)
+
         # Inicializar raíz
         self._root = ThinkingNode(
             content=prompt,
@@ -315,6 +383,8 @@ class ToTEngine(StepThinkingEngine):
             "best_score": best_leaf.score,
             "consenso": consenso,
             "hojas_votadas": len(hojas),
+            "congelacion_fases": ("no aplica a ToT (ramas exploratorias)"
+                                  if self.congelar_fases else "inactiva"),
         }
         
         if return_tree:

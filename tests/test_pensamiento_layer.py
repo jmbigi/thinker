@@ -146,6 +146,25 @@ class TestResearchOrchestratorWithThinking(unittest.TestCase):
         self.assertTrue(all("[proveedor-distinto]" in r for r in razones))
         self.assertTrue(any("contestado" in r for r in razones))
 
+    def test_pasa_muestras_consenso_al_pipeline(self):
+        generador = MockLLM()
+        orchestrator = ResearchOrchestratorWithThinking(
+            generador, MockSearchAPI(), DeepResearchThinkingLayer(generador),
+            muestras_consenso=2)
+        buffer = io.StringIO()
+
+        with contextlib.redirect_stdout(buffer):
+            result = orchestrator.research_with_thinking("¿Fusión nuclear?")
+
+        consensos = [d for d in result["context"].decision_log
+                     if d["step"] == "sampling_consensus"]
+        self.assertTrue(consensos)
+        self.assertTrue(all(d["decision"] == "acuerdo" for d in consensos))
+        self.assertTrue(all("2/2" in d["rationale"] for d in consensos))
+        self.assertTrue(all(
+            e["consenso_muestreo"]["muestras"] == 2
+            for e in result["context"].evaluations))
+
 
 class TestMain(unittest.TestCase):
     def test_main_offline_completa(self):

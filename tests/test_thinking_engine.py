@@ -146,6 +146,76 @@ class TestRunCycle(unittest.TestCase):
         self.assertEqual(capturado, {"clave": "valor"})
 
 
+class TestCongelacionFases(unittest.TestCase):
+    """Phase-chain freeze (piloto): fases inmutables en el ciclo lineal."""
+
+    def test_sin_congelar_no_anade_claves_ni_bloque(self):
+        llm = StubLLM(lambda p: "contenido " + p)
+        result = TinyEngine(llm_provider=llm).think("entrada")
+
+        self.assertNotIn("fases_congeladas", result)
+        self.assertNotIn("FASES CONGELADAS", llm.prompts[1])
+
+    def test_congelar_inyecta_bloque_y_hashes(self):
+        llm = StubLLM(lambda p: "contenido " + p)
+        result = TinyEngine(llm_provider=llm, congelar_fases=True).think("entrada")
+
+        self.assertNotIn("FASES CONGELADAS", llm.prompts[0])  # paso 1: nada previo
+        self.assertIn("FASES CONGELADAS", llm.prompts[1])
+        self.assertIn("uno (hash", llm.prompts[1])
+        self.assertIn("INMUTABLE", llm.prompts[1])
+
+        fases = result["fases_congeladas"]
+        self.assertEqual([f["nombre"] for f in fases], ["uno", "dos"])
+        self.assertTrue(all(len(f["hash"]) == 16 for f in fases))
+        self.assertTrue(all(f["contenido"] for f in fases))
+        self.assertTrue(result["inmutabilidad_verificada"])
+
+    def test_verificar_congelacion_detecta_mutacion(self):
+        llm = StubLLM(lambda p: "contenido " + p)
+        result = TinyEngine(llm_provider=llm, congelar_fases=True).think("entrada")
+
+        steps = list(result["steps"])
+        self.assertTrue(TinyEngine.verificar_congelacion(
+            steps, result["fases_congeladas"]))
+
+        steps[0] = ("uno", "contenido alterado por un consumidor")
+        self.assertFalse(TinyEngine.verificar_congelacion(
+            steps, result["fases_congeladas"]))
+
+    def test_paso_invalido_se_congela_igual_y_detiene(self):
+        def responder(prompt):
+            return "" if "paso 2" in prompt else "contenido válido y largo"
+
+        result = TinyEngine(llm_provider=StubLLM(responder),
+                            congelar_fases=True).think("entrada")
+
+        self.assertFalse(result["valid"])
+        self.assertEqual(result["invalid_steps"], ["dos"])
+        self.assertEqual([f["nombre"] for f in result["fases_congeladas"]],
+                         ["uno", "dos"])
+        self.assertTrue(result["inmutabilidad_verificada"])
+
+    def test_tot_declara_que_el_congelado_no_aplica(self):
+        error = io.StringIO()
+        with redirect_stderr(error):
+            result = TinyToT(llm_provider=StubLLM(
+                lambda p: "contenido sustancial y largo"),
+                branch_factor=2, beam_width=2,
+                congelar_fases=True).think_tot("entrada")
+
+        self.assertIn("congelar_fases no aplica a ToT", error.getvalue())
+        self.assertEqual(result["congelacion_fases"],
+                         "no aplica a ToT (ramas exploratorias)")
+
+    def test_tot_sin_congelar_declara_inactiva(self):
+        result = TinyToT(llm_provider=StubLLM(
+            lambda p: "contenido sustancial y largo"),
+            branch_factor=2, beam_width=2).think_tot("entrada")
+
+        self.assertEqual(result["congelacion_fases"], "inactiva")
+
+
 class TinyToT(ToTEngine):
     """Motor ToT mínimo de 2 pasos para ejercitar ramificación y poda (SIMULADO)."""
 

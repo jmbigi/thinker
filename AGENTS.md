@@ -78,8 +78,8 @@ mejora de código (`code_design_improvement_tools.py`).
 - SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
-  3.33.0** (canario en `tests/test_openai_compatibilidad.py`). Tras el corte 2
-  (Hallazgo 75): **505/505 tests** en Python **3.11** (openai 1.109.1 y
+  3.33.0** (canario en `tests/test_openai_compatibilidad.py`). Tras el corte 3
+  (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
@@ -119,6 +119,8 @@ mejora de código (`code_design_improvement_tools.py`).
   mutantes equivalentes—. Re-medición 2026-10-19 (Hallazgo 75, tras la
   separación generador/verificador): **79,9% (2863/3582; 0 timeouts,
   0 sospechosos, 0 sin ejecutar)** con la misma exclusión de `print`.
+  Re-medición 2026-10-19 (Hallazgo 76, tras los pilotos de congelación y
+  consenso): **79,8% (3022/3789; 0 timeouts, 0 sospechosos, 0 sin ejecutar)**.
   El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
@@ -135,9 +137,9 @@ mejora de código (`code_design_improvement_tools.py`).
   `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
-  muertas eliminadas) y la mutación global es 79,9% (2863/3582, re-medición
+  muertas eliminadas) y la mutación global es 79,8% (3022/3789, re-medición
   2026-10-19).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (505/505 en ambos,
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (517/517 en ambos,
   3.12 en venv aislado); openai verificado en 1.109.1, 2.54.0 y 3.33.0.
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
@@ -153,12 +155,17 @@ mejora de código (`code_design_improvement_tools.py`).
 - `deep_research_system.py` — pipeline de investigación (descomposición,
   recuperación, claims, evaluación, reporte) con segunda pasada CoVe opcional
   y verificador de proveedor SEPARADO, declarado por claim (`llm_verificador`;
-  sin separación, la pasada se declara `mismo-proveedor`, nunca silenciosa).
+  sin separación, la pasada se declara `mismo-proveedor`, nunca silenciosa) y
+  piloto opt-in de consenso por muestreo (`muestras_consenso>1`: veredictos
+  divergentes ⇒ `discrepancia_muestreo` para revisión humana, con su
+  benchmark `tests/benchmarks/consenso_muestreo.py`).
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
   Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
   Ollama y Mock no reintentan. **No duplicar** clientes en otros módulos.
 - `thinking_engine.py` — motor común de ciclos de pensamiento (validación,
-  confianza, forma de resultado). **No duplicar** su lógica en otros módulos.
+  confianza, forma de resultado) con piloto opt-in `congelar_fases` (phase-chain
+  freeze: fases previas inmutables con hash; no aplica a ToT y lo declara).
+  **No duplicar** su lógica en otros módulos.
 - `pensamiento_layer.py` / `code_design_improvement_tools.py` — pasos concretos
   sobre ese motor.
 - `web_search.py` — búsqueda: `MockSearchAPI` (offline), `WikipediaSearchAPI`

@@ -108,6 +108,17 @@ report, ctx = ResearchOrchestrator(
 ).research("¿Cuál es el estado actual de la fusión nuclear?")
 ```
 
+Modos piloto opt-in (desactivados por defecto; ver Hallazgo 76 en
+`docs/LECCIONES-APRENDIDAS.md`):
+
+- `congelar_fases=True` en el motor de pensamiento: cada fase ejecutada se
+  congela con su hash y las fases posteriores la reciben como INMUTABLE en el
+  prompt (no aplica a ToT, y lo declara).
+- `muestras_consenso>1` en el pipeline: repite la evaluación de cada claim y
+  marca `discrepancia_muestreo` si los veredictos divergen (señal de juicio
+  inestable o alucinación); el coste extra queda declarado por claim.
+  Benchmark offline: `python3 tests/benchmarks/consenso_muestreo.py`.
+
 ## Verificación
 
 ```bash
@@ -156,10 +167,10 @@ commit.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
-- La suite mata el **79,9%** de los mutantes de `mutmut` (2863/3582; 0
+- La suite mata el **79,8%** de los mutantes de `mutmut` (3022/3789; 0
   timeouts, 0 sospechosos; medición 2026-10-19, excluyendo las líneas `print`,
   que solo generan mutantes equivalentes): cobertura alta no equivale a tests
-  fuertes. Medición anterior (2026-10-17): 78,1% (2766/3543).
+  fuertes. Mediciones anteriores: 79,9% (2863/3582) y 78,1% (2766/3543).
 
 ## Licencia
 

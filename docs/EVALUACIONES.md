@@ -93,6 +93,17 @@ demos offline 0, `test_systems_honest`/`kilo`/`env` 0. Mutación re-medida:
 **79,9%** (2863/3582; 0 timeouts, 0 sospechosos) — ver Hallazgo 75 en
 `docs/LECCIONES-APRENDIDAS.md`.
 
+**Actualización 2026-10-19 (pilotos: phase-chain freeze y consenso por
+muestreo — Hallazgo 76)**: de nuevo **GLOBAL 1.000**, sin plan de mejora y
+`no_verificado` vacío. Pilotos opt-in verificados: `congelar_fases` (fases
+inmutables con hash, declarado no aplicable a ToT) y `muestras_consenso>1`
+(discrepancias marcadas para revisión humana) con benchmark dedicado:
+detección `true` en caso divergente, `falso_positivo: false` en acuerdo y
+coste 3 llamadas / 2 extra declaradas. Evidencia: **517/517 tests** en Python
+3.11 (openai 1.109.1 y 2.54.0) y 3.12 (openai 3.33.0), ruff limpio, preflight
+0, demos offline 0. Mutación re-medida: **79,8%** (3022/3789; 0 timeouts,
+0 sospechosos, 0 sin ejecutar) — ver Hallazgo 76.
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |

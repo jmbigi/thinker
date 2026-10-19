@@ -1334,3 +1334,45 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   que la consume; un parámetro nuevo que cambia el quién-verifica debe
   propagarse por TODOS los orquestadores que montan el pipeline (si no, la
   mitad de la superficie pública ignora la mejora).
+
+### Hallazgo 76: Phase-chain freeze y consenso por muestreo — pilotos medidos, no adoptados a ciegas
+
+- **Origen**: las dos mejoras restantes de la revisión de vanguardia
+  (2026-10-19): congelar fases del razonamiento para que fases posteriores no
+  reescriban las anteriores, y detectar alucinaciones por desacuerdo entre
+  muestras repetidas del mismo prompt.
+- **Solución (pilotos opt-in, comportamiento por defecto intacto)**:
+  - `thinking_engine.StepThinkingEngine(congelar_fases=True)`: cada fase
+    ejecutada se congela con su hash sha256 corto y las fases posteriores
+    reciben un bloque `[FASES CONGELADAS — INMUTABLES]` (nombre, hash,
+    contenido truncado) con la regla explícita de declarar contradicciones en
+    la fase nueva sin reescribir las previas. El resultado incluye
+    `fases_congeladas` e `inmutabilidad_verificada` (re-hash de lo devuelto:
+    un consumidor que mute `steps` se detecta). ToT lo declara como no
+    aplicable (`congelacion_fases: "no aplica a ToT..."` + aviso por stderr):
+    las ramas son exploratorias por diseño. El ciclo de diseño de código no
+    acepta el flag (TypeError explícito, no silencio).
+  - `deep_research_system.EvidenceEvaluator(muestras_consenso>1)`: repite la
+    evaluación del claim y declara `consenso_muestreo` (muestras, veredictos,
+    `acuerdo`, `llamadas_extra`); veredictos divergentes ⇒
+    `discrepancia_muestreo` y entrada `sampling_consensus: discrepancia` en el
+    `decision_log` (revisión humana). Ambos orquestadores propagan el
+    parámetro (lección del Hallazgo 75).
+  - Benchmark dedicado `tests/benchmarks/consenso_muestreo.py` (offline,
+    LLM simulado declarado).
+- **Medición del benchmark (2026-10-19)**: caso divergente → `detectado:
+  true`, `decision: discrepancia`, 3 llamadas reales y 2 extra declaradas;
+  caso acuerdo → `falso_positivo: false`; por defecto → 1 llamada y consenso
+  inactivo. El detector marca lo que debe y no marca lo que no debe, con el
+  coste exacto publicado.
+- **Evidencia**: 12 tests nuevos (6 de congelación + 6 de consenso/propagación),
+  **517/517 tests** en Python 3.11 (openai 1.109.1 y 2.54.0) y 3.12 (openai
+  3.33.0), ruff limpio, preflight 0, demos offline 0, autoevaluación
+  GLOBAL 1.000. honest_test 5/6 solo por `.env` ausente en el worktree.
+  Mutación re-medida (cambiaron `thinking_engine` y `deep_research_system`):
+  **79,8% (3022/3789; 0 timeouts, 0 sospechosos, 0 sin ejecutar)**, desde
+  79,9% (2863/3582): 207 mutantes más y 159 muertos más.
+- **Regla derivada**: un detector de alucinaciones se publica con su medición
+  (detección, falsos positivos y coste) o no se publica; y una mejora que
+  cambia el prompt de fases posteriores debe declarar qué partes de la
+  superficie (ToT, ciclo de diseño) NO la aplican, en el mismo artefacto.

@@ -325,12 +325,14 @@ class ResearchOrchestratorWithThinking:
     """
 
     def __init__(self, llm_provider, search_api, thinking_layer: DeepResearchThinkingLayer,
-                 verificacion_independiente: bool = False, llm_verificador=None):
+                 verificacion_independiente: bool = False, llm_verificador=None,
+                 muestras_consenso: int = 1):
         self.llm = llm_provider
         self.search = search_api
         self.thinking = thinking_layer
         self.verificacion_independiente = verificacion_independiente
         self.llm_verificador = llm_verificador
+        self.muestras_consenso = muestras_consenso
         self.results = None
 
     def research_with_thinking(self, question: str) -> Dict[str, Any]:
@@ -355,7 +357,8 @@ class ResearchOrchestratorWithThinking:
         report, context = ResearchOrchestrator(
             self.llm, self.search,
             verificacion_independiente=self.verificacion_independiente,
-            llm_verificador=self.llm_verificador).research(question)
+            llm_verificador=self.llm_verificador,
+            muestras_consenso=self.muestras_consenso).research(question)
         print(f"   {len(context.sources)} fuentes, {len(context.claims)} claims, "
               f"{len(context.evaluations)} evaluaciones")
 
