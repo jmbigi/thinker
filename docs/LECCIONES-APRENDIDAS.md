@@ -1302,3 +1302,35 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   pregunta: junto a la nota global debe publicarse SIEMPRE la procedencia de
   la evidencia y lo que no se verificó; y un gate determinista nuevo se valida
   sobre el propio repositorio (test canario) antes de exigírselo a terceros.
+
+### Hallazgo 75: Separación estricta generador/verificador — la independencia se declara, no se finge
+
+- **Origen**: corte 2 (mejoras de vanguardia, 2026-10-19): la segunda pasada
+  CoVe de `EvidenceEvaluator` usaba SIEMPRE el mismo proveedor que generó y
+  evaluó los claims —independencia de nombre, no de hecho— y no lo declaraba.
+- **Solución**:
+  - `EvidenceEvaluator` acepta `llm_verificador`: si es OTRO objeto, la pasada
+    CoVe va a ese proveedor y el resultado declara
+    `independencia: "proveedor-distinto"`; si es None o el mismo objeto, la
+    pasada corre igual (compatibilidad) pero queda declarada
+    `"mismo-proveedor"` —en el dict del resultado Y en el `decision_log`
+    (`[mismo-proveedor]`/`[proveedor-distinto]`)—. Nunca se finge
+    independencia que no existe.
+  - `ResearchOrchestrator` y `ResearchOrchestratorWithThinking` propagan
+    `llm_verificador`; el nombre del generador y del verificador viajan en el
+    resultado por claim (`verificador`, `generador`).
+- **Evidencia**: 5 tests nuevos (ruteo de la llamada CoVe al verificador,
+  declaración de `mismo-proveedor` en dos casos, pass-through en ambos
+  orquestadores) y 1 dict exacto actualizado; **505/505 tests** en Python
+  3.11 (openai 1.109.1 y 2.54.0) y 3.12 (openai 3.33.0, venv aislado desde
+  `requirements.lock`), ruff limpio, preflight 0, demos offline 0,
+  `test_systems_honest`/`kilo`/`env` 0 y autoevaluación GLOBAL 1.000.
+  honest_test 5/6 solo por `.env` ausente en el worktree (ambiental).
+  Mutación re-medida (deep_research_system está en `source_paths`):
+  **79,9% (2863/3582; 0 timeouts, 0 sospechosos, 0 sin ejecutar)**, desde
+  78,1% (2766/3543): 39 mutantes más y 97 muertos más.
+- **Regla derivada**: una independencia que comparte proveedor es una
+  independencia degradada y debe declararse como tal en el MISMO artefacto
+  que la consume; un parámetro nuevo que cambia el quién-verifica debe
+  propagarse por TODOS los orquestadores que montan el pipeline (si no, la
+  mitad de la superficie pública ignora la mejora).

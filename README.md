@@ -94,6 +94,20 @@ report, ctx = ResearchOrchestrator(OpenRouterLLM(), WikipediaSearchAPI()).resear
 )
 ```
 
+Verificación independiente (segunda pasada tipo CoVe) con proveedor SEPARADO
+del generador —la independencia se declara por claim en el contexto y en el
+`decision_log` (`proveedor-distinto`; sin verificador separado se ejecuta igual
+pero queda declarada como `mismo-proveedor`, nunca silenciosa):
+
+```python
+report, ctx = ResearchOrchestrator(
+    OpenRouterLLM(),                                  # generador y evaluador
+    WikipediaSearchAPI(),
+    verificacion_independiente=True,
+    llm_verificador=OpenRouterLLM(model="otro-modelo:free"),  # verificador CoVe
+).research("¿Cuál es el estado actual de la fusión nuclear?")
+```
+
 ## Verificación
 
 ```bash
@@ -142,10 +156,10 @@ commit.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
-- La suite mata el **78,1%** de los mutantes de `mutmut` (2766/3543, medición
-  2026-10-17, excluyendo las líneas `print`, que solo generan mutantes
-  equivalentes): cobertura alta no equivale a tests fuertes. No se re-midió en
-  el corte 2026-10-19: los seis módulos mutados (`source_paths`) no cambiaron.
+- La suite mata el **79,9%** de los mutantes de `mutmut` (2863/3582; 0
+  timeouts, 0 sospechosos; medición 2026-10-19, excluyendo las líneas `print`,
+  que solo generan mutantes equivalentes): cobertura alta no equivale a tests
+  fuertes. Medición anterior (2026-10-17): 78,1% (2766/3543).
 
 ## Licencia
 

@@ -313,11 +313,20 @@ class EvidenceEvaluator(DecisionEngine):
     originaron, para detectar confirmaciones circulares (el evaluador normal
     mira los snippets que produjeron el claim). Cuesta una llamada extra por
     claim: está desactivado por defecto.
+
+    Separación generador/verificador: `llm_verificador` permite que la pasada
+    independiente use OTRO proveedor, distinto del que generó y evaluó. La
+    independencia real se declara por claim (`independencia`:
+    "proveedor-distinto" | "mismo-proveedor"): sin verificador separado (o con
+    el mismo objeto) la pasada se ejecuta igual, pero queda declarada como
+    degradada —nunca se finge una independencia que no existe.
     """
 
-    def __init__(self, llm_provider, verificacion_independiente: bool = False):
+    def __init__(self, llm_provider, verificacion_independiente: bool = False,
+                 llm_verificador=None):
         self.llm_provider = llm_provider
         self.verificacion_independiente = verificacion_independiente
+        self.llm_verificador = llm_verificador
 
     @staticmethod
     def _prompt_evaluacion(claim: Dict[str, Any], fuentes: List[Dict[str, Any]]) -> str:
@@ -357,6 +366,17 @@ Return ONLY JSON (no markdown fences, no extra text):
         except (TypeError, ValueError):
             return 0.0, str(valor)
         return min(max(numero, 0.0), 1.0), None
+
+    @staticmethod
+    def _nombre_proveedor(proveedor: Any) -> str:
+        """Nombre estable del proveedor para declararlo en los resultados."""
+        modelo = getattr(proveedor, "model", None)
+        return modelo if isinstance(modelo, str) and modelo else type(proveedor).__name__
+
+    def _es_verificador_distinto(self) -> bool:
+        """Independencia real: el verificador es OTRO objeto, no el generador."""
+        return (self.llm_verificador is not None
+                and self.llm_verificador is not self.llm_provider)
 
     def _evaluar(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
         relevant_sources = [
@@ -405,7 +425,9 @@ Return ONLY JSON (no markdown fences, no extra text):
         """Segunda pasada CoVe contra fuentes que NO originaron el claim.
 
         Devuelve `None` (y lo registra) si no hay fuentes alternativas: no se
-        inventa una verificación sin evidencia distinta que mirar.
+        inventa una verificación sin evidencia distinta que mirar. La pasada
+        usa el verificador separado si lo hay y declara la independencia real
+        ("proveedor-distinto" | "mismo-proveedor").
         """
         # Origen verificado por el pipeline (`source_id` lo fija el extractor
         # con la URL real de la fuente); `source_url` es solo lo que dijo el
@@ -418,14 +440,24 @@ Return ONLY JSON (no markdown fences, no extra text):
                                  "Sin fuentes alternativas para verificar el claim")
             return None
 
-        response = self.llm_provider.generate(
+        distinto = self._es_verificador_distinto()
+        verificador = self.llm_verificador if distinto else self.llm_provider
+        independencia = "proveedor-distinto" if distinto else "mismo-proveedor"
+        declaracion = {
+            "independencia": independencia,
+            "verificador": self._nombre_proveedor(verificador),
+            "generador": self._nombre_proveedor(self.llm_provider),
+        }
+
+        response = verificador.generate(
             self._prompt_evaluacion(claim, alternativas[:3]))
         try:
             datos = _parse_json_response(response)
             if not isinstance(datos, dict):
                 raise json.JSONDecodeError("se esperaba un objeto JSON", str(datos), 0)
         except (json.JSONDecodeError, TypeError):
-            return {"verdict": "not_addressed", "credibility": 0.0,
+            return {**declaracion,
+                    "verdict": "not_addressed", "credibility": 0.0,
                     "confidence": 0.0, "verdict_principal": verdict_principal,
                     "contested": False, "fuentes_alternativas": len(alternativas),
                     "error": "Failed to parse evaluation"}
@@ -433,10 +465,11 @@ Return ONLY JSON (no markdown fences, no extra text):
         verdict = datos.get("verdict", "not_addressed")
         contested = (verdict != verdict_principal) and (verdict != "not_addressed")
         context.add_decision("independent_verification", "verify",
-                             f"Independiente: {verdict} vs principal: "
+                             f"[{independencia}] Independiente: {verdict} vs principal: "
                              f"{verdict_principal} -> "
                              f"{'contestado' if contested else 'coincide'}")
-        return {"verdict": verdict,
+        return {**declaracion,
+                "verdict": verdict,
                 "credibility": datos.get("credibility", 0),
                 "confidence": datos.get("confidence", 0),
                 "verdict_principal": verdict_principal,
@@ -532,7 +565,7 @@ class ResearchOrchestrator:
 
     def __init__(self, llm_provider, search_api, max_iterations: int = 5,
                  verificacion_independiente: bool = False, llm_rapido=None,
-                 evaluador_relevancia: bool = False,
+                 llm_verificador=None, evaluador_relevancia: bool = False,
                  umbral_relevancia: float = 0.5):
         """Monta el pipeline.
 
@@ -540,6 +573,10 @@ class ResearchOrchestrator:
         él —tareas estructuradas— y reserva `llm_provider` para evaluar y
         redactar. `evaluador_relevancia=True` activa el juez CRAG en la
         recuperación (una llamada extra por consulta con resultados).
+        `llm_verificador` (separación generador/verificador): proveedor para la
+        pasada CoVe con `verificacion_independiente=True`. Si es None o el
+        mismo objeto que el generador, la pasada corre igual pero se declara
+        como `mismo-proveedor` (independencia degradada, nunca silenciosa).
         """
         self.llm = llm_provider
         self.llm_rapido = llm_rapido or llm_provider
@@ -551,7 +588,8 @@ class ResearchOrchestrator:
                                          umbral_relevancia=umbral_relevancia)
         self.extractor = ClaimExtractor(self.llm_rapido)
         self.evaluator = EvidenceEvaluator(
-            llm_provider, verificacion_independiente=verificacion_independiente)
+            llm_provider, verificacion_independiente=verificacion_independiente,
+            llm_verificador=llm_verificador)
         self.generator = ReportGenerator(llm_provider)
 
     def research(self, question: str) -> Tuple[str, ResearchContext]:

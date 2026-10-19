@@ -128,6 +128,24 @@ class TestResearchOrchestratorWithThinking(unittest.TestCase):
             self.assertFalse(hasattr(orchestrator, metodo),
                              f"sigue existiendo el método simulado {metodo}")
 
+    def test_pasa_verificador_separado_al_pipeline(self):
+        generador = MockLLM()
+        verificador = StubLLM(
+            lambda p: '{"verdict": "contradicted", "credibility": 0.1}')
+        orchestrator = ResearchOrchestratorWithThinking(
+            generador, MockSearchAPI(), DeepResearchThinkingLayer(generador),
+            verificacion_independiente=True, llm_verificador=verificador)
+        buffer = io.StringIO()
+
+        with contextlib.redirect_stdout(buffer):
+            result = orchestrator.research_with_thinking("¿Fusión nuclear?")
+
+        razones = [d["rationale"] for d in result["context"].decision_log
+                   if d["step"] == "independent_verification"]
+        self.assertTrue(razones)
+        self.assertTrue(all("[proveedor-distinto]" in r for r in razones))
+        self.assertTrue(any("contestado" in r for r in razones))
+
 
 class TestMain(unittest.TestCase):
     def test_main_offline_completa(self):

@@ -1254,7 +1254,9 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertEqual(ev["verificacion_independiente"], {
             "verdict": "not_addressed", "credibility": 0.1, "confidence": 0,
             "verdict_principal": "supported", "contested": False,
-            "fuentes_alternativas": 5})
+            "fuentes_alternativas": 5,
+            "independencia": "mismo-proveedor",
+            "verificador": "StubLLM", "generador": "StubLLM"})
 
     def test_sin_alternativas_registra_motivo_exacto(self):
         ctx = ResearchContext("q")
@@ -1327,6 +1329,50 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertFalse(info["contested"])
         self.assertEqual(info["error"], "Failed to parse evaluation")
 
+    def test_verificador_distinto_usa_otro_proveedor_y_lo_declara(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+        verificador = self._llm(['{"verdict": "contradicted", "credibility": 0.1}'])
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True,
+                               llm_verificador=verificador).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(len(llm.prompts), 1)          # solo la evaluación principal
+        self.assertEqual(len(verificador.prompts), 1)  # la CoVe va al verificador
+        info = ev["verificacion_independiente"]
+        self.assertEqual(info["independencia"], "proveedor-distinto")
+        self.assertEqual(info["verificador"], "StubLLM")
+        self.assertEqual(info["generador"], "StubLLM")
+        self.assertTrue(info["contested"])
+        self.assertIn("[proveedor-distinto]", ctx.decision_log[-1]["rationale"])
+
+    def test_verificador_igual_al_generador_se_declara_mismo_proveedor(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "supported", "credibility": 0.8}'])
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True,
+                               llm_verificador=llm).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(len(llm.prompts), 2)
+        info = ev["verificacion_independiente"]
+        self.assertEqual(info["independencia"], "mismo-proveedor")
+        self.assertIn("[mismo-proveedor]", ctx.decision_log[-1]["rationale"])
+
+    def test_sin_verificador_separado_la_cove_se_declara_mismo_proveedor(self):
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "supported", "credibility": 0.8}'])
+        ctx = self._contexto()
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        info = ev["verificacion_independiente"]
+        self.assertEqual(info["independencia"], "mismo-proveedor")
+        self.assertIn("[mismo-proveedor]", ctx.decision_log[-1]["rationale"])
+
     def test_orchestrator_pasa_el_flag(self):
         con = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
                                    verificacion_independiente=True)
@@ -1334,6 +1380,16 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
 
         self.assertTrue(con.evaluator.verificacion_independiente)
         self.assertFalse(sin.evaluator.verificacion_independiente)
+
+    def test_orchestrator_acepta_verificador_separado(self):
+        verificador = MockLLM(model="verificador-mock")
+
+        orquestador = ResearchOrchestrator(
+            MockLLM(), MockSearchAPI(), verificacion_independiente=True,
+            llm_verificador=verificador)
+
+        self.assertIs(orquestador.evaluator.llm_verificador, verificador)
+        self.assertTrue(orquestador.evaluator._es_verificador_distinto())
 
     # --- Fidelidad --------------------------------------------------------
     def test_fidelidad_cifras_respaldadas_y_no(self):

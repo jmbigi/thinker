@@ -82,6 +82,17 @@ preflight 0, `python3 evaluar_proyecto.py . --ejecutar-tests` con salida
 anterior. La re-verificación en 3.12 y openai 2.54/3.33 queda pendiente;
 mutación no re-medida (los seis módulos de `source_paths` no cambiaron).
 
+**Actualización 2026-10-19 (separación generador/verificador — Hallazgo 75)**:
+de nuevo **GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío. La
+segunda pasada CoVe admite un **verificador de proveedor separado**
+(`llm_verificador`) y declara la independencia real por claim; sin separación
+queda declarada `mismo-proveedor` en el `decision_log`. Evidencia:
+**505/505 tests** en Python 3.11 (openai 1.109.1 y 2.54.0) y 3.12 (openai
+3.33.0, venv aislado desde `requirements.lock`), ruff limpio, preflight 0,
+demos offline 0, `test_systems_honest`/`kilo`/`env` 0. Mutación re-medida:
+**79,9%** (2863/3582; 0 timeouts, 0 sospechosos) — ver Hallazgo 75 en
+`docs/LECCIONES-APRENDIDAS.md`.
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |

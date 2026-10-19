@@ -78,11 +78,10 @@ mejora de código (`code_design_improvement_tools.py`).
 - SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
-  3.33.0** (suite completa en las tres con 463/463 tests, 2026-10-17; canario
-  en `tests/test_openai_compatibilidad.py`). Última medición completa:
-  **500/500 tests en Python 3.11** (2026-10-19, tras añadir `evidence.py` y
-  `scripts/preflight.py`); la re-verificación en 3.12 y openai 2.54/3.33
-  queda pendiente.
+  3.33.0** (canario en `tests/test_openai_compatibilidad.py`). Tras el corte 2
+  (Hallazgo 75): **505/505 tests** en Python **3.11** (openai 1.109.1 y
+  2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
+  `requirements.lock` el 2026-10-19).
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
 - Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
 - Preflight determinista: `python3 scripts/preflight.py` (AST, offline,
@@ -117,7 +116,10 @@ mejora de código (`code_design_improvement_tools.py`).
   cerrar cobertura y reforzar tests, Hallazgo 73): **78,1% de mutantes muertos**
   (2766/3543; 0 timeouts, 0 sospechosos, ningún mutante sin ejecutar)
   **excluyendo las líneas `print(...)`** —no alteran estado y solo producen
-  mutantes equivalentes—. El refuerzo dirigido añadió 22 mutantes y mató 164
+  mutantes equivalentes—. Re-medición 2026-10-19 (Hallazgo 75, tras la
+  separación generador/verificador): **79,9% (2863/3582; 0 timeouts,
+  0 sospechosos, 0 sin ejecutar)** con la misma exclusión de `print`.
+  El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
   el mismo efecto de denominador que documentó el ToT (Hallazgos 60, 64 y 66);
@@ -133,10 +135,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
-  muertas eliminadas) y la mutación global es 78,1%.
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
-  ambos para el corte anterior, 3.12 en un venv aislado); el corte de
-  2026-10-19 está verificado por ahora solo en 3.11.
+  muertas eliminadas) y la mutación global es 79,9% (2863/3582, re-medición
+  2026-10-19).
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (505/505 en ambos,
+  3.12 en venv aislado); openai verificado en 1.109.1, 2.54.0 y 3.33.0.
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
@@ -149,7 +151,9 @@ mejora de código (`code_design_improvement_tools.py`).
 ## Arquitectura de módulos
 
 - `deep_research_system.py` — pipeline de investigación (descomposición,
-  recuperación, claims, evaluación, reporte).
+  recuperación, claims, evaluación, reporte) con segunda pasada CoVe opcional
+  y verificador de proveedor SEPARADO, declarado por claim (`llm_verificador`;
+  sin separación, la pasada se declara `mismo-proveedor`, nunca silenciosa).
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
   Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
   Ollama y Mock no reintentan. **No duplicar** clientes en otros módulos.
