@@ -72,6 +72,16 @@ cobertura 100% en los seis módulos mutados, mutación **78,1%** (2766/3543;
 vulnerabilidades conocidas. Comando: `python3 evaluar_proyecto.py .
 --ejecutar-tests`.
 
+**Actualización 2026-10-19 (evidencia + preflight — Hallazgo 74)**: de nuevo
+**GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío, ahora con la
+línea `Evidencia: [VERIFIED-REAL] 0 | [VERIFIED-SYNTHETIC] 0 | [UNVERIFIED] 0`
+(cada hallazgo del informe lleva su marcador de procedencia). Además, el
+preflight determinista da **OK (0 hallazgos)** sobre el repositorio. Evidencia:
+**500/500 tests en Python 3.11** (openai 1.109.1), ruff limpio, demos offline 0,
+preflight 0, `python3 evaluar_proyecto.py . --ejecutar-tests` con salida
+anterior. La re-verificación en 3.12 y openai 2.54/3.33 queda pendiente;
+mutación no re-medida (los seis módulos de `source_paths` no cambiaron).
+
 ## better-ocr (evaluación externa, tras aplicar mejoras)
 
 | Dimensión | Puntuación | Criterios fallidos |

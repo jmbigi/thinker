@@ -7,6 +7,7 @@ Handles plugin discovery, loading, unloading, hot-swapping, and configuration ma
 import os
 import sys
 import time
+import tomllib
 import importlib
 import importlib.util
 from typing import Any, Dict, List, Optional, Type, Callable
@@ -255,8 +256,8 @@ class PluginRegistry:
                     with open(self.config_path, "r") as f:
                         config = yaml.safe_load(f) or {}
                 elif self.config_path.endswith(".toml"):
-                    import toml
-                    config = toml.load(self.config_path)
+                    with open(self.config_path, "rb") as f:
+                        config = tomllib.load(f)
             except ImportError as e:
                 raise RuntimeError(
                     f"No se puede leer {self.config_path}: falta la dependencia "

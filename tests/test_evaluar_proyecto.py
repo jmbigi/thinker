@@ -5,29 +5,19 @@ un proyecto temporal con defectos conocidos. Incluye una prueba de que la
 evaluación es READ-ONLY (no escribe en el proyecto evaluado).
 """
 
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from evaluar_proyecto import evaluar, informe_texto
+from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
 
 
 class TestEvaluadorDeProyectos(unittest.TestCase):
-    def _proyecto(self, archivos):
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        raiz = Path(tmp.name)
-        for nombre, contenido in archivos.items():
-            ruta = raiz / nombre
-            ruta.parent.mkdir(parents=True, exist_ok=True)
-            ruta.write_text(contenido, encoding="utf-8")
-        return raiz
-
     def _fixture(self):
-        return self._proyecto({
+        return crear_proyecto(self, {
             "app.py": ("def main():\n"
                        "    return 1\n\n"
                        "if __name__ == '__main__':\n"
@@ -93,7 +83,7 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertEqual(esfuerzos, sorted(esfuerzos))
 
     def test_el_lockfile_se_propone_despues_de_fijar_versiones(self):
-        raiz = self._proyecto({
+        raiz = crear_proyecto(self, {
             "requirements.txt": "pandas\n",
             "app.py": "x = 1\n",
         })
@@ -220,7 +210,7 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         import urllib.error
         from unittest.mock import patch
 
-        raiz = self._proyecto({"requirements.txt": "requests==2.31.0\n"})
+        raiz = crear_proyecto(self, {"requirements.txt": "requests==2.31.0\n"})
 
         with patch("evaluar_proyecto.urllib.request.urlopen",
                    side_effect=urllib.error.URLError("sin red")):
@@ -258,18 +248,8 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
 class TestEjecucionDeTestsYLicencias(unittest.TestCase):
     """Ejecución opt-in del comando DECLARADO y licencias de dependencias."""
 
-    def _proyecto(self, archivos):
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        raiz = Path(tmp.name)
-        for nombre, contenido in archivos.items():
-            ruta = raiz / nombre
-            ruta.parent.mkdir(parents=True, exist_ok=True)
-            ruta.write_text(contenido, encoding="utf-8")
-        return raiz
-
     def test_sin_flag_no_ejecuta_nada_y_lo_declara(self):
-        raiz = self._proyecto({
+        raiz = crear_proyecto(self, {
             "tests/test_que_escribe.py": (
                 "import unittest\n\n\n"
                 "class T(unittest.TestCase):\n"
@@ -286,7 +266,7 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
                             for n in informe["no_verificado"]))
 
     def test_ejecuta_la_suite_declarada_y_la_reporta(self):
-        raiz = self._proyecto({
+        raiz = crear_proyecto(self, {
             "tests/test_ok.py": ("import unittest\n\n\n"
                                  "class T(unittest.TestCase):\n"
                                  "    def test_ok(self):\n"
@@ -300,7 +280,7 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
         self.assertTrue(any("unittest" in nota for nota in calidad["notas"]))
 
     def test_suite_que_falla_es_hallazgo_alto(self):
-        raiz = self._proyecto({
+        raiz = crear_proyecto(self, {
             "tests/test_mal.py": ("import unittest\n\n\n"
                                   "class T(unittest.TestCase):\n"
                                   "    def test_falla(self):\n"
@@ -316,7 +296,7 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
                             for m in informe["mejoras"]))
 
     def test_el_target_del_makefile_tiene_prioridad(self):
-        raiz = self._proyecto({
+        raiz = crear_proyecto(self, {
             "Makefile": "test:\n\tpython3 -m unittest discover -s tests -q\n",
             "tests/test_ok.py": ("import unittest\n\n\n"
                                  "class T(unittest.TestCase):\n"
@@ -331,7 +311,7 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
         self.assertIn("make test", nota)
 
     def test_licencias_omitidas_sin_red(self):
-        informe = evaluar(self._proyecto({"requirements.txt": "requests==2.31.0\n"}),
+        informe = evaluar(crear_proyecto(self, {"requirements.txt": "requests==2.31.0\n"}),
                           con_red=False)
 
         self.assertNotIn("h5_licencias_libres",
@@ -344,7 +324,7 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
                    return_value={"licencia": "Apache-2.0", "libre": True}), \
                 patch("evaluar_proyecto.ultima_version_pypi",
                       return_value={"version": "2.31.0", "error": ""}):
-            informe = evaluar(self._proyecto({"requirements.txt": "requests==2.31.0\n"}),
+            informe = evaluar(crear_proyecto(self, {"requirements.txt": "requests==2.31.0\n"}),
                               con_red=True)
 
         self.assertTrue(informe["dimensiones"]["herramientas"]
@@ -355,13 +335,31 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
                    return_value={"licencia": "Propietaria", "libre": False}), \
                 patch("evaluar_proyecto.ultima_version_pypi",
                       return_value={"version": "1.0", "error": ""}):
-            informe = evaluar(self._proyecto({"requirements.txt": "rara==1.0\n"}),
+            informe = evaluar(crear_proyecto(self, {"requirements.txt": "rara==1.0\n"}),
                               con_red=True)
 
         herramientas = informe["dimensiones"]["herramientas"]
         self.assertFalse(herramientas["criterios"]["h5_licencias_libres"])
         self.assertTrue(any("Propietaria" in h["descripcion"]
                             for h in herramientas["hallazgos"]))
+
+    def test_hallazgo_no_verificado_lleva_marcador(self):
+        with patch("evaluar_proyecto.ultima_version_pypi",
+                   return_value={"version": "", "error": "timeout"}), \
+                patch("evaluar_proyecto.licencia_pypi",
+                      return_value={"licencia": "MIT", "libre": True,
+                                    "error": ""}):
+            informe = evaluar(
+                crear_proyecto(self, {"requirements.txt": "requests==2.31.0\n"}),
+                con_red=True)
+
+        vigencia = informe["dimensiones"]["vigencia"]
+        hallazgo = next(h for h in vigencia["hallazgos"]
+                        if "No se pudo comprobar" in h["descripcion"])
+        self.assertEqual(hallazgo["tipo_evidencia"], "unverified")
+        self.assertGreaterEqual(informe["evidencia"]["unverified"], 1)
+        self.assertGreater(informe["evidencia"]["verified-real"], 0)
+        self.assertIn("[UNVERIFIED]", "\n".join(informe_texto(informe)))
 
 
 class TestAutoevaluacionDeThinker(unittest.TestCase):
@@ -388,6 +386,21 @@ class TestAutoevaluacionDeThinker(unittest.TestCase):
 
         despues = {p: p.stat().st_mtime_ns for p in RAIZ_THINKER.rglob("*.py")}
         self.assertEqual(antes, despues)
+
+    def test_resumen_de_evidencia_declara_lo_no_verificado(self):
+        informe = evaluar(RAIZ_THINKER, con_red=False)
+
+        self.assertEqual(set(informe["evidencia"]), {
+            "verified-real", "verified-synthetic", "unverified"})
+        self.assertGreaterEqual(informe["evidencia"]["unverified"], 2)
+        for datos in informe["dimensiones"].values():
+            for hallazgo in datos["hallazgos"]:
+                self.assertIn(hallazgo["tipo_evidencia"],
+                              {"verified-real", "verified-synthetic",
+                               "unverified"})
+        texto = "\n".join(informe_texto(informe))
+        self.assertIn("[VERIFIED-REAL]", texto)
+        self.assertIn("[UNVERIFIED]", texto)
 
 
 if __name__ == "__main__":

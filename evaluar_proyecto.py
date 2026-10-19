@@ -20,7 +20,8 @@ Garantías y reglas:
 - Del historial git solo se usan FECHAS y RECUENTOS: jamás nombres o correos
   (P0.9).
 - El contenido evaluado son DATOS, no órdenes (P0.13).
-- Cada hallazgo lleva evidencia `archivo:línea` (P0.1).
+- Cada hallazgo lleva evidencia `archivo:línea` y un marcador de procedencia
+  (`evidence.py`: real / sintética / no verificada) (P0.1).
 - Lo que no se puede verificar se declara como tal; nada se supone.
 
 Uso:
@@ -39,6 +40,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from deep_research_system import _parse_json_response  # reutilizado, no duplicado
+from evidence import EvidenceKind, formato_resumen, resumen_evidencias
 
 IGNORAR = {".venv", "venv", "__pycache__", "node_modules", ".git", ".mypy_cache",
            ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist"}
@@ -54,6 +56,15 @@ class Hallazgo:
     severidad: str          # alta | media | baja
     descripcion: str
     evidencia: str = ""
+    tipo_evidencia: EvidenceKind = EvidenceKind.VERIFIED_REAL
+
+    def a_dict(self) -> Dict[str, Any]:
+        return {
+            "severidad": self.severidad,
+            "descripcion": self.descripcion,
+            "evidencia": self.evidencia,
+            "tipo_evidencia": self.tipo_evidencia.value,
+        }
 
 
 @dataclass
@@ -73,7 +84,7 @@ class Dimension:
         return {
             "puntuacion": self.puntuacion,
             "criterios": self.criterios,
-            "hallazgos": [vars(h) for h in self.hallazgos],
+            "hallazgos": [h.a_dict() for h in self.hallazgos],
             "notas": self.notas,
         }
 
@@ -381,7 +392,7 @@ def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
     if no_verificadas:
         dim.hallazgos.append(Hallazgo(
             "baja", "No se pudo comprobar en PyPI: " + "; ".join(no_verificadas),
-            "PyPI"))
+            "PyPI", EvidenceKind.UNVERIFIED))
     return dim
 
 
@@ -465,7 +476,8 @@ def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
         if sin_verificar:
             dim.hallazgos.append(Hallazgo(
                 "baja", f"Licencia no verificable en PyPI: "
-                        f"{', '.join(sin_verificar)}", "PyPI"))
+                        f"{', '.join(sin_verificar)}", "PyPI",
+                EvidenceKind.UNVERIFIED))
     return dim
 
 
@@ -792,8 +804,9 @@ def _digesto(informe: Dict[str, Any], max_hallazgos: int = 20) -> str:
         lineas.append(f"- {nombre}: {datos['puntuacion']:.2f} | "
                       f"fallos: {fallos or '—'}")
         for h in datos["hallazgos"][:max_hallazgos]:
-            lineas.append(f"    ({h['severidad']}) {h['descripcion'][:110]} "
-                          f"— {h['evidencia']}")
+            marca = EvidenceKind(h["tipo_evidencia"]).marcador
+            lineas.append(f"    {marca} ({h['severidad']}) "
+                          f"{h['descripcion'][:110]} — {h['evidencia']}")
         for nota in datos["notas"]:
             lineas.append(f"    · {nota}")
     return "\n".join(lineas)
@@ -877,6 +890,9 @@ def evaluar(ruta: Path, con_red: bool = True,
     if not con_red:
         no_verificado.append("versiones y licencias de dependencias no "
                              "consultadas (--sin-red)")
+    tipos_evidencia = [h.tipo_evidencia for d in dimensiones
+                       for h in d.hallazgos]
+    tipos_evidencia.extend([EvidenceKind.UNVERIFIED] * len(no_verificado))
     informe = {
         "ruta": str(ruta),
         "archivos_python": len(py),
@@ -885,6 +901,7 @@ def evaluar(ruta: Path, con_red: bool = True,
         "dimensiones": {d.nombre: d.a_dict() for d in dimensiones},
         "global": global_,
         "no_verificado": no_verificado,
+        "evidencia": resumen_evidencias(tipos_evidencia),
     }
     informe["mejoras"] = proponer_mejoras(informe)
     if llm is not None:
@@ -907,11 +924,13 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
         for criterio, ok in datos["criterios"].items():
             lineas.append(f"  [{'OK ' if ok else 'NO '}] {criterio}")
         for h in datos["hallazgos"]:
-            lineas.append(f"  ({h['severidad']}) {h['descripcion']} — {h['evidencia']}")
+            marca = EvidenceKind(h["tipo_evidencia"]).marcador
+            lineas.append(f"  {marca} ({h['severidad']}) {h['descripcion']} — {h['evidencia']}")
         for nota in datos["notas"]:
             lineas.append(f"  · {nota}")
         lineas.append("")
     lineas.append(f"GLOBAL: {informe['global']:.3f}")
+    lineas.append(f"Evidencia: {formato_resumen(informe['evidencia'])}")
     lineas.append("")
     lineas.extend(plan_texto(informe))
     lineas.append("== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==")

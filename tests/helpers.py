@@ -1,6 +1,20 @@
 """Dobles de prueba compartidos (SIMULADOS): sin red, sin API keys, deterministas."""
 
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
+
+
+def crear_proyecto(caso, archivos):
+    """Crea un proyecto temporal con los archivos indicados y lo limpia al final."""
+    tmp = tempfile.TemporaryDirectory()
+    caso.addCleanup(tmp.cleanup)
+    raiz = Path(tmp.name)
+    for nombre, contenido in archivos.items():
+        ruta = raiz / nombre
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        ruta.write_text(contenido, encoding="utf-8")
+    return raiz
 
 
 class StubLLM:

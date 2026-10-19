@@ -78,10 +78,17 @@ mejora de código (`code_design_improvement_tools.py`).
 - SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
-  3.33.0** (suite completa 463/463 en las tres, 2026-10-17; canario en
-  `tests/test_openai_compatibilidad.py`).
+  3.33.0** (suite completa en las tres con 463/463 tests, 2026-10-17; canario
+  en `tests/test_openai_compatibilidad.py`). Última medición completa:
+  **500/500 tests en Python 3.11** (2026-10-19, tras añadir `evidence.py` y
+  `scripts/preflight.py`); la re-verificación en 3.12 y openai 2.54/3.33
+  queda pendiente.
 - Sintaxis por archivo: `python3 -m py_compile <archivo.py>`.
 - Lint: `ruff check .` (config en `pyproject.toml`; debe quedar en 0 errores).
+- Preflight determinista: `python3 scripts/preflight.py` (AST, offline,
+  read-only) — gates de imports declarados, silencios (`except: pass`),
+  duplicados sustanciales y tareas asyncio sin referencia; integrado en
+  `make check`, en el hook pre-commit y en `make ci`.
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
 - Cobertura: `coverage run --source=. -m unittest discover -s tests && coverage report -m`.
 - Tests honestos offline: `python3 honest_test.py`, `python3 test_systems_honest.py`,
@@ -98,10 +105,11 @@ mejora de código (`code_design_improvement_tools.py`).
 - Evaluación de un proyecto externo (estática, read-only; LLM opt-in):
   `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]
   [--sintesis-llm] [--investigar]` — 6 dimensiones × 4-5 criterios binarios, con
-  evidencia por hallazgo, plan de mejora derivado de las métricas (sitios,
-  esfuerzo, secuencia y verificación) y, opt-in, propuestas de fondo del modelo
-  con control anti-invención y dudas investigadas con fuentes citadas. Informes
-  de ejemplo en `docs/EVALUACIONES.md`.
+  evidencia por hallazgo **marcada por procedencia** (real / sintética / no
+  verificada, según `evidence.py`), plan de mejora derivado de las métricas
+  (sitios, esfuerzo, secuencia y verificación) y, opt-in, propuestas de fondo
+  del modelo con control anti-invención y dudas investigadas con fuentes
+  citadas. Informes de ejemplo en `docs/EVALUACIONES.md`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
@@ -119,16 +127,18 @@ mejora de código (`code_design_improvement_tools.py`).
   La exclusión de `print` usa `do_not_mutate_patterns`, la opción que el motor
   aplica de verdad (la lista `do_not_mutate` no se usa y el pragma
   `# pragma: no mutate` afecta solo a su propia línea). Los tests que importan
-  módulos fuera de `source_paths` (`plugins/` y `evaluar_proyecto.py`) se
-  excluyen de la campaña: sin esa exclusión ni arrancaba (ImportError al
-  colectar en el sandbox); siguen corriendo en `make test`. La cobertura y la
+  módulos fuera de `source_paths` (`plugins/`, `evaluar_proyecto.py`,
+  `evidence.py` y `scripts/`) se excluyen de la campaña: sin esa exclusión no
+  arrancaba (ImportError al colectar en el sandbox); siguen corriendo en
+  `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 78,1%.
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (suite completa en
-  ambos, 3.12 en un venv aislado).
+  ambos para el corte anterior, 3.12 en un venv aislado); el corte de
+  2026-10-19 está verificado por ahora solo en 3.11.
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
-  + py_compile + tests). Instalación: `make hook`.
+  + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.

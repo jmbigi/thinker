@@ -1,8 +1,9 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint test coverage secrets lock sbom vuln-scan mutation check ci hook
+.PHONY: help lint preflight test coverage secrets lock sbom vuln-scan mutation check ci hook
 
 help:
 	@echo "make lint        - ruff check ."
+	@echo "make preflight   - gates deterministas (imports, silencios, duplicados, tareas)"
 	@echo "make test        - suite unittest (stdlib)"
 	@echo "make coverage    - cobertura de los módulos de producción"
 	@echo "make secrets     - escaneo de secretos/datos personales (P0.6/P0.9)"
@@ -16,6 +17,9 @@ help:
 
 lint:
 	ruff check .
+
+preflight:
+	python3 scripts/preflight.py
 
 test:
 	python3 -m unittest discover -s tests -v
@@ -43,7 +47,7 @@ mutation:
 ci:
 	bash scripts/ci.sh
 
-check: lint test secrets ci
+check: lint preflight test secrets ci
 	bash scripts/hooks/pre-commit
 
 hook:

@@ -170,6 +170,26 @@ class TestConfiguracionYaml(PluginRegistryTestCase):
         self.assertFalse(registry.load_plugin("fake_llm"))
 
 
+class TestConfiguracionToml(PluginRegistryTestCase):
+    def setUp(self):
+        super().setUp()
+        self.config_path = self.tmp / "plugins.toml"
+        self.write_config(
+            "[plugins.fake_llm]\n"
+            "enabled = true\n"
+            "[plugins.fake_llm.params]\n"
+            "model = \"modelo-toml\"\n"
+        )
+
+    def test_lee_toml_con_stdlib_sin_dependencia_extra(self):
+        registry = self.discovered_registry()
+
+        self.assertTrue(registry.load_plugin("fake_llm"))
+        self.assertEqual(
+            registry.get_plugin("fake_llm").config.params["model"],
+            "modelo-toml")
+
+
 class TestCicloDeVida(PluginRegistryTestCase):
     def test_load_unload_reload(self):
         registry = self.discovered_registry()

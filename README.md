@@ -97,8 +97,9 @@ report, ctx = ResearchOrchestrator(OpenRouterLLM(), WikipediaSearchAPI()).resear
 ## Verificación
 
 ```bash
-make check                                    # lint + tests + escaneo de secretos + hook
+make check                                    # lint + preflight + tests + secretos + ci + hook
 make lint                                     # ruff check .
+make preflight                                # gates deterministas (imports, silencios, duplicados, tareas)
 make test                                     # suite unittest (stdlib)
 make coverage                                 # cobertura de los módulos de producción
 make secrets                                  # escaneo de secretos/datos personales
@@ -114,6 +115,7 @@ Equivalente sin `make`:
 
 ```bash
 ruff check .
+python3 scripts/preflight.py                  # gates estáticos deterministas (AST, offline)
 python3 -m unittest discover -s tests -v
 coverage run --source=. -m unittest discover -s tests && coverage report -m
 bash scripts/scan-secrets.sh
@@ -123,7 +125,8 @@ python3 scripts/probe_model.py --samples 5    # sonda de latencia del modelo (op
 ```
 
 El hook `.git/hooks/pre-commit` (instalado con `make hook`) ejecuta ruff, el
-escaneo de secretos, `py_compile` y la suite antes de cada commit.
+escaneo de secretos, `py_compile`, el preflight y la suite antes de cada
+commit.
 
 ## Limitaciones conocidas (sin adornos)
 
@@ -141,7 +144,8 @@ escaneo de secretos, `py_compile` y la suite antes de cada commit.
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
 - La suite mata el **78,1%** de los mutantes de `mutmut` (2766/3543, medición
   2026-10-17, excluyendo las líneas `print`, que solo generan mutantes
-  equivalentes): cobertura alta no equivale a tests fuertes.
+  equivalentes): cobertura alta no equivale a tests fuertes. No se re-midió en
+  el corte 2026-10-19: los seis módulos mutados (`source_paths`) no cambiaron.
 
 ## Licencia
 

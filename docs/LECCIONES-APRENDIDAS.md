@@ -1258,3 +1258,47 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   convierte en puntuaciones 0 y demos vacíos); y una rama «defensiva» que no
   puede ocurrir se elimina con su invariante demostrado, no se cubre con un
   test artificial.
+
+### Hallazgo 74: Un 1.000 no mide lo que el instrumento no pregunta — evidencia marcada y preflight determinista
+
+- **Origen**: corte 1 (opción A) autorizado por el programador (2026-10-19)
+  tras revisar cinco mejoras de vanguardia: la autoevaluación daba **GLOBAL
+  1.000** y, sin embargo, no respondía ninguna de las preguntas de esas
+  mejoras (procedencia de la evidencia, imports no declarados, silencios,
+  duplicación, tareas asyncio sueltas). Un 1.000 describe solo lo que el
+  instrumento pregunta.
+- **Solución**:
+  - `evidence.py`: tres tipos de procedencia excluyentes (`verified-real`,
+    `verified-synthetic`, `unverified`) con marcadores estables y regla de
+    promoción: lo real promociona; lo sintético solo con autorización explícita
+    Y justificación no vacía (queda declarado y auditable); lo no verificado
+    nunca promociona. Resumen formateado compartido.
+  - `evaluar_proyecto.py`: cada `Hallazgo` lleva `tipo_evidencia` (real por
+    defecto; `unverified` en «No se pudo comprobar en PyPI» y «Licencia no
+    verificable»); el informe añade la clave `evidencia` y el texto imprime
+    marcadores por hallazgo y la línea `Evidencia: ...`; el digesto del LLM
+    también recibe los marcadores.
+  - `scripts/preflight.py`: gate determinista, offline y read-only por AST —
+    sintaxis, imports declarados en manifiesto (stdlib y locales exentos;
+    alias dotenv/yaml), silencios `except: pass/continue/...`, duplicados
+    sustanciales (>= 60 nodos AST, para no castigar envoltorios) y
+    `asyncio.create_task`/`ensure_future` sin referencia. Integrado en
+    `make check`, hook pre-commit, `make ci` y con tests propios.
+- **Hallazgos reales del gate en el propio repositorio**: (1) `plugins/
+  registry.py` importaba `toml` sin declararlo en ningún manifiesto (fallback
+  de config `.toml`): sustituido por `tomllib` de stdlib y cubierto con un
+  test; (2) `tests/test_evaluar_proyecto.py` duplicaba la fixture `_proyecto`
+  en dos clases: extraída a `tests/helpers.crear_proyecto`. Los envoltorios de
+  plugins comparten boilerplate intencional y quedan por debajo del umbral
+  (documentado en el módulo).
+- **Evidencia**: **500/500 tests** en Python 3.11 (34 nuevos: 15 de
+  `evidence` y 19 de `preflight`, incluido el canario «el repositorio real
+  pasa su propio preflight»), ruff limpio, `python3 scripts/preflight.py` →
+  **OK (0 hallazgos)** sobre el repo, autoevaluación `--ejecutar-tests`
+  **GLOBAL 1.000** con la línea de evidencia impresa, demos offline 0.
+  Mutación no re-medida (los seis módulos de `source_paths` no cambiaron);
+  3.12 y openai 2.54/3.33 pendientes de re-verificación.
+- **Regla derivada**: cada instrumento de calidad solo responde a lo que
+  pregunta: junto a la nota global debe publicarse SIEMPRE la procedencia de
+  la evidencia y lo que no se verificó; y un gate determinista nuevo se valida
+  sobre el propio repositorio (test canario) antes de exigírselo a terceros.

@@ -21,9 +21,12 @@ else
 fi
 
 echo "[ci] py_compile"
-for f in *.py tests/*.py; do
+for f in *.py tests/*.py scripts/*.py; do
     python3 -m py_compile "$f"
 done
+
+echo "[ci] preflight"
+python3 scripts/preflight.py
 
 echo "[ci] unittest (copia limpia, sin red)"
 python3 -m unittest discover -s tests -q
