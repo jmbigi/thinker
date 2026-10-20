@@ -1558,3 +1558,42 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: todo proyecto que declare scripts de consola o
   empaquetado debe probar la instalación en un venv limpio y la llamada
   desde OTRO directorio; «declarado en pyproject» no es «instalable».
+
+
+### Hallazgo 83: Un paquete raíz llamado `tests` en site-packages colisiona con cualquier otro proyecto
+
+- **Origen**: revisión post-empaquetado (2026-10-20, aprobada por el
+  programador): `pip install .` instalaba `tests` y `tests.benchmarks` como
+  paquetes de nivel raíz en site-packages solo para dar servicio al console
+  script `bench`.
+- **Problema**: `tests` es un nombre raíz genérico: si otro paquete instalado
+  hace lo mismo (práctica desaconsejada pero habitual), ambos se pisan en
+  site-packages y el import resuelve al equivocado. La guía de empaquetado de
+  PyPA desaconseja instalar paquetes raíz con nombres genéricos.
+- **Solución**: `tests` y `tests.benchmarks` fuera de `[tool.setuptools]
+  packages` y el console script `bench` eliminado; el benchmark se ejecuta
+  desde el repo con `python3 -m tests.benchmarks.run_bench` (forma ya
+  documentada en `docs/REFERENCIAS-IA.md`). `scripts` SÍ se queda instalado:
+  `evaluar_proyecto.py` importa `scripts.preflight` (dependencia dura
+  verificada con grep), quitarlo rompería `h6_imports_declarados` en la
+  instalación.
+- **Evidencia**: reinstalación en venv limpio (Python 3.12.3): `import tests`
+  ya NO resuelve desde otro directorio (0 entradas `tests/` en el RECORD del
+  dist-info), `from scripts.preflight import cargar_modulos, revisar_imports`
+  SÍ funciona, `evaluate-project /tmp/proyecto_ajeno --sin-red` sigue
+  detectando los defectos plantados (GLOBAL 0.344) y `python3 -m
+  tests.benchmarks.run_bench --list` funciona desde el repo. Suite 524/524,
+  ruff 0, preflight 0, autoevaluación con red GLOBAL 1.000.
+- **Incidente honesto**: la PRIMERA reinstalación siguió mostrando `tests`
+  importable: setuptools reutilizó el `build/lib` y el `.egg-info` de la
+  compilación anterior (artefactos stale: `build_py` copia lo nuevo pero NO
+  elimina paquetes retirados). Lo cazó la propia verificación (import desde
+  otro cwd + inspección del RECORD). Solución: apartar los artefactos
+  regenerables a `/tmp` (movidos, no borrados — P0.3) y recompilar.
+- **Regla derivada**: al empaquetar, cada paquete raíz instalado debe
+  justificar su nombre (¿colisionaría en site-packages?) y cada console
+  script debe justificar su existencia (¿el mismo resultado se obtiene con
+  `python3 -m ...` desde el repo?). Lo que solo sirve para desarrollo no se
+  instala. Y tras cambiar `packages`/`py-modules`, la verificación de la
+  instalación solo es válida partiendo de artefactos de build limpios:
+  setuptools no limpia `build/` entre compilaciones.

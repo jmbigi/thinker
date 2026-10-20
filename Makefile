@@ -1,5 +1,5 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint preflight test coverage secrets lock sbom vuln-scan mutation check ci hook
+.PHONY: help lint preflight test coverage secrets lock sbom vuln-scan mutation check ci hook install
 
 help:
 	@echo "make lint        - ruff check ."
@@ -14,6 +14,7 @@ help:
 	@echo "make ci          - CI local: verifica una copia limpia de HEAD"
 	@echo "make check       - todo lo anterior + hook pre-commit"
 	@echo "make hook        - instala el hook pre-commit de git"
+	@echo "make install     - instala el paquete (pip install .) con sus comandos"
 
 lint:
 	ruff check .
@@ -54,3 +55,6 @@ hook:
 	cp scripts/hooks/pre-commit .git/hooks/pre-commit
 	chmod +x .git/hooks/pre-commit
 	@echo "hook instalado en .git/hooks/pre-commit"
+
+install:
+	python3 -m pip install .

@@ -23,8 +23,10 @@ local = ["ollama>=0.3"]
 # ruff 0.6+, coverage 7+, mutmut 3+ (pruebas de mutación) y pytest (lo usa mutmut).
 dev = ["ruff>=0.6", "coverage>=7.0", "mutmut>=3.0", "pytest>=8.0"]
 
+[project.urls]
+Repository = "https://github.com/jmbigi/thinker"
+
 [project.scripts]
-bench = "tests.benchmarks.run_bench:main"
 think = "pensamiento_layer:main"
 research = "deep_research_system:main"
 code-design = "code_design_improvement_tools:main"
@@ -33,7 +35,11 @@ evaluate-project = "evaluar_proyecto:main"
 # Flat-layout con varios módulos de nivel raíz: el auto-descubrimiento de
 # setuptools lo rechaza, así que se declaran explícitos (guía oficial de
 # package discovery). `scripts` y los subpaquetes de plugins no llevan
-# __init__.py: se instalan como namespace packages (PEP 420).
+# __init__.py: se instalan como namespace packages (PEP 420). `scripts` se
+# instala porque el evaluador lo importa (`scripts.preflight`); `tests` NO se
+# instala: un paquete raíz llamado `tests` en site-packages colisiona con
+# cualquier otro proyecto que haga lo mismo — el benchmark se ejecuta desde
+# el repo: `python3 -m tests.benchmarks.run_bench` (Hallazgo 83).
 [tool.setuptools]
 py-modules = [
     "code_design_improvement_tools",
@@ -50,8 +56,6 @@ packages = [
     "plugins.llm_providers",
     "plugins.search_providers",
     "scripts",
-    "tests",
-    "tests.benchmarks",
 ]
 
 [tool.ruff]

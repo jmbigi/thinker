@@ -165,12 +165,15 @@ mejora de código (`code_design_improvement_tools.py`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,
-  `code-design`, `bench`. Módulos públicos importables: los 8 del núcleo
+  `code-design`. Módulos públicos importables: los 8 del núcleo
   (`deep_research_system`, `pensamiento_layer`, `code_design_improvement_tools`,
   `thinking_engine`, `llm_providers`, `web_search`, `evaluar_proyecto`,
-  `evidence`) + paquetes `plugins`, `scripts`, `tests.benchmarks`
-  (declarados explícitos en `[tool.setuptools]`: el flat-layout con varios
-  módulos raíz rompe el auto-descubrimiento). Verificado end-to-end: venv
+  `evidence`) + paquetes `plugins` y `scripts` (este último porque el
+  evaluador importa `scripts.preflight`). `tests` no se instala (colisión de
+  nombre raíz en site-packages): el benchmark se ejecuta desde el repo con
+  `python3 -m tests.benchmarks.run_bench` (Hallazgo 83). Los paquetes se
+  declaran explícitos en `[tool.setuptools]`: el flat-layout con varios
+  módulos raíz rompe el auto-descubrimiento. Verificado end-to-end: venv
   limpio, llamadas desde otro directorio (Hallazgo 82).
 - CI local (sin nube): `make ci` / `bash scripts/ci.sh` — exporta HEAD a una
   copia limpia y verifica allí (detecta dependencias de archivos no versionados).

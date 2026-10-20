@@ -36,6 +36,7 @@ benchmark_*/
 # Scripts locales de depuración (no forman parte del proyecto)
 _local_debug/
 
-# Artefactos de empaquetado setuptools (generados por `pip install .`)
+# Artefactos de empaquetado setuptools (generados por `pip install .` / `python -m build`)
 build/
+dist/
 *.egg-info/

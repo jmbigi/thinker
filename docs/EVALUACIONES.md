@@ -81,6 +81,13 @@ ya en openai 3.35.1: **GLOBAL 1.000**, `no_verificado` vacío y «nada que
 proponer» (`python3 evaluar_proyecto.py . --ejecutar-tests`), `make vuln-scan`
 sin vulnerabilidades y OpenRouter real 3/3 (Hallazgo 81).
 
+**Actualización 2026-10-20 (post-empaquetado — Hallazgo 82)**: tras hacer el
+proyecto instalable (`pip install .`, comando `evaluate-project`), la
+autoevaluación con red sigue en **GLOBAL 1.000**, `no_verificado` vacío y «nada
+que proponer» (`python3 evaluar_proyecto.py . --ejecutar-tests`). El
+empaquetado no cambió ningún criterio: el manifiesto (`pyproject.toml`) ya
+declaraba las dependencias y `h1`/`v1` lo leen igual.
+
 **Actualización 2026-10-17 (cobertura y mutación — Hallazgo 73)**: de nuevo
 **GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío. Evidencia:
 463/463 tests en 5 entornos (3.11/3.12; openai 1.109.1/2.54.0/3.33.0),

@@ -80,10 +80,11 @@ from web_search import MockSearchAPI            # + Wikipedia/DuckDuckGo
 
 Notas honestas: el registro de plugins usa rutas relativas por defecto
 (`plugins/`, `config/plugins.yaml`); desde otro proyecto pasa `plugin_dirs` y
-`config_path` explícitos a `PluginRegistry`. Los paquetes instalados
-`scripts` y `tests.benchmarks` existen para `preflight` (lo usa el evaluador)
-y el script `bench`; tenlo en cuenta si tu proyecto ya instala paquetes con
-esos nombres.
+`config_path` explícitos a `PluginRegistry`. El paquete instalado `scripts`
+existe porque el evaluador importa `scripts.preflight`; tenlo en cuenta si tu
+proyecto ya instala un paquete con ese nombre. `tests` no se instala (un
+`tests` raíz en site-packages colisionaría con otros proyectos): el benchmark
+se ejecuta desde el repo con `python3 -m tests.benchmarks.run_bench`.
 
 ## Uso rápido — modo demo offline (sin red ni API keys)
 
