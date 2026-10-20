@@ -77,8 +77,9 @@ mejora de código (`code_design_improvement_tools.py`).
 
 - SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
-  hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0 y
-  3.33.0** (canario en `tests/test_openai_compatibilidad.py`). Tras el corte 3
+  hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0,
+  3.33.0 y 3.35.1** (canario en `tests/test_openai_compatibilidad.py`;
+  3.35.1 verificado el 2026-10-20 con 524/524 en 3.11 y 3.12). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -89,7 +90,9 @@ mejora de código (`code_design_improvement_tools.py`).
   duplicados sustanciales y tareas asyncio sin referencia; integrado en
   `make check`, en el hook pre-commit y en `make ci`.
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
-- Cobertura: `coverage run --source=. -m unittest discover -s tests && coverage report -m`.
+- Cobertura: `python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m coverage report -m`
+  (como módulo, no el binario suelto del PATH: en esta máquina el `coverage`
+  del PATH es del Python 3.10 de Blender y da errores falsos — Hallazgo 79).
 - Tests honestos offline: `python3 honest_test.py`, `python3 test_systems_honest.py`,
   `python3 test_kilo_integration.py`, `python3 test_env_usage.py`.
 - Demos offline: `python3 deep_research_system.py`, `python3 pensamiento_layer.py`,
@@ -126,11 +129,11 @@ mejora de código (`code_design_improvement_tools.py`).
   consenso): **79,8% (3022/3789; 0 timeouts, 0 sospechosos, 0 sin ejecutar)**.
   Re-medición 2026-10-20 (Hallazgo 80, tras los criterios nuevos del
   evaluador, que NO tocan los módulos mutados): **78,0% (2957/3789;
-  0 timeouts, 0 sospechosos, 0 sin ejecutar)**, estable en dos pasadas
-  completas el mismo día. Delta de −65 muertos con fuentes y configuración
-  de campaña idénticas (`llm_providers` clavado: 98 supervivientes ambos
-  días; la variación se concentra en `deep_research_system`, +39): causa NO
-  determinada — se declara, no se inventa (P0.2); ver Hallazgo 80.
+  0 timeouts, 0 sospechosos, 0 sin ejecutar)**, reproducible en 3 pasadas
+  completas y con dos versiones de openai (3.33.0 y 3.35.1: mismo conteo).
+  Delta de −65 muertos respecto a la medición de 2026-10-19, hecha con el
+  entorno aún sin alinear al lock (Hallazgo 77) y no reproducible a
+  posteriori: causa declarada como NO determinada — ver Hallazgo 80.
   El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
@@ -152,7 +155,8 @@ mejora de código (`code_design_improvement_tools.py`).
   deriva declarada en el Hallazgo 80).
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (**524/524 en ambos**;
   3.12.3 en venv aislado recreado desde `requirements.lock` el 2026-10-20);
-  openai verificado en 1.109.1, 2.54.0 y 3.33.0.
+  openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1 (lock en 3.35.1 desde
+  2026-10-20).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,

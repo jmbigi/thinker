@@ -76,7 +76,10 @@ Autoevaluación con los criterios nuevos en OK: `python3 evaluar_proyecto.py .
 por `v4`, como siempre sin red). Suite: 524/524. Mutación re-medida el mismo
 día: **78,0%** (2957/3789; 0 timeouts, 0 sospechosos, 0 sin ejecutar), con un
 delta de −65 muertos respecto a la del 2026-10-19 a fuentes idénticas — causa
-no determinada, declarada en el Hallazgo 80.
+no determinada, declarada en el Hallazgo 80. Ese mismo día, con red y el lock
+ya en openai 3.35.1: **GLOBAL 1.000**, `no_verificado` vacío y «nada que
+proponer» (`python3 evaluar_proyecto.py . --ejecutar-tests`), `make vuln-scan`
+sin vulnerabilidades y OpenRouter real 3/3 (Hallazgo 81).
 
 **Actualización 2026-10-17 (cobertura y mutación — Hallazgo 73)**: de nuevo
 **GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío. Evidencia:
