@@ -73,7 +73,10 @@ veredicto). Aplicarlos al propio repo halló 3 tests sin aserciones en
 comentario que contradecía el comportamiento por diseño del registro de plugins).
 Autoevaluación con los criterios nuevos en OK: `python3 evaluar_proyecto.py .
 --sin-red --ejecutar-tests` (calidad y herramientas 1.00; vigencia 0.75 offline
-por `v4`, como siempre sin red). Suite: 524/524.
+por `v4`, como siempre sin red). Suite: 524/524. Mutación re-medida el mismo
+día: **78,0%** (2957/3789; 0 timeouts, 0 sospechosos, 0 sin ejecutar), con un
+delta de −65 muertos respecto a la del 2026-10-19 a fuentes idénticas — causa
+no determinada, declarada en el Hallazgo 80.
 
 **Actualización 2026-10-17 (cobertura y mutación — Hallazgo 73)**: de nuevo
 **GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío. Evidencia:

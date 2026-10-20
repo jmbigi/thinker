@@ -1409,7 +1409,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   un NO del evaluador en modo `--sin-red` sobre un criterio que exige red se
   lee como «no verificado», no como «por detrás».
 
-## 2026-10-20 (ronda 15) — El evaluador pregunta más: imports declarados, tests que pueden fallar y decisiones registradas (hallazgos 78–79)
+## 2026-10-20 (ronda 15) — El evaluador pregunta más: imports declarados, tests que pueden fallar y decisiones registradas (hallazgos 78–80)
 
 ### Hallazgo 78: Añadir un criterio al evaluador halla defectos propios — y el instrumento se aplica a sí mismo desde el primer commit
 
@@ -1460,3 +1460,29 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `python3 -m <herramienta>` (coverage, pip, ruff si aplica) para garantizar
   el intérprete correcto; un binario suelto del PATH es una afirmación no
   verificada sobre QUÉ Python lo respalda.
+
+### Hallazgo 80: La tasa de mutación puede moverse SIN cambiar las fuentes — publicar fecha, conteo crudo y varianza
+
+- **Origen**: re-medición de la campaña mutmut el 2026-10-20 (autorizada por
+  el programador) tras los criterios nuevos del evaluador, que NO tocan
+  ninguno de los seis módulos de `source_paths` ni los tests de la campaña
+  (`tests/test_evaluar_proyecto.py` está en la lista de exclusión).
+- **Medición**: **78,0% (2957/3789; 0 timeouts, 0 sospechosos, 0 sin
+  ejecutar)**, dos pasadas completas el mismo día con el mismo resultado
+  (832 supervivientes en ambas). La cifra documentada del 2026-10-19 era
+  79,8% (3022/3789): −65 muertos con fuentes y configuración idénticas.
+  Desglose: `llm_providers` clavado (98 supervivientes ambos días); la
+  variación se concentra en `deep_research_system` (273 → 312
+  supervivientes, +39).
+- **Diagnóstico**: causa NO determinada. Descartado: cambio de fuentes (git
+  diff vacío en los seis módulos), cambio de configuración (`pyproject.toml`
+  intacto), cambio en los tests de la campaña (exclusiones intactas), y
+  aleatoriedad evidente en los tests (solo un `random.uniform` y va
+  parcheado). Quedan como hipótesis sin probar: sensibilidad al entorno de
+  ejecución (carga de la máquina, orden de pytest) o un método de conteo
+  distinto el 2026-10-19 (no reproducible a posteriori). Se declara la
+  deriva en vez de inventarle una explicación (P0.2).
+- **Regla derivada**: toda cifra de mutación publicada lleva fecha y conteo
+  crudo (muertos/total), y una re-medición que difiera con fuentes
+  idénticas se reporta como DERIVA con su desglose por módulo — nunca se
+  «ajusta» la cifra anterior ni se maquilla la nueva.

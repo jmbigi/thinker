@@ -124,6 +124,13 @@ mejora de código (`code_design_improvement_tools.py`).
   0 sospechosos, 0 sin ejecutar)** con la misma exclusión de `print`.
   Re-medición 2026-10-19 (Hallazgo 76, tras los pilotos de congelación y
   consenso): **79,8% (3022/3789; 0 timeouts, 0 sospechosos, 0 sin ejecutar)**.
+  Re-medición 2026-10-20 (Hallazgo 80, tras los criterios nuevos del
+  evaluador, que NO tocan los módulos mutados): **78,0% (2957/3789;
+  0 timeouts, 0 sospechosos, 0 sin ejecutar)**, estable en dos pasadas
+  completas el mismo día. Delta de −65 muertos con fuentes y configuración
+  de campaña idénticas (`llm_providers` clavado: 98 supervivientes ambos
+  días; la variación se concentra en `deep_research_system`, +39): causa NO
+  determinada — se declara, no se inventa (P0.2); ver Hallazgo 80.
   El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
@@ -140,8 +147,9 @@ mejora de código (`code_design_improvement_tools.py`).
   `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
-  muertas eliminadas) y la mutación global es 79,8% (3022/3789, re-medición
-  2026-10-19).
+  muertas eliminadas) y la mutación global es 78,0% (2957/3789, re-medición
+  2026-10-20; la de 2026-10-19 daba 79,8% (3022/3789) con fuentes idénticas:
+  deriva declarada en el Hallazgo 80).
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (**524/524 en ambos**;
   3.12.3 en venv aislado recreado desde `requirements.lock` el 2026-10-20);
   openai verificado en 1.109.1, 2.54.0 y 3.33.0.
