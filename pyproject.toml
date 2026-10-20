@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "thinker"
 version = "0.1.0"
@@ -24,6 +28,31 @@ bench = "tests.benchmarks.run_bench:main"
 think = "pensamiento_layer:main"
 research = "deep_research_system:main"
 code-design = "code_design_improvement_tools:main"
+evaluate-project = "evaluar_proyecto:main"
+
+# Flat-layout con varios módulos de nivel raíz: el auto-descubrimiento de
+# setuptools lo rechaza, así que se declaran explícitos (guía oficial de
+# package discovery). `scripts` y los subpaquetes de plugins no llevan
+# __init__.py: se instalan como namespace packages (PEP 420).
+[tool.setuptools]
+py-modules = [
+    "code_design_improvement_tools",
+    "deep_research_system",
+    "evaluar_proyecto",
+    "evidence",
+    "llm_providers",
+    "pensamiento_layer",
+    "thinking_engine",
+    "web_search",
+]
+packages = [
+    "plugins",
+    "plugins.llm_providers",
+    "plugins.search_providers",
+    "scripts",
+    "tests",
+    "tests.benchmarks",
+]
 
 [tool.ruff]
 target-version = "py311"

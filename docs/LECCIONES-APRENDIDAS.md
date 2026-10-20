@@ -1409,7 +1409,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   un NO del evaluador en modo `--sin-red` sobre un criterio que exige red se
   lee como «no verificado», no como «por detrás».
 
-## 2026-10-20 (ronda 15) — El evaluador pregunta más: imports declarados, tests que pueden fallar y decisiones registradas (hallazgos 78–81)
+## 2026-10-20 (ronda 15) — El evaluador pregunta más: imports declarados, tests que pueden fallar y decisiones registradas (hallazgos 78–82)
 
 ### Hallazgo 78: Añadir un criterio al evaluador halla defectos propios — y el instrumento se aplica a sí mismo desde el primer commit
 
@@ -1520,3 +1520,41 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   estado por el propio cierre (subir openai ⇒ re-correr la autoevaluación con
   red, porque `v4` depende de la versión fijada); y toda prueba opt-in que no
   puede correr se reporta como OMITIDA, nunca como verde.
+
+### Hallazgo 82: Paquete instalable y callable desde otros proyectos — el flat-layout exige declarar py-modules y packages explícitos
+
+- **Origen**: petición del programador (2026-10-20): que el proyecto evalúe y
+  recomiende a otros proyectos Y que otros proyectos puedan llamarlo y usar
+  sus funcionalidades, investigando primero en internet.
+- **Investigación**: la guía oficial de setuptools sobre [package
+  discovery](https://setuptools.pypa.io/en/latest/userguide/package_discovery.html)
+  confirma que el flat-layout con varios módulos/paquetes de nivel raíz hace
+  que el auto-descubrimiento SE NIEGUE a empaquetar («multiple top-level
+  packages/modules»); la práctica estándar es declarar `py-modules` y
+  `packages` explícitos en `[tool.setuptools]`.
+- **Estado previo real**: `pyproject.toml` ya tenía `[project]` con scripts de
+  consola (`think`, `research`, `code-design`, `bench`), pero SIN
+  `[build-system]` ni declaración de módulos: el empaquetado nunca se había
+  probado de verdad (declarado ≠ verificado, P0.1).
+- **Solución**: `[build-system]` (setuptools>=77), `py-modules` con los 8
+  módulos del núcleo, `packages` con `plugins*`/`scripts`/`tests.benchmarks`
+  (los subpaquetes sin `__init__.py` se instalan como namespace packages PEP
+  420) y el script de consola nuevo `evaluate-project =
+  evaluar_proyecto:main`. README documenta el uso como librería y como
+  herramienta, incluida la nota honesta de que `PluginRegistry` usa rutas
+  relativas por defecto (desde otro proyecto se pasan `plugin_dirs` y
+  `config_path` explícitos).
+- **Evidencia end-to-end**: `pip install .` en venv limpio (Python 3.12.3);
+  desde `/tmp` (otro cwd): `evaluate-project /tmp/proyecto_ajeno --sin-red`
+  evalúa y detecta los defectos plantados (h6 import sin declarar, c5 test
+  vacío, h7 sin registro de decisiones — GLOBAL 0.344 con 19 propuestas);
+  imports de librería `evaluar()`, `DeepResearchThinkingLayer.think()` y
+  `ResearchOrchestrator.research()` funcionan offline con mocks; `think` como
+  comando funciona. Suite 524/524, ruff 0, preflight 0 tras el cambio.
+- **Incidente honesto**: el primer intento de prueba de librería usó
+  `PensamientoLayer`, nombre INVENTADO (la clase real es
+  `DeepResearchThinkingLayer`): ImportError inmediato. Regla reforzada: ni
+  en una prueba rápida se escribe un nombre de API sin grep previo (P0.2).
+- **Regla derivada**: todo proyecto que declare scripts de consola o
+  empaquetado debe probar la instalación en un venv limpio y la llamada
+  desde OTRO directorio; «declarado en pyproject» no es «instalable».

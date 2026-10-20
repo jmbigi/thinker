@@ -50,6 +50,41 @@ python3 -m pip install --require-hashes -r requirements.lock
 pip install -r requirements.txt
 ```
 
+## Uso desde otros proyectos (paquete instalable)
+
+`thinker` es un paquete pip instalable: otros proyectos pueden usarlo como
+librería o como herramienta de consola.
+
+```bash
+pip install .                                  # desde una copia del repo
+pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
+```
+
+Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
+estática y read-only):
+
+```bash
+evaluate-project RUTA_DEL_PROYECTO --sin-red   # añade --ejecutar-tests (opt-in)
+```
+
+Como **librería** (los módulos públicos quedan importables):
+
+```python
+from evaluar_proyecto import evaluar            # evaluar un proyecto: dict completo
+from pensamiento_layer import DeepResearchThinkingLayer
+from deep_research_system import ResearchOrchestrator
+from code_design_improvement_tools import CodeImprovementOrchestrator
+from llm_providers import MockLLM               # + OpenRouterLLM, OllamaLLM...
+from web_search import MockSearchAPI            # + Wikipedia/DuckDuckGo
+```
+
+Notas honestas: el registro de plugins usa rutas relativas por defecto
+(`plugins/`, `config/plugins.yaml`); desde otro proyecto pasa `plugin_dirs` y
+`config_path` explícitos a `PluginRegistry`. Los paquetes instalados
+`scripts` y `tests.benchmarks` existen para `preflight` (lo usa el evaluador)
+y el script `bench`; tenlo en cuenta si tu proyecto ya instala paquetes con
+esos nombres.
+
 ## Uso rápido — modo demo offline (sin red ni API keys)
 
 ```bash
