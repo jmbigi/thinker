@@ -142,10 +142,9 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 79,8% (3022/3789, re-medición
   2026-10-19).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (3.11: **524/524**,
-  medido 2026-10-20 tras los criterios nuevos del evaluador; 3.12: 517/517 en
-  venv aislado, medición del 2026-10-19 anterior a esos 7 tests); openai
-  verificado en 1.109.1, 2.54.0 y 3.33.0.
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**524/524 en ambos**;
+  3.12.3 en venv aislado recreado desde `requirements.lock` el 2026-10-20);
+  openai verificado en 1.109.1, 2.54.0 y 3.33.0.
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
