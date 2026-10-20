@@ -47,6 +47,11 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertTrue(any("silencios detectados: 1" in nota
                             for nota in dims["calidad"]["notas"]))
 
+        # La fixture planta un test sin aserciones (`def test_algo(): pass`).
+        self.assertFalse(dims["calidad"]["criterios"]["c5_tests_con_aserciones"])
+        self.assertTrue(any("tests/test_app.py:1" in h["evidencia"]
+                            for h in dims["calidad"]["hallazgos"]))
+
         self.assertFalse(dims["vigencia"]["criterios"]["v1_dependencias_fijadas"])
         self.assertTrue(any("pandas" in h["descripcion"]
                             for h in dims["vigencia"]["hallazgos"]))
@@ -245,6 +250,93 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
             evaluar(Path("/ruta/que/no/existe"), con_red=False)
 
 
+class TestCriteriosAnadidos(unittest.TestCase):
+    """h6 (imports declarados), c5 (tests con aserciones) y h7 (decisiones)."""
+
+    def test_h6_detecta_import_de_terceros_sin_declarar(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import numpy\n\n\ndef main():\n    return numpy\n",
+            "requirements.txt": "requests==2.31.0\n",
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertFalse(herramientas["criterios"]["h6_imports_declarados"])
+        self.assertTrue(any("app.py:1" in h["evidencia"] and "numpy" in h["descripcion"]
+                            for h in herramientas["hallazgos"]))
+        self.assertTrue(any(m["criterio"] == "h6_imports_declarados"
+                            for m in evaluar(raiz, con_red=False)["mejoras"]))
+
+    def test_h6_pasa_con_el_import_declarado(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import numpy\n",
+            "requirements.txt": "numpy==1.26.0\n",
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+
+    def test_h6_stdlib_y_modulos_locales_no_necesitan_declaracion(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import json\nimport helper\n",
+            "helper.py": "X = 1\n",
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+
+    def test_c5_test_con_asserts_o_raises_pasa(self):
+        raiz = crear_proyecto(self, {
+            "tests/test_bien.py": ("import unittest\n\n\n"
+                                   "class T(unittest.TestCase):\n"
+                                   "    def test_uno(self):\n"
+                                   "        self.assertEqual(1, 1)\n"
+                                   "    def test_dos(self):\n"
+                                   "        with self.assertRaises(ValueError):\n"
+                                   "            raise ValueError\n"),
+        })
+
+        calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
+
+        self.assertTrue(calidad["criterios"]["c5_tests_con_aserciones"])
+
+    def test_c5_test_vacio_o_sin_asercion_falla_con_evidencia(self):
+        raiz = crear_proyecto(self, {
+            "tests/test_debil.py": ("def test_vacio():\n"
+                                    "    pass\n\n\n"
+                                    "def test_imprime():\n"
+                                    "    print(1 + 1)\n"),
+        })
+
+        calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
+
+        self.assertFalse(calidad["criterios"]["c5_tests_con_aserciones"])
+        evidencias = [h["evidencia"] for h in calidad["hallazgos"]]
+        self.assertTrue(any("tests/test_debil.py:1" in e for e in evidencias))
+        self.assertTrue(any("tests/test_debil.py:5" in e for e in evidencias))
+
+    def test_h7_sin_registro_de_decisiones_falla(self):
+        raiz = crear_proyecto(self, {"app.py": "x = 1\n"})
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertFalse(herramientas["criterios"]["h7_decisiones_documentadas"])
+        self.assertTrue(any("registro de decisiones" in h["descripcion"]
+                            for h in herramientas["hallazgos"]))
+
+    def test_h7_con_doc_de_lecciones_o_decision_log_pasa(self):
+        con_doc = crear_proyecto(self, {"app.py": "x = 1\n",
+                                        "docs/LECCIONES.md": "# lecciones\n"})
+        con_log = crear_proyecto(self, {"app.py": "decision_log = []\n"})
+
+        self.assertTrue(evaluar(con_doc, con_red=False)["dimensiones"]["herramientas"]
+                        ["criterios"]["h7_decisiones_documentadas"])
+        self.assertTrue(evaluar(con_log, con_red=False)["dimensiones"]["herramientas"]
+                        ["criterios"]["h7_decisiones_documentadas"])
+
+
 class TestEjecucionDeTestsYLicencias(unittest.TestCase):
     """Ejecución opt-in del comando DECLARADO y licencias de dependencias."""
 
@@ -378,6 +470,10 @@ class TestAutoevaluacionDeThinker(unittest.TestCase):
         self.assertTrue(dims["calidad"]["criterios"]["c2_linter_configurado"])
         self.assertTrue(dims["inteligencia"]["criterios"]["i1_cachea_trabajo_repetido"])
         self.assertTrue(dims["inteligencia"]["criterios"]["i2_timeouts_explicitos"])
+        # Los criterios añadidos (2026-10-20) también se exigen a uno mismo:
+        self.assertTrue(dims["herramientas"]["criterios"]["h6_imports_declarados"])
+        self.assertTrue(dims["herramientas"]["criterios"]["h7_decisiones_documentadas"])
+        self.assertTrue(dims["calidad"]["criterios"]["c5_tests_con_aserciones"])
 
     def test_autoevaluacion_no_escribe_en_el_repo(self):
         antes = {p: p.stat().st_mtime_ns for p in RAIZ_THINKER.rglob("*.py")}

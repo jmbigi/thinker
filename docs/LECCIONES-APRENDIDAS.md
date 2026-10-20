@@ -1408,3 +1408,55 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   (`pip install --require-hashes` es idempotente: sirve como verificación); y
   un NO del evaluador en modo `--sin-red` sobre un criterio que exige red se
   lee como «no verificado», no como «por detrás».
+
+## 2026-10-20 (ronda 15) — El evaluador pregunta más: imports declarados, tests que pueden fallar y decisiones registradas (hallazgos 78–79)
+
+### Hallazgo 78: Añadir un criterio al evaluador halla defectos propios — y el instrumento se aplica a sí mismo desde el primer commit
+
+- **Origen**: petición de mejorar la evaluación de proyectos ajenos en
+  decisiones, requerimientos, coherencia y consistencia. Se añadieron tres
+  criterios a `evaluar_proyecto.py`: `h6_imports_declarados` (reutiliza el
+  gate AST de `scripts/preflight.py`: cada import de terceros debe estar en
+  el manifiesto — cierra el límite declarado «solo se ven dependencias
+  declaradas», con la salvedad de los imports dinámicos, que se declara),
+  `c5_tests_con_aserciones` (AST: toda función `test_*` debe poder fallar;
+  regla propia 4) y `h7_decisiones_documentadas` (señal estructural:
+  ADR/lecciones/CHANGELOG/`decision_log`; se declara NO veredicto).
+- **Diagnóstico**: el criterio nuevo, aplicado al propio repo, encontró 3
+  tests sin aserciones en `test_plugin_system.py` (`test_hot_reload`,
+  `test_dashboard`, `test_config_loading`): imprimían estado pero no podían
+  fallar. Uno llevaba un comentario que contradecía el comportamiento real
+  («usage should reset» cuando `registry.py` comparte la metadata con la
+  instancia para que las estadísticas SOBREVIVAN la recarga — por diseño,
+  línea de `instance.metadata = entry.metadata`): se asertó la invariante
+  real y se corrigió el comentario (P1.10). Además, el primer borrador del
+  propio criterio c5 violó P1.26 (`except SyntaxError: continue` silencioso)
+  y lo cazó `preflight` en la misma sesión: ahora los archivos de test que
+  no parsean se devuelven y se declaran en el informe, no se saltan en
+  silencio.
+- **Evidencia**: 524/524 tests (7 nuevos), ruff 0, preflight 0, demo
+  `test_plugin_system.py` en verde, autoevaluación con los tres criterios en
+  OK (`python3 evaluar_proyecto.py . --sin-red --ejecutar-tests`) y 7 tests
+  nuevos que plantan cada defecto en una fixture (import no declarado,
+  import declarado, stdlib/local sin declarar, test con `assert`/`raises`,
+  tests vacío y de solo impresión, sin registro de decisiones, con
+  LECCIONES/`decision_log`).
+- **Regla derivada**: todo criterio nuevo del evaluador se exige de
+  inmediato al propio repo en `TestAutoevaluacionDeThinker` (quien mide debe
+  quedar medido); y un comentario que afirma un comportamiento es una
+  afirmación sujeta a P0.1: se verifica ejecutando antes de convertirlo en
+  aserción.
+
+### Hallazgo 79 (ambiental): el binario `coverage` del PATH puede no ser del intérprete del proyecto
+
+- **Origen**: al medir cobertura el 2026-10-20, `coverage run --source=. -m
+  unittest discover -s tests` (la forma documentada) colectó solo 453 tests
+  con 27 errores falsos (`patch("openai.OpenAI")` fallaba).
+- **Diagnóstico**: el binario `coverage` del PATH pertenece al Python 3.10
+  empaquetado con Blender (`/opt/blender/...`), sin las dependencias del
+  proyecto. No era una regresión: con `python3 -m coverage` (mismo
+  intérprete que la suite) los 524 tests pasan y la cobertura es la real.
+- **Regla derivada**: las herramientas Python se invocan como
+  `python3 -m <herramienta>` (coverage, pip, ruff si aplica) para garantizar
+  el intérprete correcto; un binario suelto del PATH es una afirmación no
+  verificada sobre QUÉ Python lo respalda.

@@ -8,7 +8,7 @@ siempre con el **comando que el propio proyecto declara** (target `test:` del
 Makefile → comando citado en su script/README → convención `unittest discover` si
 existe `tests/`), con timeout y salida capturada.
 
-Criterios: 6 dimensiones × 4-5 criterios binarios (hasta 26), según lo que aplique.
+Criterios: 6 dimensiones × 3-7 criterios binarios (hasta 30), según lo que aplique.
 Puntuación de dimensión = criterios cumplidos / criterios evaluados; global = media.
 
 ## Qué produce, en capas
@@ -63,6 +63,17 @@ evaluador resultó útil como control: una primera pasada quedó en 0.925 porque
 `v4_dependencias_al_dia` sin verificar (no verificado ⇒ fallo, coherente con
 P0.1). Corregido el patrón y re-ejecutado con red: 1.000. Evidencia:
 `python3 evaluar_proyecto.py . --ejecutar-tests`.
+
+**Actualización 2026-10-20 (tres criterios nuevos — Hallazgo 78)**: el evaluador
+añade `h6_imports_declarados` (imports de terceros deben estar en el manifiesto;
+gate AST reutilizado de `scripts/preflight.py`), `c5_tests_con_aserciones` (toda
+función `test_*` debe poder fallar) y `h7_decisiones_documentadas` (señal, no
+veredicto). Aplicarlos al propio repo halló 3 tests sin aserciones en
+`test_plugin_system.py` (corregidos con aserciones reales; uno llevaba un
+comentario que contradecía el comportamiento por diseño del registro de plugins).
+Autoevaluación con los criterios nuevos en OK: `python3 evaluar_proyecto.py .
+--sin-red --ejecutar-tests` (calidad y herramientas 1.00; vigencia 0.75 offline
+por `v4`, como siempre sin red). Suite: 524/524.
 
 **Actualización 2026-10-17 (cobertura y mutación — Hallazgo 73)**: de nuevo
 **GLOBAL 1.000**, sin plan de mejora y `no_verificado` vacío. Evidencia:
@@ -151,9 +162,13 @@ perezoso.
 ## Límites declarados
 
 - Las licencias se consultan en PyPI (metadatos que declara el paquete).
-- Solo se ven dependencias **declaradas**: herramientas usadas sin declarar (p. ej.
-  Playwright del sistema en better-ocr) no aparecen.
+- Los imports de terceros **sin declarar** se detectan por AST (`h6_imports_declarados`,
+  desde 2026-10-20, reutilizando el gate de `scripts/preflight.py`); el límite que
+  queda: los imports **dinámicos** (`importlib`/`__import__`) no son visibles para
+  el análisis estático.
 - La ejecución de la suite es opt-in y corre el comando tal cual lo declara el
   proyecto.
 - Las partes cualitativas de Calidad e Inteligencia se aproximan con señales
-  estructurales; el juicio final sigue siendo humano.
+  estructurales; el juicio final sigue siendo humano. `h7_decisiones_documentadas`
+  (desde 2026-10-20) es una de esas señales: que exista un registro de decisiones
+  no dice si las decisiones son buenas.

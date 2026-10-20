@@ -103,12 +103,15 @@ mejora de código (`code_design_improvement_tools.py`).
   prueba).
 - Evaluación de un proyecto externo (estática, read-only; LLM opt-in):
   `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]
-  [--sintesis-llm] [--investigar]` — 6 dimensiones × 4-5 criterios binarios, con
+  [--sintesis-llm] [--investigar]` — 6 dimensiones × 3-7 criterios binarios, con
   evidencia por hallazgo **marcada por procedencia** (real / sintética / no
   verificada, según `evidence.py`), plan de mejora derivado de las métricas
   (sitios, esfuerzo, secuencia y verificación) y, opt-in, propuestas de fondo
   del modelo con control anti-invención y dudas investigadas con fuentes
-  citadas. Informes de ejemplo en `docs/EVALUACIONES.md`.
+  citadas. Incluye (desde 2026-10-20) imports de terceros declarados (gate AST
+  reutilizado de `scripts/preflight.py`), tests con aserciones reales y
+  registro de decisiones como señal. Informes de ejemplo en
+  `docs/EVALUACIONES.md`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
@@ -139,8 +142,10 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 79,8% (3022/3789, re-medición
   2026-10-19).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (517/517 en ambos,
-  3.12 en venv aislado); openai verificado en 1.109.1, 2.54.0 y 3.33.0.
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (3.11: **524/524**,
+  medido 2026-10-20 tras los criterios nuevos del evaluador; 3.12: 517/517 en
+  venv aislado, medición del 2026-10-19 anterior a esos 7 tests); openai
+  verificado en 1.109.1, 2.54.0 y 3.33.0.
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,

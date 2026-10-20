@@ -6,10 +6,13 @@ Dimensiones y criterios binarios (puntuación = criterios cumplidos / total):
 1. funcionalidades — puntos de entrada, promesas del README vs. archivos reales,
    stubs/deuda, cobertura de tests sobre módulos.
 2. calidad — suite de tests presente, linter, silencios (`except: pass`),
-   proporción tests/código.
+   proporción tests/código, tests con aserciones reales (un test que no puede
+   fallar no es un test).
 3. vigencia — dependencias fijadas y al día (PyPI, opt-out con `--sin-red`),
    actividad git reciente, lockfile.
-4. herramientas — manifiesto, licencia, CI o verificador local, runner de tests.
+4. herramientas — manifiesto, licencia, CI o verificador local, runner de tests,
+   imports de terceros declarados (gate AST reutilizado de scripts/preflight.py),
+   registro de decisiones (señal estructural, no veredicto).
 5. inteligencia — caché, timeouts, reintentos con límite, validación de
    respuestas, declaración de lo simulado, métricas propias.
 6. eficiencia — import perezoso de dependencias pesadas, carga única de modelos,
@@ -29,6 +32,7 @@ Uso:
 """
 
 import argparse
+import ast
 import json
 import re
 import subprocess
@@ -37,7 +41,7 @@ import time
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from deep_research_system import _parse_json_response  # reutilizado, no duplicado
 from evidence import EvidenceKind, formato_resumen, resumen_evidencias
@@ -115,6 +119,45 @@ def lineas_silenciosas(texto: str) -> List[int]:
                 sospechosas.append(i + 1)
             break
     return sospechosas
+
+
+def _tiene_asercion(funcion) -> bool:
+    """True si la función contiene una aserción real (assert, self.assert*,
+    pytest.raises/warns). Las aserciones dentro de `with pytest.raises(...)`
+    cuentan: el `Call` a `raises` está en el árbol de la función."""
+    for nodo in ast.walk(funcion):
+        if isinstance(nodo, ast.Assert):
+            return True
+        if isinstance(nodo, ast.Call):
+            func = nodo.func
+            nombre = func.attr if isinstance(func, ast.Attribute) \
+                else getattr(func, "id", "")
+            if nombre.startswith("assert") or nombre in ("raises", "warns"):
+                return True
+    return False
+
+
+def tests_sin_aserciones(ruta: Path,
+                         modulos_test: List[Path]) -> Tuple[List[str], List[str]]:
+    """Funciones test_* sin ninguna aserción, con evidencia archivo:línea.
+
+    Un test que no puede fallar no es un test (regla propia 4 del proyecto).
+    Devuelve (débiles, con_error_de_sintaxis): un archivo que no parsea NO se
+    salta en silencio (P1.26); se devuelve para que el informe lo declare.
+    """
+    debiles, con_error = [], []
+    for p in modulos_test:
+        try:
+            arbol = ast.parse(leer(p), filename=str(p))
+        except SyntaxError as exc:
+            con_error.append(f"{p.relative_to(ruta)}:{exc.lineno or 0}")
+            continue
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                    and nodo.name.startswith("test") \
+                    and not _tiene_asercion(nodo):
+                debiles.append(f"{p.relative_to(ruta)}:{nodo.lineno}")
+    return debiles, con_error
 
 
 def _git(ruta: Path, *args: str) -> Optional[str]:
@@ -289,6 +332,18 @@ def evaluar_calidad(ruta: Path, py: List[Path],
     proporcion = lineas_test / lineas_codigo if lineas_codigo else 0.0
     dim.criterios["c4_tests_sobre_codigo_30pct"] = proporcion >= 0.3
     dim.notas.append(f"proporción test/código: {proporcion:.2f}")
+
+    debiles, con_error = tests_sin_aserciones(ruta, modulos_test)
+    dim.criterios["c5_tests_con_aserciones"] = not debiles
+    if debiles:
+        dim.notas.append(f"tests sin aserciones: {len(debiles)}")
+    if con_error:
+        dim.notas.append("tests con error de sintaxis (no evaluables en c5): "
+                         + ", ".join(con_error))
+    for marca in debiles:
+        dim.hallazgos.append(Hallazgo(
+            "media", "Test sin aserciones: no puede fallar, no es un test "
+                     "(regla propia 4)", marca))
     return dim
 
 
@@ -425,7 +480,8 @@ def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
 
 
 def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
-                         con_red: bool = True) -> Dimension:
+                         con_red: bool = True,
+                         py: List[Path] = None) -> Dimension:
     dim = Dimension("herramientas")
     manifiestos = [f for f in ("requirements.txt", "pyproject.toml", "setup.py",
                                "package.json", "Pipfile") if (ruta / f).exists()]
@@ -478,6 +534,40 @@ def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
                 "baja", f"Licencia no verificable en PyPI: "
                         f"{', '.join(sin_verificar)}", "PyPI",
                 EvidenceKind.UNVERIFIED))
+
+    # Imports de terceros sin declarar en el manifiesto: herramientas usadas
+    # sin declarar son invisibles para reproducir el proyecto. Reutiliza el
+    # gate AST de scripts/preflight.py (no se duplica su lógica). Límite
+    # declarado: los imports dinámicos (importlib/__import__) no son visibles
+    # para el análisis estático.
+    from scripts.preflight import cargar_modulos, revisar_imports
+    modulos, _ = cargar_modulos(ruta)
+    no_declarados = revisar_imports(ruta, modulos).hallazgos
+    dim.criterios["h6_imports_declarados"] = not no_declarados
+    if no_declarados:
+        dim.notas.append(f"imports de terceros sin declarar: {len(no_declarados)}")
+    for hallazgo in no_declarados:
+        dim.hallazgos.append(Hallazgo(
+            "alta", f"Import de terceros sin declarar: {hallazgo.mensaje}",
+            f"{hallazgo.archivo}:{hallazgo.linea}"))
+
+    # Señal estructural (NO veredicto): el proyecto registra sus decisiones.
+    # Que exista el registro no dice si las decisiones son buenas: eso sigue
+    # siendo juicio humano (límite declarado del evaluador).
+    py = py if py is not None else archivos_python(ruta)
+    docs_dir = list((ruta / "docs").glob("*.md")) if (ruta / "docs").is_dir() else []
+    nombres_doc = " ".join(p.name.lower() for p in docs_dir + list(ruta.glob("*.md")))
+    registro = [m for m in ("adr", "decision", "lecciones", "changelog")
+                if m in nombres_doc]
+    en_codigo = any("decision_log" in leer(p) for p in py)
+    dim.criterios["h7_decisiones_documentadas"] = bool(registro) or en_codigo
+    if registro or en_codigo:
+        fuentes = registro + (["decision_log en código"] if en_codigo else [])
+        dim.notas.append("registro de decisiones: " + ", ".join(fuentes))
+    else:
+        dim.hallazgos.append(Hallazgo(
+            "baja", "Sin registro de decisiones (ADR/decision_log/CHANGELOG): "
+                    "el porqué de las decisiones no es consultable", str(ruta)))
     return dim
 
 
@@ -663,6 +753,21 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "propuesta": "Declarar o sustituir las dependencias cuya licencia libre "
                      "no se puede verificar en PyPI",
         "metrica": "todas las dependencias declaran licencia OSI en PyPI"},
+    "h6_imports_declarados": {
+        "prioridad": "alta",
+        "propuesta": "Declarar en el manifiesto cada import de terceros o "
+                     "eliminar el import",
+        "metrica": "0 imports de terceros sin declarar (gate AST de preflight)"},
+    "h7_decisiones_documentadas": {
+        "prioridad": "baja",
+        "propuesta": "Registrar las decisiones (ADR, decision_log o CHANGELOG) "
+                     "para que el porqué sea consultable",
+        "metrica": "existe un registro de decisiones en docs/ o en el código"},
+    "c5_tests_con_aserciones": {
+        "prioridad": "alta",
+        "propuesta": "Añadir aserciones reales: un test que no puede fallar no "
+                     "es un test",
+        "metrica": "toda función test_* contiene al menos una aserción"},
 }
 
 
@@ -877,7 +982,7 @@ def evaluar(ruta: Path, con_red: bool = True,
         evaluar_funcionalidades(ruta, py),
         evaluar_calidad(ruta, py, ejecutar_tests_flag),
         evaluar_vigencia(ruta, deps, con_red),
-        evaluar_herramientas(ruta, deps, con_red),
+        evaluar_herramientas(ruta, deps, con_red, py),
         evaluar_inteligencia(ruta, py),
         evaluar_eficiencia(ruta, py, pesadas),
     ]

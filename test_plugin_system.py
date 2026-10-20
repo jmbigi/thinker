@@ -127,12 +127,20 @@ def test_hot_reload():
     # Reload
     success = plugin_registry.reload_plugin("mock_llm")
     print(f"Reload: {'OK' if success else 'FAILED'}")
-    
-    # Usage should reset (new instance)
+    assert success, "reload_plugin debería recargar mock_llm"
+    assert usage_before >= 3, "el uso previo debería haberse contabilizado"
+
+    # El registro comparte su metadata con la instancia (registry.py), de modo
+    # que las estadísticas de uso sobreviven a la recarga por diseño.
     plugin = plugin_registry.get_plugin("mock_llm")
     usage_after = plugin.metadata.usage_count if plugin else 0
     print(f"Usage after reload: {usage_after}")
-    
+    assert plugin is not None, "mock_llm debería seguir disponible tras recargar"
+    assert usage_after == usage_before, "las estadísticas de uso se conservan al recargar"
+    assert "simulad" in plugin.generate("test").lower() or \
+        "mock" in plugin.generate("test").lower(), \
+        "el plugin recargado debería seguir respondiendo"
+
     return True
 
 
@@ -153,11 +161,15 @@ def test_dashboard():
     health = dashboard.health_summary()
     print(f"\nHealth: {health['status']}")
     print(f"Error rate: {health['error_rate']:.2%}")
-    
+    assert "status" in health and "error_rate" in health, \
+        "el resumen de salud debería incluir estado y tasa de error"
+    assert health["error_rate"] > 0, "el error registrado debería aparecer en la tasa"
+
     # Export JSON
     json_output = dashboard.export_json()
     print(f"\nJSON export length: {len(json_output)} chars")
-    
+    assert "mock_llm" in json_output, "el export JSON debería incluir los plugins registrados"
+
     return True
 
 
@@ -169,7 +181,10 @@ def test_config_loading():
     plugins = plugin_registry.list_plugins()
     for p in plugins:
         print(f"  {p['name']}: enabled={p.get('active', False)}")
-    
+    assert plugins, "la configuración debería registrar al menos un plugin"
+    assert all("name" in p for p in plugins), \
+        "cada plugin registrado debería tener nombre"
+
     return True
 
 
