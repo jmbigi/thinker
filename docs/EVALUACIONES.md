@@ -331,3 +331,6 @@ v4 se declara no verificado, no «al día».
   `assert True` pasa c5 y puede ser inútil.
 - No se ejecutaron suites de terceros en esta campaña; el estado pass/fail de
   los 7 repos sigue sin verificar.
+
+Las recomendaciones abiertas, su prioridad y sus criterios de aceptación están
+en `docs/RECOMENDACIONES-MEJORAS.md`.

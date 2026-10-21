@@ -24,6 +24,7 @@ herramientas de análisis estático de código.
 | `plugins/` | Sistema de plugins con hot-swap (proveedores LLM y búsqueda, extensiones del núcleo) + CLI de gestión. Config: `config/plugins.yaml`; guía: `docs/PLUGINS.md`. |
 | `tests/benchmarks/` | Framework de benchmark por dominio con rúbricas y LLM-as-judge opcional (`--list` para ver las tareas). |
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
+| `docs/RECOMENDACIONES-MEJORAS.md` | Recomendaciones abiertas priorizadas, con evidencia, esfuerzo, riesgo y criterio de aceptación. |
 | `docs/REFERENCIAS-IA.md` | Teoría y práctica de IA (referencias verificadas contra arXiv y guías de ingeniería) con propuestas medidas por el benchmark. |
 | `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Informes: `docs/EVALUACIONES.md`. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |

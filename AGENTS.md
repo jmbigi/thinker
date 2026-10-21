@@ -125,7 +125,8 @@ mejora de código (`code_design_improvement_tools.py`).
   marca tests no-op y c3 excluye tests e imports opcionales. Autoevaluación v2
   (2026-10-21): con red **0.958** (único fallo real: `openai 3.35.1 → 3.36.0`
   en el lock) y sin red **1.000**; informes de ejemplo en
-  `docs/EVALUACIONES.md`.
+  `docs/EVALUACIONES.md` y recomendaciones abiertas priorizadas en
+  `docs/RECOMENDACIONES-MEJORAS.md`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
