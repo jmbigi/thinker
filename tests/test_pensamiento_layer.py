@@ -83,8 +83,64 @@ class TestDeepResearchThinkingLayer(unittest.TestCase):
         self.assertNotIn("best_path", result)
         self.assertEqual(result["step_count"], 7)
 
+    def test_nombre_por_defecto_y_explicito(self):
+        self.assertEqual(DeepResearchThinkingLayer(MockLLM()).name,
+                         "deep_research_thinking")
+        self.assertEqual(DeepResearchThinkingLayer(MockLLM(), name="otro").name,
+                         "otro")
+
+    def test_think_lineal_pasa_prompt_y_contexto_al_llm(self):
+        llm = StubLLM(lambda p: "contenido válido y sustancial")
+        layer = DeepResearchThinkingLayer(llm)
+        layer.think("¿Pregunta concreta?", {"clave": "valor-contexto"})
+
+        self.assertTrue(any("¿Pregunta concreta?" in p for p in llm.prompts))
+        self.assertTrue(any("valor-contexto" in p for p in llm.prompts))
+
+    def test_think_tot_pasa_prompt_y_contexto_al_llm(self):
+        def responder(prompt):
+            if "evaluador experto" in prompt:
+                return ('{"relevance": 5, "depth": 5, "coherence": 5, '
+                        '"reasoning": 5}')
+            return "contenido válido y sustancial"
+
+        llm = StubLLM(responder)
+        layer = DeepResearchThinkingLayer(llm, use_tot=True, branch_factor=1)
+        layer.think("¿Pregunta ToT?", {"clave": "valor-tot"})
+
+        self.assertTrue(any("¿Pregunta ToT?" in p for p in llm.prompts))
+        self.assertTrue(any("valor-tot" in p for p in llm.prompts))
+
 
 class TestResearchOrchestratorWithThinking(unittest.TestCase):
+    def test_valores_por_defecto_del_orquestador(self):
+        orchestrator = ResearchOrchestratorWithThinking(
+            MockLLM(), MockSearchAPI(), DeepResearchThinkingLayer(MockLLM()))
+
+        self.assertFalse(orchestrator.verificacion_independiente)
+        self.assertIsNone(orchestrator.llm_verificador)
+        self.assertEqual(orchestrator.muestras_consenso, 1)
+        self.assertIsNone(orchestrator.results)
+
+    def test_research_pasa_la_pregunta_al_ciclo_de_pensamiento(self):
+        class PensamientoQueRegistra:
+            """Capa de pensamiento simulada que anota la pregunta recibida."""
+
+            def __init__(self):
+                self.visto = None
+
+            def think(self, question):
+                self.visto = question
+                return {"step_count": 7, "confidence": 1.0, "valid": True}
+
+        pensamiento = PensamientoQueRegistra()
+        orchestrator = ResearchOrchestratorWithThinking(
+            MockLLM(), MockSearchAPI(), pensamiento)
+        with contextlib.redirect_stdout(io.StringIO()):
+            orchestrator.research_with_thinking("¿Pregunta registrada?")
+
+        self.assertEqual(pensamiento.visto, "¿Pregunta registrada?")
+
     def test_investigacion_completa_offline(self):
         layer = DeepResearchThinkingLayer(MockLLM())
         orchestrator = ResearchOrchestratorWithThinking(
@@ -95,6 +151,8 @@ class TestResearchOrchestratorWithThinking(unittest.TestCase):
 
         self.assertEqual(result["question"], "¿Fusión nuclear?")
         self.assertEqual(result["total_thinking_steps"], 7)
+        self.assertEqual(result["thinking"]["step_count"], 7)
+        self.assertTrue(result["thinking"]["valid"])
         # Delega en el pipeline REAL: fuentes, claims y evaluaciones las
         # produce ResearchOrchestrator, no heurísticas locales.
         self.assertGreater(len(result["sources"]), 0)
@@ -115,7 +173,10 @@ class TestResearchOrchestratorWithThinking(unittest.TestCase):
             result = orchestrator.research_with_thinking("pregunta")
 
         self.assertIn("error", result)
-        self.assertIn("no válido", result["error"])
+        self.assertEqual(
+            result["error"],
+            "Ciclo de pensamiento no válido; replantear la pregunta "
+            "(anti-repitencia)")
         self.assertEqual(result["thinking"]["invalid_steps"], ["analysis"])
 
     def test_ya_no_existen_heuristicas_simuladas(self):
@@ -180,6 +241,52 @@ class TestMain(unittest.TestCase):
         self.assertIn("RESULTADO MODO ToT", salida)
         self.assertIn("Nodos explorados:", salida)
         self.assertIn("Score mejor:", salida)
+
+
+class TestRenderThought(unittest.TestCase):
+    """Formato exacto del pensamiento renderizado (salida visible del ciclo)."""
+
+    def test_formato_exacto_de_cabecera_y_resumen(self):
+        layer = DeepResearchThinkingLayer(MockLLM())
+        result = layer.think("¿Fusión nuclear?")
+        lineas = result["thought"].split("\n")
+
+        self.assertEqual(lineas[0],
+                         "        CAPA DE PENSAMIENTO: deep_research_thinking")
+        self.assertEqual(lineas[1], "        ============================")
+        self.assertEqual(lineas[2], "")
+        self.assertIn("PASO 3 - ESTRATEGIA", result["thought"])
+        self.assertIn("PASO 5 - CLAIMS", result["thought"])
+        idx = lineas.index("        PASOS COMPLETADOS: 7/7")
+        self.assertEqual(lineas[idx - 1], "")
+        self.assertIn("CONFIANZA GENERAL: 1.0", result["thought"])
+        self.assertIn("VALIDEZ: VALID", result["thought"])
+
+    def test_contenido_de_paso_se_trunca_a_200_caracteres(self):
+        layer = DeepResearchThinkingLayer(StubLLM(lambda p: "x" * 250))
+        result = layer.think("pregunta")
+
+        self.assertIn("x" * 200, result["thought"])
+        self.assertNotIn("x" * 201, result["thought"])
+
+    def test_paso_intermedio_ausente_no_detiene_el_render(self):
+        layer = DeepResearchThinkingLayer(MockLLM())
+        pasos = [("analysis", "contenido válido y sustancial"),
+                 ("search_strategy", "contenido válido y sustancial")]
+
+        render = layer._render_thought(pasos)
+
+        self.assertIn("PASO 1 - ANÁLISIS", render)
+        self.assertIn("PASO 2 - ESTRATEGIA", render)
+
+    def test_validez_revisar_si_un_paso_previo_es_invalido(self):
+        layer = DeepResearchThinkingLayer(MockLLM())
+        pasos = [("analysis", ""),
+                 ("plan", "contenido válido y sustancial")]
+
+        render = layer._render_thought(pasos)
+
+        self.assertIn("VALIDEZ: REVISAR", render)
 
 
 class LayerQueCaptura(DeepResearchThinkingLayer):
@@ -268,8 +375,18 @@ class TestThinkTotConOverrides(unittest.TestCase):
     def test_kwarg_desconocido_se_eleva(self):
         layer = self._layer(branch_factor=1)
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError) as ctx:
             layer.think_tot("pregunta", inventado=1)
+
+        self.assertIn("desconocidos", str(ctx.exception))
+        self.assertIn("inventado", str(ctx.exception))
+
+    def test_return_tree_por_defecto_no_incluye_el_arbol(self):
+        layer = self._layer(branch_factor=1)
+
+        result = layer.think_tot("pregunta")
+
+        self.assertNotIn("tree", result)
 
 
 class TestDemo(unittest.TestCase):
@@ -286,6 +403,11 @@ class TestDemo(unittest.TestCase):
         # El ToT del demo ya produce camino (el juez simulado puntúa): cada
         # paso se imprime con nombre y contenido.
         self.assertIn("  [analysis]", texto)
+        # La demo nombra la capa y fija los parámetros ToT: nombre y conteos
+        # exactos (MockLLM es determinista).
+        self.assertIn("        CAPA DE PENSAMIENTO: deep_research\n", texto)
+        self.assertIn("Nodos explorados: 40", texto)
+        self.assertIn("Nodos podados: 0", texto)
 
 
 if __name__ == "__main__":

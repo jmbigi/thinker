@@ -11,9 +11,15 @@ import unittest
 from unittest.mock import call, patch
 
 from llm_providers import (DEFAULT_TIMEOUT, OPENROUTER_FALLBACK_CHAIN,
-                           KiloGatewayLLM, OpenAILLM, OpenRouterLLM,
-                           ResponseCache, _chat_completion)
+                           DeepSeekLLM, KiloGatewayLLM, MockLLM, OllamaLLM,
+                           OpenAILLM, OpenRouterLLM, ResponseCache,
+                           _chat_completion)
 from tests.helpers import FakeAPIError, make_chat_client, ok_chat_response
+
+
+def _entorno_sin(*variables):
+    """Copia del entorno SIN las variables dadas (para probar el caso ausente)."""
+    return {k: v for k, v in os.environ.items() if k not in variables}
 
 
 class TestResponseCache(unittest.TestCase):
@@ -41,6 +47,16 @@ class TestResponseCache(unittest.TestCase):
 
         self.assertEqual(cache.get("modelo", "prompt"), "")
         self.assertEqual(cache.hits, 1)
+
+    def test_los_hits_se_acumulan_en_aciertos_sucesivos(self):
+        cache = ResponseCache()
+        cache.set("modelo", "p1", "uno")
+        cache.set("modelo", "p2", "dos")
+
+        cache.get("modelo", "p1")
+        cache.get("modelo", "p2")
+
+        self.assertEqual(cache.hits, 2)
 
 
 class TestCacheEnElCliente(unittest.TestCase):
@@ -272,6 +288,361 @@ class TestConstructoresExactos(unittest.TestCase):
         self.assertEqual(llm.base_url, "https://openrouter.ai/api/v1")
         self.assertFalse(
             OpenRouterLLM(api_key="x", use_fallback=False)._use_fallback)
+
+
+class TestBackoffYJitter(unittest.TestCase):
+    def test_value_error_mensaje_exacto(self):
+        cliente = make_chat_client([])
+
+        with self.assertRaises(ValueError) as cm:
+            _chat_completion(cliente, "modelo", "p", 0, "Test")
+
+        self.assertEqual(str(cm.exception),
+                         "max_retries debe ser >= 1 (recibido 0)")
+
+    def test_el_jitter_se_suma_al_backoff(self):
+        cliente = make_chat_client([FakeAPIError("caído", status_code=429),
+                                    ok_chat_response("ok")])
+
+        with patch("llm_providers.random.uniform", return_value=0.5), \
+                patch("llm_providers.time.sleep") as dormir:
+            salida = _chat_completion(cliente, "modelo", "p", 3, "Test")
+
+        self.assertEqual(salida, "ok")
+        self.assertEqual(dormir.call_args_list, [call(2.5)])
+
+    def test_backoff_exponencial_en_el_tercer_reintento(self):
+        cliente = make_chat_client([FakeAPIError("caído", status_code=429)] * 3
+                                   + [ok_chat_response("ok")])
+
+        with patch("llm_providers.random.uniform", return_value=0.0), \
+                patch("llm_providers.time.sleep") as dormir:
+            salida = _chat_completion(cliente, "modelo", "p", 4, "Test")
+
+        self.assertEqual(salida, "ok")
+        self.assertEqual(dormir.call_args_list, [call(2.0), call(4.0), call(8.0)])
+
+    def test_jitter_uniforme_entre_0_y_1(self):
+        cliente = make_chat_client([FakeAPIError("caído", status_code=429),
+                                    ok_chat_response("ok")])
+
+        with patch("llm_providers.random.uniform", return_value=0.0) as azar, \
+                patch("llm_providers.time.sleep"):
+            _chat_completion(cliente, "modelo", "p", 3, "Test")
+
+        self.assertEqual(azar.call_args_list, [call(0, 1)])
+
+
+class TestEtiquetaDelProveedorEnStderr(unittest.TestCase):
+    def _stderr_de_reintento(self, llm):
+        cliente = make_chat_client([FakeAPIError("caído", status_code=429),
+                                    ok_chat_response("ok")])
+        errores = io.StringIO()
+        with patch("openai.OpenAI", return_value=cliente), \
+                patch("llm_providers.random.uniform", return_value=0.0), \
+                patch("llm_providers.time.sleep"), \
+                contextlib.redirect_stderr(errores):
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "ok")
+        return errores.getvalue()
+
+    def test_openai_etiqueta_exacta(self):
+        llm = OpenAILLM(api_key="clave-ficticia-de-test")
+
+        self.assertIn("[OpenAILLM] error transitorio (429); reintento 1/2 en 2.0s",
+                      self._stderr_de_reintento(llm))
+
+    def test_kilo_etiqueta_exacta(self):
+        llm = KiloGatewayLLM(api_key="clave-ficticia-de-test")
+
+        self.assertIn("[KiloGatewayLLM] error transitorio (429); reintento 1/2 en 2.0s",
+                      self._stderr_de_reintento(llm))
+
+
+class TestClavesDesdeEntorno(unittest.TestCase):
+    """Ningún assert usa claves reales: valores ficticios o vacíos (P0.6)."""
+
+    def test_openai_sin_variable_clave_vacia(self):
+        with patch.dict(os.environ, _entorno_sin("OPENAI_API_KEY"), clear=True):
+            llm = OpenAILLM()
+
+        self.assertEqual(llm.api_key, "")
+
+    def test_openai_key_desde_entorno(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "clave-ficticia-de-test"}):
+            llm = OpenAILLM()
+
+        self.assertEqual(llm.api_key, "clave-ficticia-de-test")
+
+    def test_openrouter_sin_variable_clave_vacia(self):
+        with patch.dict(os.environ, _entorno_sin("OPENROUTER_API_KEY"), clear=True):
+            llm = OpenRouterLLM()
+
+        self.assertEqual(llm.api_key, "")
+
+    def test_kilo_sin_variable_clave_vacia(self):
+        with patch.dict(os.environ, _entorno_sin("KILO_API_KEY"), clear=True):
+            llm = KiloGatewayLLM()
+
+        self.assertEqual(llm.api_key, "")
+
+    def test_kilo_key_desde_entorno(self):
+        with patch.dict(os.environ, {"KILO_API_KEY": "clave-ficticia-de-test"}):
+            llm = KiloGatewayLLM()
+
+        self.assertEqual(llm.api_key, "clave-ficticia-de-test")
+
+    def test_deepseek_sin_variable_clave_vacia(self):
+        with patch.dict(os.environ,
+                        _entorno_sin("DEEPSEEK_API_KEY", "OPENAI_API_KEY"),
+                        clear=True):
+            llm = DeepSeekLLM()
+
+        self.assertEqual(llm.api_key, "")
+
+
+class TestMensajesDeErrorExactos(unittest.TestCase):
+    def test_openai_sin_key_mensaje_exacto(self):
+        with patch.dict(os.environ, _entorno_sin("OPENAI_API_KEY"), clear=True):
+            llm = OpenAILLM()
+            with self.assertRaises(ValueError) as cm:
+                llm.generate("hola")
+
+        self.assertEqual(str(cm.exception),
+                         "OpenAI API key required. "
+                         "Provide api_key or set OPENAI_API_KEY.")
+
+    def test_kilo_sin_key_mensaje_exacto(self):
+        with patch.dict(os.environ, _entorno_sin("KILO_API_KEY"), clear=True):
+            llm = KiloGatewayLLM()
+            with self.assertRaises(ValueError) as cm:
+                llm.generate("hola")
+
+        self.assertEqual(str(cm.exception),
+                         "Kilo API key required for KiloGatewayLLM. "
+                         "Provide api_key parameter or set KILO_API_KEY "
+                         "environment variable.")
+
+
+class TestKiloGenerateDetalle(unittest.TestCase):
+    def test_api_key_kwarg_sobreescribe_la_del_cliente(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = KiloGatewayLLM(api_key="clave-del-cliente")
+
+        with patch("openai.OpenAI", return_value=cliente) as fabrica:
+            llm.generate("p", api_key="clave-en-kwargs")
+
+        fabrica.assert_called_once_with(
+            api_key="clave-en-kwargs",
+            base_url="https://api.kilo.ai/api/gateway")
+
+    def test_el_prompt_llega_al_cliente(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = KiloGatewayLLM(api_key="clave-ficticia-de-test")
+
+        with patch("openai.OpenAI", return_value=cliente):
+            llm.generate("prompt kilo")
+
+        self.assertEqual(cliente.calls[0]["messages"],
+                         [{"role": "user", "content": "prompt kilo"}])
+
+    def test_timeout_configurable_llega_a_la_peticion(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = KiloGatewayLLM(api_key="clave-ficticia-de-test", timeout=2.5)
+
+        with patch("openai.OpenAI", return_value=cliente):
+            llm.generate("p")
+
+        self.assertEqual(cliente.calls[0]["timeout"], 2.5)
+
+
+class TestOpenRouterGenerateDetalle(unittest.TestCase):
+    def test_modelo_explicito_pasa_prompt_y_kwargs(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+
+        with patch("openai.OpenAI", return_value=cliente) as fabrica:
+            llm.generate("prompt explicito", model="otro/modelo:free",
+                         api_key="otra-clave-ficticia")
+
+        fabrica.assert_called_once_with(
+            api_key="otra-clave-ficticia",
+            base_url="https://openrouter.ai/api/v1")
+        self.assertEqual(cliente.calls[0]["messages"],
+                         [{"role": "user", "content": "prompt explicito"}])
+        self.assertEqual(cliente.calls[0]["model"], "otro/modelo:free")
+
+    def test_sin_fallback_pasa_prompt_y_kwargs(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test", use_fallback=False)
+
+        with patch("openai.OpenAI", return_value=cliente) as fabrica:
+            llm.generate("prompt sin fallback", api_key="otra-clave-ficticia")
+
+        fabrica.assert_called_once_with(
+            api_key="otra-clave-ficticia",
+            base_url="https://openrouter.ai/api/v1")
+        self.assertEqual(cliente.calls[0]["messages"],
+                         [{"role": "user", "content": "prompt sin fallback"}])
+        self.assertEqual(cliente.calls[0]["model"], llm.model)
+
+    def test_fallback_pasa_los_kwargs(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+
+        with patch("openai.OpenAI", return_value=cliente) as fabrica:
+            llm.generate("p", api_key="otra-clave-ficticia")
+
+        fabrica.assert_called_once_with(
+            api_key="otra-clave-ficticia",
+            base_url="https://openrouter.ai/api/v1")
+
+    def test_primer_modelo_ok_no_imprime_nada(self):
+        cliente = make_chat_client([ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+        errores = io.StringIO()
+
+        with patch("openai.OpenAI", return_value=cliente), \
+                contextlib.redirect_stderr(errores):
+            llm.generate("p")
+
+        self.assertEqual(errores.getvalue(), "")
+
+    def test_fallback_anuncia_el_modelo_en_stderr(self):
+        cliente = make_chat_client([FakeAPIError("no", status_code=404),
+                                    ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test",
+                            model="modelo-a:free")
+        errores = io.StringIO()
+
+        with patch("openai.OpenAI", return_value=cliente), \
+                contextlib.redirect_stderr(errores):
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "ok")
+        self.assertIn("[OpenRouterLLM] Fallback a modelo: "
+                      + OPENROUTER_FALLBACK_CHAIN[0], errores.getvalue())
+
+    def test_error_sin_atributo_status_eleva_el_original(self):
+        cliente = make_chat_client([ConnectionError("red caída")] * 3)
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
+
+        with patch("openai.OpenAI", return_value=cliente), \
+                patch("llm_providers.time.sleep"):
+            with self.assertRaises(ConnectionError):
+                llm.generate("p")
+
+        self.assertEqual(len(cliente.calls), 3)
+
+    def test_430_no_transitorio_hace_fallback(self):
+        cliente = make_chat_client([FakeAPIError("no", status_code=430),
+                                    ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test",
+                            model="modelo-a:free")
+
+        with patch("openai.OpenAI", return_value=cliente):
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "ok")
+        self.assertEqual([c["model"] for c in cliente.calls],
+                         ["modelo-a:free", OPENROUTER_FALLBACK_CHAIN[0]])
+
+    def test_501_hace_fallback(self):
+        cliente = make_chat_client([FakeAPIError("no", status_code=501),
+                                    ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test",
+                            model="modelo-a:free")
+
+        with patch("openai.OpenAI", return_value=cliente):
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "ok")
+        self.assertEqual([c["model"] for c in cliente.calls],
+                         ["modelo-a:free", OPENROUTER_FALLBACK_CHAIN[0]])
+
+    def test_505_hace_fallback(self):
+        cliente = make_chat_client([FakeAPIError("no", status_code=505),
+                                    ok_chat_response("ok")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test",
+                            model="modelo-a:free")
+
+        with patch("openai.OpenAI", return_value=cliente):
+            salida = llm.generate("p")
+
+        self.assertEqual(salida, "ok")
+        self.assertEqual([c["model"] for c in cliente.calls],
+                         ["modelo-a:free", OPENROUTER_FALLBACK_CHAIN[0]])
+
+    def test_502_tras_agotar_reintentos_eleva_sin_fallback(self):
+        cliente = make_chat_client([FakeAPIError("no", status_code=502)] * 3
+                                   + [ok_chat_response("no debería llegar")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test",
+                            model="modelo-a:free")
+
+        with patch("openai.OpenAI", return_value=cliente), \
+                patch("llm_providers.time.sleep"):
+            with self.assertRaises(FakeAPIError):
+                llm.generate("p")
+
+        self.assertEqual(len(cliente.calls), 3)
+
+    def test_503_tras_agotar_reintentos_eleva_sin_fallback(self):
+        cliente = make_chat_client([FakeAPIError("no", status_code=503)] * 3
+                                   + [ok_chat_response("no debería llegar")])
+        llm = OpenRouterLLM(api_key="clave-ficticia-de-test",
+                            model="modelo-a:free")
+
+        with patch("openai.OpenAI", return_value=cliente), \
+                patch("llm_providers.time.sleep"):
+            with self.assertRaises(FakeAPIError):
+                llm.generate("p")
+
+        self.assertEqual(len(cliente.calls), 3)
+
+
+class TestOllamaGenerateDetalle(unittest.TestCase):
+    def _respuesta(self, payload):
+        resp = type("R", (), {})()
+        resp.raise_for_status = lambda: None
+        resp.json = lambda: payload
+        return resp
+
+    def test_payload_y_timeout_exactos(self):
+        with patch("requests.post",
+                   return_value=self._respuesta({"response": "texto"})) as post:
+            salida = OllamaLLM().generate("prompt ollama")
+
+        self.assertEqual(salida, "texto")
+        post.assert_called_once_with(
+            "http://localhost:11434/api/generate",
+            json={"model": "llama3.2", "prompt": "prompt ollama",
+                  "stream": False},
+            timeout=120)
+
+    def test_sin_campo_response_devuelve_cadena_vacia(self):
+        with patch("requests.post", return_value=self._respuesta({})):
+            salida = OllamaLLM().generate("p")
+
+        self.assertEqual(salida, "")
+
+
+class TestMockLLMDetalle(unittest.TestCase):
+    def test_model_por_defecto_y_personalizado(self):
+        self.assertEqual(MockLLM().model, "mock-llm")
+        self.assertEqual(MockLLM(model="otro-modelo").model, "otro-modelo")
+
+    def test_json_de_claims_no_escapa_unicode(self):
+        self.assertIn("Afirmación simulada",
+                      MockLLM().generate("extract factual claims"))
+
+    def test_json_de_evaluacion_no_escapa_unicode(self):
+        self.assertIn("Evaluación simulada",
+                      MockLLM().generate("evaluate this claim"))
+
+    def test_json_de_evaluador_experto_no_escapa_unicode(self):
+        self.assertIn("Evaluación simulada",
+                      MockLLM().generate("evaluador experto"))
 
 
 if __name__ == "__main__":

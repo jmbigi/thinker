@@ -1597,3 +1597,55 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   instala. Y tras cambiar `packages`/`py-modules`, la verificación de la
   instalación solo es válida partiendo de artefactos de build limpios:
   setuptools no limpia `build/` entre compilaciones.
+
+
+### Hallazgo 84: Triaje de los 832 supervivientes — y 4 trampas de mutmut 3.6.0 que invalidan verificaciones si se ignoran
+
+- **Origen**: petición del programador (2026-10-20): cerrar todos los
+  pendientes; el mayor era investigar uno a uno los supervivientes de la
+  medición 78,0% (2957/3789). Se repartieron los 6 módulos mutados entre
+  agentes en paralelo con el protocolo apply → test FALLA → restore → test
+  PASA.
+- **Resultado del triaje** (verificado mutante a mutante): de los 832
+  supervivientes listados, ~650 mueren con tests honestos nuevos (177 tests
+  añadidos en 6 archivos; la suite pasa de 524 a 701) y el resto son
+  **mutantes equivalentes** documentados con su razón (decenas de ellos:
+  argumentos internos del `raise JSONDecodeError` absorbidos por el mismo
+  `except`, defaults redundantes, dead stores, codecs case-insensitive).
+  El listado `mutmut results` estaba además desactualizado: decenas de
+  "survived" ya morían con la suite anterior (p. ej. 37 de 165 en
+  code_design_improvement_tools).
+- **Trampa 1 — `mutmut apply` emplaza mal mutantes de métodos con nombre
+  repetido**: un mutante de `SubClase.metodo` se inserta en la PRIMERA
+  función con ese nombre del archivo (p. ej. el método abstracto o la de
+  otra clase), no en la que ejecuta el trampoline. Toda verificación basada
+  en `mutmut apply` para métodos `__init__`/`search`/`decide`/`generate` es
+  inválida en este repo: hay que aplicar a mano el diff exacto de
+  `mutmut show` (los agentes usaron un aplicador propio por AST) y
+  restaurar tras cada uno. Esta trampa produjo falsos MUERTO en las
+  primeras pasadas, corregidos al re-verificar.
+- **Trampa 2 — `.pyc` stale resucita mutantes**: `git checkout` que restaura
+  el archivo en el mismo segundo y con el mismo tamaño deja válido el
+  bytecode mutado en `__pycache__` (suite en rojo fantasma). Antídoto:
+  `touch` del archivo tras restaurar.
+- **Trampa 3 — `mutmut apply` en paralelo contamina verificaciones ajenas**:
+  un agente con un mutante aplicado en su módulo mientras otro ejecuta la
+  suite produce falsos DEAD/VIVO en el módulo del segundo (8 falsos DEAD
+  detectados y re-verificados limpios). Las pasadas apply/test/restore
+  deben serializarse entre agentes, o cada verificación debe re-ejecutarse
+  tras confirmar que todos los archivos están restaurados.
+- **Trampa 4 — el gate `c5_tests_con_aserciones` exige la aserción en el
+  cuerpo del test**: aserciones delegadas en helpers (`self._helper(...)`)
+  se marcan como "test sin aserciones". Inlinear la aserción o nombrar el
+  helper `test_*` no vale; la aserción debe estar en el cuerpo.
+- **Reglas derivadas**: (1) nunca confiar en `mutmut results` de una
+  campaña anterior: re-medir antes de triar; (2) verificación de mutantes =
+  diff de `show` aplicado en la ubicación real + restore + `touch` +
+  re-ejecución; (3) en campañas paralelas, la verificación final de cada
+  módulo se hace con TODOS los archivos restaurados.
+- **Medición oficial post-triaje (2026-10-20)**: **94,1% (3567/3789; 222
+  supervivientes, 0 timeouts, 0 sospechosos, 0 sin ejecutar)**, con la misma
+  exclusión de `print`. Los 222 supervivientes corresponden en su gran
+  mayoría a los equivalentes documentados por los 6 agentes (más la clase
+  "prompt-literal" de textos de demo, no observable). Suite: 701/701 en
+  Python 3.11 y 3.12; ruff 0; preflight 0.

@@ -81,6 +81,20 @@ ya en openai 3.35.1: **GLOBAL 1.000**, `no_verificado` vacío y «nada que
 proponer» (`python3 evaluar_proyecto.py . --ejecutar-tests`), `make vuln-scan`
 sin vulnerabilidades y OpenRouter real 3/3 (Hallazgo 81).
 
+**Actualización 2026-10-20 (triaje de mutación — Hallazgo 84)**: los 832
+supervivientes de la medición 78,0% quedaron procesados uno a uno (6 agentes
+en paralelo, protocolo apply → test FALLA → restore → test PASA): ~650
+muertos con **177 tests nuevos honestos** (suite: 524 → **701/701** en 3.11
+y 3.12) y el resto clasificados como mutantes equivalentes con su razón.
+Re-medición oficial: **94,1% (3567/3789; 0 timeouts, 0 sospechosos, 0 sin
+ejecutar)**. El triaje destapó 4 trampas de mutmut 3.6.0 (apply mal
+emplazado en métodos con nombre repetido, `.pyc` stale, contaminación entre
+applies paralelos, aserciones en helpers invisibles para `c5`) — documentadas
+con sus reglas derivadas en el Hallazgo 84. Mismo día: Ollama real 3/3 con
+`qwen3:1.7b` local (antes sin verificar por falta de servidor), autoevaluación
+con red **GLOBAL 1.000** y OpenRouter real 3/3 re-verificados, y `make ci`
+en copia limpia OK.
+
 **Actualización 2026-10-20 (post-empaquetado — Hallazgo 82)**: tras hacer el
 proyecto instalable (`pip install .`, comando `evaluate-project`), la
 autoevaluación con red sigue en **GLOBAL 1.000**, `no_verificado` vacío y «nada

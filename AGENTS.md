@@ -79,7 +79,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0,
   3.33.0 y 3.35.1** (canario en `tests/test_openai_compatibilidad.py`;
-  3.35.1 verificado el 2026-10-20 con 524/524 en 3.11 y 3.12). Tras el corte 3
+  3.35.1 verificado el 2026-10-20 con 701/701 en 3.11 y 3.12). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -118,6 +118,8 @@ mejora de código (`code_design_improvement_tools.py`).
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
+  Verificado 3/3 el 2026-10-20 con `qwen3:1.7b` local (conexión, capa de
+  pensamiento de 7 pasos y pipeline de investigación end-to-end).
 - Fuerza de la suite: `make mutation` (mutmut). Medición 2026-10-17 (HEAD tras
   cerrar cobertura y reforzar tests, Hallazgo 73): **78,1% de mutantes muertos**
   (2766/3543; 0 timeouts, 0 sospechosos, ningún mutante sin ejecutar)
@@ -134,6 +136,11 @@ mejora de código (`code_design_improvement_tools.py`).
   Delta de −65 muertos respecto a la medición de 2026-10-19, hecha con el
   entorno aún sin alinear al lock (Hallazgo 77) y no reproducible a
   posteriori: causa declarada como NO determinada — ver Hallazgo 80.
+  **Re-medición 2026-10-20 (Hallazgo 84, tras el triaje dirigido de los 832
+  supervivientes —177 tests nuevos, suite en 701—): 94,1% (3567/3789;
+  222 supervivientes, 0 timeouts, 0 sospechosos, 0 sin ejecutar)**; los 222
+  están clasificados en su gran mayoría como mutantes equivalentes con su
+  razón documentada (Hallazgo 84).
   El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
@@ -150,10 +157,9 @@ mejora de código (`code_design_improvement_tools.py`).
   `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
-  muertas eliminadas) y la mutación global es 78,0% (2957/3789, re-medición
-  2026-10-20; la de 2026-10-19 daba 79,8% (3022/3789) con fuentes idénticas:
-  deriva declarada en el Hallazgo 80).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**524/524 en ambos**;
+  muertas eliminadas) y la mutación global es 94,1% (3567/3789, re-medición
+  2026-10-20 tras el triaje del Hallazgo 84).
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**701/701 en ambos**;
   3.12.3 en venv aislado recreado desde `requirements.lock` el 2026-10-20);
   openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1 (lock en 3.35.1 desde
   2026-10-20).
