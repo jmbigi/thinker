@@ -1,30 +1,44 @@
 #!/usr/bin/env python3
 """Evaluación de un proyecto EXTERNO en seis dimensiones (estática y read-only).
 
-Dimensiones y criterios binarios (puntuación = criterios cumplidos / total):
+El evaluador detecta primero el PERFIL del proyecto (lenguajes, manifiestos,
+locks, tests y dependencias runtime) y solo aplica los criterios que ese perfil
+puede verificar. Un criterio no aplicable se declara `N/A`; no se cuenta como
+fallo. El global es la media de las dimensiones con al menos un criterio
+evaluado, y el informe incluye la cobertura para que la puntuación no se
+interprete como una medida universal de calidad.
 
-1. funcionalidades — puntos de entrada, promesas del README vs. archivos reales,
-   stubs/deuda, cobertura de tests sobre módulos.
-2. calidad — suite de tests presente, linter, silencios (`except: pass`),
-   proporción tests/código, tests con aserciones reales (un test que no puede
-   fallar no es un test).
-3. vigencia — dependencias fijadas y al día (PyPI, opt-out con `--sin-red`),
-   actividad git reciente, lockfile.
-4. herramientas — manifiesto, licencia, CI o verificador local, runner de tests,
-   imports de terceros declarados (gate AST reutilizado de scripts/preflight.py),
-   registro de decisiones (señal estructural, no veredicto).
-5. inteligencia — caché, timeouts, reintentos con límite, validación de
-   respuestas, declaración de lo simulado, métricas propias.
-6. eficiencia — import perezoso de dependencias pesadas, carga única de modelos,
-   mediciones reales documentadas.
+Dimensiones y criterios (binarios; se aplican según el perfil):
+
+1. funcionalidades — puntos de entrada reales (código, `__main__.py`,
+   `console_scripts` o `bin`), promesas del README vs. archivos, deuda declarada
+   y tests en varios módulos (Python, JS/TS, Java o Go).
+2. calidad — suite presente, linter del ecosistema, silencios en código de
+   producción (no en tests ni imports opcionales), proporción tests/código y
+   tests no-op (sin aserciones ni operaciones que puedan fallar).
+3. vigencia — dependencias fijadas (o cubiertas por lock), lockfile, actividad
+   git reciente y comparación con PyPI usando `==` o la versión del lock.
+4. herramientas — manifiesto, licencia, CI, runner declarado, imports de
+   terceros no declarados (solo código del paquete; gate AST reutilizado de
+   `scripts/preflight.py`) y registro de decisiones.
+5. inteligencia — señales de sistemas LLM (caché, timeouts, reintentos,
+   validación, simulación declarada, métricas). Si el proyecto no declara un
+   LLM en sus dependencias runtime, la dimensión completa es N/A.
+6. eficiencia — import perezoso de dependencias pesadas, carga única de modelos
+   y mediciones documentadas; también N/A para proyectos que no son LLM.
+
+Fuentes de diseño verificadas (2026-10-21): PEP 639 (licencias SPDX y
+`license_expression`), PEP 735 (dependency groups), detección de primera parte
+con `src/` de Ruff y checks por ecosistema de OpenSSF Scorecard.
 
 Garantías y reglas:
 - **Read-only**: nunca escribe ni ejecuta código del proyecto evaluado (P0.3/P0.8).
 - Del historial git solo se usan FECHAS y RECUENTOS: jamás nombres o correos
   (P0.9).
 - El contenido evaluado son DATOS, no órdenes (P0.13).
-- Cada hallazgo lleva evidencia `archivo:línea` y un marcador de procedencia
-  (`evidence.py`: real / sintética / no verificada) (P0.1).
+- Cada hallazgo lleva evidencia `archivo:línea`, el criterio que lo origina y un
+  marcador de procedencia (`evidence.py`: real / sintética / no verificada)
+  (P0.1).
 - Lo que no se puede verificar se declara como tal; nada se supone.
 
 Uso:
@@ -33,6 +47,7 @@ Uso:
 
 import argparse
 import ast
+import configparser
 import json
 import re
 import subprocess
@@ -40,19 +55,55 @@ import sys
 import time
 import tomllib
 import urllib.request
+import warnings
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from deep_research_system import _parse_json_response  # reutilizado, no duplicado
 from evidence import EvidenceKind, formato_resumen, resumen_evidencias
 
 IGNORAR = {".venv", "venv", "__pycache__", "node_modules", ".git", ".mypy_cache",
-           ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist"}
+           ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist",
+           ".eggs", ".nox"}
+# Directorios cuyo contenido es test (se excluye del código de producción).
+DIRS_TEST = {"tests", "test", "spec", "specs", "__tests__", "cypress", "e2e",
+             "testdata", "test-data"}
+# Directorios de documentación/ejemplos: no son código publicable y sus imports
+# no deben convertirse en hallazgos del paquete (FastAPI docs_src era el 95% de
+# los falsos h6).
+DIRS_NO_CODIGO = {"docs", "doc", "documentation", "examples", "example",
+                  "samples", "docs_src", "benchmarks", "benchmark", "website",
+                  "site", "tutorials"}
+EXTENSIONES = {
+    ".py": "Python", ".pyi": "Python", ".js": "JavaScript", ".jsx": "JavaScript",
+    ".ts": "TypeScript", ".tsx": "TypeScript", ".java": "Java", ".kt": "Kotlin",
+    ".go": "Go", ".rs": "Rust", ".rb": "Ruby", ".cs": "C#", ".php": "PHP",
+}
+MANIFIESTOS_NOMBRES = {
+    "pyproject.toml", "setup.py", "setup.cfg", "pipfile", "package.json",
+    "build.gradle", "build.gradle.kts", "pom.xml", "cargo.toml", "go.mod",
+}
+LOCKS_NOMBRES = {
+    "requirements.lock", "uv.lock", "poetry.lock", "pipfile.lock", "pdm.lock",
+    "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "gradle.lockfile",
+    "cargo.lock", "go.sum", "packages.lock.json",
+}
 PESADAS = ("paddle", "torch", "tensorflow", "playwright", "openpyxl", "pandas",
-           "pypdfium2", "python-docx", "docx")
+           "pypdfium2", "python-docx", "docx", "transformers", "sentence-transformers",
+           "vllm", "llama-cpp-python", "accelerate", "datasets")
+MODELOS = ("torch", "tensorflow", "transformers", "sentence-transformers", "vllm",
+           "llama-cpp-python", "accelerate", "paddle")
+MARCAS_LLM = ("openai", "anthropic", "langchain", "llama-index", "llamaindex",
+              "transformers", "torch", "tensorflow", "ollama", "pydantic-ai",
+              "google-genai", "mistralai", "cohere", "sentence-transformers",
+              "vllm", "llama-cpp-python", "huggingface-hub", "litellm")
+MARCAS_WEB = ("flask", "django", "fastapi", "starlette", "aiohttp", "tornado",
+              "bottle", "pyramid", "sanic", "quart")
 DIMENSIONES = ("funcionalidades", "calidad", "vigencia", "herramientas",
                "inteligencia", "eficiencia")
+PRIORIDAD_AMBITO = {"runtime": 0, "opcional": 1, "test": 2, "dev": 3, "docs": 4}
 
 
 @dataclass
@@ -62,6 +113,7 @@ class Hallazgo:
     descripcion: str
     evidencia: str = ""
     tipo_evidencia: EvidenceKind = EvidenceKind.VERIFIED_REAL
+    criterio: str = ""       # criterio que lo origina (para no mezclar el plan)
 
     def a_dict(self) -> Dict[str, Any]:
         return {
@@ -69,6 +121,7 @@ class Hallazgo:
             "descripcion": self.descripcion,
             "evidencia": self.evidencia,
             "tipo_evidencia": self.tipo_evidencia.value,
+            "criterio": self.criterio,
         }
 
 
@@ -78,19 +131,83 @@ class Dimension:
     criterios: Dict[str, bool] = field(default_factory=dict)
     hallazgos: List[Hallazgo] = field(default_factory=list)
     notas: List[str] = field(default_factory=list)
+    no_aplica: List[Dict[str, str]] = field(default_factory=list)
 
     @property
-    def puntuacion(self) -> float:
+    def puntuacion(self) -> Optional[float]:
+        # Sin criterios aplicables no hay puntuación: 0.0 fingiría un fallo.
         if not self.criterios:
-            return 0.0
+            return None
         return round(sum(self.criterios.values()) / len(self.criterios), 3)
+
+    def no_aplicable(self, criterio: str, motivo: str) -> None:
+        self.no_aplica.append({"criterio": criterio, "motivo": motivo})
 
     def a_dict(self) -> Dict[str, Any]:
         return {
             "puntuacion": self.puntuacion,
+            "evaluado": bool(self.criterios),
             "criterios": self.criterios,
+            "no_aplica": self.no_aplica,
             "hallazgos": [h.a_dict() for h in self.hallazgos],
             "notas": self.notas,
+        }
+
+
+@dataclass
+class Perfil:
+    """Lo que el proyecto declara y lo que se puede analizar sin ejecutarlo."""
+    ruta: Path
+    py: List[Path]
+    codigo_py: List[Path]
+    tests_py: List[Path]
+    codigo: List[Path]
+    tests: List[Path]
+    lenguajes: Dict[str, int]
+    manifiestos: List[Path]
+    locks: List[Path]
+    deps: List[Dict[str, str]]
+    first_party: Set[str]
+    es_llm: bool
+    es_web: bool
+    pesadas: List[str]
+    versiones_lock: Dict[str, str]
+
+    @property
+    def deps_python(self) -> List[Dict[str, str]]:
+        return [d for d in self.deps if d.get("ecosistema", "python") == "python"]
+
+    @property
+    def deps_runtime_python(self) -> List[Dict[str, str]]:
+        # requirements.txt de documentación en un proyecto Java/JS no son
+        # dependencias runtime del proyecto. En un proyecto solo-Python (o una
+        # fixture mínima con requirements) sí se evaluan.
+        if not self.codigo_py and any(
+                lenguaje != "Python" for lenguaje in self.lenguajes):
+            return []
+        return [d for d in self.deps_python if d.get("ambito") == "runtime"]
+
+    @property
+    def codigo_paquete(self) -> List[Path]:
+        """Código publicable: fuera scripts de build/tooling y setup.py."""
+        no_paquete = {"scripts", "script", "tooling", "extras", "bin",
+                      "contrib", "benchmarks", "docs_src"}
+        return [p for p in self.codigo_py
+                if p.name != "setup.py"
+                and not any(parte.lower() in no_paquete
+                            for parte in p.relative_to(self.ruta).parts[:-1])]
+
+    def a_dict(self) -> Dict[str, Any]:
+        return {
+            "lenguajes": self.lenguajes,
+            "manifiestos": [p.relative_to(self.ruta).as_posix()
+                            for p in self.manifiestos],
+            "locks": [p.relative_to(self.ruta).as_posix() for p in self.locks],
+            "dependencias": len(self.deps),
+            "dependencias_python_runtime": [d["nombre"] for d in self.deps_runtime_python],
+            "es_llm": self.es_llm,
+            "es_web": self.es_web,
+            "pesadas": self.pesadas,
         }
 
 
@@ -110,19 +227,185 @@ def leer(path: Path) -> str:
         return ""
 
 
-def lineas_silenciosas(texto: str) -> List[int]:
-    """Líneas de `except ...:` cuyo cuerpo es `pass`/`continue` (silencios)."""
-    lineas = texto.splitlines()
-    sospechosas = []
-    for i, linea in enumerate(lineas):
-        if not re.match(r"\s*except\b", linea):
+def _es_test(ruta: Path, archivo: Path) -> bool:
+    rel = archivo.relative_to(ruta)
+    partes = [parte.lower() for parte in rel.parts[:-1]]
+    nombre = archivo.name.lower()
+    if any(parte in DIRS_TEST for parte in partes):
+        return True
+    if nombre.startswith("test_") or nombre.endswith("_test.py"):
+        return True
+    if ".test." in nombre or ".spec." in nombre or ".cy." in nombre:
+        return True
+    if nombre.endswith("_test.go"):
+        return True
+    return "src/test/" in rel.as_posix().lower()
+
+
+def _es_no_codigo(ruta: Path, archivo: Path) -> bool:
+    partes = [parte.lower() for parte in archivo.relative_to(ruta).parts[:-1]]
+    return any(parte in DIRS_NO_CODIGO for parte in partes)
+
+
+def _es_manifiesto(archivo: Path) -> bool:
+    nombre = archivo.name.lower()
+    if nombre in MANIFIESTOS_NOMBRES:
+        return True
+    if nombre.endswith(".lock"):
+        return False
+    if re.match(r"requirements.*\.(txt|in)$", nombre):
+        return True
+    # pip-compile también usa requirements/tools.txt, requirements/test.in...
+    return archivo.parent.name.lower() == "requirements" \
+        and archivo.suffix.lower() in (".txt", ".in")
+
+
+def _es_lock(archivo: Path) -> bool:
+    if archivo.name.lower() in LOCKS_NOMBRES:
+        return True
+    # pip-compile deja el lock resuelto en requirements/*.txt. Los .in son
+    # entradas sin resolver y no cuentan como lock.
+    return archivo.parent.name.lower() == "requirements" \
+        and archivo.suffix.lower() == ".txt" \
+        and not archivo.name.lower().endswith(".in")
+
+
+def _modulos_propios(ruta: Path, py: List[Path]) -> Set[str]:
+    """Nombres de primera parte, incluyendo layout ``src/`` y subpaquetes."""
+    nombres = {p.stem for p in ruta.glob("*.py")}
+    for base in (ruta, ruta / "src"):
+        if not base.is_dir():
             continue
-        for siguiente in lineas[i + 1:i + 4]:
-            if not siguiente.strip():
+        for directorio in base.iterdir():
+            if not directorio.is_dir() or directorio.name in IGNORAR:
                 continue
-            if re.match(r"\s*(pass|continue)\s*$", siguiente):
-                sospechosas.append(i + 1)
-            break
+            if (directorio / "__init__.py").exists() \
+                    or any(directorio.glob("*.py")):
+                nombres.add(directorio.name)
+    for archivo in py:
+        actual, ultimo = archivo.parent, None
+        while actual != ruta and (actual / "__init__.py").exists():
+            ultimo, actual = actual, actual.parent
+        if ultimo is not None:
+            nombres.add(ultimo.name)
+    return nombres
+
+
+def _detectar_llm(deps: List[Dict[str, str]]) -> bool:
+    runtime = {d["nombre"].lower() for d in deps
+               if d.get("ecosistema", "python") == "python"
+               and d.get("ambito") == "runtime"}
+    return any(marca in runtime or any(marca in nombre for nombre in runtime)
+               for marca in MARCAS_LLM)
+
+
+def _detectar_web(deps: List[Dict[str, str]]) -> bool:
+    runtime = {d["nombre"].lower() for d in deps
+               if d.get("ambito") == "runtime"}
+    return any(marca == nombre for nombre in runtime for marca in MARCAS_WEB)
+
+
+def analizar_perfil(ruta: Path) -> Perfil:
+    """Perfil determinista y read-only del proyecto (sin ejecutar su código)."""
+    py = archivos_python(ruta)
+    lenguajes: Counter = Counter()
+    codigo, tests = [], []
+    for archivo in ruta.rglob("*"):
+        if not archivo.is_file():
+            continue
+        if any(parte in IGNORAR for parte in archivo.relative_to(ruta).parts):
+            continue
+        lenguaje = EXTENSIONES.get(archivo.suffix.lower())
+        if not lenguaje or _es_no_codigo(ruta, archivo):
+            continue
+        lenguajes[lenguaje] += 1
+        (tests if _es_test(ruta, archivo) else codigo).append(archivo)
+    manifiestos = sorted(p for p in ruta.rglob("*")
+                         if p.is_file() and _es_manifiesto(p)
+                         and not any(parte in IGNORAR
+                                     for parte in p.relative_to(ruta).parts))
+    locks = sorted(p for p in ruta.rglob("*")
+                   if p.is_file() and _es_lock(p)
+                   and not _es_no_codigo(ruta, p)
+                   and not any(parte in IGNORAR
+                               for parte in p.relative_to(ruta).parts))
+    deps = _dependencias(ruta)
+    pesadas = sorted({d["nombre"] for d in deps
+                      if any(marca in d["nombre"] for marca in PESADAS)})
+    return Perfil(
+        ruta=ruta, py=py,
+        codigo_py=[p for p in codigo if p.suffix == ".py"],
+        tests_py=[p for p in tests if p.suffix == ".py"],
+        codigo=sorted(codigo), tests=sorted(tests),
+        lenguajes=dict(sorted(lenguajes.items())),
+        manifiestos=manifiestos, locks=locks, deps=deps,
+        first_party=_modulos_propios(ruta, py),
+        es_llm=_detectar_llm(deps) and bool(py),
+        es_web=_detectar_web(deps) and bool(py),
+        pesadas=pesadas, versiones_lock=_versiones_lock(ruta),
+    )
+
+
+def _nombre_excepcion(nodo) -> str:
+    if isinstance(nodo, ast.Name):
+        return nodo.id
+    if isinstance(nodo, ast.Tuple):
+        return ",".join(_nombre_excepcion(item) for item in nodo.elts)
+    return ""
+
+
+def _cuerpo_silencio(cuerpo: List[ast.stmt]) -> bool:
+    return bool(cuerpo) and all(
+        isinstance(nodo, (ast.Pass, ast.Continue, ast.Break))
+        or (isinstance(nodo, ast.Expr) and isinstance(nodo.value, ast.Constant)
+            and nodo.value.value is Ellipsis)
+        for nodo in cuerpo)
+
+
+def _try_contiene_imports(nodo: ast.Try) -> bool:
+    """True si el ``try`` intenta importar algo (posible dependencia opcional)."""
+    return any(isinstance(sub, (ast.Import, ast.ImportFrom))
+               for item in nodo.body for sub in ast.walk(item))
+
+
+def lineas_silenciosas(texto: str) -> List[int]:
+    """Líneas de ``except`` que silencian, con dos exclusiones honestas.
+
+    - Los tests no se analizan en c3 (el llamador filtra): silenciar allí suele
+      ser deliberado.
+    - Un ``try: import x except ImportError: pass`` es un import OPCIONAL, no
+      un error tragado: se excluye. El resto de ``except: pass/continue`` sigue
+      siendo un hallazgo (P1.26).
+    """
+    try:
+        arbol = ast.parse(texto)
+    except SyntaxError:
+        # Sin AST no se inventa: se conserva el detector de líneas, que puede
+        # dar un aviso conservador, y el llamador declara el error de sintaxis.
+        lineas = texto.splitlines()
+        sospechosas = []
+        for i, linea in enumerate(lineas):
+            if not re.match(r"\s*except\b", linea):
+                continue
+            for siguiente in lineas[i + 1:i + 4]:
+                if not siguiente.strip():
+                    continue
+                if re.match(r"\s*(pass|continue|break)\s*$", siguiente):
+                    sospechosas.append(i + 1)
+                break
+        return sospechosas
+    padres = {hijo: padre for padre in ast.walk(arbol)
+              for hijo in ast.iter_child_nodes(padre)}
+    sospechosas = []
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, ast.ExceptHandler) or not _cuerpo_silencio(nodo.body):
+            continue
+        padre = padres.get(nodo)
+        if isinstance(padre, ast.Try) and _try_contiene_imports(padre) \
+                and any(nombre in ("ImportError", "ModuleNotFoundError")
+                        for nombre in _nombre_excepcion(nodo.type).split(",")):
+            continue
+        sospechosas.append(nodo.lineno)
     return sospechosas
 
 
@@ -142,13 +425,64 @@ def _tiene_asercion(funcion) -> bool:
     return False
 
 
+# Llamadas puras que no pueden fallar con argumentos literales. Un test que
+# solo imprime 1+1 sigue siendo no-op; una llamada a un helper sí puede fallar.
+_LLAMADAS_PURAS = {"print", "len", "str", "int", "float", "bool", "list",
+                   "dict", "set", "tuple", "range", "enumerate", "zip",
+                   "sorted", "sum", "min", "max", "abs", "repr", "isinstance",
+                   "issubclass", "round", "format"}
+
+
+def _puede_fallar(funcion) -> bool:
+    """True si el test hace algo observable que puede lanzar/fallar.
+
+    Es deliberadamente CONSERVADOR: ante la duda, no se marca el test. Así se
+    eliminan los falsos positivos de tests que delegan en helpers, usan
+    fixtures/context managers, comprueban excepciones sin ``assert`` o son
+    property tests con ``@given``/``@example``.
+    """
+    if getattr(funcion, "decorator_list", []):
+        return True
+    for nodo in ast.walk(funcion):
+        if isinstance(nodo, ast.Call):
+            if isinstance(nodo.func, ast.Name) and nodo.func.id in _LLAMADAS_PURAS:
+                continue
+            return True
+        if isinstance(nodo, (ast.Attribute, ast.Subscript, ast.Await, ast.With,
+                             ast.AsyncWith, ast.Raise, ast.Yield, ast.YieldFrom)):
+            return True
+    return False
+
+
+def _funciones_test(arbol: ast.Module):
+    """Tests de nivel de módulo y métodos de clases Test*, sin anidar helpers.
+
+    Devuelve ``(función, clase)``; la clase permite saber si el test depende de
+    ``setUp`` (que puede fallar aunque el cuerpo del test esté vacío).
+    """
+    for nodo in arbol.body:
+        if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and nodo.name.startswith("test"):
+            yield nodo, None
+        elif isinstance(nodo, ast.ClassDef):
+            bases = {getattr(base, "id", getattr(base, "attr", ""))
+                     for base in nodo.bases}
+            if not (nodo.name.startswith("Test") or "TestCase" in bases):
+                continue
+            for hijo in nodo.body:
+                if isinstance(hijo, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                        and hijo.name.startswith("test"):
+                    yield hijo, nodo
+
+
 def tests_sin_aserciones(ruta: Path,
                          modulos_test: List[Path]) -> Tuple[List[str], List[str]]:
-    """Funciones test_* sin ninguna aserción, con evidencia archivo:línea.
+    """Tests no-op: sin aserción NI operación que pueda fallar.
 
-    Un test que no puede fallar no es un test (regla propia 4 del proyecto).
-    Devuelve (débiles, con_error_de_sintaxis): un archivo que no parsea NO se
-    salta en silencio (P1.26); se devuelve para que el informe lo declare.
+    Un test que solo hace ``pass`` o ``print(1+1)`` no puede fallar y no es un
+    test (regla propia 4). Un test que llama a un helper, usa un fixture o
+    espera una excepción SÍ puede fallar: no se marca. Devuelve también los
+    archivos que no parsean para declararlo (P1.26).
     """
     debiles, con_error = [], []
     for p in modulos_test:
@@ -157,10 +491,13 @@ def tests_sin_aserciones(ruta: Path,
         except SyntaxError as exc:
             con_error.append(f"{p.relative_to(ruta)}:{exc.lineno or 0}")
             continue
-        for nodo in ast.walk(arbol):
-            if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)) \
-                    and nodo.name.startswith("test") \
-                    and not _tiene_asercion(nodo):
+        for nodo, clase in _funciones_test(arbol):
+            depende_de_setup = clase is not None and any(
+                isinstance(hijo, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and hijo.name in ("setUp", "setUpClass", "asyncSetUp")
+                for hijo in clase.body)
+            if not depende_de_setup and not _tiene_asercion(nodo) \
+                    and not _puede_fallar(nodo):
                 debiles.append(f"{p.relative_to(ruta)}:{nodo.lineno}")
     return debiles, con_error
 
@@ -177,78 +514,202 @@ def _git(ruta: Path, *args: str) -> Optional[str]:
 
 # --- Dimensiones -----------------------------------------------------------
 
-def evaluar_funcionalidades(ruta: Path, py: List[Path]) -> Dimension:
-    dim = Dimension("funcionalidades")
-    entradas = [p for p in py if 'if __name__ == "__main__"' in leer(p)]
-    dim.criterios["f1_puntos_de_entrada"] = len(entradas) > 0
-    dim.notas.append(f"{len(entradas)} módulos con punto de entrada")
+def _tiene_punto_entrada(ruta: Path, perfil: Perfil) -> List[str]:
+    """Puntos de entrada reales, sin ejecutar: código, scripts o bin."""
+    encontrados = []
+    for p in perfil.codigo_py:
+        texto = leer(p)
+        if p.name == "__main__.py" or re.search(
+                r"if\s+__name__\s*==\s*['\"]__main__['\"]", texto):
+            encontrados.append(p.relative_to(ruta).as_posix())
+    for p in perfil.codigo:
+        texto = leer(p)
+        if p.suffix == ".java" and re.search(r"static\s+void\s+main\s*\(", texto):
+            encontrados.append(p.relative_to(ruta).as_posix())
+        elif p.suffix == ".go" and re.search(r"(?m)^func\s+main\s*\(", texto):
+            encontrados.append(p.relative_to(ruta).as_posix())
+    for p in perfil.manifiestos:
+        texto = leer(p)
+        nombre = p.name.lower()
+        if nombre == "pyproject.toml" and re.search(
+                r"(?m)^\[(?:project|tool\.poetry)\.scripts\]", texto):
+            encontrados.append(f"{p.relative_to(ruta)} ([project.scripts])")
+        elif nombre == "setup.cfg" and "console_scripts" in texto:
+            encontrados.append(f"{p.relative_to(ruta)} (console_scripts)")
+        elif nombre == "package.json":
+            try:
+                datos = json.loads(texto)
+            except json.JSONDecodeError as exc:
+                warnings.warn(f"{p}: JSON inválido ({exc}); no se inspecciona",
+                              RuntimeWarning, stacklevel=2)
+                continue
+            if datos.get("bin") or datos.get("main"):
+                encontrados.append(f"{p.relative_to(ruta)} (bin/main)")
+    return sorted(set(encontrados))
 
-    readme = ruta / "README.md"
-    prometidos = set()
-    if readme.exists():
-        prometidos = set(re.findall(r"`([A-Za-z0-9_./-]+\.py)`", leer(readme)))
+
+def evaluar_funcionalidades(ruta: Path, perfil: Perfil) -> Dimension:
+    dim = Dimension("funcionalidades")
+    entradas = _tiene_punto_entrada(ruta, perfil)
+    if perfil.codigo and entradas:
+        dim.criterios["f1_puntos_de_entrada"] = True
+        dim.notas.append(f"{len(entradas)} puntos de entrada: "
+                         + ", ".join(entradas[:5]))
+    elif perfil.codigo:
+        # Una biblioteca sin CLI no incumple f1: el criterio solo se evalúa si
+        # el proyecto declara o contiene un punto de entrada.
+        dim.no_aplicable("f1_puntos_de_entrada",
+                         "sin CLI/entrypoint declarado (proyecto tipo biblioteca)")
+    else:
+        dim.no_aplicable("f1_puntos_de_entrada", "sin archivos de código")
+
+    readme = next((ruta / nombre for nombre in
+                   ("README.md", "README.rst", "README.txt")
+                   if (ruta / nombre).exists()), None)
+    if perfil.codigo_py:
         existentes = set()
-        for p in py:
+        for p in perfil.py:
             existentes.add(p.name)
             existentes.add(p.relative_to(ruta).as_posix())
+        prometidos = set(re.findall(r"`([A-Za-z0-9_./-]+\.py)`",
+                                    leer(readme))) if readme else set()
         faltan = sorted(n for n in prometidos
                         if n not in existentes
                         and not any(e.endswith("/" + n) for e in existentes))
-        dim.criterios["f2_readme_vs_realidad"] = not faltan
+        dim.criterios["f2_readme_vs_realidad"] = bool(readme) and not faltan
+        if not readme:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Sin README.md/.rst/.txt", str(ruta),
+                criterio="f2_readme_vs_realidad"))
         for nombre in faltan:
             dim.hallazgos.append(Hallazgo(
                 "alta", f"El README promete {nombre} y no existe",
-                "README.md"))
+                "README.md", criterio="f2_readme_vs_realidad"))
     else:
-        dim.criterios["f2_readme_vs_realidad"] = False
-        dim.hallazgos.append(Hallazgo("media", "Sin README.md", str(ruta)))
+        dim.no_aplicable("f2_readme_vs_realidad",
+                         "sin código Python: no hay referencias .py que contrastar")
 
-    deuda = []
-    for p in py:
-        for i, linea in enumerate(leer(p).splitlines(), 1):
-            if "#" not in linea:
-                continue
-            comentario = linea.split("#", 1)[1]
-            # "TODO REAL" es el nombre de una regla de dominio en algunos
-            # proyectos (no una marca de deuda): se excluye.
-            if re.search(r"\b(TODO|FIXME|XXX)\b", comentario) \
-                    and "TODO REAL" not in comentario:
-                deuda.append(f"{p.relative_to(ruta)}:{i}")
-    dim.criterios["f3_sin_deuda_declarada"] = not deuda
-    if deuda:
-        dim.hallazgos.append(Hallazgo(
-            "baja", f"{len(deuda)} marcas TODO/FIXME/XXX", ", ".join(deuda[:5])))
+    if perfil.codigo_py:
+        deuda = []
+        for p in perfil.codigo_py:
+            for i, linea in enumerate(leer(p).splitlines(), 1):
+                if "#" not in linea:
+                    continue
+                comentario = linea.split("#", 1)[1]
+                # "TODO REAL" es el nombre de una regla de dominio en algunos
+                # proyectos (no una marca de deuda): se excluye.
+                if re.search(r"\b(TODO|FIXME|XXX)\b", comentario) \
+                        and "TODO REAL" not in comentario:
+                    deuda.append(f"{p.relative_to(ruta)}:{i}")
+        dim.criterios["f3_sin_deuda_declarada"] = not deuda
+        if deuda:
+            dim.hallazgos.append(Hallazgo(
+                "baja", f"{len(deuda)} marcas TODO/FIXME/XXX en código de "
+                        "producción", ", ".join(deuda[:5]),
+                criterio="f3_sin_deuda_declarada"))
+    else:
+        dim.no_aplicable("f3_sin_deuda_declarada",
+                         "sin código Python analizable")
 
-    modulos_test = [p for p in py if p.name.startswith("test_")]
-    dim.criterios["f4_tests_de_varios_modulos"] = len(modulos_test) > 1
-    dim.notas.append(f"{len(modulos_test)} archivos de test")
+    if perfil.codigo:
+        dim.criterios["f4_tests_de_varios_modulos"] = len(perfil.tests) > 1
+        dim.notas.append(f"{len(perfil.tests)} archivos de test "
+                         f"({', '.join(sorted({p.suffix for p in perfil.tests})) or 'sin tests'})")
+        if len(perfil.tests) <= 1:
+            dim.hallazgos.append(Hallazgo(
+                "baja", f"Solo {len(perfil.tests)} archivo(s) de test: la "
+                        "cobertura por módulos no se puede distribuir",
+                "código del proyecto", criterio="f4_tests_de_varios_modulos"))
+    else:
+        dim.no_aplicable("f4_tests_de_varios_modulos", "sin código")
     return dim
 
 
 def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
     """Comando de tests DECLARADO por el proyecto (nunca adivinado).
 
-    Orden de preferencia, y se registra el origen: (1) target `test:` del
-    Makefile, (2) comando explícito en un script de verificación o README,
-    (3) convención `unittest discover -s tests` si existe tests/.
+    Cubre los ecosistemas que el perfil puede detectar y registra el origen.
+    Un ``package.json`` con el script de error de npm no se considera runner.
     """
     makefile = ruta / "Makefile"
     if makefile.exists() and re.search(r"^test:", leer(makefile), re.M):
         return {"comando": ["make", "test"], "origen": "Makefile (target test)"}
 
-    for candidato in list((ruta / "scripts").glob("*.sh")) + [ruta / "README.md",
-                                                              ruta / "AGENTS.md"]:
+    patrones = (
+        r"(python3? -m (?:unittest|pytest)[^\n`]*)",
+        r"(npm (?:run )?test[^\n`]*)",
+        r"((?:\./)?gradlew? test[^\n`]*)",
+        r"(mvn(?:w)? test[^\n`]*)",
+        r"(go test[^\n`]*)",
+        r"(cargo test[^\n`]*)",
+        r"(tox[^\n`]*)",
+    )
+    for candidato in list((ruta / "scripts").glob("*.sh")) + [
+            ruta / "README.md", ruta / "AGENTS.md", ruta / "README.rst"]:
         if not candidato.exists():
             continue
-        m = re.search(r"(python3? -m (?:unittest|pytest)[^\n`]*)", leer(candidato))
-        if m:
-            return {"comando": m.group(1).split(),
-                    "origen": f"{candidato.relative_to(ruta)}"}
+        texto = leer(candidato)
+        for patron in patrones:
+            m = re.search(patron, texto)
+            if m:
+                return {"comando": m.group(1).split(),
+                        "origen": f"{candidato.relative_to(ruta)}"}
 
-    if (ruta / "tests").is_dir():
+    paquete = ruta / "package.json"
+    if paquete.exists():
+        try:
+            datos = json.loads(leer(paquete))
+        except json.JSONDecodeError:
+            datos = {}
+        script = str((datos.get("scripts") or {}).get("test", "")).strip()
+        if script and "no test specified" not in script.lower() \
+                and not script.lower().startswith("echo"):
+            return {"comando": ["npm", "test"],
+                    "origen": "package.json (scripts.test)"}
+
+    if (ruta / "gradlew").exists() and any(
+            (ruta / nombre).exists()
+            for nombre in ("build.gradle", "build.gradle.kts")):
+        return {"comando": ["./gradlew", "test"], "origen": "gradlew + build.gradle"}
+    if (ruta / "pom.xml").exists():
+        return {"comando": ["mvn", "test"], "origen": "pom.xml"}
+    if (ruta / "go.mod").exists():
+        return {"comando": ["go", "test", "./..."], "origen": "go.mod"}
+    if (ruta / "Cargo.toml").exists():
+        return {"comando": ["cargo", "test"], "origen": "Cargo.toml"}
+    if (ruta / "tox.ini").exists():
+        return {"comando": ["tox"], "origen": "tox.ini"}
+    if (ruta / "noxfile.py").exists():
+        return {"comando": ["nox"], "origen": "noxfile.py"}
+
+    if (ruta / "tests").is_dir() and any((ruta / "tests").glob("test_*.py")):
         return {"comando": ["python3", "-m", "unittest", "discover", "-s", "tests"],
                 "origen": "convención: existe tests/"}
     return None
+
+
+def _linter_configurado(perfil: Perfil) -> Tuple[bool, str]:
+    """Linter del ecosistema, con el archivo que lo declara."""
+    textos = {p: leer(p) for p in perfil.manifiestos}
+    for p, texto in textos.items():
+        nombre = p.name.lower()
+        if nombre == "pyproject.toml" and re.search(
+                r"(?m)^\[tool\.(ruff|flake8|pylint|pydocstyle)", texto):
+            return True, p.relative_to(perfil.ruta).as_posix()
+        if nombre in ("setup.cfg", ".flake8", ".pylintrc") and re.search(
+                r"ruff|flake8|pylint", texto):
+            return True, p.relative_to(perfil.ruta).as_posix()
+        if nombre == "package.json" and re.search(
+                r'"(?:eslint|biome|prettier)"', texto):
+            return True, p.relative_to(perfil.ruta).as_posix()
+        if nombre in ("build.gradle", "build.gradle.kts", "pom.xml") and re.search(
+                r"checkstyle|spotless|pmd|spotbugs|eslint", texto, re.I):
+            return True, p.relative_to(perfil.ruta).as_posix()
+    for patron in (".ruff.toml", "ruff.toml", ".eslintrc*", "eslint.config.*",
+                   ".flake8", ".pylintrc"):
+        for p in perfil.ruta.glob(patron):
+            return True, p.relative_to(perfil.ruta).as_posix()
+    return False, ""
 
 
 def ejecutar_tests(ruta: Path, timeout: int = 900) -> Dict[str, Any]:
@@ -287,15 +748,22 @@ def ejecutar_tests(ruta: Path, timeout: int = 900) -> Dict[str, Any]:
     }
 
 
-def evaluar_calidad(ruta: Path, py: List[Path],
+def evaluar_calidad(ruta: Path, perfil: Perfil,
                     ejecutar: bool = False) -> Dimension:
     dim = Dimension("calidad")
-    modulos_test = [p for p in py if p.name.startswith("test_")]
-    lineas_codigo = sum(len(leer(p).splitlines()) for p in py if p not in modulos_test)
-    lineas_test = sum(len(leer(p).splitlines()) for p in modulos_test)
-
-    dim.criterios["c1_suite_de_tests"] = bool(modulos_test)
+    lineas_codigo = sum(len(leer(p).splitlines()) for p in perfil.codigo)
+    lineas_test = sum(len(leer(p).splitlines()) for p in perfil.tests)
     dim.notas.append(f"{lineas_test} líneas de test / {lineas_codigo} de código")
+
+    if perfil.codigo:
+        dim.criterios["c1_suite_de_tests"] = bool(perfil.tests)
+        if not perfil.tests:
+            dim.hallazgos.append(Hallazgo(
+                "alta", "Sin suite de tests: los cambios no tienen red de "
+                        "seguridad", "código del proyecto",
+                criterio="c1_suite_de_tests"))
+    else:
+        dim.no_aplicable("c1_suite_de_tests", "sin código")
 
     if ejecutar:
         resultado = ejecutar_tests(ruta)
@@ -306,49 +774,77 @@ def evaluar_calidad(ruta: Path, py: List[Path],
         if not resultado.get("ok"):
             dim.hallazgos.append(Hallazgo(
                 "alta", f"La suite NO pasa: {resultado.get('resumen') or resultado.get('error')}",
-                resultado.get("comando", "?")))
+                resultado.get("comando", "?"), criterio="c1b_suite_pasa"))
     else:
         dim.notas.append("suite NO ejecutada (sin --ejecutar-tests): no verificado")
 
-    linter = any((ruta / f).exists() for f in ("pyproject.toml", ".flake8",
-                                               "setup.cfg", ".pylintrc"))
-    linter = linter or bool(list(ruta.glob(".ruff.toml")))
-    if linter:
-        linter = any(re.search(t, leer(ruta / f))
-                     for f in ("pyproject.toml", "setup.cfg", ".flake8")
-                     for t in ("ruff", "flake8", "pylint")) or (ruta / ".ruff.toml").exists()
-    dim.criterios["c2_linter_configurado"] = linter
-    if not linter:
-        dim.hallazgos.append(Hallazgo(
-            "media", "Sin linter configurado (ruff/flake8/pylint)",
-            "pyproject.toml/setup.cfg ausentes o sin configurar"))
+    if perfil.codigo:
+        linter, fuente = _linter_configurado(perfil)
+        dim.criterios["c2_linter_configurado"] = linter
+        if linter:
+            dim.notas.append(f"linter: {fuente}")
+        else:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Sin linter configurado (ruff/flake8/pylint, eslint, "
+                        "checkstyle/spotless)", "manifiestos/raíz",
+                criterio="c2_linter_configurado"))
+    else:
+        dim.no_aplicable("c2_linter_configurado", "sin código")
 
-    silencios = []
-    for p in py:
-        for linea in lineas_silenciosas(leer(p)):
-            silencios.append(f"{p.relative_to(ruta)}:{linea}")
-    dim.criterios["c3_sin_silencios"] = not silencios
-    if silencios:
-        dim.notas.append(f"silencios detectados: {len(silencios)}")
-    for marca in silencios:
-        dim.hallazgos.append(Hallazgo(
-            "media", "`except` con `pass`/`continue` (P1.26)", marca))
+    if perfil.codigo_paquete:
+        silencios = []
+        con_error = []
+        for p in perfil.codigo_paquete:
+            try:
+                ast.parse(leer(p), filename=str(p))
+            except SyntaxError as exc:
+                con_error.append(f"{p.relative_to(ruta)}:{exc.lineno or 0}")
+                continue
+            for linea in lineas_silenciosas(leer(p)):
+                silencios.append(f"{p.relative_to(ruta)}:{linea}")
+        dim.criterios["c3_sin_silencios"] = not silencios
+        dim.notas.append(f"c3 sobre {len(perfil.codigo_paquete)} archivos de "
+                         "producción; tests/scripts excluidos")
+        if silencios:
+            dim.notas.append(f"silencios detectados: {len(silencios)}")
+        if con_error:
+            dim.notas.append("código con error de sintaxis (no evaluable en c3): "
+                             + ", ".join(con_error))
+        for marca in silencios:
+            dim.hallazgos.append(Hallazgo(
+                "media", "`except` con `pass`/`continue` en producción (P1.26)",
+                marca, criterio="c3_sin_silencios"))
+    else:
+        dim.no_aplicable("c3_sin_silencios", "sin código Python de producción")
 
-    proporcion = lineas_test / lineas_codigo if lineas_codigo else 0.0
-    dim.criterios["c4_tests_sobre_codigo_30pct"] = proporcion >= 0.3
-    dim.notas.append(f"proporción test/código: {proporcion:.2f}")
+    if perfil.codigo and lineas_codigo:
+        proporcion = lineas_test / lineas_codigo
+        dim.criterios["c4_tests_sobre_codigo_30pct"] = proporcion >= 0.3
+        dim.notas.append(f"proporción test/código: {proporcion:.2f}")
+        if proporcion < 0.3:
+            dim.hallazgos.append(Hallazgo(
+                "media", f"Proporción test/código {proporcion:.2f} < 0.30",
+                "código y tests", criterio="c4_tests_sobre_codigo_30pct"))
+    else:
+        dim.no_aplicable("c4_tests_sobre_codigo_30pct", "sin código medible")
 
-    debiles, con_error = tests_sin_aserciones(ruta, modulos_test)
-    dim.criterios["c5_tests_con_aserciones"] = not debiles
-    if debiles:
-        dim.notas.append(f"tests sin aserciones: {len(debiles)}")
-    if con_error:
-        dim.notas.append("tests con error de sintaxis (no evaluables en c5): "
-                         + ", ".join(con_error))
-    for marca in debiles:
-        dim.hallazgos.append(Hallazgo(
-            "media", "Test sin aserciones: no puede fallar, no es un test "
-                     "(regla propia 4)", marca))
+    if perfil.tests_py:
+        debiles, con_error = tests_sin_aserciones(ruta, perfil.tests_py)
+        dim.criterios["c5_tests_con_aserciones"] = not debiles
+        dim.notas.append(f"c5 sobre {len(perfil.tests_py)} archivos de test Python")
+        if debiles:
+            dim.notas.append(f"tests no-op: {len(debiles)}")
+        if con_error:
+            dim.notas.append("tests con error de sintaxis (no evaluables en c5): "
+                             + ", ".join(con_error))
+        for marca in debiles:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Test no-op: sin aserciones ni operaciones que puedan "
+                         "fallar (regla propia 4)", marca,
+                criterio="c5_tests_con_aserciones"))
+    else:
+        dim.no_aplicable("c5_tests_con_aserciones",
+                         "sin archivos de test Python analizables")
     return dim
 
 
@@ -359,7 +855,14 @@ _REQUISITO = re.compile(
     r"\s*(?P<version>[0-9][^\s,;]*)?")
 
 
-def _parsear_requisito(linea: str) -> Optional[Dict[str, str]]:
+def _clave_nombre(nombre: str) -> str:
+    """Clave PEP 503: mayúsculas, ``_`` y ``.`` equivalen a ``-``."""
+    return re.sub(r"[-_.]+", "-", nombre.strip().lower())
+
+
+def _parsear_requisito(linea: str, origen: str = "",
+                       ambito: str = "runtime",
+                       ecosistema: str = "python") -> Optional[Dict[str, str]]:
     """Dependencia PEP 508 de una línea; ``None`` si no es un paquete PyPI.
 
     Las directivas de pip (``-r``, ``-e``, ``--index-url``, ``--hash``), las
@@ -379,58 +882,353 @@ def _parsear_requisito(linea: str) -> Optional[Dict[str, str]]:
     coincidencia = _REQUISITO.match(linea)
     if coincidencia is None:
         return None
+    operador = coincidencia.group("operador") or ""
+    version = coincidencia.group("version") or ""
     return {"nombre": coincidencia.group("nombre").lower(),
-            "operador": coincidencia.group("operador") or "",
-            "version": coincidencia.group("version") or ""}
+            "operador": operador, "version": version,
+            "origen": origen, "ambito": ambito,
+            "ecosistema": ecosistema,
+            "fijada": operador == "==" and bool(version)}
 
 
-def _dependencias_pyproject(texto: str) -> List[Dict[str, str]]:
-    """Dependencias directas de ``pyproject.toml``.
+def _ambito_requirements(archivo: Path, ruta: Path) -> str:
+    nombre = archivo.name.lower()
+    try:
+        partes = [parte.lower() for parte in archivo.relative_to(ruta).parts[:-1]]
+    except ValueError:
+        partes = []
+    if any(parte in DIRS_NO_CODIGO for parte in partes):
+        return "docs"
+    if any(parte in DIRS_TEST for parte in partes):
+        return "test"
+    if any(marca in nombre for marca in ("doc", "sphinx", "mkdocs")):
+        return "docs"
+    if "test" in nombre:
+        return "test"
+    if any(marca in nombre for marca in ("dev", "lint", "type", "ci",
+                                          "bench", "check")):
+        return "dev"
+    if nombre in ("base.txt", "main.txt", "runtime.txt", "prod.txt",
+                  "production.txt"):
+        return "runtime"
+    # requirements.txt en la raíz (o junto a un manifiesto de paquete) es runtime.
+    if nombre == "requirements.txt" and (
+            archivo.parent == ruta
+            or (archivo.parent / "pyproject.toml").exists()
+            or (archivo.parent / "setup.py").exists()):
+        return "runtime"
+    return "dev"
 
-    Con ``[project]`` se usa TOML real (comillas simples, orden de tablas y
-    listas de herramientas incluidas). Para formatos no estándar se conserva la
-    heurística anterior del primer bloque ``dependencies = [...]``.
+
+def _leer_requirements(archivo: Path, ruta: Path,
+                       vistos: Optional[Set[Path]] = None) -> List[Dict[str, str]]:
+    vistos = vistos or set()
+    archivo = archivo.resolve()
+    if archivo in vistos or not archivo.is_file():
+        return []
+    vistos.add(archivo)
+    ambito = _ambito_requirements(archivo, ruta)
+    origen = archivo.relative_to(ruta).as_posix() \
+        if archivo.is_relative_to(ruta) else str(archivo)
+    deps = []
+    for linea in leer(archivo).splitlines():
+        limpia = linea.split("#", 1)[0].strip()
+        if not limpia:
+            continue
+        include = re.match(r"^(?:-r|--requirement)\s+(.+)$", limpia)
+        if include:
+            objetivo = (archivo.parent / include.group(1).strip()).resolve()
+            deps.extend(_leer_requirements(objetivo, ruta, vistos))
+            continue
+        dep = _parsear_requisito(linea, origen, ambito)
+        if dep:
+            deps.append(dep)
+    return deps
+
+
+def _agregar_items(deps: List[Dict[str, str]], items: Any, origen: str,
+                   ambito: str) -> None:
+    if not isinstance(items, list):
+        return
+    for item in items:
+        if not isinstance(item, str):
+            continue
+        dep = _parsear_requisito(item, origen, ambito)
+        if dep:
+            deps.append(dep)
+
+
+def _dependencias_pyproject(texto: str,
+                            origen: str = "pyproject.toml") -> List[Dict[str, str]]:
+    """Dependencias de ``pyproject.toml``: PEP 621, PEP 735 y Poetry/PDM.
+
+    Las listas de herramientas ajenas a ``[project]`` no se interpretan como
+    dependencias del proyecto. Los grupos de dependencias (PEP 735) se incluyen
+    con su ámbito (dev/test/docs) para no confundirlos con runtime.
     """
     try:
         datos = tomllib.loads(texto)
     except tomllib.TOMLDecodeError:
         datos = None
-    if isinstance(datos, dict) and isinstance(datos.get("project"), dict):
-        items = datos["project"].get("dependencies", [])
-        if not isinstance(items, list):
+    if not isinstance(datos, dict):
+        bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto, re.M | re.S)
+        if bloque is None:
             return []
-        return [dep for item in items if isinstance(item, str)
-                for dep in [_parsear_requisito(item)] if dep]
+        return [dep for item in re.findall(r'["\']([^"\']+)["\']', bloque.group(1))
+                for dep in [_parsear_requisito(item, origen)] if dep]
 
-    bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto,
-                       re.M | re.S)
-    if bloque is None:
+    deps: List[Dict[str, str]] = []
+    proyecto = datos.get("project")
+    if isinstance(proyecto, dict):
+        _agregar_items(deps, proyecto.get("dependencies"), origen, "runtime")
+        opcionales = proyecto.get("optional-dependencies")
+        if isinstance(opcionales, dict):
+            for grupo, items in opcionales.items():
+                nombre = str(grupo).lower()
+                ambito = "docs" if "doc" in nombre else \
+                    ("test" if "test" in nombre else
+                     ("dev" if "dev" in nombre else
+                      ("runtime" if nombre in ("runtime", "main", "prod")
+                       else "opcional")))
+                _agregar_items(deps, items, origen, ambito)
+    grupos = datos.get("dependency-groups")
+    if isinstance(grupos, dict):
+        for grupo, items in grupos.items():
+            nombre = str(grupo).lower()
+            ambito = "runtime" if nombre in ("runtime", "main", "prod") else \
+                ("docs" if "doc" in nombre else
+                 ("test" if "test" in nombre else "dev"))
+            _agregar_items(deps, items, origen, ambito)
+
+    poesia = datos.get("tool", {}).get("poetry", {}) if isinstance(datos.get("tool"), dict) else {}
+    if isinstance(poesia, dict):
+        runtime = poesia.get("dependencies")
+        if isinstance(runtime, dict):
+            for nombre, especificacion in runtime.items():
+                if str(nombre).lower() == "python":
+                    continue
+                if isinstance(especificacion, str):
+                    _agregar_items(deps, [f"{nombre}{especificacion}"], origen, "runtime")
+                elif isinstance(especificacion, dict):
+                    version = especificacion.get("version", "")
+                    _agregar_items(deps, [f"{nombre}{version}"], origen, "runtime")
+        grupos_poesia = poesia.get("group")
+        if isinstance(grupos_poesia, dict):
+            for grupo, contenido in grupos_poesia.items():
+                if not isinstance(contenido, dict):
+                    continue
+                nombre = str(grupo).lower()
+                ambito = "docs" if "doc" in nombre else \
+                    ("test" if "test" in nombre else "dev")
+                for dep_nombre, especificacion in \
+                        (contenido.get("dependencies") or {}).items():
+                    if isinstance(especificacion, str):
+                        _agregar_items(deps, [f"{dep_nombre}{especificacion}"],
+                                       origen, ambito)
+                    elif isinstance(especificacion, dict):
+                        _agregar_items(deps, [f"{dep_nombre}"
+                                              f"{especificacion.get('version', '')}"],
+                                       origen, ambito)
+    return deps
+
+
+def _dependencias_setup_cfg(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
+    parser = configparser.ConfigParser()
+    try:
+        parser.read_string(leer(archivo))
+    except configparser.Error:
         return []
-    return [dep for item in re.findall(r'"([^"]+)"', bloque.group(1))
-            for dep in [_parsear_requisito(item)] if dep]
+    origen = archivo.relative_to(ruta).as_posix()
+    deps: List[Dict[str, str]] = []
+    if parser.has_section("options"):
+        for clave in ("install_requires", "tests_require"):
+            valor = parser.get("options", clave, fallback="")
+            ambito = "runtime" if clave == "install_requires" else "dev"
+            _agregar_items(deps, [linea.strip() for linea in valor.splitlines()
+                                  if linea.strip()], origen, ambito)
+    if parser.has_section("options.extras_require"):
+        for grupo, valor in parser.items("options.extras_require"):
+            ambito = "docs" if "doc" in grupo.lower() else \
+                ("test" if "test" in grupo.lower() else "opcional")
+            _agregar_items(deps, [linea.strip() for linea in valor.splitlines()
+                                  if linea.strip()], origen, ambito)
+    return deps
+
+
+def _literales_lista(nodo: ast.AST) -> List[str]:
+    if not isinstance(nodo, (ast.List, ast.Tuple)):
+        return []
+    return [elemento.value for elemento in nodo.elts
+            if isinstance(elemento, ast.Constant)
+            and isinstance(elemento.value, str)]
+
+
+def _dependencias_setup_py(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
+    """Lee ``setup(...)`` con AST (sin ejecutarlo); no confunde claves de extras."""
+    try:
+        arbol = ast.parse(leer(archivo), filename=str(archivo))
+    except SyntaxError:
+        return []
+    origen = archivo.relative_to(ruta).as_posix()
+    deps: List[Dict[str, str]] = []
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, ast.Call) \
+                or not isinstance(nodo.func, ast.Name) \
+                or nodo.func.id != "setup":
+            continue
+        for palabra in nodo.keywords:
+            if palabra.arg in ("install_requires", "tests_require"):
+                ambito = "runtime" if palabra.arg == "install_requires" else "dev"
+                _agregar_items(deps, _literales_lista(palabra.value),
+                               origen, ambito)
+            elif palabra.arg == "extras_require" \
+                    and isinstance(palabra.value, ast.Dict):
+                for valor in palabra.value.values:
+                    _agregar_items(deps, _literales_lista(valor),
+                                   origen, "opcional")
+    return deps
+
+
+def _dependencias_package_json(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
+    try:
+        datos = json.loads(leer(archivo))
+    except (json.JSONDecodeError, TypeError) as exc:
+        warnings.warn(f"{archivo}: JSON inválido ({exc}); dependencias npm no leídas",
+                      RuntimeWarning, stacklevel=2)
+        return []
+    origen = archivo.relative_to(ruta).as_posix()
+    deps: List[Dict[str, str]] = []
+    for seccion, ambito in (("dependencies", "runtime"),
+                            ("devDependencies", "dev"),
+                            ("peerDependencies", "opcional")):
+        bloque = datos.get(seccion)
+        if not isinstance(bloque, dict):
+            continue
+        for nombre, especificacion in bloque.items():
+            texto = str(especificacion)
+            coincidencia = re.match(r"([~^<>=]*)\s*([0-9][^\s,;]*)", texto)
+            deps.append({
+                "nombre": str(nombre).lower(),
+                "operador": coincidencia.group(1) if coincidencia else "",
+                "version": coincidencia.group(2) if coincidencia else "",
+                "origen": origen, "ambito": ambito, "ecosistema": "npm",
+                "fijada": bool(coincidencia) and
+                coincidencia.group(1) == "" and bool(coincidencia.group(2)),
+            })
+    return deps
 
 
 def _dependencias(ruta: Path) -> List[Dict[str, str]]:
-    deps = []
-    req = ruta / "requirements.txt"
-    if req.exists():
-        for linea in leer(req).splitlines():
-            dep = _parsear_requisito(linea)
-            if dep:
-                deps.append(dep)
-    pyproject = ruta / "pyproject.toml"
-    if pyproject.exists():
-        deps.extend(_dependencias_pyproject(leer(pyproject)))
-    # Una misma dependencia declarada en varios manifiestos se cuenta una vez,
-    # prefiriendo la declaración más específica (== con versión).
-    unicas: Dict[str, Dict[str, str]] = {}
+    """Dependencias directas de TODOS los manifiestos, con ámbito y origen.
+
+    Cubre ``requirements*.txt`` (incluidos subdirectorios y ``-r``), todos los
+    ``pyproject.toml`` (incluidos monorepos), ``setup.cfg``/``setup.py`` y
+    ``package.json``. Los locks no son manifiestos: se leen aparte para resolver
+    rangos. Una misma dependencia se cuenta una vez, prefiriendo runtime y la
+    declaración fijada.
+    """
+    deps: List[Dict[str, str]] = []
+    vistos_req: Set[Path] = set()
+    for archivo in sorted(p for p in ruta.rglob("*")
+                          if p.is_file() and not any(
+                              parte in IGNORAR
+                              for parte in p.relative_to(ruta).parts)):
+        nombre = archivo.name.lower()
+        es_requisitos = bool(re.match(r"requirements.*\.(txt|in)$", nombre)) or (
+            archivo.parent.name.lower() == "requirements"
+            and archivo.suffix.lower() in (".txt", ".in"))
+        if es_requisitos:
+            deps.extend(_leer_requirements(archivo, ruta, vistos_req))
+        elif nombre == "pyproject.toml":
+            deps.extend(_dependencias_pyproject(
+                leer(archivo), archivo.relative_to(ruta).as_posix()))
+        elif nombre == "setup.cfg":
+            deps.extend(_dependencias_setup_cfg(archivo, ruta))
+        elif nombre == "setup.py":
+            deps.extend(_dependencias_setup_py(archivo, ruta))
+        elif nombre == "package.json":
+            deps.extend(_dependencias_package_json(archivo, ruta))
+    unicas: Dict[Tuple[str, str], Dict[str, str]] = {}
     for dep in deps:
-        previa = unicas.get(dep["nombre"])
-        if previa is None or (
-                dep["operador"] == "==" and dep["version"]
-                and (previa["operador"] != "==" or not previa["version"])):
-            unicas[dep["nombre"]] = dep
+        clave = (dep.get("ecosistema", "python"), _clave_nombre(dep["nombre"]))
+        previa = unicas.get(clave)
+        if previa is None:
+            unicas[clave] = dep
+            continue
+        prioridad_dep = PRIORIDAD_AMBITO.get(dep.get("ambito", "runtime"), 9)
+        prioridad_previa = PRIORIDAD_AMBITO.get(previa.get("ambito", "runtime"), 9)
+        mejor_ambito = prioridad_dep < prioridad_previa
+        # Una versión fijada de desarrollo no debe tapar la declaración runtime
+        # (Hypothesis declara sortedcontainers runtime y tools.txt la fija).
+        mejor_fijada = dep.get("fijada") and not previa.get("fijada") \
+            and prioridad_dep <= prioridad_previa
+        if mejor_ambito or mejor_fijada:
+            unicas[clave] = dep
     return list(unicas.values())
+
+
+def _versiones_lock(ruta: Path) -> Dict[str, str]:
+    """Versiones resueltas por los locks (solo datos; nunca se ejecuta nada)."""
+    versiones: Dict[str, str] = {}
+
+    def _toml_lock(archivo: Path) -> None:
+        try:
+            datos = tomllib.loads(leer(archivo))
+        except tomllib.TOMLDecodeError:
+            return
+        paquetes = datos.get("package", [])
+        for paquete in paquetes if isinstance(paquetes, list) else []:
+            if not isinstance(paquete, dict) or not paquete.get("name") \
+                    or not paquete.get("version"):
+                continue
+            fuente = paquete.get("source")
+            # El propio proyecto aparece como editable en uv.lock; no se
+            # compara consigo mismo contra PyPI.
+            if isinstance(fuente, dict) and fuente.get("editable"):
+                continue
+            versiones[_clave_nombre(str(paquete["name"]))] = \
+                str(paquete["version"])
+
+    for archivo in ruta.rglob("*"):
+        if not archivo.is_file() or any(parte in IGNORAR
+                                        for parte in archivo.relative_to(ruta).parts):
+            continue
+        nombre = archivo.name.lower()
+        if nombre in ("uv.lock", "poetry.lock", "pdm.lock"):
+            _toml_lock(archivo)
+        elif nombre == "pipfile.lock":
+            try:
+                datos = json.loads(leer(archivo))
+            except json.JSONDecodeError as exc:
+                warnings.warn(f"{archivo}: lock JSON inválido ({exc})",
+                              RuntimeWarning, stacklevel=2)
+                continue
+            for seccion in ("default", "develop"):
+                for paquete, detalle in (datos.get(seccion) or {}).items():
+                    if isinstance(detalle, dict) and detalle.get("version"):
+                        versiones[_clave_nombre(paquete)] = \
+                            str(detalle["version"]).lstrip("=")
+        elif nombre == "package-lock.json":
+            try:
+                datos = json.loads(leer(archivo))
+            except json.JSONDecodeError as exc:
+                warnings.warn(f"{archivo}: lock JSON inválido ({exc})",
+                              RuntimeWarning, stacklevel=2)
+                continue
+            for clave, detalle in (datos.get("packages") or {}).items():
+                if not isinstance(detalle, dict) or not detalle.get("version"):
+                    continue
+                paquete = clave.rsplit("node_modules/", 1)[-1]
+                if paquete:
+                    versiones[_clave_nombre(paquete)] = str(detalle["version"])
+        elif nombre.endswith(".lock") or (
+                archivo.parent.name.lower() == "requirements"
+                and archivo.suffix.lower() == ".txt"):
+            for linea in leer(archivo).splitlines():
+                dep = _parsear_requisito(linea)
+                if dep and dep["operador"] == "==" and dep["version"]:
+                    versiones[_clave_nombre(dep["nombre"])] = dep["version"]
+    return versiones
 
 
 def ultima_version_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
@@ -443,115 +1241,209 @@ def ultima_version_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
         return {"version": None, "error": f"{type(exc).__name__}: {exc}"}
 
 
-def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
+_LOCKS_PYTHON = {"requirements.lock", "uv.lock", "poetry.lock", "pipfile.lock",
+                 "pdm.lock"}
+_LOCKS_NPM = {"package-lock.json", "pnpm-lock.yaml", "yarn.lock"}
+
+
+def _es_lock_python(archivo: Path) -> bool:
+    return archivo.name.lower() in _LOCKS_PYTHON or (
+        archivo.parent.name.lower() == "requirements"
+        and archivo.suffix.lower() == ".txt")
+
+
+def evaluar_vigencia(ruta: Path, perfil: Perfil,
                      con_red: bool = True) -> Dimension:
     dim = Dimension("vigencia")
+    deps_python = perfil.deps_runtime_python
+    deps_npm = [d for d in perfil.deps if d.get("ecosistema") == "npm"]
+    locks_python = [p for p in perfil.locks if _es_lock_python(p)]
+    locks_npm = [p for p in perfil.locks if p.name.lower() in _LOCKS_NPM]
 
-    tiene_lock = any((ruta / f).exists() for f in
-                     ("requirements.lock", "poetry.lock", "uv.lock", "Pipfile.lock"))
-    sin_fijar = [d["nombre"] for d in deps
-                 if d["operador"] != "==" or not d["version"]]
-    # Un lockfile da reproducibilidad aunque el manifiesto use rangos.
-    dim.criterios["v1_dependencias_fijadas"] = bool(deps) and (not sin_fijar or tiene_lock)
-    if sin_fijar and not tiene_lock:
-        dim.hallazgos.append(Hallazgo(
-            "media", f"Dependencias sin fijar: {', '.join(sin_fijar)}",
-            "requirements.txt/pyproject.toml"))
-    elif sin_fijar:
-        dim.notas.append("rangos en el manifiesto cubiertos por lockfile")
+    if deps_python:
+        sin_fijar = [d["nombre"] for d in deps_python
+                     if d.get("operador") != "==" or not d.get("version")]
+        dim.criterios["v1_dependencias_fijadas"] = not sin_fijar or bool(locks_python)
+        if sin_fijar and not locks_python:
+            dim.hallazgos.append(Hallazgo(
+                "media", f"Dependencias Python sin fijar: {', '.join(sin_fijar)}",
+                "manifiestos Python", criterio="v1_dependencias_fijadas"))
+        elif sin_fijar:
+            dim.notas.append("rangos Python cubiertos por lockfile")
+    else:
+        dim.no_aplicable("v1_dependencias_fijadas",
+                         "sin dependencias Python runtime")
 
-    dim.criterios["v2_lockfile"] = tiene_lock
-    if not tiene_lock:
-        dim.hallazgos.append(Hallazgo(
-            "media", "Sin lockfile (instalación no reproducible)", str(ruta)))
+    ecosistemas = []
+    if deps_python:
+        ecosistemas.append(("python", locks_python))
+    if deps_npm:
+        ecosistemas.append(("npm", locks_npm))
+    if ecosistemas:
+        faltan = [nombre for nombre, locks in ecosistemas if not locks]
+        dim.criterios["v2_lockfile"] = not faltan
+        dim.notas.append("locks: " + (", ".join(
+            p.relative_to(ruta).as_posix() for p in perfil.locks) or "ninguno"))
+        if faltan:
+            dim.hallazgos.append(Hallazgo(
+                "media", f"Sin lockfile para: {', '.join(faltan)} "
+                        "(instalación no reproducible)", str(ruta),
+                criterio="v2_lockfile"))
+    else:
+        dim.no_aplicable("v2_lockfile", "sin dependencias runtime detectadas")
 
     fecha = _git(ruta, "log", "-1", "--format=%ad", "--date=short")
-    commits = _git(ruta, "rev-list", "--count", "HEAD")
-    recientes = _git(ruta, "log", "--since=180 days ago", "--oneline")
-    n_recientes = len(recientes.splitlines()) if recientes else 0
-    dim.criterios["v3_actividad_reciente"] = bool(fecha) and n_recientes > 0
-    dim.notas.append(f"último commit: {fecha or 'sin git'}; commits totales: "
-                     f"{commits or '?'}; últimos 180 días: {n_recientes}")
+    if not fecha:
+        dim.no_aplicable("v3_actividad_reciente",
+                         "sin historial git: no se puede medir actividad")
+        dim.notas.append("sin git: actividad no evaluable")
+    else:
+        commits = _git(ruta, "rev-list", "--count", "HEAD")
+        recientes = _git(ruta, "log", "--since=180 days ago", "--oneline")
+        n_recientes = len(recientes.splitlines()) if recientes else 0
+        dim.criterios["v3_actividad_reciente"] = n_recientes > 0
+        dim.notas.append(f"último commit: {fecha}; commits totales: "
+                         f"{commits or '?'}; últimos 180 días: {n_recientes}")
+        if not n_recientes:
+            dim.hallazgos.append(Hallazgo(
+                "baja", "Sin commits en los últimos 180 días", f"git: {fecha}",
+                criterio="v3_actividad_reciente"))
 
+    if not deps_python:
+        dim.no_aplicable("v4_dependencias_al_dia",
+                         "sin dependencias Python runtime que comparar")
+        return dim
     if not con_red:
-        dim.criterios["v4_dependencias_al_dia"] = False
         dim.notas.append("comprobación PyPI OMITIDA (--sin-red): no verificado")
+        dim.no_aplicable("v4_dependencias_al_dia",
+                         "comparación PyPI omitida (--sin-red): no verificada")
         return dim
 
     atrasadas, no_verificadas = [], []
     verificadas = 0
-    for d in deps:
-        if d["operador"] != "==" or not d["version"]:
+    for d in deps_python:
+        version = d["version"] if d.get("operador") == "==" and d.get("version") \
+            else perfil.versiones_lock.get(_clave_nombre(d["nombre"]), "")
+        if not version:
             continue
         verificadas += 1
         consulta = ultima_version_pypi(d["nombre"])
         if consulta["error"]:
             no_verificadas.append(f"{d['nombre']} ({consulta['error']})")
             continue
-        if consulta["version"] != d["version"]:
-            atrasadas.append(f"{d['nombre']} {d['version']} -> {consulta['version']}")
+        if consulta["version"] != version:
+            atrasadas.append(f"{d['nombre']} {version} -> {consulta['version']}")
     if verificadas == 0:
-        # Cero comparaciones no es "al día": el bucle no consultó PyPI. Antes
-        # un manifiesto solo con rangos (p. ej. `pandas>=2` + lock) devolvía
-        # v4=True sin haber comprobado nada.
+        # Cero comparaciones no es "al día": el bucle no consultó PyPI. Un
+        # manifiesto solo con rangos y sin lock no permite verificar nada.
         dim.criterios["v4_dependencias_al_dia"] = False
-        dim.notas.append("sin dependencias fijadas (==) que comparar: no verificado")
+        dim.notas.append("sin versiones (== o lock) que comparar: no verificado")
         dim.hallazgos.append(Hallazgo(
-            "baja", "No se pudo comprobar la vigencia: no hay dependencias "
-            "fijadas (==) en el manifiesto", "requirements.txt/pyproject.toml",
-            EvidenceKind.UNVERIFIED))
+            "baja", "No se pudo comprobar la vigencia: no hay versiones "
+            "fijadas (==) ni resueltas por lock", "manifiestos/locks",
+            EvidenceKind.UNVERIFIED, criterio="v4_dependencias_al_dia"))
         return dim
-    if verificadas < len(deps):
-        dim.notas.append(f"comparadas {verificadas}/{len(deps)} dependencias: "
-                         "las no fijadas no se pueden comparar con PyPI")
+    if verificadas < len(deps_python):
+        dim.notas.append(f"comparadas {verificadas}/{len(deps_python)} dependencias: "
+                         "las que no tienen versión no se pueden comparar")
     # "No se pudo comprobar" NO es "está al día": el criterio exige verificación.
     dim.criterios["v4_dependencias_al_dia"] = not atrasadas and not no_verificadas
     for marca in atrasadas:
         dim.hallazgos.append(Hallazgo("media", f"Dependencia atrasada: {marca}",
-                                      "PyPI (api.pypi.org)"))
+                                      "PyPI (pypi.org/pypi)", criterio="v4_dependencias_al_dia"))
     if no_verificadas:
         dim.hallazgos.append(Hallazgo(
             "baja", "No se pudo comprobar en PyPI: " + "; ".join(no_verificadas),
-            "PyPI", EvidenceKind.UNVERIFIED))
+            "PyPI", EvidenceKind.UNVERIFIED, criterio="v4_dependencias_al_dia"))
     return dim
 
 
 LICENCIAS_LIBRES = ("mit", "bsd", "apache", "gpl", "lgpl", "mpl", "isc",
-                    "unlicense", "cc0", "psf", "zlib", "python software")
+                    "unlicense", "cc0", "psf", "zlib", "python software",
+                    "bsd-2-clause", "bsd-3-clause", "apache-2.0", "mpl-2.0",
+                    "psf-2.0", "python-2.0", "cc0-1.0", "0bsd")
+
+
+def _es_licencia_libre(texto: str) -> bool:
+    """Decide licencias libres por texto/expresión SPDX, sin inventar.
+
+    PEP 639 hizo que PyPI publique ``license_expression``; los clasificadores
+    OSI siguen existiendo pero ya no deben añadirse nuevos. Se aceptan ambos.
+    """
+    normalizado = (texto or "").lower()
+    if not normalizado or "unknown" in normalizado:
+        return False
+    if "proprietary" in normalizado or "licenseref-" in normalizado:
+        return False
+    return any(marca in normalizado for marca in LICENCIAS_LIBRES)
 
 
 def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
     """Licencia declarada en PyPI; si falla, el MOTIVO va en `error`.
 
-    `libre` se decide por el clasificador OSI o, si no lo hay, por el nombre de
-    la licencia en texto libre (muchos paquetes solo rellenan ese campo).
+    Orden de lectura (PEP 639): ``license_expression`` > clasificador OSI >
+    campo ``license`` en texto libre. Si no hay dato, ``libre`` es ``None``:
+    "no verificado" no es "no libre" ni "libre".
     """
     try:
         with urllib.request.urlopen(f"https://pypi.org/pypi/{nombre}/json",
                                     timeout=timeout) as respuesta:
             info = json.load(respuesta)["info"]
     except Exception as exc:  # noqa: BLE001 - el motivo se declara en el informe
-        return {"licencia": "desconocida", "libre": False,
+        return {"licencia": "desconocida", "libre": None, "fuente": "",
                 "error": f"{type(exc).__name__}: {exc}"}
+    expresion = (info.get("license_expression") or "").strip()
+    if expresion:
+        return {"licencia": expresion[:80], "libre": _es_licencia_libre(expresion),
+                "fuente": "license_expression", "error": ""}
     aprobada = next((c for c in info.get("classifiers", [])
                      if c.startswith("License :: OSI Approved")), "")
     if aprobada:
         return {"licencia": aprobada.split("::")[-1].strip(), "libre": True,
+                "fuente": "classifier", "error": ""}
+    texto = ((info.get("license") or "").strip().splitlines() or [""])[0][:80]
+    if not texto or texto.lower() in ("unknown", "none", "see license",
+                                      "see license file") \
+            or texto.lower().startswith(("http://", "https://")):
+        return {"licencia": "desconocida", "libre": None, "fuente": "",
                 "error": ""}
-    texto = ((info.get("license") or "").strip().splitlines() or [""])[0][:60]
-    return {"licencia": texto or "desconocida",
-            "libre": any(marca in texto.lower() for marca in LICENCIAS_LIBRES),
-            "error": ""}
+    return {"licencia": texto, "libre": _es_licencia_libre(texto),
+            "fuente": "license", "error": ""}
 
 
-def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
-                         con_red: bool = True,
-                         py: List[Path] = None) -> Dimension:
+def _registro_decisiones(ruta: Path, perfil: Perfil) -> List[str]:
+    """Documentos de decisiones/ADR/changelog, en cualquier subdirectorio."""
+    claves = ("adr", "decision", "changelog", "changes", "history",
+              "release-notes", "releasenotes", "lecciones")
+    extensiones = {".md", ".rst", ".txt", ".adoc"}
+    fuentes = []
+    for archivo in ruta.rglob("*"):
+        if not archivo.is_file() or archivo.suffix.lower() not in extensiones:
+            continue
+        if any(parte in IGNORAR for parte in archivo.relative_to(ruta).parts):
+            continue
+        nombre = archivo.name.lower()
+        if any(clave in nombre for clave in claves):
+            fuentes.append(archivo.relative_to(ruta).as_posix())
+    if any("decision_log" in leer(p) for p in perfil.codigo_py):
+        fuentes.append("decision_log en código")
+    return sorted(set(fuentes))
+
+
+def evaluar_herramientas(ruta: Path, perfil: Perfil,
+                         con_red: bool = True) -> Dimension:
     dim = Dimension("herramientas")
-    manifiestos = [f for f in ("requirements.txt", "pyproject.toml", "setup.py",
-                               "package.json", "Pipfile") if (ruta / f).exists()]
-    dim.criterios["h1_manifiesto"] = bool(manifiestos)
-    dim.notas.append(f"manifiestos: {', '.join(manifiestos) or 'ninguno'}")
+    manifiestos = [p.relative_to(ruta).as_posix() for p in perfil.manifiestos]
+    if manifiestos:
+        dim.criterios["h1_manifiesto"] = True
+        dim.notas.append(f"manifiestos ({len(manifiestos)}): "
+                         + ", ".join(manifiestos[:8])
+                         + ("…" if len(manifiestos) > 8 else ""))
+    else:
+        dim.criterios["h1_manifiesto"] = False
+        dim.hallazgos.append(Hallazgo(
+            "alta", "Sin manifiesto de dependencias", str(ruta),
+            criterio="h1_manifiesto"))
 
     licencia = [p.name for p in ruta.iterdir()
                 if p.is_file() and re.match(r"(LICEN[CS]E|COPYING)", p.name, re.I)]
@@ -559,87 +1451,126 @@ def evaluar_herramientas(ruta: Path, deps: List[Dict[str, str]] = None,
     if not licencia:
         dim.hallazgos.append(Hallazgo(
             "alta", "Sin archivo de licencia: el uso/reutilización queda sin "
-                    "términos (P1.18)", str(ruta)))
+                    "términos (P1.18)", str(ruta), criterio="h2_licencia"))
 
     ci = bool(list(ruta.glob(".github/workflows/*"))) or \
         (ruta / ".gitlab-ci.yml").exists() or \
-        bool(list((ruta / "scripts").glob("*verif*"))) or (ruta / "Makefile").exists()
-    dim.criterios["h3_verificacion_automatizada"] = ci
-    if not ci:
-        dim.hallazgos.append(Hallazgo(
-            "media", "Sin CI ni script de verificación local", str(ruta)))
+        (ruta / ".circleci/config.yml").exists() or \
+        (ruta / "azure-pipelines.yml").exists() or \
+        (ruta / "Jenkinsfile").exists() or \
+        bool(list((ruta / "scripts").glob("*verif*"))) or (ruta / "Makefile").exists() \
+        or (ruta / "tox.ini").exists()
+    if perfil.codigo:
+        dim.criterios["h3_verificacion_automatizada"] = ci
+        if not ci:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Sin CI ni script de verificación local", str(ruta),
+                criterio="h3_verificacion_automatizada"))
+    else:
+        dim.no_aplicable("h3_verificacion_automatizada", "sin código")
 
-    runner = any("unittest" in leer(p) or "pytest" in leer(p) for p in
-                 list(ruta.glob("scripts/*")) + [ruta / "Makefile"])
-    dim.criterios["h4_runner_de_tests_declarado"] = runner or bool(
-        list(ruta.glob("tests/*")))
+    deteccion = detectar_comando_tests(ruta)
+    runner_extra = next((p for p in (ruta / "build.sh", ruta / "tox.ini",
+                                     ruta / "noxfile.py") if p.exists()), None)
+    if perfil.tests:
+        dim.criterios["h4_runner_de_tests_declarado"] = bool(
+            deteccion or runner_extra)
+        if deteccion:
+            dim.notas.append(f"runner: {' '.join(deteccion['comando'])} "
+                             f"({deteccion['origen']})")
+        elif runner_extra:
+            dim.notas.append(f"runner declarado: {runner_extra.name} "
+                             "(comando no inspeccionado para ejecución)")
+        else:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Tests presentes pero sin comando de ejecución declarado",
+                "manifiestos/README", criterio="h4_runner_de_tests_declarado"))
+    else:
+        dim.no_aplicable("h4_runner_de_tests_declarado", "sin tests detectados")
 
-    # Licencias de las dependencias (P1.18): declaradas y libres.
-    deps = deps or []
+    # Licencias de las dependencias Python runtime (P1.18). Las de desarrollo
+    # no se mezclan con el runtime; se declara el ámbito.
+    deps = perfil.deps_runtime_python
     if not deps:
-        dim.notas.append("sin dependencias declaradas: licencias no aplican")
+        dim.no_aplicable("h5_licencias_libres",
+                         "sin dependencias Python runtime")
     elif not con_red:
         dim.notas.append("licencias de dependencias OMITIDAS (--sin-red)")
+        dim.no_aplicable("h5_licencias_libres",
+                         "licencias de dependencias OMITIDAS (--sin-red)")
     else:
         sin_verificar, no_libres = [], []
         for dep in deps:
             info = licencia_pypi(dep["nombre"])
-            if info.get("error"):
-                sin_verificar.append(f"{dep['nombre']} ({info['error']})")
-            elif not info["libre"]:
+            if info.get("error") or info.get("libre") is None:
+                motivo = info.get("error") or "sin metadato de licencia"
+                sin_verificar.append(f"{dep['nombre']} ({motivo})")
+            elif info["libre"] is False:
                 no_libres.append(f"{dep['nombre']} ({info['licencia']})")
         dim.criterios["h5_licencias_libres"] = not no_libres and not sin_verificar
-        dim.notas.append(f"licencias consultadas en PyPI: {len(deps)}")
+        dim.notas.append(f"licencias consultadas en PyPI: {len(deps)} "
+                         f"(runtime; {len(perfil.deps_python) - len(deps)} de "
+                         "desarrollo/opcionales excluidas)")
         if no_libres:
             dim.hallazgos.append(Hallazgo(
                 "media", f"Dependencias sin licencia libre declarada: "
-                         f"{', '.join(no_libres)}", "PyPI"))
+                         f"{', '.join(no_libres)}", "PyPI",
+                criterio="h5_licencias_libres"))
         if sin_verificar:
             dim.hallazgos.append(Hallazgo(
                 "baja", f"Licencia no verificable en PyPI: "
                         f"{', '.join(sin_verificar)}", "PyPI",
-                EvidenceKind.UNVERIFIED))
+                EvidenceKind.UNVERIFIED, criterio="h5_licencias_libres"))
 
-    # Imports de terceros sin declarar en el manifiesto: herramientas usadas
-    # sin declarar son invisibles para reproducir el proyecto. Reutiliza el
-    # gate AST de scripts/preflight.py (no se duplica su lógica). Límite
-    # declarado: los imports dinámicos (importlib/__import__) no son visibles
-    # para el análisis estático.
-    from scripts.preflight import cargar_modulos, revisar_imports
-    modulos, _ = cargar_modulos(ruta)
-    no_declarados = revisar_imports(ruta, modulos).hallazgos
-    dim.criterios["h6_imports_declarados"] = not no_declarados
-    if no_declarados:
-        dim.notas.append(f"imports de terceros sin declarar: {len(no_declarados)}")
-    for hallazgo in no_declarados:
-        dim.hallazgos.append(Hallazgo(
-            "alta", f"Import de terceros sin declarar: {hallazgo.mensaje}",
-            f"{hallazgo.archivo}:{hallazgo.linea}"))
+    # Imports de terceros sin declarar: SOLO código de producción del paquete.
+    # Tests, docs, ejemplos y benchmarks no son API publicada; sus imports no
+    # se convierten en hallazgos (FastAPI docs_src era el 95% de los falsos
+    # positivos). Se reutiliza el gate AST de scripts/preflight.py.
+    if perfil.codigo_paquete:
+        from scripts.preflight import cargar_modulos, revisar_imports
+        permitidos = set(perfil.first_party) | set(perfil.versiones_lock)
+        modulos, _ = cargar_modulos(ruta, archivos=perfil.codigo_paquete)
+        no_declarados = revisar_imports(ruta, modulos, permitidos=permitidos,
+                                        ignorar_opcionales=True).hallazgos
+        dim.criterios["h6_imports_declarados"] = not no_declarados
+        dim.notas.append(f"h6 sobre {len(perfil.codigo_paquete)} archivos de "
+                         "producción (tests/docs/scripts excluidos)")
+        if no_declarados:
+            dim.notas.append(f"imports de terceros sin declarar: {len(no_declarados)}")
+        for hallazgo in no_declarados:
+            dim.hallazgos.append(Hallazgo(
+                "alta", f"Import de terceros sin declarar: {hallazgo.mensaje}",
+                f"{hallazgo.archivo}:{hallazgo.linea}",
+                criterio="h6_imports_declarados"))
+    else:
+        dim.no_aplicable("h6_imports_declarados",
+                         "sin código Python de producción")
 
     # Señal estructural (NO veredicto): el proyecto registra sus decisiones.
-    # Que exista el registro no dice si las decisiones son buenas: eso sigue
-    # siendo juicio humano (límite declarado del evaluador).
-    py = py if py is not None else archivos_python(ruta)
-    docs_dir = list((ruta / "docs").glob("*.md")) if (ruta / "docs").is_dir() else []
-    nombres_doc = " ".join(p.name.lower() for p in docs_dir + list(ruta.glob("*.md")))
-    registro = [m for m in ("adr", "decision", "lecciones", "changelog")
-                if m in nombres_doc]
-    en_codigo = any("decision_log" in leer(p) for p in py)
-    dim.criterios["h7_decisiones_documentadas"] = bool(registro) or en_codigo
-    if registro or en_codigo:
-        fuentes = registro + (["decision_log en código"] if en_codigo else [])
-        dim.notas.append("registro de decisiones: " + ", ".join(fuentes))
+    fuentes = _registro_decisiones(ruta, perfil)
+    dim.criterios["h7_decisiones_documentadas"] = bool(fuentes)
+    if fuentes:
+        dim.notas.append("registro de decisiones: " + ", ".join(fuentes[:8]))
     else:
         dim.hallazgos.append(Hallazgo(
             "baja", "Sin registro de decisiones (ADR/decision_log/CHANGELOG): "
-                    "el porqué de las decisiones no es consultable", str(ruta)))
+                    "el porqué de las decisiones no es consultable", str(ruta),
+            criterio="h7_decisiones_documentadas"))
     return dim
 
 
-def evaluar_inteligencia(ruta: Path, py: List[Path]) -> Dimension:
+def evaluar_inteligencia(ruta: Path, perfil: Perfil) -> Dimension:
     dim = Dimension("inteligencia")
-    texto = "\n".join(leer(p) for p in py)
+    if not perfil.es_llm:
+        for clave in ("i1_cachea_trabajo_repetido", "i2_timeouts_explicitos",
+                      "i3_reintentos_con_limite", "i4_valida_respuestas",
+                      "i5_declara_lo_simulado", "i6_metricas_propias"):
+            dim.no_aplicable(clave, "el proyecto no declara un LLM en "
+                                    "dependencias runtime")
+        dim.notas.append("dimensión N/A: señales específicas de sistemas LLM")
+        return dim
 
+    texto = "\n".join(leer(p) for p in perfil.codigo_py)
     dim.criterios["i1_cachea_trabajo_repetido"] = bool(
         re.search(r"\b(lru_cache|@cache|caché|cache\[|_cache)\b", texto))
     dim.criterios["i2_timeouts_explicitos"] = bool(
@@ -660,16 +1591,26 @@ def evaluar_inteligencia(ruta: Path, py: List[Path]) -> Dimension:
                           ("i5_declara_lo_simulado", "declaración de lo simulado"),
                           ("i6_metricas_propias", "métricas propias")):
         if not dim.criterios[clave]:
-            dim.hallazgos.append(Hallazgo("baja", f"Sin señal de {nombre}", "—"))
+            dim.hallazgos.append(Hallazgo(
+                "baja", f"Sin señal de {nombre}", "código de producción",
+                criterio=clave))
     return dim
 
 
-def evaluar_eficiencia(ruta: Path, py: List[Path],
-                       pesadas_declaradas: List[str] = None) -> Dimension:
+def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
     dim = Dimension("eficiencia")
+    if not perfil.es_llm:
+        for clave in ("e1_import_perezoso_de_pesadas",
+                      "e2_carga_unica_de_modelos",
+                      "e3_mediciones_documentadas"):
+            dim.no_aplicable(clave, "el proyecto no declara un LLM en "
+                                    "dependencias runtime")
+        dim.notas.append("dimensión N/A: señales específicas de sistemas LLM")
+        return dim
+
     texto_perezoso = 0
     cargas_unicas = 0
-    for p in py:
+    for p in perfil.codigo_py:
         contenido = leer(p)
         for m in re.finditer(r"^\s+import |^\s+from ", contenido, re.M):
             inicio = contenido[:m.start()].count("\n")
@@ -679,24 +1620,30 @@ def evaluar_eficiencia(ruta: Path, py: List[Path],
         cargas_unicas += len(re.findall(r"(create_model|cargar_modelo|_load_model)",
                                         contenido))
 
-    if pesadas_declaradas:
+    if perfil.pesadas:
         dim.criterios["e1_import_perezoso_de_pesadas"] = texto_perezoso > 0
         dim.notas.append(f"imports perezosos detectados: {texto_perezoso}")
     else:
-        # Sin dependencias pesadas declaradas el criterio no aplica: no se
-        # castiga al proyecto por algo que no necesita (honestidad del informe).
-        dim.criterios["e1_import_perezoso_de_pesadas"] = True
-        dim.notas.append("sin dependencias pesadas declaradas: e1 no aplica")
-    dim.criterios["e2_carga_unica_de_modelos"] = cargas_unicas > 0
-    dim.notas.append(f"llamadas de carga de modelo: {cargas_unicas}")
+        dim.no_aplicable("e1_import_perezoso_de_pesadas",
+                         "sin dependencias pesadas declaradas")
 
-    docs = list((ruta / "docs").glob("*.md")) if (ruta / "docs").is_dir() else []
+    if any(marca in perfil.pesadas for marca in MODELOS):
+        dim.criterios["e2_carga_unica_de_modelos"] = cargas_unicas > 0
+        dim.notas.append(f"llamadas de carga de modelo: {cargas_unicas}")
+    else:
+        dim.no_aplicable("e2_carga_unica_de_modelos",
+                         "el proyecto usa API LLM, no carga modelos locales")
+
+    docs = [p for p in ruta.rglob("*")
+            if p.is_file() and p.suffix.lower() in (".md", ".rst")
+            and not any(parte in IGNORAR for parte in p.relative_to(ruta).parts)]
     mediciones = any(re.search(r"\b\d+(\.\d+)?\s*(s|seg|MB|GB|min)\b", leer(d))
                      for d in docs)
     dim.criterios["e3_mediciones_documentadas"] = mediciones
     if not mediciones:
         dim.hallazgos.append(Hallazgo(
-            "baja", "Sin mediciones reales (tiempo/RAM) en docs/", "docs/*.md"))
+            "baja", "Sin mediciones reales (tiempo/RAM) en docs/",
+            "docs/*.md|*.rst", criterio="e3_mediciones_documentadas"))
 
     dim.notas.append("sin medición en vivo: no se ejecuta código del proyecto "
                      "evaluado (P0.8)")
@@ -721,7 +1668,7 @@ MEJORAS: Dict[str, Dict[str, str]] = {
     "f4_tests_de_varios_modulos": {
         "prioridad": "media",
         "propuesta": "Cubrir con tests los módulos que hoy no tienen ninguno",
-        "metrica": "nº de archivos test_*.py > 1"},
+        "metrica": "nº de archivos de test del ecosistema > 1"},
     "c1_suite_de_tests": {
         "prioridad": "alta",
         "propuesta": "Crear una suite de tests ejecutable",
@@ -742,25 +1689,25 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "metrica": "líneas de test / líneas de código >= 0,30"},
     "v1_dependencias_fijadas": {
         "prioridad": "media",
-        "propuesta": "Fijar las versiones de las dependencias (==) o generar lock",
-        "metrica": "0 dependencias declaradas con operador distinto de =="},
+        "propuesta": "Fijar las versiones runtime (==) o cubrirlas con un lock",
+        "metrica": "0 dependencias runtime sin versión exacta ni lock"},
     "v2_lockfile": {
         "prioridad": "media",
-        "propuesta": "Generar un lockfile con hashes e instalar desde él",
-        "metrica": "existe requirements.lock / uv.lock / poetry.lock"},
+        "propuesta": "Generar un lockfile por ecosistema e instalar desde él",
+        "metrica": "cada ecosistema con dependencias tiene su lockfile"},
     "v3_actividad_reciente": {
         "prioridad": "baja",
         "propuesta": "Mantener actividad o declarar el proyecto como inactivo",
         "metrica": ">= 1 commit en los últimos 180 días"},
     "v4_dependencias_al_dia": {
         "prioridad": "media",
-        "propuesta": "Verificar en PyPI las dependencias fijadas y actualizar "
-                     "las que estén atrasadas",
-        "metrica": "ninguna dependencia fijada por detrás de la última publicada"},
+        "propuesta": "Verificar en PyPI las versiones fijadas o resueltas por "
+                     "lock y actualizar las atrasadas",
+        "metrica": "ninguna versión resuelta por detrás de la última publicada"},
     "h1_manifiesto": {
         "prioridad": "alta",
-        "propuesta": "Declarar las dependencias en un manifiesto",
-        "metrica": "existe requirements.txt o pyproject.toml"},
+        "propuesta": "Declarar las dependencias en un manifiesto del ecosistema",
+        "metrica": "existe pyproject.toml, setup.cfg, package.json o build.gradle"},
     "h2_licencia": {
         "prioridad": "alta",
         "propuesta": "Añadir un archivo de licencia: sin él no hay términos de uso",
@@ -771,8 +1718,9 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "metrica": "existe scripts/*verif*, Makefile o .github/workflows"},
     "h4_runner_de_tests_declarado": {
         "prioridad": "baja",
-        "propuesta": "Documentar el comando de tests en README/Makefile",
-        "metrica": "el comando de la suite aparece en README o Makefile"},
+        "propuesta": "Declarar el comando de tests (Makefile, README, "
+                     "package.json, Gradle/Maven o tox/nox)",
+        "metrica": "el comando de la suite aparece en un archivo del proyecto"},
     "i1_cachea_trabajo_repetido": {
         "prioridad": "media",
         "propuesta": "Cachear trabajo repetido (respuestas o cómputo idéntico)",
@@ -818,12 +1766,14 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "prioridad": "media",
         "propuesta": "Declarar o sustituir las dependencias cuya licencia libre "
                      "no se puede verificar en PyPI",
-        "metrica": "todas las dependencias declaran licencia OSI en PyPI"},
+        "metrica": "todas las dependencias runtime declaran license_expression "
+                   "SPDX, clasificador OSI o licencia libre verificable"},
     "h6_imports_declarados": {
         "prioridad": "alta",
-        "propuesta": "Declarar en el manifiesto cada import de terceros o "
-                     "eliminar el import",
-        "metrica": "0 imports de terceros sin declarar (gate AST de preflight)"},
+        "propuesta": "Declarar en el manifiesto cada import de terceros del "
+                     "código de producción o eliminar el import",
+        "metrica": "0 imports de terceros sin declarar en el paquete "
+                   "(tests/docs/opcionales excluidos)"},
     "h7_decisiones_documentadas": {
         "prioridad": "baja",
         "propuesta": "Registrar las decisiones (ADR, decision_log o CHANGELOG) "
@@ -831,9 +1781,9 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "metrica": "existe un registro de decisiones en docs/ o en el código"},
     "c5_tests_con_aserciones": {
         "prioridad": "alta",
-        "propuesta": "Añadir aserciones reales: un test que no puede fallar no "
-                     "es un test",
-        "metrica": "toda función test_* contiene al menos una aserción"},
+        "propuesta": "Eliminar tests no-op o añadirles una aserción/operación "
+                     "verificable: un test que no puede fallar no es un test",
+        "metrica": "0 funciones test_* sin aserción ni operación que pueda fallar"},
 }
 
 
@@ -854,35 +1804,25 @@ def _esfuerzo(n_sitios: int) -> str:
     return "alto"
 
 
-def _cifras_de_notas(notas: List[str]) -> Dict[str, str]:
-    """Cifras citadas por las notas de una dimensión (para cuantificar el plan)."""
-    cifras = {}
-    for nota in notas:
-        m = re.search(r"([a-záéíóúñ ]+):\s*(\d+)", nota)
-        if m:
-            cifras[m.group(1).strip()] = m.group(2)
-    return cifras
-
-
 def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
     """Plan de mejora DERIVADO de las métricas del informe.
 
-    Cada propuesta nace de un criterio incumplido y añade lo que la tabla fija
-    no puede dar: cuántos sitios afecta, qué evidencia la respalda, el esfuerzo
-    estimado, la secuencia respecto a otras propuestas y la verificación exacta
-    (la métrica es el criterio de aceptación). Se ordena por prioridad y, a
-    igualdad, por menor esfuerzo (más valor por unidad de trabajo).
+    Cada propuesta usa SOLO los hallazgos de su criterio. Antes se reutilizaba
+    la evidencia de toda la dimensión y h5/h6/h7 acababan citando los mismos
+    855 sitios de FastAPI: una recomendación irrelevante con apariencia de
+    medición. `datos_medidos` declara cuántos hallazgos y evidencias la respaldan.
     """
     propuestas = []
     for nombre, datos in informe["dimensiones"].items():
-        cifras = _cifras_de_notas(datos["notas"])
-        evidencias = [h["evidencia"] for h in datos["hallazgos"] if h["evidencia"]]
         for criterio, ok in datos["criterios"].items():
             if ok:
                 continue
             plan = MEJORAS.get(criterio)
             if plan is None:
                 continue
+            hallazgos = [h for h in datos["hallazgos"]
+                         if h.get("criterio") == criterio and h.get("evidencia")]
+            evidencias = [h["evidencia"] for h in hallazgos]
             propuestas.append({
                 "dimension": nombre,
                 "criterio": criterio,
@@ -892,7 +1832,8 @@ def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
                 "sitios": len(evidencias),
                 "esfuerzo": _esfuerzo(len(evidencias)),
                 "secuencia": SECUENCIA.get(criterio, 1),
-                "datos_medidos": cifras,
+                "datos_medidos": {"hallazgos": len(hallazgos),
+                                  "evidencias": len(evidencias)},
                 "evidencia": evidencias[:5],
             })
     orden = {"alta": 0, "media": 1, "baja": 2}
@@ -965,14 +1906,23 @@ def investigar_preguntas(preguntas: List[str], search_api,
     return hallazgos
 
 
+def _puntuacion_texto(valor: Optional[float], decimales: int = 2) -> str:
+    return "N/A" if valor is None else f"{valor:.{decimales}f}"
+
+
 def _digesto(informe: Dict[str, Any], max_hallazgos: int = 20) -> str:
     """Resumen del informe medido para el prompt (solo datos del propio informe)."""
     lineas = [f"ruta: {informe['ruta']}",
               f"python: {informe['archivos_python']} archivos / "
               f"{informe['lineas_python']} líneas"]
+    cobertura = informe.get("cobertura", {})
+    lineas.append(f"cobertura: {cobertura.get('criterios_evaluados', '?')} "
+                  f"criterios evaluados, "
+                  f"{cobertura.get('criterios_no_aplicables', '?')} N/A "
+                  f"(nivel {cobertura.get('nivel', '?')})")
     for nombre, datos in informe["dimensiones"].items():
         fallos = [c for c, ok in datos["criterios"].items() if not ok]
-        lineas.append(f"- {nombre}: {datos['puntuacion']:.2f} | "
+        lineas.append(f"- {nombre}: {_puntuacion_texto(datos['puntuacion'])} | "
                       f"fallos: {fallos or '—'}")
         for h in datos["hallazgos"][:max_hallazgos]:
             marca = EvidenceKind(h["tipo_evidencia"]).marcador
@@ -1040,19 +1990,20 @@ def evaluar(ruta: Path, con_red: bool = True,
     """
     if not ruta.is_dir():
         raise ValueError(f"No es un directorio: {ruta}")
-    py = archivos_python(ruta)
-    deps = _dependencias(ruta)
-    pesadas = [d["nombre"] for d in deps
-               if any(pesada in d["nombre"] for pesada in PESADAS)]
+    perfil = analizar_perfil(ruta)
+    py = perfil.py
     dimensiones = [
-        evaluar_funcionalidades(ruta, py),
-        evaluar_calidad(ruta, py, ejecutar_tests_flag),
-        evaluar_vigencia(ruta, deps, con_red),
-        evaluar_herramientas(ruta, deps, con_red, py),
-        evaluar_inteligencia(ruta, py),
-        evaluar_eficiencia(ruta, py, pesadas),
+        evaluar_funcionalidades(ruta, perfil),
+        evaluar_calidad(ruta, perfil, ejecutar_tests_flag),
+        evaluar_vigencia(ruta, perfil, con_red),
+        evaluar_herramientas(ruta, perfil, con_red),
+        evaluar_inteligencia(ruta, perfil),
+        evaluar_eficiencia(ruta, perfil),
     ]
-    global_ = round(sum(d.puntuacion for d in dimensiones) / len(dimensiones), 3)
+    puntuaciones = [d.puntuacion for d in dimensiones
+                    if d.puntuacion is not None]
+    global_ = round(sum(puntuaciones) / len(puntuaciones), 3) \
+        if puntuaciones else None
     no_verificado = []
     if not ejecutar_tests_flag:
         no_verificado.append(
@@ -1061,16 +2012,41 @@ def evaluar(ruta: Path, con_red: bool = True,
     if not con_red:
         no_verificado.append("versiones y licencias de dependencias no "
                              "consultadas (--sin-red)")
+    no_aplicables = sum(len(d.no_aplica) for d in dimensiones)
+    if no_aplicables:
+        no_verificado.append(
+            f"{no_aplicables} criterios declarados N/A por el perfil: no se "
+            "cuentan como fallos (ver cobertura)")
+    if not perfil.lenguajes:
+        no_verificado.append("sin archivos de código detectados: cobertura vacía")
     tipos_evidencia = [h.tipo_evidencia for d in dimensiones
                        for h in d.hallazgos]
     tipos_evidencia.extend([EvidenceKind.UNVERIFIED] * len(no_verificado))
+    evaluados = sum(len(d.criterios) for d in dimensiones)
+    total_criterios = evaluados + no_aplicables
+    ratio = round(evaluados / total_criterios, 3) if total_criterios else 0.0
+    cobertura = {
+        "criterios_evaluados": evaluados,
+        "criterios_no_aplicables": no_aplicables,
+        "ratio_evaluado": ratio,
+        "nivel": "alta" if ratio >= 0.8 else ("media" if ratio >= 0.5 else "baja"),
+        "dimensiones_evaluadas": [d.nombre for d in dimensiones
+                                  if d.puntuacion is not None],
+        "dimensiones_no_aplicables": [d.nombre for d in dimensiones
+                                      if d.puntuacion is None],
+        "lenguajes": perfil.lenguajes,
+    }
     informe = {
         "ruta": str(ruta),
         "archivos_python": len(py),
         "lineas_python": sum(len(leer(p).splitlines()) for p in py),
-        "dependencias": deps,
+        "perfil": perfil.a_dict(),
+        "cobertura": cobertura,
+        "dependencias": perfil.deps,
         "dimensiones": {d.nombre: d.a_dict() for d in dimensiones},
         "global": global_,
+        "global_nota": "media de criterios aplicables: no es comparable entre "
+                       "proyectos con coberturas distintas; revisar `cobertura`",
         "no_verificado": no_verificado,
         "evidencia": resumen_evidencias(tipos_evidencia),
     }
@@ -1087,20 +2063,32 @@ def evaluar(ruta: Path, con_red: bool = True,
 
 
 def informe_texto(informe: Dict[str, Any]) -> List[str]:
+    cobertura = informe.get("cobertura", {})
     lineas = [f"EVALUACIÓN DE PROYECTO (read-only): {informe['ruta']}",
               f"Python: {informe['archivos_python']} archivos / "
-              f"{informe['lineas_python']} líneas", ""]
+              f"{informe['lineas_python']} líneas",
+              f"Cobertura: {cobertura.get('criterios_evaluados', '?')} criterios "
+              f"evaluados, {cobertura.get('criterios_no_aplicables', '?')} N/A "
+              f"(nivel {cobertura.get('nivel', '?')}); lenguajes: "
+              f"{', '.join(cobertura.get('lenguajes', {})) or 'ninguno'}",
+              ""]
     for nombre, datos in informe["dimensiones"].items():
-        lineas.append(f"== {nombre.upper()} — {datos['puntuacion']:.2f} ==")
+        lineas.append(f"== {nombre.upper()} — "
+                      f"{_puntuacion_texto(datos['puntuacion'])} ==")
         for criterio, ok in datos["criterios"].items():
             lineas.append(f"  [{'OK ' if ok else 'NO '}] {criterio}")
+        for item in datos.get("no_aplica", []):
+            lineas.append(f"  [N/A] {item['criterio']}: {item['motivo']}")
         for h in datos["hallazgos"]:
             marca = EvidenceKind(h["tipo_evidencia"]).marcador
             lineas.append(f"  {marca} ({h['severidad']}) {h['descripcion']} — {h['evidencia']}")
         for nota in datos["notas"]:
             lineas.append(f"  · {nota}")
         lineas.append("")
-    lineas.append(f"GLOBAL: {informe['global']:.3f}")
+    lineas.append(f"GLOBAL: {_puntuacion_texto(informe['global'], 3)} "
+                  f"(cobertura {cobertura.get('nivel', '?')}, "
+                  f"{cobertura.get('ratio_evaluado', 0):.0%} de criterios)")
+    lineas.append(f"Nota: {informe.get('global_nota', '')}")
     lineas.append(f"Evidencia: {formato_resumen(informe['evidencia'])}")
     lineas.append("")
     lineas.extend(plan_texto(informe))

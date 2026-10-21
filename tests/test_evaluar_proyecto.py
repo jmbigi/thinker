@@ -7,6 +7,7 @@ evaluación es READ-ONLY (no escribe en el proyecto evaluado).
 
 import contextlib
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -335,10 +336,9 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
 
         self.assertFalse(vigencia["criterios"]["v1_dependencias_fijadas"])
 
-    def test_v4_sin_versiones_fijadas_no_finge_haber_comprobado(self):
+    def test_v4_sin_versiones_fijadas_ni_lock_no_finge_haber_comprobado(self):
         raiz = crear_proyecto(self, {
             "requirements.txt": "pandas>=2\nrequests\n",
-            "requirements.lock": "pandas==2.2.0\n",
         })
 
         with patch("evaluar_proyecto.ultima_version_pypi") as pypi, \
@@ -350,10 +350,32 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         pypi.assert_not_called()
         vigencia = informe["dimensiones"]["vigencia"]
         self.assertFalse(vigencia["criterios"]["v4_dependencias_al_dia"])
-        self.assertTrue(any("sin dependencias fijadas (==)" in nota
+        self.assertTrue(any("sin versiones (== o lock)" in nota
                             for nota in vigencia["notas"]))
         self.assertTrue(any(h["tipo_evidencia"] == "unverified"
                             for h in vigencia["hallazgos"]))
+
+    def test_v4_usa_la_version_resuelta_por_uv_lock(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ("[project]\n"
+                               "name = 'x'\n"
+                               "version = '0.1.0'\n"
+                               "dependencies = ['requests>=2.31']\n"),
+            "uv.lock": ("[[package]]\n"
+                        "name = 'requests'\n"
+                        "version = '2.31.0'\n"),
+        })
+
+        with patch("evaluar_proyecto.ultima_version_pypi",
+                   return_value={"version": "2.31.0", "error": ""}) as pypi, \
+                patch("evaluar_proyecto.licencia_pypi",
+                      return_value={"licencia": "Apache-2.0", "libre": True,
+                                    "error": ""}):
+            informe = evaluar(raiz, con_red=True)
+
+        pypi.assert_called_once_with("requests")
+        self.assertTrue(informe["dimensiones"]["vigencia"]
+                        ["criterios"]["v4_dependencias_al_dia"])
 
 
 class TestCriteriosAnadidos(unittest.TestCase):
@@ -558,6 +580,293 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
         self.assertGreaterEqual(informe["evidencia"]["unverified"], 1)
         self.assertGreater(informe["evidencia"]["verified-real"], 0)
         self.assertIn("[UNVERIFIED]", "\n".join(informe_texto(informe)))
+
+
+class TestMejorasV2(unittest.TestCase):
+    """Regresiones del audit 2026-10-21: menos falsos positivos, más cobertura."""
+
+    def test_h6_ignora_docs_tests_y_ejemplos(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/app.py": "import numpy\n",
+            "tests/test_app.py": "import pandas\n",
+            "docs_src/example.py": "import yaml\n",
+            "requirements.txt": "numpy==1.26.0\n",
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+        descripciones = " ".join(h["descripcion"] for h in herramientas["hallazgos"])
+        self.assertNotIn("pandas", descripciones)
+        self.assertNotIn("yaml", descripciones)
+
+    def test_h6_ignora_import_opcional_y_type_checking(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/app.py": (
+                "from typing import TYPE_CHECKING\n"
+                "if TYPE_CHECKING:\n"
+                "    import pandas\n"
+                "try:\n"
+                "    import yaml\n"
+                "except ImportError:\n"
+                "    yaml = None\n"),
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+        self.assertFalse(any("pandas" in h["descripcion"]
+                             or "yaml" in h["descripcion"]
+                             for h in herramientas["hallazgos"]))
+
+    def test_h6_reconoce_layout_src_y_pyproject_anidado(self):
+        raiz = crear_proyecto(self, {
+            "src/mipkg/__init__.py": "",
+            "src/mipkg/app.py": "from mipkg.helper import X\n",
+            "src/mipkg/helper.py": "X = 1\n",
+            "pyproject.toml": ("[project]\n"
+                               "name = 'mipkg'\n"
+                               "version = '0.1.0'\n"
+                               "dependencies = []\n"),
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+
+    def test_h6_lee_setup_cfg(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import numpy\n",
+            "setup.cfg": ("[options]\n"
+                          "install_requires =\n"
+                          "    numpy==1.26.0\n"),
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+
+    def test_licencia_pypi_prefiere_license_expression_de_pep639(self):
+        from evaluar_proyecto import licencia_pypi
+
+        class Respuesta:
+            def __enter__(self):
+                return io.BytesIO(json.dumps({"info": {
+                    "license_expression": "MIT OR Apache-2.0",
+                    "license": "",
+                    "classifiers": [],
+                }}).encode())
+
+            def __exit__(self, *args):
+                return False
+
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   return_value=Respuesta()):
+            info = licencia_pypi("x")
+
+        self.assertTrue(info["libre"])
+        self.assertEqual(info["fuente"], "license_expression")
+        self.assertIn("MIT", info["licencia"])
+
+    def test_licencia_pypi_unknown_no_es_no_libre(self):
+        from evaluar_proyecto import licencia_pypi
+
+        class Respuesta:
+            def __enter__(self):
+                return io.BytesIO(json.dumps({"info": {
+                    "license_expression": "",
+                    "license": "",
+                    "classifiers": [],
+                }}).encode())
+
+            def __exit__(self, *args):
+                return False
+
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   return_value=Respuesta()):
+            info = licencia_pypi("x")
+
+        self.assertIsNone(info["libre"])
+
+    def test_c5_no_marca_endpoint_anidado_ni_helper(self):
+        raiz = crear_proyecto(self, {
+            "tests/test_api.py": (
+                "def test_endpoint(app):\n"
+                "    def endpoint():\n"
+                "        return 1\n"
+                "    app.get('/')\n"),
+            "tests/test_helper.py": (
+                "def helper(x):\n"
+                "    assert x == 1\n\n"
+                "def test_helper():\n"
+                "    helper(1)\n"),
+            "tests/test_prop.py": (
+                "from hypothesis import given, strategies as st\n\n"
+                "@given(st.integers())\n"
+                "def test_prop(x):\n"
+                "    pass\n"),
+        })
+
+        calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
+
+        self.assertTrue(calidad["criterios"]["c5_tests_con_aserciones"])
+        self.assertFalse(any(h["criterio"] == "c5_tests_con_aserciones"
+                             for h in calidad["hallazgos"]))
+
+    def test_c5_marca_pass_no_op(self):
+        raiz = crear_proyecto(self, {
+            "tests/test_vacio.py": "def test_nada():\n    pass\n",
+        })
+
+        calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
+
+        self.assertFalse(calidad["criterios"]["c5_tests_con_aserciones"])
+        self.assertTrue(any("Test no-op" in h["descripcion"]
+                            for h in calidad["hallazgos"]))
+
+    def test_c3_ignora_import_opcional_y_tests(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/app.py": ("try:\n"
+                           "    import yaml\n"
+                           "    X = yaml.safe_load('')\n"
+                           "except ImportError:\n"
+                           "    pass\n"),
+            "tests/test_silencio.py": ("try:\n"
+                                       "    import x\n"
+                                       "except Exception:\n"
+                                       "    pass\n"),
+        })
+
+        calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
+
+        self.assertTrue(calidad["criterios"]["c3_sin_silencios"])
+
+    def test_dependencias_lee_requirements_anidado_y_pep735(self):
+        from evaluar_proyecto import _dependencias
+
+        raiz = crear_proyecto(self, {
+            "requirements/test.in": "pytest==8.0.0\n",
+            "pyproject.toml": ("[project]\n"
+                               "name = 'x'\n"
+                               "version = '0.1.0'\n"
+                               "dependencies = ['requests>=2']\n"
+                               "[project.optional-dependencies]\n"
+                               "docs = ['sphinx>=7']\n"
+                               "[dependency-groups]\n"
+                               "test = ['pytest>=8']\n"),
+        })
+
+        deps = {(d["nombre"], d["ambito"]) for d in _dependencias(raiz)}
+
+        self.assertIn(("requests", "runtime"), deps)
+        self.assertIn(("sphinx", "docs"), deps)
+        self.assertIn(("pytest", "test"), deps)
+
+    def test_proyecto_js_no_se_puntua_por_criterios_python(self):
+        raiz = crear_proyecto(self, {
+            "package.json": json.dumps({
+                "name": "x",
+                "main": "src/index.js",
+                "scripts": {"test": "node --test"},
+                "devDependencies": {"eslint": "^8.0.0"},
+            }),
+            "package-lock.json": json.dumps({
+                "lockfileVersion": 3,
+                "packages": {"": {}, "node_modules/eslint": {"version": "8.0.0"}},
+            }),
+            "src/index.js": ("export function suma(a, b) {\n"
+                             "  return a + b;\n"
+                             "}\n"),
+            "test/a.test.js": ("import { suma } from '../src/index.js';\n"
+                               "assert.equal(suma(1, 2), 3);\n"
+                               "assert.equal(suma(2, 2), 4);\n"),
+            "test/b.test.js": ("import { suma } from '../src/index.js';\n"
+                               "assert.equal(suma(0, 0), 0);\n"
+                               "assert.equal(suma(-1, 1), 0);\n"),
+            "LICENSE": "MIT\n",
+            "README.md": "# x\n",
+            ".github/workflows/ci.yml": "name: CI\n",
+        })
+
+        informe = evaluar(raiz, con_red=False)
+        dims = informe["dimensiones"]
+
+        self.assertIsNone(dims["inteligencia"]["puntuacion"])
+        self.assertIsNone(dims["eficiencia"]["puntuacion"])
+        self.assertEqual(dims["calidad"]["criterios"].get("c1_suite_de_tests"), True)
+        self.assertEqual(dims["calidad"]["criterios"].get("c2_linter_configurado"), True)
+        self.assertEqual(dims["vigencia"]["criterios"].get("v2_lockfile"), True)
+        self.assertNotIn("c3_sin_silencios", dims["calidad"]["criterios"])
+        self.assertNotIn("c5_tests_con_aserciones", dims["calidad"]["criterios"])
+        self.assertNotIn("h6_imports_declarados", dims["herramientas"]["criterios"])
+        self.assertNotIn("v1_dependencias_fijadas", dims["vigencia"]["criterios"])
+        self.assertIsNotNone(informe["global"])
+        self.assertGreater(informe["cobertura"]["criterios_no_aplicables"], 0)
+
+    def test_h7_acepta_changes_rst_y_history_anidado(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "x = 1\n",
+            "CHANGES.rst": "Cambios\n",
+            "docs/HISTORY.md": "Historial\n",
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h7_decisiones_documentadas"])
+
+    def test_f1_acepta_comillas_simples_y_entrypoint(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("def main():\n"
+                       "    return 1\n\n"
+                       "if __name__ == '__main__':\n"
+                       "    main()\n"),
+        })
+
+        funcionalidades = evaluar(raiz, con_red=False)["dimensiones"]["funcionalidades"]
+
+        self.assertTrue(funcionalidades["criterios"]["f1_puntos_de_entrada"])
+
+    def test_f1_sin_cli_es_no_aplica_en_una_biblioteca(self):
+        raiz = crear_proyecto(self, {"lib.py": "X = 1\n"})
+
+        funcionalidades = evaluar(raiz, con_red=False)["dimensiones"]["funcionalidades"]
+
+        self.assertNotIn("f1_puntos_de_entrada", funcionalidades["criterios"])
+        self.assertTrue(any(item["criterio"] == "f1_puntos_de_entrada"
+                            for item in funcionalidades["no_aplica"]))
+
+    def test_h4_detecta_npm_test_y_build_sh(self):
+        js = crear_proyecto(self, {
+            "package.json": json.dumps({"scripts": {"test": "node --test"}}),
+            "test/a.test.js": "assert.equal(1, 1);\n",
+        })
+        sh = crear_proyecto(self, {
+            "build.sh": "#!/bin/sh\n",
+            "tests/test_x.py": "def test_x():\n    assert 1 == 1\n",
+        })
+
+        self.assertTrue(evaluar(js, con_red=False)["dimensiones"]["herramientas"]
+                        ["criterios"]["h4_runner_de_tests_declarado"])
+        self.assertTrue(evaluar(sh, con_red=False)["dimensiones"]["herramientas"]
+                        ["criterios"]["h4_runner_de_tests_declarado"])
+
+    def test_plan_usa_la_evidencia_de_su_criterio(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/app.py": "import numpy\n",
+        })
+
+        mejoras = evaluar(raiz, con_red=False)["mejoras"]
+        h6 = next(m for m in mejoras if m["criterio"] == "h6_imports_declarados")
+        h7 = next(m for m in mejoras if m["criterio"] == "h7_decisiones_documentadas")
+
+        self.assertNotEqual(h6["evidencia"], h7["evidencia"])
+        self.assertTrue(all("app.py" in e for e in h6["evidencia"]))
+        self.assertTrue(all("app.py" not in e for e in h7["evidencia"]))
+        self.assertEqual(h6["datos_medidos"]["hallazgos"], len(h6["evidencia"]))
 
 
 class TestAutoevaluacionDeThinker(unittest.TestCase):

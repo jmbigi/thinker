@@ -1927,3 +1927,70 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   hizo y fallar cuando son cero; «no comprobado» nunca es «correcto». Los
   parsers de manifiestos se prueban con directivas, URLs y secciones ajenas,
   y la validación de hosts se hace sobre la forma canónica, no por prefijos.
+
+
+### Hallazgo 94: un evaluador que confunde «no aplica» con «falla» y «docs» con «paquete»
+
+- **Origen**: auditoría del 2026-10-21 sobre 7 repositorios externos
+  (FastAPI, Flask, Httpie, Hypothesis, Requests, Testcontainers Java y un
+  proyecto JS) más un control con 10 defectos plantados y una variante de
+  rangos. La evaluación fue estática y read-only; no se ejecutaron suites
+  ajenas.
+- **Problema**: los diagnósticos tenían cuatro causas sistemáticas.
+  1. **h6** analizaba todos los `.py`: `docs_src`, tests, ejemplos y scripts
+     producían cientos de imports «sin declarar» (FastAPI 853, Hypothesis 919)
+     y no reconocía `src/` como primera parte, `setup.cfg`, grupos PEP 735 ni
+     requirements anidados. Tampoco distinguía imports opcionales,
+     `TYPE_CHECKING` o condicionales.
+  2. **h5** solo leía `info.license`; los 12 paquetes marcados por el audit
+     tenían `license_expression` válida (PEP 639) y `info.license` vacío.
+  3. **c5** recorría funciones con `ast.walk`: marcaba endpoints anidados,
+     tests que delegan en helpers y property tests; **c3** contaba silencios
+     de tests y de imports opcionales como si fueran producción.
+  4. El plan reutilizaba la evidencia de toda la dimensión y `datos_medidos`
+     de notas ajenas: h5/h6/h7 de FastAPI citaban los mismos 855 sitios. Los
+     proyectos Java/JS reciben 0 en criterios Python que no pueden cumplir.
+- **Fuentes consultadas** (2026-10-21): PEP 639
+  <https://peps.python.org/pep-0639/>, PEP 735
+  <https://peps.python.org/pep-0735/>, detección de primera parte con `src/`
+  de Ruff <https://docs.astral.sh/ruff/settings/>, checks por ecosistema de
+  OpenSSF Scorecard
+  <https://github.com/ossf/scorecard/blob/main/docs/checks.md> y aserciones
+  de pytest <https://docs.pytest.org/en/stable/how-to/assert.html>.
+- **Solución**: perfil determinista de proyecto (lenguajes, manifiestos,
+  locks, tests y dependencias por ámbito); criterios N/A que no se cuentan;
+  cobertura y aviso de comparabilidad. h6 se limita al código del paquete y
+  excluye tests/docs/scripts, `TYPE_CHECKING`, imports opcionales/condicionales
+  y `if __name__`; lee pyproject (PEP 621/735, Poetry/PDM), setup.cfg/setup.py,
+  requirements con `-r` y package.json. h5 lee `license_expression` SPDX,
+  luego clasificador OSI y luego texto; desconocido es `unverified`, no
+  «no libre». c5 solo marca tests no-op (sin aserción ni operación que pueda
+  fallar); c3 solo código de producción. v4 usa la versión resuelta por lock
+  (uv/poetry/Pipfile/pip-compile/package-lock) y compara solo runtime Python.
+  h4/f1/h7 cubren build.sh, npm/Gradle/Maven/tox/nox, comillas simples,
+  `__main__.py`, console_scripts/bin y CHANGES/HISTORY/ADR en `.rst` anidados.
+  El plan filtra la evidencia por criterio.
+- **Evidencia antes → después** (mismos clones, con red; global v1 del audit
+  y v2):
+  FastAPI 0.723 → **0.825** (h6 853 → 0; c5 anidados 4/18 → 0; 20/29);
+  Flask 0.626 → **0.887** (h6 104 → 0; c5 anidados 8/18 → 0);
+  Httpie 0.572 → **0.602** (h6 88 → 3, los tres imports reales de `urllib3`;
+  c5 no desglosado por el audit → 0);
+  Hypothesis 0.572 → **0.887** (h6 919 → 0; c5 anidados 226/771 → 0);
+  Requests 0.529 → **0.700** (h6 34 → 0; c5 no desglosado → 0);
+  Testcontainers Java 0.408 → **1.000 con cobertura baja 10/29** (criterios
+  Python N/A; no comparable);
+  QA JS 0.289 → **0.692 con cobertura baja 12/29** (N/A).
+  El control plantado sigue detectando **10/10** defectos; el control de
+  rangos sigue fallando v4 con **0 llamadas a PyPI**. Detalle y límites en
+  `docs/EVALUACIONES.md`.
+- **Autoevaluación**: con red **0.958** (27/29; único fallo, real:
+  `openai 3.35.1 → 3.36.0` en el lock); sin red **1.000** (v4/h5 N/A, no
+  fallos). Suite **747/747** en Python 3.11 y 3.12 (openai 3.35.1), ruff 0,
+  preflight 0. Los cambios quedaron **sin comitear**.
+- **Regla derivada**: antes de puntuar, detectar el perfil y marcar N/A lo que
+  no se puede verificar; N/A nunca es un fallo ni un 0. El análisis estático
+  se limita al código publicable y cada hallazgo debe pertenecer a UN criterio;
+  una recomendación sin evidencia de su propio criterio es ruido. Los metadatos
+  se leen por el campo vigente del estándar (PEP 639), no por el primero que
+  existió.

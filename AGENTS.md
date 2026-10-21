@@ -112,13 +112,19 @@ mejora de código (`code_design_improvement_tools.py`).
 - Evaluación de un proyecto externo (estática, read-only; LLM opt-in):
   `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]
   [--sintesis-llm] [--investigar]` — 6 dimensiones × 3-7 criterios binarios, con
-  evidencia por hallazgo **marcada por procedencia** (real / sintética / no
-  verificada, según `evidence.py`), plan de mejora derivado de las métricas
+  perfil de proyecto y **criterios N/A** que no se cuentan como fallos; el
+  informe declara cobertura y ratio. Evidencia por hallazgo **marcada por
+  procedencia** (real / sintética / no verificada, según `evidence.py`) y
+  ligada a su criterio; plan de mejora derivado de las métricas
   (sitios, esfuerzo, secuencia y verificación) y, opt-in, propuestas de fondo
   del modelo con control anti-invención y dudas investigadas con fuentes
-  citadas. Incluye (desde 2026-10-20) imports de terceros declarados (gate AST
-  reutilizado de `scripts/preflight.py`), tests con aserciones reales y
-  registro de decisiones como señal. Informes de ejemplo en
+  citadas. Incluye (desde 2026-10-21) h6 limitado al código del paquete
+  (tests/docs/scripts y opcionales excluidos), licencias PEP 639
+  (`license_expression`), parsers de pyproject/PEP 735/setup.cfg/requirements
+  anidados/package.json y comparación con versiones resueltas por lock; c5 solo
+  marca tests no-op y c3 excluye tests e imports opcionales. Autoevaluación v2
+  (2026-10-21): con red **0.958** (único fallo real: `openai 3.35.1 → 3.36.0`
+  en el lock) y sin red **1.000**; informes de ejemplo en
   `docs/EVALUACIONES.md`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
@@ -172,10 +178,11 @@ mejora de código (`code_design_improvement_tools.py`).
   muertas eliminadas) y la mutación global es 94,7% (3581/3780; 199
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-21 tras el
   arreglo de `max_nesting` del Hallazgo 86).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**730/730 en ambos**;
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**747/747 en ambos**;
   3.12.3 en venv aislado creado desde `requirements.lock` el 2026-10-21,
   con openai 3.35.1); openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1
-  (lock en 3.35.1 desde 2026-10-20).
+  (lock en 3.35.1 desde 2026-10-20). La suite del evaluador creció de 41 a 58
+  tests con las regresiones del audit (Hallazgo 94).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,

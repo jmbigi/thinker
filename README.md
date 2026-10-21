@@ -25,7 +25,7 @@ herramientas de análisis estático de código.
 | `tests/benchmarks/` | Framework de benchmark por dominio con rúbricas y LLM-as-judge opcional (`--list` para ver las tareas). |
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
 | `docs/REFERENCIAS-IA.md` | Teoría y práctica de IA (referencias verificadas contra arXiv y guías de ingeniería) con propuestas medidas por el benchmark. |
-| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones (funcionalidades, calidad, vigencia, herramientas, inteligencia, eficiencia) con criterios binarios, evidencia por hallazgo, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Informes: `docs/EVALUACIONES.md`. |
+| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Informes: `docs/EVALUACIONES.md`. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
 ## Requisitos
@@ -75,9 +75,10 @@ evaluate-project RUTA_DEL_PROYECTO --sin-red   # añade --ejecutar-tests (opt-in
 
 ![Demo: evaluate-project evalúa un proyecto ajeno y propone mejoras](docs/img/demo-evaluador.gif)
 
-*(Captura real: la salida del GIF es verbatim de una ejecución de
-`evaluate-project` sobre un proyecto con defectos plantados — GLOBAL 0.344 y
-19 propuestas; solo el ritmo de aparición del texto es presentación.)*
+*(Captura histórica y verbatim de una ejecución del evaluador anterior a v2
+sobre un proyecto con defectos plantados — GLOBAL 0.344 y 19 propuestas; solo
+el ritmo de aparición del texto es presentación. El evaluador v2 añade perfil,
+cobertura y criterios N/A: ver `docs/EVALUACIONES.md` para las cifras actuales.)*
 
 Como **librería** (los módulos públicos quedan importables):
 

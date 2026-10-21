@@ -22,6 +22,7 @@ código ajeno.
 
 import argparse
 import ast
+import configparser
 import hashlib
 import json
 import re
@@ -44,7 +45,20 @@ IGNORAR = {
 ALIAS_IMPORTACION = {
     "dotenv": "python-dotenv",
     "yaml": "pyyaml",
+    "opentelemetry": "opentelemetry-api",
+    "pydantic_core": "pydantic-core",
+    "github": "pygithub",
+    "git": "gitpython",
+    "slugify": "python-slugify",
+    "_pytest": "pytest",
+    "attr": "attrs",
+    "openssl": "pyopenssl",
+    "dateutil": "python-dateutil",
+    "annotated_types": "annotated-types",
 }
+# Módulos de la stdlib que aún no existen en el Python que ejecuta el gate
+# (p. ej. annotationlib en 3.14): no son dependencias de terceros.
+STDLIB_FUTURA = {"annotationlib"}
 MIN_NODOS_DUPLICADO = 60
 
 
@@ -104,11 +118,18 @@ def _normalizar(nombre: str) -> str:
     return re.sub(r"[-_.]+", "-", nombre).strip().lower()
 
 
-def cargar_modulos(root: Path) -> Tuple[Dict[Path, ast.Module], ResultadoGate]:
-    """Parsea cada archivo una sola vez; un error de sintaxis es un hallazgo."""
+def cargar_modulos(root: Path,
+                   archivos: Optional[Iterable[Path]] = None
+                   ) -> Tuple[Dict[Path, ast.Module], ResultadoGate]:
+    """Parsea cada archivo una sola vez; un error de sintaxis es un hallazgo.
+
+    ``archivos`` permite al evaluador limitar el gate AST al código de
+    producción de un paquete (sin tests/docs/ejemplos).
+    """
     resultado = ResultadoGate("sintaxis")
     modulos: Dict[Path, ast.Module] = {}
-    for ruta in archivos_python(root):
+    objetivo = sorted(archivos) if archivos is not None else archivos_python(root)
+    for ruta in objetivo:
         try:
             texto = ruta.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
@@ -134,66 +155,260 @@ def _nombre_requisito(linea: str) -> Optional[str]:
     return coincidencia.group(1) if coincidencia else None
 
 
+def _leer_requisitos(archivo: Path, vistos: Set[Path]) -> Set[str]:
+    """Nombres de un requirements, siguiendo ``-r`` sin ciclos."""
+    archivo = archivo.resolve()
+    if archivo in vistos or not archivo.is_file():
+        return set()
+    vistos.add(archivo)
+    nombres: Set[str] = set()
+    try:
+        texto = archivo.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return nombres
+    for linea in texto.splitlines():
+        limpia = linea.split("#", 1)[0].strip()
+        include = re.match(r"^(?:-r|--requirement)\s+(.+)$", limpia)
+        if include:
+            nombres.update(_leer_requisitos(
+                archivo.parent / include.group(1).strip(), vistos))
+            continue
+        nombre = _nombre_requisito(linea)
+        if nombre:
+            nombres.add(_normalizar(nombre))
+    return nombres
+
+
+def _nombres_de_lista(items: Any) -> Set[str]:
+    nombres = set()
+    if not isinstance(items, list):
+        return nombres
+    for item in items:
+        if isinstance(item, str):
+            nombre = _nombre_requisito(item)
+            if nombre:
+                nombres.add(_normalizar(nombre))
+    return nombres
+
+
 def dependencias_declaradas(root: Path) -> Tuple[Set[str], List[Hallazgo]]:
-    """Dependencias directas declaradas, normalizadas para comparar imports."""
+    """Dependencias directas declaradas en TODOS los manifiestos Python.
+
+    Cubre pyproject (PEP 621, PEP 735, Poetry/PDM), requirements anidados con
+    ``-r``, setup.cfg y setup.py. Los tests/docs que importan dependencias de
+    desarrollo dejan de ser falsos positivos de h6.
+    """
     declaradas: Set[str] = set()
     hallazgos: List[Hallazgo] = []
+    vistos_req: Set[Path] = set()
 
-    requisitos = root / "requirements.txt"
-    if requisitos.exists():
-        for linea in requisitos.read_text(encoding="utf-8").splitlines():
-            nombre = _nombre_requisito(linea)
-            if nombre:
-                declaradas.add(_normalizar(nombre))
-
-    pyproject = root / "pyproject.toml"
-    if pyproject.exists():
-        try:
-            datos = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-        except tomllib.TOMLDecodeError as exc:
-            hallazgos.append(Hallazgo(
-                "imports", "pyproject.toml", 0,
-                f"TOML inválido, no se pueden verificar dependencias: {exc}",
-                "alta"))
-        else:
-            proyecto = datos.get("project", {})
-            listas = [proyecto.get("dependencies", [])]
-            opcionales = proyecto.get("optional-dependencies", {})
-            if isinstance(opcionales, dict):
-                listas.extend(opcionales.values())
-            for lista in listas:
-                if not isinstance(lista, list):
-                    continue
-                for item in lista:
-                    if isinstance(item, str):
-                        nombre = _nombre_requisito(item)
-                        if nombre:
-                            declaradas.add(_normalizar(nombre))
+    for archivo in sorted(p for p in root.rglob("*")
+                          if p.is_file() and not any(
+                              parte in IGNORAR
+                              for parte in p.relative_to(root).parts)):
+        nombre = archivo.name.lower()
+        relativa = _relativa(root, archivo)
+        es_requisitos = bool(re.match(r"requirements.*\.(txt|in)$", nombre)) or (
+            archivo.parent.name.lower() == "requirements"
+            and archivo.suffix.lower() in (".txt", ".in"))
+        if es_requisitos:
+            declaradas.update(_leer_requisitos(archivo, vistos_req))
+        elif nombre == "pyproject.toml":
+            try:
+                datos = tomllib.loads(archivo.read_text(encoding="utf-8"))
+            except (tomllib.TOMLDecodeError, OSError) as exc:
+                hallazgos.append(Hallazgo(
+                    "imports", relativa, 0,
+                    f"TOML inválido, no se pueden verificar dependencias: {exc}",
+                    "alta"))
+                continue
+            proyecto = datos.get("project")
+            if isinstance(proyecto, dict):
+                declaradas.update(_nombres_de_lista(
+                    proyecto.get("dependencies", [])))
+                opcionales = proyecto.get("optional-dependencies", {})
+                if isinstance(opcionales, dict):
+                    for lista in opcionales.values():
+                        declaradas.update(_nombres_de_lista(lista))
+            grupos = datos.get("dependency-groups")
+            if isinstance(grupos, dict):
+                for lista in grupos.values():
+                    declaradas.update(_nombres_de_lista(lista))
+            herramientas = datos.get("tool")
+            if isinstance(herramientas, dict):
+                poesia = herramientas.get("poetry", {})
+                if isinstance(poesia, dict):
+                    for seccion in ("dependencies", "dev-dependencies"):
+                        bloque = poesia.get(seccion, {})
+                        if isinstance(bloque, dict):
+                            declaradas.update(_normalizar(k) for k in bloque
+                                              if str(k).lower() != "python")
+                    grupos_poesia = poesia.get("group", {})
+                    if isinstance(grupos_poesia, dict):
+                        for grupo in grupos_poesia.values():
+                            if isinstance(grupo, dict):
+                                bloque = grupo.get("dependencies", {})
+                                if isinstance(bloque, dict):
+                                    declaradas.update(
+                                        _normalizar(k) for k in bloque)
+                pdm = herramientas.get("pdm", {})
+                if isinstance(pdm, dict) and isinstance(
+                        pdm.get("dev-dependencies"), dict):
+                    for lista in pdm["dev-dependencies"].values():
+                        declaradas.update(_nombres_de_lista(lista))
+        elif nombre == "setup.cfg":
+            parser = configparser.ConfigParser()
+            try:
+                parser.read_string(archivo.read_text(encoding="utf-8"))
+            except (configparser.Error, OSError) as exc:
+                hallazgos.append(Hallazgo(
+                    "imports", relativa, 0,
+                    f"setup.cfg inválido, no se pueden verificar dependencias: "
+                    f"{exc}", "alta"))
+                continue
+            for seccion, clave in (("options", "install_requires"),
+                                   ("options", "tests_require")):
+                if parser.has_option(seccion, clave):
+                    for linea in parser.get(seccion, clave).splitlines():
+                        nombre_dep = _nombre_requisito(linea)
+                        if nombre_dep:
+                            declaradas.add(_normalizar(nombre_dep))
+            if parser.has_section("options.extras_require"):
+                for valor in parser["options.extras_require"].values():
+                    for linea in valor.splitlines():
+                        nombre_dep = _nombre_requisito(linea)
+                        if nombre_dep:
+                            declaradas.add(_normalizar(nombre_dep))
+        elif nombre == "setup.py":
+            try:
+                texto = archivo.read_text(encoding="utf-8")
+            except OSError as exc:
+                hallazgos.append(Hallazgo(
+                    "imports", relativa, 0,
+                    f"setup.py ilegible, no se pueden verificar dependencias: "
+                    f"{exc}", "alta"))
+                continue
+            for bloque in re.findall(
+                    r"(?:install_requires|tests_require|extras_require)"
+                    r"\s*=\s*[\[{](.*?)[\]}]", texto, re.S):
+                for item in re.findall(r'["\']([^"\']+)["\']', bloque):
+                    nombre_dep = _nombre_requisito(item)
+                    if nombre_dep:
+                        declaradas.add(_normalizar(nombre_dep))
     return declaradas, hallazgos
 
 
 def modulos_locales(root: Path) -> Set[str]:
-    """Módulos importables del propio proyecto (incluye namespace packages)."""
+    """Módulos importables del propio proyecto (incluye layout ``src/``).
+
+    Ruff y la convención de packaging consideran primera parte tanto la raíz
+    como ``src/``; ignorar ``src/`` convertía ``import flask`` en un import de
+    terceros sin declarar en proyectos con ese layout.
+    """
     locales = {p.stem for p in root.glob("*.py")}
-    for directorio in root.iterdir():
-        if not directorio.is_dir() or directorio.name in IGNORAR:
+    for base in (root, root / "src"):
+        if not base.is_dir():
             continue
-        if (directorio / "__init__.py").exists() or any(directorio.glob("*.py")):
-            locales.add(directorio.name)
+        for directorio in base.iterdir():
+            if not directorio.is_dir() or directorio.name in IGNORAR:
+                continue
+            if (directorio / "__init__.py").exists() \
+                    or any(directorio.glob("*.py")):
+                locales.add(directorio.name)
+    for archivo in archivos_python(root):
+        # Módulos de primer nivel en src/lib anidados de monorepos (Hypothesis
+        # tiene hypothesis/src/_hypothesis_globals.py).
+        if archivo.parent.name in ("src", "lib"):
+            locales.add(archivo.stem)
+        actual, ultimo = archivo.parent, None
+        while actual != root and (actual / "__init__.py").exists():
+            ultimo, actual = actual, actual.parent
+        if ultimo is not None:
+            locales.add(ultimo.name)
     return locales
 
 
 def _import_declarado(modulo: str, stdlib: Set[str], locales: Set[str],
                       declaradas: Set[str], permitidos: Set[str]) -> bool:
-    if modulo in stdlib or modulo in locales:
+    if modulo in stdlib or modulo in STDLIB_FUTURA or modulo in locales:
         return True
     normalizado = _normalizar(ALIAS_IMPORTACION.get(modulo, modulo))
     return (normalizado in declaradas or modulo in permitidos
             or normalizado in permitidos)
 
 
+def _nombre_excepcion(nodo: Any) -> str:
+    if isinstance(nodo, ast.Name):
+        return nodo.id
+    if isinstance(nodo, ast.Tuple):
+        return ",".join(_nombre_excepcion(item) for item in nodo.elts)
+    return ""
+
+
+def _lineas_import_opcional(arbol: ast.Module) -> Set[int]:
+    """Líneas de imports dentro de ``try: import ... except ImportError``."""
+    lineas: Set[int] = set()
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, ast.Try):
+            continue
+        captura_import = any(
+            nombre in ("ImportError", "ModuleNotFoundError")
+            for handler in nodo.handlers
+            for nombre in _nombre_excepcion(handler.type).split(","))
+        if not captura_import:
+            continue
+        for sentencia in list(nodo.body) + list(nodo.orelse):
+            for sub in ast.walk(sentencia):
+                if isinstance(sub, (ast.Import, ast.ImportFrom)):
+                    lineas.add(sub.lineno)
+    return lineas
+
+
+def _lineas_condicionales(arbol: ast.Module) -> Set[int]:
+    """Imports bajo flags ``has_*`` (dependencia opcional ya detectada)."""
+    lineas: Set[int] = set()
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, ast.If) \
+                or not isinstance(nodo.test, ast.Name) \
+                or not nodo.test.id.startswith("has_"):
+            continue
+        for sentencia in nodo.body:
+            for sub in ast.walk(sentencia):
+                if isinstance(sub, (ast.Import, ast.ImportFrom)):
+                    lineas.add(sub.lineno)
+    return lineas
+
+
+def _es_type_checking(nodo: Any) -> bool:
+    return (isinstance(nodo, ast.Name) and nodo.id == "TYPE_CHECKING") \
+        or (isinstance(nodo, ast.Attribute) and nodo.attr == "TYPE_CHECKING")
+
+
+def _es_main(nodo: Any) -> bool:
+    if not isinstance(nodo, ast.Compare) or len(nodo.ops) != 1 \
+            or not isinstance(nodo.left, ast.Name) or nodo.left.id != "__name__":
+        return False
+    return isinstance(nodo.comparators[0], ast.Constant) \
+        and nodo.comparators[0].value == "__main__"
+
+
+def _lineas_no_runtime(arbol: ast.Module) -> Set[int]:
+    """Imports de ``TYPE_CHECKING`` y de ``if __name__ == '__main__'``."""
+    lineas: Set[int] = set()
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, ast.If) \
+                or not (_es_type_checking(nodo.test) or _es_main(nodo.test)):
+            continue
+        for sentencia in nodo.body:
+            for sub in ast.walk(sentencia):
+                if isinstance(sub, (ast.Import, ast.ImportFrom)):
+                    lineas.add(sub.lineno)
+    return lineas
+
+
 def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
-                    permitidos: Optional[Iterable[str]] = None) -> ResultadoGate:
+                    permitidos: Optional[Iterable[str]] = None,
+                    ignorar_opcionales: bool = False) -> ResultadoGate:
     resultado = ResultadoGate("imports")
     declaradas, hallazgos_manifiesto = dependencias_declaradas(root)
     resultado.hallazgos.extend(hallazgos_manifiesto)
@@ -203,6 +418,10 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
     vistos: Set[Tuple[Path, str]] = set()
 
     for ruta, arbol in sorted(modulos.items()):
+        opcionales = _lineas_no_runtime(arbol)
+        if ignorar_opcionales:
+            opcionales |= _lineas_import_opcional(arbol)
+            opcionales |= _lineas_condicionales(arbol)
         for nodo in ast.walk(arbol):
             importados: List[Tuple[str, int]] = []
             if isinstance(nodo, ast.Import):
@@ -212,6 +431,8 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
                   and nodo.module):
                 importados = [(nodo.module.split(".")[0], nodo.lineno)]
             for modulo, linea in importados:
+                if linea in opcionales:
+                    continue
                 clave = (ruta, modulo)
                 if clave in vistos:
                     continue

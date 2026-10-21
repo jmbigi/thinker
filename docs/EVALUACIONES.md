@@ -250,3 +250,84 @@ perezoso.
   estructurales; el juicio final sigue siendo humano. `h7_decisiones_documentadas`
   (desde 2026-10-20) es una de esas señales: que exista un registro de decisiones
   no dice si las decisiones son buenas.
+
+## Actualización 2026-10-21 (evaluador v2 — Hallazgo 94)
+
+La auditoría de 7 repositorios externos encontró falsos positivos y decisiones
+poco útiles: h6 analizaba tests/docs/ejemplos, h5 ignoraba `license_expression`
+(PEP 639), c5 marcaba tests anidados o que delegan en helpers, c3 contaba
+silencios de tests, se perdían `setup.cfg`, `package.json`, locks y
+`requirements/*.txt`, y el plan reutilizaba la evidencia de toda la dimensión.
+El evaluador v2 corrige esas causas y **declara N/A** los criterios que el
+perfil del proyecto no puede verificar; N/A no cuenta como fallo.
+
+### Cambios verificables
+
+- **Perfil**: lenguajes, manifiestos, locks, tests, dependencias por ámbito
+  (runtime/dev/docs/test/opcional) y primera parte con layout `src/`.
+- **h6**: solo código del paquete; excluye tests/docs/scripts/ejemplos,
+  `TYPE_CHECKING`, imports opcionales, `if __name__ == "__main__"` y flags
+  `has_*`; lee pyproject (PEP 621/735, Poetry/PDM), setup.cfg/setup.py,
+  requirements anidados con `-r` y package.json.
+- **h5**: `license_expression` SPDX > clasificador OSI > campo `license`.
+  Desconocido se marca `unverified`, no «no libre».
+- **c5**: solo tests de módulo/clase; un test que llama a un helper, usa un
+  decorador/fixture/setUp o espera una excepción no es no-op. Solo se marcan
+  tests que no pueden fallar (`pass`, `print(1+1)`).
+- **c3**: solo código de producción; tests e imports opcionales fuera.
+- **Manifiestos/locks**: PEP 735, setup.cfg, package.json, requirements
+  anidados, uv/poetry/Pipfile/package-lock y pip-compile; v4 usa la versión
+  resuelta por lock cuando el manifiesto usa rangos.
+- **h4/f1/h7**: build.sh, npm/Gradle/Maven/tox/nox; `if __name__` con comillas
+  simples, `__main__.py`, `console_scripts` y `bin`; CHANGES/HISTORY/ADR en
+  `.rst`/`.md`/`.txt` anidados.
+- **Plan**: cada propuesta cita solo hallazgos de su criterio y declara
+  `datos_medidos` (hallazgos/evidencias).
+
+### Resultados sobre los mismos clones (con red, 2026-10-21)
+
+| Repo | Global v1 | Global v2 | Cobertura v2 | h6 v1 → v2 | c5 v1 → v2 |
+|---|---:|---:|---:|---:|---:|
+| FastAPI | 0.723 | **0.825** | 20/29 (media) | 853 → **0** | 4/18 → **0** |
+| Flask | 0.626 | **0.887** | 20/29 (media) | 104 → **0** | 8/18 → **0** |
+| Httpie | 0.572 | **0.602** | 20/29 (media) | 88 → **3** | — → **0** |
+| Hypothesis | 0.572 | **0.887** | 20/29 (media) | 919 → **0** | 226/771 → **0** |
+| Requests | 0.529 | **0.700** | 20/29 (media) | 34 → **0** | — → **0** |
+| Testcontainers Java | 0.408 | **1.000** | **10/29 (baja)** | 0 (N/A) | 0 (N/A) |
+| QA exercises (JS) | 0.289 | **0.692** | **12/29 (baja)** | 0 (N/A) | 0 (N/A) |
+
+`—` en c5 significa que el audit no desglosó tests anidados para ese repo; el
+0 de la columna v2 sí se midió con el evaluador nuevo.
+
+Lectura honesta: el global es la media de criterios **aplicables**; en Java/JS
+solo se evaluaron 10/12 de 29, así que un 1.000/0.692 **no es comparable** con
+los proyectos Python (cobertura media). Las 3 entradas de h6 de Httpie son
+imports directos de `urllib3`, dependencia transitiva de requests no declarada
+por Httpie: el hallazgo es real, no un falso positivo de docs. Los v4 en rojo
+de FastAPI/Flask son versiones del lock por detrás de PyPI (p. ej. FastAPI:
+`starlette 1.7.0 → 1.9.0`, `pydantic 2.13.5 → 2.14.1`); Hypothesis queda al día
+gracias a sus `requirements/*.txt` compilados. Requests/Httpie no tienen lock:
+v4 se declara no verificado, no «al día».
+
+### Autoevaluación de thinker
+
+- **Con red: 0.958** (27/29 criterios, cobertura alta). Único fallo:
+  `v4_dependencias_al_dia` — `openai 3.35.1 → 3.36.0` (el lock fija 3.35.1).
+  Es un aviso real, no una regresión del evaluador.
+- **Sin red: 1.000** (25/27; `v4` y `h5` N/A, no fallos).
+- Suite: **747/747** en Python 3.11 y 3.12; ruff 0; preflight 0. El control con
+  defectos plantados sigue detectando los 10 defectos y el control de rangos
+  sigue fallando v4 sin consultar PyPI.
+
+### Límites que permanecen
+
+- Java/JS solo se evalúan con criterios genéricos (manifiesto, licencia, CI,
+  tests, ratio, lock); no hay AST de Java/JS ni comparación npm/Maven.
+- h6 es estático: imports dinámicos (`importlib`) y dependencias transitivas no
+  declaradas pueden quedar fuera; los 3 de Httpie se conservan a propósito.
+- c3 sigue marcando silencios deliberados de producción (p. ej. Hypothesis);
+  son reales según P1.26, aunque el proyecto los considere defensivos.
+- c5 es un heurístico de no-op, no una medida de mutación: un test con
+  `assert True` pasa c5 y puede ser inútil.
+- No se ejecutaron suites de terceros en esta campaña; el estado pass/fail de
+  los 7 repos sigue sin verificar.
