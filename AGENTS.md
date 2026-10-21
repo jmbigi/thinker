@@ -72,6 +72,11 @@ mejora de código (`code_design_improvement_tools.py`).
     probar y comprender el sistema, no son la naturaleza del proyecto. Toda
     cifra o promesa documentada se mantiene al día tras cada cambio, con
     evidencia verificable.
+12. **Sin CLI de GitHub** (regla del programador, 2026-10-21): no se ejecuta
+    la CLI `gh` en ningún paso. Las operaciones de GitHub se hacen con git
+    estándar (`git push`, `git tag`, `git ls-remote`) o desde la interfaz web;
+    las GitHub Releases y sus artefactos se crean/publican desde la web. La
+    guía `docs/PUBLICACION.md` no debe contener comandos de `gh`.
 
 ## Entorno y verificación (comandos del proyecto)
 
@@ -177,9 +182,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md` (PyPI pendiente de
-  credenciales; tags `v0.1.0`/`v0.1.1` empujados y `v0.1.2` anotado; versión
-  `0.1.2` preparada; verifica el remoto antes de instalar con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.2`).
+  credenciales; tags `v0.1.0`/`v0.1.1`/`v0.1.2` empujados y `v0.1.2` anotado;
+  versión `0.1.3` preparada con README durable y guía sin CLI de GitHub;
+  verifica el remoto antes de instalar con
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.3`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,

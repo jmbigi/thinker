@@ -1787,10 +1787,40 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `unzip -p dist/thinker_research-0.1.1-py3-none-any.whl
   thinker_research-0.1.1.dist-info/METADATA | grep` mostró «preparada
   localmente/última etiquetada v0.1.0»; PyPI respondió 404 y
-  `gh release view v0.1.1` = «release not found»; suite 706/706 en 3.11 y
-  3.12 (venv desde el lock), `git archive v0.1.1` 706/706; `pip check` del
+  la consulta de releases vía CLI de GitHub = «release not found»; suite
+  706/706 en 3.11 y 3.12 (venv desde el lock), `git archive v0.1.1` 706/706;
+  `pip check` del
   venv limpio y global con 15 conflictos ajenos.
 - **Regla derivada**: en el commit de release, evitar afirmaciones sobre el
   tag que aún no existe; usar frases durables o actualizar después. Crear
   tag anotado y verificar `git tag --points-at HEAD`/`git ls-remote` antes
   de anunciar la instalación.
+
+
+### Hallazgo 90: el README de una release no puede declarar «PyPI pendiente» si se va a publicar
+
+- **Origen**: preparación de `0.1.2` (2026-10-21). El README empaquetado
+  decía «La publicación en PyPI como `thinker-research` sigue pendiente de
+  credenciales» y «Mientras no haya PyPI, esa es la vía sin keys».
+- **Problema**: `twine check` pasaba, pero PyPI usa el README como
+  descripción del proyecto. Al subir `0.1.2`, la ficha habría dicho que PyPI
+  estaba pendiente justo después de publicarla. Es el mismo error de estado
+  transitorio del Hallazgo 89, ahora en el texto que ve el usuario de PyPI.
+  `0.1.2` ya estaba etiquetado y empujado: rehacerlo habría roto la
+  correspondencia versión/tag.
+- **Solución**: preparar `0.1.3` (solo documentación) con una formulación
+  durable: la instalación por tag no requiere PyPI y la de PyPI se presenta
+  como «cuando la versión esté publicada». No se afirma disponibilidad ni
+  ausencia de publicación. La guía de publicación deja de usar la CLI de
+  GitHub (regla propia 12); las releases se crean desde la web.
+- **Evidencia**: METADATA de `0.1.2` (líneas 86–89) contenía «sigue
+  pendiente»/«Mientras no haya PyPI»; `0.1.3` contiene `Name:
+  thinker-research`/`Version: 0.1.3` y ya no contiene esas frases. Suite
+  706/706, ruff 0, preflight 0, build + `twine check` PASSED (wheel y sdist),
+  wheel instalado en venv temporal con imports OK y `evaluate-project --help`
+  OK. `0.1.2` no se publica; `0.1.3` es la versión destinada a PyPI.
+- **Regla derivada**: antes de publicar, revisar el METADATA del wheel y el
+  README empaquetado, no solo el README del árbol. Todo texto de release
+  debe ser verdad antes y después de la publicación: evitar «pendiente»,
+  «preparada» o «disponible» como estados, y usar condicionales o hechos
+  estables.
