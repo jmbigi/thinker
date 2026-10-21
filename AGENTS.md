@@ -171,6 +171,9 @@ mejora de código (`code_design_improvement_tools.py`).
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
+- Publicación y distribución: `docs/PUBLICACION.md` (PyPI pendiente de
+  credenciales; vía sin keys operativa: tag `v0.1.0`,
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.0`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,

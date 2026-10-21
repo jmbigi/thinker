@@ -58,7 +58,12 @@ librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.0   # versión fijada (tag)
 ```
+
+*(La publicación en PyPI como `thinker-research` está preparada pero
+pendiente de credenciales — ver `docs/PUBLICACION.md`. Mientras tanto, la
+vía sin keys es el tag de git: verificado en venv limpio el 2026-10-21.)*
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
 estática y read-only):
