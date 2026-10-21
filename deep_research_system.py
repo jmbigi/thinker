@@ -183,7 +183,6 @@ class SourceRetriever(DecisionEngine):
             return []
 
         results: List[Dict[str, Any]] = []
-        query = queries[0]
         for posicion, query in enumerate(queries):
             candidatos = self.search_api.search(query)
             if candidatos:

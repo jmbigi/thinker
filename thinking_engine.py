@@ -315,23 +315,24 @@ class ToTEngine(StepThinkingEngine):
                   "exploratorias): el congelado vale para el ciclo lineal "
                   "think()", file=sys.stderr)
 
-        # Inicializar raíz
+        # Inicializar raíz. `prompt` y `context` viven SOLO en la metadata de
+        # la raíz: `_generate_branches` los lee de ahí vía path_to_root().
         self._root = ThinkingNode(
             content=prompt,
             step_name="root",
             score=1.0,
             depth=0,
-            metadata={"is_root": True, "prompt": prompt, "context": context or {}}
+            metadata={"prompt": prompt, "context": context or {}}
         )
         self._all_nodes.append(self._root)
         
         # Ejecutar búsqueda según estrategia
         if self.search_strategy == SearchStrategy.BFS:
-            best_leaf = self._bfs_search(prompt, context or {})
+            best_leaf = self._bfs_search()
         elif self.search_strategy == SearchStrategy.DFS:
-            best_leaf = self._dfs_search(prompt, context or {})
+            best_leaf = self._dfs_search()
         else:  # BEAM
-            best_leaf = self._beam_search(prompt, context or {})
+            best_leaf = self._beam_search()
 
         # Self-Consistency (arXiv:2203.11171) opt-in: entre las k mejores hojas
         # gana el camino más repetido (consenso); empate -> mayor score. Con
@@ -397,12 +398,11 @@ class ToTEngine(StepThinkingEngine):
         node: ThinkingNode,
         step_name: str,
         builder: Callable[[Dict[str, Any]], str],
-        context: Dict[str, Any],
     ) -> List[ThinkingNode]:
         """Genera múltiples ramas (candidatos) para un paso dado."""
         # Construir outputs previos desde el camino a la raíz. `prompt` y
-        # `context` viven SOLO en la raíz (los hijos guardan variant/builder);
-        # leerlos del nodo actual los perdía a partir del paso 2.
+        # `context` viven SOLO en la raíz; leerlos del nodo actual los perdía
+        # a partir del paso 2.
         root = node.path_to_root()[0]
         outputs = {"prompt": root.metadata.get("prompt", ""),
                    "context": root.metadata.get("context", {})}
@@ -424,9 +424,7 @@ class ToTEngine(StepThinkingEngine):
                 content=content,
                 step_name=step_name,
                 score=score,
-                parent=node,
-                depth=node.depth + 1,
-                metadata={"variant": i + 1, "builder_output": varied_prompt[:200]}
+                metadata={"variant": i + 1}
             )
             node.add_child(child)
             self._all_nodes.append(child)
@@ -551,7 +549,7 @@ Responde SOLO con el JSON."""
         # por stderr y degrada a la heurística en un único punto (P1.26).
         raise ValueError(f"Respuesta del juez sin JSON: {response[:120]!r}")
     
-    def _bfs_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
+    def _bfs_search(self) -> ThinkingNode:
         """Búsqueda en anchura (BFS) - explora nivel por nivel."""
         from collections import deque
         
@@ -569,7 +567,7 @@ Responde SOLO con el JSON."""
                     next_level.append(node)
                     continue
                 
-                branches = self._generate_branches(node, step_name, builder, context)
+                branches = self._generate_branches(node, step_name, builder)
                 # Filtrar por threshold
                 valid_branches = [b for b in branches if b.score >= self.min_score_threshold]
                 next_level.extend(valid_branches)
@@ -581,14 +579,14 @@ Responde SOLO con el JSON."""
         leaves = [n for n in self._all_nodes if n.is_leaf()]
         return max(leaves, key=lambda n: n.score)
     
-    def _dfs_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
+    def _dfs_search(self) -> ThinkingNode:
         """Búsqueda en profundidad (DFS) - explora una rama hasta el final."""
         def dfs(node: ThinkingNode, step_idx: int) -> ThinkingNode:
             if step_idx >= len(self._step_builders()) or node.depth >= self.max_depth:
                 return node
             
             step_name, builder = self._step_builders()[step_idx]
-            branches = self._generate_branches(node, step_name, builder, context)
+            branches = self._generate_branches(node, step_name, builder)
             valid_branches = [b for b in branches if b.score >= self.min_score_threshold]
             
             if not valid_branches:
@@ -600,7 +598,7 @@ Responde SOLO con el JSON."""
         
         return dfs(self._root, 0)
     
-    def _beam_search(self, prompt: str, context: Dict[str, Any]) -> ThinkingNode:
+    def _beam_search(self) -> ThinkingNode:
         """Beam search - mantiene top-k candidatos por nivel."""
         current_beam = [self._root]
         previous_beam = [self._root]
@@ -613,7 +611,7 @@ Responde SOLO con el JSON."""
                     all_candidates.append(node)
                     continue
                 
-                branches = self._generate_branches(node, step_name, builder, context)
+                branches = self._generate_branches(node, step_name, builder)
                 all_candidates.extend(branches)
             
             # Filtrar y ordenar por score

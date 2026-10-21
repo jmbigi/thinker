@@ -237,7 +237,7 @@ class OpenRouterLLM(OpenAILLM):
                 status = getattr(exc, "status_code", None)
                 # Fallback también en 429 tras agotar reintentos (rate limit del modelo gratis)
                 # y en errores no transitorios (403, 404, 401, etc.)
-                if status and (status == 429 or status not in {429, 500, 502, 503, 504}):
+                if status and (status == 429 or status not in TRANSIENT_STATUS):
                     print(f"[OpenRouterLLM] Modelo {modelo} falló con {status}, probando siguiente...", file=sys.stderr)
                     continue  # Probar siguiente modelo
                 else:

@@ -604,9 +604,32 @@ class TestAnalyzePythonSourceDetalle(unittest.TestCase):
         result = analyze_python_source("def broken(:\n")
         self.assertIn("invalid syntax", result["syntax_error"])
 
-    def test_metricas_incluyen_max_nesting_a_cero(self):
+    def test_max_nesting_cero_en_codigo_plano(self):
         result = analyze_python_source("x = 1\n")
         self.assertEqual(result["metrics"]["max_nesting"], 0)
+
+    def test_max_nesting_cuenta_bloques_de_control_anidados(self):
+        codigo = (
+            "def f(xs):\n"
+            "    for x in xs:\n"
+            "        if x:\n"
+            "            try:\n"
+            "                return x\n"
+            "            except ValueError:\n"
+            "                pass\n")
+        result = analyze_python_source(codigo)
+        self.assertEqual(result["metrics"]["max_nesting"], 3)
+
+    def test_archivo_no_utf8_devuelve_error_en_vez_de_elevar(self):
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as f:
+            f.write(b"# codificaci\xf3n latin-1\nx = 1\n")
+            ruta = f.name
+        try:
+            result = analyze_python_code(ruta)
+        finally:
+            os.unlink(ruta)
+        self.assertIn("error", result)
+        self.assertIn("codec", result["error"])
 
     def test_cuenta_cada_clase(self):
         result = analyze_python_source("class A:\n    pass\nclass B:\n    pass\n")

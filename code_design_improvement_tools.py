@@ -576,6 +576,21 @@ class CodeImprovementOrchestrator:
         return "\n".join(self.report_lines())
 
 
+def _max_nesting(tree: ast.AST) -> int:
+    """Profundidad máxima de anidamiento de bloques de control (if/for/while/
+    try/with). 0 = código plano."""
+    anidables = (ast.If, ast.While, ast.For, ast.AsyncFor, ast.Try,
+                 ast.With, ast.AsyncWith)
+
+    def profundidad(nodo: ast.AST, nivel: int) -> int:
+        if isinstance(nodo, anidables):
+            nivel += 1
+        hijos = [profundidad(h, nivel) for h in ast.iter_child_nodes(nodo)]
+        return max([nivel, *hijos])
+
+    return profundidad(tree, 0)
+
+
 def analyze_python_source(source_code: str) -> Dict[str, Any]:
     """Analiza código Python (string) y retorna métricas estructuradas."""
     try:
@@ -602,6 +617,8 @@ def analyze_python_source(source_code: str) -> Dict[str, Any]:
             # Cada condicional se cuenta UNA vez (antes se sumaba otra vez
             # dentro de cada función que lo contenía: doble conteo).
             metrics["complexity"] += 1
+
+    metrics["max_nesting"] = _max_nesting(tree)
 
     # Detectar problemas comunes
     lines = source_code.splitlines()
@@ -651,7 +668,9 @@ def analyze_python_code(file_path: str) -> Dict[str, Any]:
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             source = f.read()
-    except OSError as e:
+    except (OSError, UnicodeDecodeError) as e:
+        # Un archivo legible pero no-UTF-8 también es un error de entrada:
+        # el contrato devuelve {"error": ...}, no eleva (P1.19).
         return {"error": str(e)}
     return analyze_python_source(source)
 

@@ -1649,3 +1649,53 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mayoría a los equivalentes documentados por los 6 agentes (más la clase
   "prompt-literal" de textos de demo, no observable). Suite: 701/701 en
   Python 3.11 y 3.12; ruff 0; preflight 0.
+
+
+### Hallazgo 85: El triaje de mutantes como detector de código muerto — y el nombre de PyPI como decisión de identidad
+
+- **Origen**: petición del programador (2026-10-21): cerrar todas las
+  mejoras pendientes, incluidas las anomalías de código que destapó el
+  Hallazgo 84, y dejar el paquete listo para PyPI.
+- **Anomalías corregidas** (todas detectadas porque sus mutantes eran
+  equivalentes — la mutación señala código que no cambia el comportamiento):
+  1. `thinking_engine`: parámetros muertos `prompt`/`context` de
+     `_bfs_search`/`_dfs_search`/`_beam_search` y `context` de
+     `_generate_branches` eliminados (los datos viven en la metadata de la
+     raíz, que es de donde se leen de verdad); metadata solo-escrita
+     (`is_root`, `builder_output`) retirada; `parent=`/`depth=` redundantes
+     del constructor (los pisa `add_child`) eliminados.
+  2. `deep_research_system:186`: dead store `query = queries[0]` eliminado
+     (el `for` reasigna siempre).
+  3. `llm_providers:240`: literal `{429, 500, 502, 503, 504}` duplicado
+     sustituido por la constante `TRANSIENT_STATUS` ya existente.
+  4. `code_design_improvement_tools.analyze_python_code`: solo capturaba
+     `OSError`; un archivo no-UTF-8 propagaba `UnicodeDecodeError` rompiendo
+     el contrato `{"error": ...}`. Ahora captura ambos (con test que lo
+     fija).
+  5. `code_design_improvement_tools`: la métrica `max_nesting` se
+     inicializaba a 0 y nunca se calculaba. Implementada de verdad
+     (`_max_nesting`: profundidad de bloques de control vía AST) con tests
+     (plano=0, tres niveles=3).
+- **Decisión NO cambiada**: `CodeAnalysisContext.design_decisions` se
+  mantiene aunque el módulo no lo usa: es atributo público del contexto
+  (consumidores de la librería pueden rellenarlo) y un test fija su
+  contrato de inicialización; borrar API pública por limpieza interna sería
+  peor que el peso muerto.
+- **PyPI**: el nombre `thinker` está ocupado desde 2017 por otro autor
+  (verificado contra la API de PyPI). El programador eligió
+  **`thinker-research`** (libre: 404 en la API el 2026-10-21). `pyproject`
+  renombrado, `python -m build` regenera `thinker_research-0.1.0` (sdist +
+  wheel) y `twine check` PASA; wheel reinstalado en venv limpio y verificado
+  (imports + `evaluate-project` desde otro directorio). La SUBIDA queda
+  pendiente de las credenciales del programador (token PyPI en el entorno;
+  no se piden por chat, P0.6). Comando cuando las tenga:
+  `python3 -m twine upload dist/*` (recomendado ensayar antes en TestPyPI).
+- **Evidencia**: suite 703/703 (2 tests nuevos de `max_nesting` y 1 de
+  UnicodeDecodeError), ruff 0, preflight 0. Re-medición de mutación tras
+  tocar 4 de los 6 módulos mutados: **94,7% (3570/3769; 199 supervivientes,
+  0 timeouts, 0 sospechosos, 0 sin ejecutar)** — el total baja de 3789 a
+  3769 porque la limpieza eliminó ~20 mutantes de código muerto.
+- **Regla derivada**: un mutante equivalente no siempre pide un test mejor;
+  a veces señala código que no debería existir. Antes de clasificar un
+  equivalente como "aceptado", preguntarse si la línea mutada tiene
+  justificación para seguir ahí.
