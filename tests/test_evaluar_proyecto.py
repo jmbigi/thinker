@@ -5,11 +5,14 @@ un proyecto temporal con defectos conocidos. Incluye una prueba de que la
 evaluación es READ-ONLY (no escribe en el proyecto evaluado).
 """
 
+import contextlib
+import io
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from evaluar_proyecto import evaluar, informe_texto
+from evaluar_proyecto import archivos_python, evaluar, informe_texto, main
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -248,6 +251,36 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
     def test_ruta_inexistente_eleva_value_error(self):
         with self.assertRaises(ValueError):
             evaluar(Path("/ruta/que/no/existe"), con_red=False)
+
+    def test_cli_sin_red_imprime_el_informe(self):
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida):
+            codigo = main([str(self._fixture()), "--sin-red"])
+
+        texto = salida.getvalue()
+        self.assertEqual(codigo, 0)
+        self.assertIn("EVALUACIÓN DE PROYECTO", texto)
+        self.assertIn("GLOBAL:", texto)
+
+    def test_cli_con_ruta_inexistente_devuelve_codigo_2(self):
+        error = io.StringIO()
+        with contextlib.redirect_stderr(error):
+            codigo = main(["/ruta/que/no/existe"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("ERROR:", error.getvalue())
+
+    def test_archivos_python_no_excluye_el_proyecto_por_un_padre_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp) / "build" / "proyecto"
+            (raiz / "pkg").mkdir(parents=True)
+            (raiz / "pkg" / "app.py").write_text("x = 1\n")
+            (raiz / "build").mkdir()
+            (raiz / "build" / "generado.py").write_text("y = 2\n")
+
+            encontrados = archivos_python(raiz)
+
+        self.assertEqual([p.name for p in encontrados], ["app.py"])
 
 
 class TestCriteriosAnadidos(unittest.TestCase):

@@ -62,7 +62,7 @@ config/
 
 | Método | Firma |
 |--------|-------|
-| `search` | `search(query, max_results=5) -> list[dict]` |
+| `search` | `search(query, max_results=None) -> list[dict]` (None usa `params.max_results`, defecto 5) |
 | `get_source_name` | `get_source_name() -> str` |
 
 `CorePlugin` (extensiones del núcleo) — devuelve hooks en `get_hooks()`:
@@ -86,7 +86,7 @@ Instancia global `plugin_registry` con directorios por defecto
 | `discover_plugins()` | Escanea directorios y registra clases (→ int) |
 | `load_plugin(name, config=None)` | Carga un plugin (→ bool) |
 | `unload_plugin(name)` | Descarga un plugin |
-| `reload_plugin(name)` | Hot-swap: descarga y recarga |
+| `reload_plugin(name)` | Hot-swap: descarga, relee `config/plugins.yaml` y recarga |
 | `set_active_llm(name)` / `set_active_search(name)` | Cambia el proveedor activo |
 | `get_active_llm()` / `get_active_search()` | Consulta el activo |
 | `get_plugin(name)` | Instancia del plugin |
@@ -98,6 +98,14 @@ Instancia global `plugin_registry` con directorios por defecto
 
 La configuración se fusiona: YAML (`config/plugins.yaml` → clave `plugins:`
 con `enabled`, `priority`, `params`) + `PluginConfig` pasado por parámetro.
+El hot-reload relee el YAML: los cambios de `priority` y `params` se aplican
+sin reiniciar; `enabled` rige `load_all` (una carga o recarga explícita es
+deliberada). Un `PluginConfig` pasado explícitamente por código se conserva
+como override.
+
+`params.max_results` (buscadores) fija el límite por defecto:
+`search(query)` lo usa y `search(query, N)` lo sobreescribe. Sin el parámetro,
+el defecto es 5.
 
 ## Configuración (config/plugins.yaml)
 
@@ -122,11 +130,14 @@ plugins:
   duckduckgo:
     enabled: true
     priority: 100
+    params:
+      max_results: 5
   wikipedia:
     enabled: true
     priority: 90
     params:
       language: es
+      max_results: 5
   mock_search:
     enabled: true
     priority: 10
@@ -212,9 +223,10 @@ vía CLI (`dashboard`, `health`) o programáticamente con
 
 ## Verificación
 
-- `python -m unittest discover -s tests -p "test_plugin_*.py"` — 47 pruebas
-  automatizadas (descubrimiento, config YAML, ciclo de vida, hooks, dashboard
-  y CLI, plugins simulados offline). Forman parte de la suite: `make test`.
+- `python3 -m unittest discover -s tests -p "test_plugin_*.py"` — 63 pruebas
+  automatizadas (descubrimiento, config YAML y hot-reload, ciclo de vida,
+  hooks, dashboard, CLI, proveedores envueltos y plugins simulados offline).
+  Forman parte de la suite: `make test`.
 - `python test_plugin_system.py` — 8 pruebas de humo: descubrimiento, carga,
   proveedor activo, ejecución, hot-reload, dashboard, config, apagado.
 - `ruff check plugins/ config/` — sin errores.

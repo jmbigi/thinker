@@ -172,7 +172,7 @@ mejora de código (`code_design_improvement_tools.py`).
   muertas eliminadas) y la mutación global es 94,7% (3581/3780; 199
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-21 tras el
   arreglo de `max_nesting` del Hallazgo 86).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**706/706 en ambos**;
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**724/724 en ambos**;
   3.12.3 en venv aislado creado desde `requirements.lock` el 2026-10-21,
   con openai 3.35.1); openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1
   (lock en 3.35.1 desde 2026-10-20).

@@ -190,7 +190,7 @@ Equivalente sin `make`:
 ruff check .
 python3 scripts/preflight.py                  # gates estáticos deterministas (AST, offline)
 python3 -m unittest discover -s tests -v
-coverage run --source=. -m unittest discover -s tests && coverage report -m
+python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m coverage report -m
 bash scripts/scan-secrets.sh
 python3 honest_test.py                        # comprobación honesta del sistema
 python3 evaluar_proyecto.py RUTA              # evaluación externa (6 dimensiones, read-only)

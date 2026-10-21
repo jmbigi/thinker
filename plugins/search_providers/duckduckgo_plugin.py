@@ -4,9 +4,6 @@ DuckDuckGo Search Provider Plugin.
 Wraps the existing DuckDuckGoSearchAPI for plugin system compatibility.
 """
 
-import time
-from typing import Any, Dict, List
-
 from plugins.interfaces import SearchProviderPlugin, PluginMetadata, PluginType
 from plugins.registry import plugin_registry
 
@@ -21,7 +18,9 @@ class DuckDuckGoSearchPlugin(SearchProviderPlugin):
             plugin_type=PluginType.SEARCH_PROVIDER,
             description="DuckDuckGo HTML scraping search (no API key required)",
             author="Deep Research System",
-            dependencies=["requests", "beautifulsoup4"],
+            # El extractor es regex sobre el HTML (web_search.py): no usa
+            # BeautifulSoup, así que no se declara como dependencia.
+            dependencies=["requests"],
             config_schema={
                 "type": "object",
                 "properties": {
@@ -35,6 +34,9 @@ class DuckDuckGoSearchPlugin(SearchProviderPlugin):
         try:
             from web_search import DuckDuckGoSearchAPI
             timeout = self.config.params.get("timeout", 10)
+            # `params.max_results` es el límite por defecto del plugin; un
+            # `max_results` explícito en `search()` tiene prioridad.
+            self._max_results = int(self.config.params.get("max_results", 5))
             self._search = DuckDuckGoSearchAPI(timeout=timeout)
             self._initialized = True
             return True
@@ -44,13 +46,6 @@ class DuckDuckGoSearchPlugin(SearchProviderPlugin):
 
     def shutdown(self) -> None:
         self._initialized = False
-
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
-        if not self._initialized:
-            raise RuntimeError("Plugin not initialized")
-        self.metadata.usage_count += 1
-        self.metadata.last_used = time.time()
-        return self._search.search(query, max_results)
 
     def get_source_name(self) -> str:
         return "DuckDuckGo"

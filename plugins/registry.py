@@ -34,6 +34,9 @@ class PluginEntry:
     config: PluginConfig
     instance: Optional[PluginBase] = None
     module_path: str = ""
+    # Config pasada explícitamente a `load_plugin`; se conserva en el
+    # hot-reload sobre la configuración releída del archivo (nunca al revés).
+    runtime_config: Optional[PluginConfig] = None
 
 
 class PluginRegistry:
@@ -57,7 +60,8 @@ class PluginRegistry:
         self._plugin_hooks: Dict[str, Dict[str, Callable]] = {}
         self._active_llm: Optional[str] = None
         self._active_search: Optional[str] = None
-        self._config_cache: Dict[str, Any] = {}
+        self._config_cache: Optional[Dict[str, Any]] = None
+        self._config_mtime_ns: Optional[int] = None
         
         # Los directorios de plugins NO se crean aquí: `discover_plugins` ya
         # omite los que no existen, y crear carpetas al importar el módulo
@@ -143,6 +147,7 @@ class PluginRegistry:
         if entry.metadata.status == PluginStatus.LOADED:
             return True  # Already loaded
         
+        entry.runtime_config = config
         entry.metadata.status = PluginStatus.LOADING
         start_time = time.time()
         
@@ -216,10 +221,23 @@ class PluginRegistry:
         return True
 
     def reload_plugin(self, name: str) -> bool:
-        """Hot-reload a plugin."""
-        config = self._plugins[name].config if name in self._plugins else None
+        """Hot-reload a plugin, releyendo `config/plugins.yaml`.
+
+        La configuración pasada explícitamente a `load_plugin` se conserva
+        como override; los cambios del archivo (`params` y `priority`) se
+        aplican al recargar. `enabled` rige `load_all`: una carga o recarga
+        explícita es deliberada y no lo consulta. La invalidación es explícita
+        porque algunos sistemas de archivos tienen resolución de mtime
+        gruesa y dos escrituras seguidas podrían no distinguirse.
+        """
+        entry = self._plugins.get(name)
+        if entry is None:
+            return False
+        runtime_config = entry.runtime_config
+        self._config_cache = None
+        self._config_mtime_ns = None
         self.unload_plugin(name)
-        return self.load_plugin(name, config)
+        return self.load_plugin(name, runtime_config)
 
     def _merge_config(self, name: str, config: PluginConfig = None) -> PluginConfig:
         """Merge plugin config with config file."""
@@ -245,7 +263,11 @@ class PluginRegistry:
         silencio (P1.19/P1.26): se eleva un RuntimeError con el motivo, en vez
         de seguir con los valores por defecto como si la config fuera válida.
         """
-        if self._config_cache:
+        try:
+            mtime_ns = os.stat(self.config_path).st_mtime_ns
+        except OSError:
+            mtime_ns = None
+        if self._config_cache is not None and mtime_ns == self._config_mtime_ns:
             return self._config_cache
         
         config = {}
@@ -269,8 +291,20 @@ class PluginRegistry:
                     f"No se pudo leer la configuración de plugins "
                     f"({self.config_path}): {e}"
                 ) from e
+            if not isinstance(config, dict):
+                raise RuntimeError(
+                    f"La configuración de plugins ({self.config_path}) debe ser "
+                    f"un mapa, no {type(config).__name__}."
+                )
         
-        self._config_cache = config.get("plugins", {})
+        plugins_config = config.get("plugins", {})
+        if not isinstance(plugins_config, dict):
+            raise RuntimeError(
+                f"`plugins` en {self.config_path} debe ser un mapa, no "
+                f"{type(plugins_config).__name__}."
+            )
+        self._config_cache = plugins_config
+        self._config_mtime_ns = mtime_ns
         return self._config_cache
 
     def _register_hooks(self, plugin: CorePlugin) -> None:

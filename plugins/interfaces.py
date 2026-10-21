@@ -4,6 +4,7 @@ Plugin interfaces for the Deep Research System.
 All plugins must implement one of these interfaces for type safety and hot-swappability.
 """
 
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List
@@ -124,16 +125,29 @@ class LLMProviderPlugin(PluginBase):
 
 
 class SearchProviderPlugin(PluginBase):
-    """Interface for search provider plugins."""
+    """Interface for search provider plugins.
+
+    El método `search` se implementa UNA vez aquí (validación, métricas y
+    límite común); el plugin solo asigna `self._search` en `initialize()`.
+    """
 
     def __init__(self, config: PluginConfig = None):
         super().__init__(config)
         self.metadata.plugin_type = PluginType.SEARCH_PROVIDER
+        self._search = None
 
-    @abstractmethod
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
-        """Perform a web search and return results."""
-        pass
+    def search(self, query: str, max_results: int = None) -> List[Dict[str, Any]]:
+        """Perform a web search and return results.
+
+        `max_results` explícito tiene prioridad; si es `None` se usa
+        `params.max_results` (defecto 5).
+        """
+        if not self._initialized or self._search is None:
+            raise RuntimeError(f"{self.metadata.name} not initialized")
+        self.metadata.usage_count += 1
+        self.metadata.last_used = time.time()
+        limite = getattr(self, "_max_results", 5) if max_results is None else max_results
+        return self._search.search(query, limite)
 
     @abstractmethod
     def get_source_name(self) -> str:

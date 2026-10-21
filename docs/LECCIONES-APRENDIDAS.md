@@ -1849,3 +1849,37 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: separar «publicado en el índice» de «resuelto por el
   pip local»; anotar el comando exacto que funcionó y no atribuir la causa
   sin diagnóstico.
+
+
+### Hallazgo 92: una opción de configuración sin prueba puede no hacer nada
+
+- **Origen**: revisión del 2026-10-21. El 100% de cobertura en los 6 módulos
+  núcleo no cubría el subsistema de plugins (64-97%) ni el CLI del evaluador.
+- **Problema**: cuatro defectos silenciosos reproducidos con un script antes
+  de tocar código:
+  1. `params.max_results` de `config/plugins.yaml` se ignoraba:
+     `search(query)` pasaba siempre 5 y la configuración no tenía efecto.
+  2. `DuckDuckGoSearchPlugin` declaraba `beautifulsoup4` como dependencia,
+     pero `web_search.py` extrae el HTML con regex y el paquete no está en
+     `requirements.txt`: dependencia inventada (P0.2).
+  3. `archivos_python` filtraba por las partes ABSOLUTAS de la ruta: un
+     proyecto alojado en `.../build/proyecto` producía 0 archivos y un
+     informe vacío.
+  4. `reload_plugin` reutilizaba la configuración fusionada antigua y no
+     invalidaba la caché: editar `config/plugins.yaml` y recargar no cambiaba
+     nada, aunque el hot-swap promete aplicarla.
+- **Solución**: límite común en `SearchProviderPlugin.search` (un solo
+  método, sin duplicar; `max_results=None` usa `params.max_results`);
+  dependencia declarada solo `requests`; `archivos_python` compara las partes
+  relativas al proyecto; el registro cachea por `mtime_ns`, invalida al
+  recargar, relee el YAML y conserva los overrides pasados por código.
+  `main()` del evaluador acepta `argv` para poder probar el CLI real.
+- **Evidencia**: reproducción antes → después: `[5] → [1]`;
+  `['requests','beautifulsoup4'] → ['requests']`; `0 → 1` archivos bajo
+  `build/`; config `uno/uno → uno/dos` tras editar y recargar. Suite
+  **724/724** en Python 3.11 y 3.12 (venv del lock, openai 3.35.1), ruff 0,
+  preflight 0; cobertura de plugins: openrouter 97%, deepseek 79% (antes
+  65/64%) y `web_search`/núcleo siguen al 100%.
+- **Regla derivada**: toda opción documentada en configuración debe tener una
+  prueba que demuestre que CAMBIA el comportamiento; un «hot-reload» se
+  verifica editando el archivo y recargando, no solo llamando a recargar.

@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from plugins.interfaces import PluginConfig
 from plugins.registry import PluginRegistry
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -169,6 +170,59 @@ class TestConfiguracionYaml(PluginRegistryTestCase):
 
         self.assertFalse(registry.load_plugin("fake_llm"))
 
+    def test_reload_relee_los_cambios_del_yaml(self):
+        self.write_config(
+            "plugins:\n"
+            "  fake_llm:\n"
+            "    params:\n"
+            "      model: uno\n"
+        )
+        registry = self.discovered_registry()
+        self.assertTrue(registry.load_plugin("fake_llm"))
+        self.assertEqual(registry.get_plugin("fake_llm").config.params["model"],
+                         "uno")
+
+        self.write_config(
+            "plugins:\n"
+            "  fake_llm:\n"
+            "    params:\n"
+            "      model: dos\n"
+        )
+        self.assertTrue(registry.reload_plugin("fake_llm"))
+        self.assertEqual(registry.get_plugin("fake_llm").config.params["model"],
+                         "dos")
+
+    def test_reload_conserva_el_override_pasado_por_codigo(self):
+        self.write_config(
+            "plugins:\n"
+            "  fake_llm:\n"
+            "    params:\n"
+            "      model: archivo\n"
+        )
+        registry = self.discovered_registry()
+        self.assertTrue(registry.load_plugin(
+            "fake_llm", PluginConfig(params={"model": "runtime"})))
+
+        self.write_config(
+            "plugins:\n"
+            "  fake_llm:\n"
+            "    params:\n"
+            "      model: nuevo\n"
+        )
+        self.assertTrue(registry.reload_plugin("fake_llm"))
+
+        self.assertEqual(registry.get_plugin("fake_llm").config.params["model"],
+                         "runtime")
+
+    def test_config_con_raiz_que_no_es_mapa_falla_con_motivo(self):
+        self.write_config("- uno\n- dos\n")
+        registry = self.discovered_registry()
+
+        self.assertFalse(registry.load_plugin("fake_llm"))
+        error = next(p for p in registry.list_plugins()
+                     if p["name"] == "fake_llm")["error_message"]
+        self.assertIn("debe ser un mapa", error)
+
 
 class TestConfiguracionToml(PluginRegistryTestCase):
     def setUp(self):
@@ -188,7 +242,6 @@ class TestConfiguracionToml(PluginRegistryTestCase):
         self.assertEqual(
             registry.get_plugin("fake_llm").config.params["model"],
             "modelo-toml")
-
 
 class TestCicloDeVida(PluginRegistryTestCase):
     def test_load_unload_reload(self):

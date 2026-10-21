@@ -94,8 +94,12 @@ class Dimension:
 
 
 def archivos_python(ruta: Path) -> List[Path]:
+    # Solo se ignoran directorios DENTRO del proyecto evaluado: mirar las
+    # partes absolutas excluía proyectos alojados en un directorio padre
+    # llamado `build`, `dist` o `venv` (0 archivos, informe vacío).
     return sorted(p for p in ruta.rglob("*.py")
-                  if not any(parte in IGNORAR for parte in p.parts))
+                  if not any(parte in IGNORAR
+                             for parte in p.relative_to(ruta).parts))
 
 
 def leer(path: Path) -> str:
@@ -1076,7 +1080,7 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
     return lineas
 
 
-def main() -> int:
+def main(argv: List[str] = None) -> int:
     parser = argparse.ArgumentParser(
         description="Evalúa un proyecto externo en 6 dimensiones (read-only).")
     parser.add_argument("ruta", help="ruta del proyecto a evaluar")
@@ -1095,7 +1099,7 @@ def main() -> int:
     parser.add_argument("--investigar", action="store_true",
                         help="resuelve las dudas del modelo con búsqueda real y cita "
                              "las fuentes (implica --sintesis-llm; requiere red)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     llm = None
     if args.sintesis_llm or args.investigar:
