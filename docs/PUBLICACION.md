@@ -1,35 +1,41 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-21: **versión `0.1.1` preparada localmente, publicación
-> pendiente de credenciales y de commit/tag** (ver «Estado actual»). Detalle
-> del renombrado en `LECCIONES-APRENDIDAS.md` (Hallazgo 85).
+> Estado al 2026-10-21: **versión `0.1.2` preparada**; PyPI y GitHub
+> Release pendientes de credenciales/permisos. Tags `v0.1.0` y `v0.1.1`
+> ya empujados; `v0.1.2` es un tag anotado (verifica el remoto antes de
+> instalar). Detalle del renombrado en `LECCIONES-APRENDIDAS.md`
+> (Hallazgo 85); incidencia de release en el Hallazgo 89.
 
 ## Estado actual
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.1`
-  (en preparación; la última etiquetada es `0.1.0`).
-- `python3 -m build` genera `dist/thinker_research-0.1.1.tar.gz` + wheel;
-  `python3 -m twine check dist/*` PASA. Los artefactos `0.1.0` del tag
-  `v0.1.0` se conservan intactos.
-- Wheel `0.1.1` verificado end-to-end: instalación en venv aislado, imports
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.2`.
+- `python3 -m build` genera `dist/thinker_research-0.1.2.tar.gz` + wheel;
+  `python3 -m twine check dist/*` PASA. Los artefactos `0.1.0` y `0.1.1`
+  se conservan intactos.
+- Wheel `0.1.2` verificado end-to-end: instalación en venv aislado, imports
   de librería, `evaluate-project` desde otro directorio y `max_nesting`
   correcto (`if/elif/elif` = 1).
-- **Bloqueo**: la subida requiere el token de PyPI del programador y, antes,
-  el tag de la versión `0.1.1` (el commit se prepara en esta revisión; P0.7).
+- **Bloqueo**: la subida requiere el token de PyPI del programador; la
+  GitHub Release requiere permisos de escritura. `0.1.2` no se ha subido a
+  PyPI. La distribución por git usa el tag anotado `v0.1.2`; verifica que
+  esté empujado.
 
-## Versión 0.1.1 (en preparación, 2026-10-21)
+## Versión 0.1.2 (2026-10-21)
 
 Incluye el arreglo de `_max_nesting` (`elif` no suma nivel; `try/except*` y
-`match` cuentan como bloques), 3 tests nuevos y la puesta al día de cifras.
-Verificación local: suite 706/706 en 3.11 y 3.12, ruff 0, preflight 0,
-cobertura 100% en los 6 módulos mutados, mutación 94,7% (3581/3780; 199
-supervivientes, 0 timeouts), build + `twine check` PASSED, wheel instalado y
-probado desde otro directorio. **Pendiente**: tag `v0.1.1` y subida (el
-commit se prepara en esta revisión; todo con orden explícita, P0.7). No se
-ha publicado nada.
+`match` cuentan como bloques), 3 tests nuevos, la puesta al día de cifras y
+la corrección del estado posterior al tag de `0.1.1` (Hallazgo 89).
+Verificación local: suite 706/706 en 3.11 y 3.12 (3.12.3, venv aislado
+creado desde el lock, openai 3.35.1), ruff 0, preflight 0, cobertura 100%
+en los 6 módulos mutados, mutación 94,7% (3581/3780; 199 supervivientes, 0
+timeouts), build desde el tag `v0.1.2` + `twine check` PASSED, wheel
+instalado y probado desde otro directorio. `0.1.1` quedó etiquetado y
+empujado, pero no se publicó en PyPI; `0.1.2` es la versión destinada a
+PyPI. **Publicación pendiente** del token; antes de instalar desde el
+remoto, verifica que el tag `v0.1.2` esté empujado.
 
 ## Reglas de seguridad del token (P0.6)
 
@@ -105,31 +111,38 @@ cd /tmp && /tmp/venv-pypi/bin/evaluate-project --help
 1. README: añadir `pip install thinker-research` como vía de instalación
    (NO antes: prometer un paquete no publicado viola P0.1).
 2. Token scoped al proyecto + revocar el global (ver reglas arriba).
-3. Tag de git con la versión de `pyproject.toml` (p. ej.
-   `git tag v0.1.1 && git push --tags`; con orden del programador, P0.7).
+3. Tag anotado con la versión de `pyproject.toml` (para `0.1.2`:
+   `git tag -a v0.1.2 -m "Release 0.1.2"` si aún no existe; empújalo con
+   `git push origin v0.1.2`, con orden del programador, P0.7).
 4. Entrada en `docs/EVALUACIONES.md` y hallazgo en
    `docs/LECCIONES-APRENDIDAS.md` si el proceso enseña algo nuevo (P1.20).
 
-## Vía sin keys: distribución por tag de git (YA OPERATIVA)
+## Vía sin keys: distribución por tag de git (OPERATIVA)
 
-Mientras no haya token de PyPI, el paquete se distribuye por el remoto:
+Tags de referencia: `v0.1.0` (commit `e0f46b6`), `v0.1.1` (`a56e0b8`) y
+`v0.1.2` (anotado). Para usar `0.1.2` por git, verifica que su tag esté en
+el remoto y instala:
 
 ```bash
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.0   # tag fijado
+git ls-remote --tags origin v0.1.2   # debe aparecer antes de instalar
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.2
 ```
 
-- Tag `v0.1.0` creado y empujado el 2026-10-21 (commit `e0f46b6`).
-- Verificado end-to-end el 2026-10-21: venv limpio +
+- `v0.1.0` verificado end-to-end el 2026-10-21: venv limpio +
   `pip install git+...@v0.1.0` → dist `thinker-research 0.1.0`, imports de
   librería OK y `evaluate-project` funcional desde otro directorio.
+- `v0.1.1` verificado el 2026-10-21: instalación desde el tag, imports OK,
+  `evaluate-project` OK y `max_nesting` de `elif` = 1.
+- `v0.1.2` verificado localmente desde el tag antes de empujarlo; el remoto
+  se comprueba con `git ls-remote` antes de anunciar la instalación.
 - **GitHub Release con artefactos (wheel/sdist): BLOQUEADA** — la cuenta
   autenticada en `gh` tiene solo lectura en `jmbigi/thinker` (`push: false`,
   verificado vía API el 2026-10-21); el push por SSH usa otra identidad.
   Comprueba la identidad con `gh auth status`. Para crearla: `gh auth login`
   con una cuenta con escritura en el repo y
-  `gh release create v0.1.1 dist/*0.1.1* --repo jmbigi/thinker`. En `dist/`
-  están los artefactos de `v0.1.0` y los de `0.1.1` preparados localmente; el
-  tag `v0.1.1` aún no existe.
+  `gh release create v0.1.2 dist/*0.1.2* --repo jmbigi/thinker` (el tag
+  debe estar empujado). En `dist/` están los artefactos de `v0.1.0`,
+  `v0.1.1` y `0.1.2`.
 
 ## Notas
 

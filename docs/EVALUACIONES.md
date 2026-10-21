@@ -126,8 +126,11 @@ actualizado a 94,7% y `openai 3.35.1`; distribución aclarada como
 `thinker-research`; handle de `gh` anonimizado en `PUBLICACION.md`.
 Autoevaluación con red: **GLOBAL 1.000**, `no_verificado` vacío y «nada que
 proponer». Los artefactos `0.1.0` quedan intactos (coinciden con el tag
-`v0.1.0`); la corrección se preparó como `0.1.1` con build + `twine check`
-PASSED, pendiente de tag/publicación para distribuirla.
+`v0.1.0`). La corrección se preparó como `0.1.1`, se etiquetó y empujó
+(`v0.1.1`), pero sus textos aún decían «tag pendiente» y el wheel incluía
+esa contradicción; no se publicó en PyPI. Se preparó `0.1.2` con la
+documentación corregida, tag anotado, build desde el tag y `twine check`
+PASSED; publicación pendiente de token (Hallazgo 89).
 
 **Actualización 2026-10-20 (post-empaquetado — Hallazgo 82)**: tras hacer el
 proyecto instalable (`pip install .`, comando `evaluate-project`), la

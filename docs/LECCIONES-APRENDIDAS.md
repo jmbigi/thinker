@@ -1741,7 +1741,9 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `dist/` de `0.1.0` no se regeneraron con esta corrección: el tag `v0.1.0`
   apunta al commit anterior y regenerar el mismo número rompería la
   correspondencia versión/tag. La corrección se preparó como `0.1.1` (build
-  + `twine check` PASSED), pendiente de tag/publicación.
+  + `twine check` PASSED) y se etiquetó/empujó; sus textos decían «tag
+  pendiente» al construirse, así que `0.1.2` corrige la documentación
+  (Hallazgo 89). `0.1.1` no se publicó en PyPI.
 - **Regla derivada**: al cerrar un hito, buscar la cifra anterior en TODO el
   repo (`grep`) y actualizar solo las afirmaciones vigentes; las históricas
   se conservan con su fecha.
@@ -1759,9 +1761,36 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   opción documentada para actualizar un paquete concreto. Verificado que el
   diff del lock solo tocaba `certifi`.
 - **Evidencia**: `make vuln-scan` «No known vulnerabilities found»; suite
-  706/706; `pip check` global con conflictos ajenos conocidos (`ccxt` fija
-  `certifi==2026.6.17`; `betterocr` pide `openai<2`), ya declarados en el
-  Hallazgo 77.
+  706/706; `pip check` global con 15 avisos de paquetes ajenos (`ccxt`,
+  `betterocr`, `torchaudio`, `opentelemetry`, `gruut`, `tts`, `flake8` y
+  `code2prompt_rs`); el venv del proyecto está limpio. Los conflictos de
+  `ccxt`/`betterocr` ya se declararon en el Hallazgo 77.
 - **Regla derivada**: un lock generado no garantiza que las versiones estén
   al día; tras un aviso de seguridad, refrescar explícitamente el paquete,
   regenerar y revisar el diff (no solo el exit code).
+
+
+### Hallazgo 89: no escribas «tag pendiente» en el commit que vas a etiquetar
+
+- **Origen**: release `0.1.1` (2026-10-21). El commit `a56e0b8` se etiquetó
+  y empujó como `v0.1.1` después de construir los artefactos.
+- **Problema**: README, AGENTS y PUBLICACION decían «preparada localmente»,
+  «pendiente de tag» y «la última etiquetada es v0.1.0». Al crear el tag, el
+  texto del commit y el METADATA del wheel `0.1.1` pasaron a contradecir la
+  realidad. Además, `v0.1.1` quedó como tag ligero frente al `v0.1.0`
+  anotado.
+- **Solución**: no reescribir el tag empujado ni reconstruir la misma
+  versión. Se preparó `0.1.2` con textos durables (sin estados
+  transitorios), tag anotado y build desde el tag; `0.1.1` queda como tag de
+  git, no se publicó en PyPI.
+- **Evidencia**: `git cat-file -t v0.1.0` = `tag` y `v0.1.1` = `commit`;
+  `unzip -p dist/thinker_research-0.1.1-py3-none-any.whl
+  thinker_research-0.1.1.dist-info/METADATA | grep` mostró «preparada
+  localmente/última etiquetada v0.1.0»; PyPI respondió 404 y
+  `gh release view v0.1.1` = «release not found»; suite 706/706 en 3.11 y
+  3.12 (venv desde el lock), `git archive v0.1.1` 706/706; `pip check` del
+  venv limpio y global con 15 conflictos ajenos.
+- **Regla derivada**: en el commit de release, evitar afirmaciones sobre el
+  tag que aún no existe; usar frases durables o actualizar después. Crear
+  tag anotado y verificar `git tag --points-at HEAD`/`git ls-remote` antes
+  de anunciar la instalación.
