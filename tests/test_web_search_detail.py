@@ -128,7 +128,8 @@ class TestDuckDuckGoSearch(unittest.TestCase):
 
     def test_clean_url_rechaza_hosts_privados(self):
         limpiar = DuckDuckGoSearchAPI._clean_url
-        for href in ("http://localhost/x", "http://127.0.0.1/x",
+        for href in ("http://localhost/x", "http://localhost./x",
+                     "http://127.0.0.1/x", "http://127.1/x",
                      "http://192.168.1.10/x", "http://10.0.0.5/x",
                      "http://[::1]/x", "http://0.0.0.0/x",
                      "http://:8080/x"):

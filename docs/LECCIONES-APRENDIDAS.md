@@ -1883,3 +1883,47 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Regla derivada**: toda opción documentada en configuración debe tener una
   prueba que demuestre que CAMBIA el comportamiento; un «hot-reload» se
   verifica editando el archivo y recargando, no solo llamando a recargar.
+
+
+### Hallazgo 93: «no verificado» contado como éxito y manifiestos mal parseados
+
+- **Origen**: revisión del 2026-10-21 con la auto-evaluación del propio
+  proyecto (`evaluar_proyecto.py`). El informe daba `v4_dependencias_al_dia`
+  por bueno sin consultar PyPI, y los manifiestos generaban dependencias
+  inexistentes.
+- **Problema**: tres defectos reproducidos antes de tocar código.
+  1. `evaluar_vigencia` solo comparaba dependencias fijadas (`==`); si el
+     manifiesto usaba rangos (`pandas>=2`) el bucle no ejecutaba ninguna
+     consulta y `not atrasadas and not no_verificadas` valía `True`: cero
+     comprobaciones se declaraban «al día» (P0.1/P1.19).
+  2. El parser de requisitos convertía `-r base.txt`, `--index-url ...` y
+     `-e .` en paquetes llamados `-r`, `--index-url` y `-e`; tampoco ignoraba
+     URLs, rutas, wheels ni referencias `pkg @ url`. En `pyproject.toml` la
+     regex cogía el primer `dependencies = [...]` aunque estuviera en
+     `[tool.*]`, no entendía comillas simples y `pkg==` (sin versión) contaba
+     como fijada.
+  3. `_es_host_publico` aceptaba `localhost.` y `evil.localhost.:8080` (punto
+     final válido en DNS) y las notaciones IPv4 alternativas `127.1`,
+     `0x7f000001`, `2130706433` y `0177.0.0.1`, que algunos resolvers
+     interpretan como loopback: el filtro anti-SSRF se podía eludir.
+- **Solución**: `evaluar_vigencia` cuenta las comparaciones reales; con cero
+  fijadas devuelve `v4=False`, lo anota y emite un hallazgo `UNVERIFIED`, y si
+  compara solo una parte lo declara. Un único `_parsear_requisito` (PEP 508
+  básico) descarta directivas de pip, URLs, rutas, wheels y referencias
+  directas; `[project].dependencies` se lee con `tomllib` (con la heurística
+  anterior solo como respaldo de formatos no estándar); `==` exige versión.
+  El host se normaliza con `lower().rstrip(".")` y, si no es una IP canónica,
+  se prueba `socket.inet_aton` para las notaciones alternativas.
+- **Evidencia**: reproducción antes → después: `v4=True` con 0 llamadas a
+  PyPI → `v4=False` + nota «sin dependencias fijadas (==)»;
+  `['-r','--index-url','-e']` → solo `requests` y `pandas`;
+  `127.1`/`localhost.` aceptados → rechazados. Suite **730/730** en Python
+  3.11 y 3.12 (venv del lock, openai 3.35.1), ruff 0, preflight 0 y escaneo
+  de secretos OK sobre el árbol de trabajo; `make ci` OK sobre HEAD (los
+  cambios están sin comitear, así que esa copia limpia aún no los incluye).
+  Auto-evaluación con red: `GLOBAL 1.000`; sin red: `0.958` con v4 `NO`, que
+  es el resultado honesto.
+- **Regla derivada**: una comprobación debe registrar cuántas verificaciones
+  hizo y fallar cuando son cero; «no comprobado» nunca es «correcto». Los
+  parsers de manifiestos se prueban con directivas, URLs y secciones ajenas,
+  y la validación de hosts se hace sobre la forma canónica, no por prefijos.

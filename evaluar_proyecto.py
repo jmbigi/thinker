@@ -38,6 +38,7 @@ import re
 import subprocess
 import sys
 import time
+import tomllib
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -351,40 +352,83 @@ def evaluar_calidad(ruta: Path, py: List[Path],
     return dim
 
 
+_REQUISITO = re.compile(
+    r"^(?P<nombre>[A-Za-z0-9][A-Za-z0-9._-]*)"
+    r"(?:\[[^\]]*\])?"
+    r"\s*(?P<operador>===|==|~=|!=|<=|>=|<|>)?"
+    r"\s*(?P<version>[0-9][^\s,;]*)?")
+
+
+def _parsear_requisito(linea: str) -> Optional[Dict[str, str]]:
+    """Dependencia PEP 508 de una línea; ``None`` si no es un paquete PyPI.
+
+    Las directivas de pip (``-r``, ``-e``, ``--index-url``, ``--hash``), las
+    URLs, las rutas y las referencias directas (``pkg @ url``) NO son paquetes
+    con versión: tratarlas como tales inventaba dependencias llamadas ``-r`` o
+    ``--index-url`` y hacía fallar la vigencia y las licencias.
+    """
+    linea = linea.split("#", 1)[0].strip()
+    if not linea:
+        return None
+    if linea.startswith("-") or "@" in linea:
+        return None
+    if re.match(r"(?i)^(?:https?://|git\+|file:|\.{0,2}/|~/)", linea):
+        return None
+    if linea.lower().endswith((".whl", ".tar.gz", ".zip")):
+        return None
+    coincidencia = _REQUISITO.match(linea)
+    if coincidencia is None:
+        return None
+    return {"nombre": coincidencia.group("nombre").lower(),
+            "operador": coincidencia.group("operador") or "",
+            "version": coincidencia.group("version") or ""}
+
+
+def _dependencias_pyproject(texto: str) -> List[Dict[str, str]]:
+    """Dependencias directas de ``pyproject.toml``.
+
+    Con ``[project]`` se usa TOML real (comillas simples, orden de tablas y
+    listas de herramientas incluidas). Para formatos no estándar se conserva la
+    heurística anterior del primer bloque ``dependencies = [...]``.
+    """
+    try:
+        datos = tomllib.loads(texto)
+    except tomllib.TOMLDecodeError:
+        datos = None
+    if isinstance(datos, dict) and isinstance(datos.get("project"), dict):
+        items = datos["project"].get("dependencies", [])
+        if not isinstance(items, list):
+            return []
+        return [dep for item in items if isinstance(item, str)
+                for dep in [_parsear_requisito(item)] if dep]
+
+    bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto,
+                       re.M | re.S)
+    if bloque is None:
+        return []
+    return [dep for item in re.findall(r'"([^"]+)"', bloque.group(1))
+            for dep in [_parsear_requisito(item)] if dep]
+
+
 def _dependencias(ruta: Path) -> List[Dict[str, str]]:
     deps = []
     req = ruta / "requirements.txt"
     if req.exists():
         for linea in leer(req).splitlines():
-            linea = linea.split("#")[0].strip()
-            if not linea:
-                continue
-            m = re.match(r"([A-Za-z0-9_.\-]+)\s*(==|>=|~=|<=|>|<)?\s*([\w.]*)", linea)
-            if m:
-                deps.append({"nombre": m.group(1).lower(),
-                             "operador": m.group(2) or "",
-                             "version": m.group(3)})
+            dep = _parsear_requisito(linea)
+            if dep:
+                deps.append(dep)
     pyproject = ruta / "pyproject.toml"
     if pyproject.exists():
-        texto = leer(pyproject)
-        # Solo el bloque `dependencies = [...]` de [project]: el resto del
-        # archivo tiene listas (source_paths, pytest_add_cli_args_test_selection,
-        # [project.scripts]...) que NO son dependencias.
-        bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto,
-                           re.M | re.S)
-        if bloque:
-            for item in re.findall(r'"([^"]+)"', bloque.group(1)):
-                m = re.match(r"([A-Za-z0-9_.\-]+)\s*(==|>=|~=)?\s*([\w.]*)", item)
-                if m:
-                    deps.append({"nombre": m.group(1).lower(),
-                                 "operador": m.group(2) or "",
-                                 "version": m.group(3)})
+        deps.extend(_dependencias_pyproject(leer(pyproject)))
     # Una misma dependencia declarada en varios manifiestos se cuenta una vez,
-    # prefiriendo la declaración más específica (==).
+    # prefiriendo la declaración más específica (== con versión).
     unicas: Dict[str, Dict[str, str]] = {}
     for dep in deps:
         previa = unicas.get(dep["nombre"])
-        if previa is None or (previa["operador"] != "==" and dep["operador"] == "=="):
+        if previa is None or (
+                dep["operador"] == "==" and dep["version"]
+                and (previa["operador"] != "==" or not previa["version"])):
             unicas[dep["nombre"]] = dep
     return list(unicas.values())
 
@@ -405,7 +449,8 @@ def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
 
     tiene_lock = any((ruta / f).exists() for f in
                      ("requirements.lock", "poetry.lock", "uv.lock", "Pipfile.lock"))
-    sin_fijar = [d["nombre"] for d in deps if d["operador"] != "=="]
+    sin_fijar = [d["nombre"] for d in deps
+                 if d["operador"] != "==" or not d["version"]]
     # Un lockfile da reproducibilidad aunque el manifiesto use rangos.
     dim.criterios["v1_dependencias_fijadas"] = bool(deps) and (not sin_fijar or tiene_lock)
     if sin_fijar and not tiene_lock:
@@ -434,15 +479,31 @@ def evaluar_vigencia(ruta: Path, deps: List[Dict[str, str]],
         return dim
 
     atrasadas, no_verificadas = [], []
+    verificadas = 0
     for d in deps:
         if d["operador"] != "==" or not d["version"]:
             continue
+        verificadas += 1
         consulta = ultima_version_pypi(d["nombre"])
         if consulta["error"]:
             no_verificadas.append(f"{d['nombre']} ({consulta['error']})")
             continue
         if consulta["version"] != d["version"]:
             atrasadas.append(f"{d['nombre']} {d['version']} -> {consulta['version']}")
+    if verificadas == 0:
+        # Cero comparaciones no es "al día": el bucle no consultó PyPI. Antes
+        # un manifiesto solo con rangos (p. ej. `pandas>=2` + lock) devolvía
+        # v4=True sin haber comprobado nada.
+        dim.criterios["v4_dependencias_al_dia"] = False
+        dim.notas.append("sin dependencias fijadas (==) que comparar: no verificado")
+        dim.hallazgos.append(Hallazgo(
+            "baja", "No se pudo comprobar la vigencia: no hay dependencias "
+            "fijadas (==) en el manifiesto", "requirements.txt/pyproject.toml",
+            EvidenceKind.UNVERIFIED))
+        return dim
+    if verificadas < len(deps):
+        dim.notas.append(f"comparadas {verificadas}/{len(deps)} dependencias: "
+                         "las no fijadas no se pueden comparar con PyPI")
     # "No se pudo comprobar" NO es "está al día": el criterio exige verificación.
     dim.criterios["v4_dependencias_al_dia"] = not atrasadas and not no_verificadas
     for marca in atrasadas:
@@ -693,7 +754,8 @@ MEJORAS: Dict[str, Dict[str, str]] = {
         "metrica": ">= 1 commit en los últimos 180 días"},
     "v4_dependencias_al_dia": {
         "prioridad": "media",
-        "propuesta": "Actualizar las dependencias que van por detrás de PyPI",
+        "propuesta": "Verificar en PyPI las dependencias fijadas y actualizar "
+                     "las que estén atrasadas",
         "metrica": "ninguna dependencia fijada por detrás de la última publicada"},
     "h1_manifiesto": {
         "prioridad": "alta",

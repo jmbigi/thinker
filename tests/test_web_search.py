@@ -111,6 +111,15 @@ class TestEsHostPublico(unittest.TestCase):
     def test_subdominio_localhost_se_rechaza(self):
         self.assertIs(_es_host_publico("evil.localhost"), False)
 
+    def test_localhost_con_punto_final_se_rechaza(self):
+        self.assertIs(_es_host_publico("localhost."), False)
+        self.assertIs(_es_host_publico("evil.localhost.:8080"), False)
+
+    def test_notaciones_alternativas_de_ip_privada_se_rechazan(self):
+        for host in ("127.1", "0x7f000001", "2130706433", "0177.0.0.1"):
+            with self.subTest(host=host):
+                self.assertIs(_es_host_publico(host), False)
+
     def test_ip_multicast_se_rechaza(self):
         self.assertIs(_es_host_publico("224.0.0.1"), False)
 

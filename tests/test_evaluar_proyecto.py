@@ -283,6 +283,79 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertEqual([p.name for p in encontrados], ["app.py"])
 
 
+class TestDependenciasDelEvaluador(unittest.TestCase):
+    """Parseo de manifiestos: directivas de pip y bloques ajenos a [project]."""
+
+    def test_requirements_ignora_directivas_urls_y_referencias(self):
+        from evaluar_proyecto import _dependencias
+
+        raiz = crear_proyecto(self, {
+            "requirements.txt": (
+                "-r base.txt\n"
+                "--index-url https://pypi.org/simple\n"
+                "-e .\n"
+                "https://example.com/pkg.whl\n"
+                "paquete @ https://example.com/paquete.whl\n"
+                "requests[socks]==2.31.0\n"
+                "pandas>=2\n"),
+        })
+
+        deps = _dependencias(raiz)
+
+        self.assertEqual(
+            [(d["nombre"], d["operador"], d["version"]) for d in deps],
+            [("requests", "==", "2.31.0"), ("pandas", ">=", "2")])
+
+    def test_pyproject_lee_project_dependencies_y_no_listas_de_herramientas(self):
+        from evaluar_proyecto import _dependencias
+
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                "[tool.herramienta]\n"
+                "dependencies = ['falsa==1.0']\n\n"
+                "[project]\n"
+                "name = 'x'\n"
+                "version = '0.1.0'\n"
+                "dependencies = [\n"
+                "  'requests[socks]>=2.31',\n"
+                '  "PyYAML==6.0.3",\n'
+                "]\n"),
+        })
+
+        deps = _dependencias(raiz)
+
+        self.assertEqual([d["nombre"] for d in deps], ["requests", "pyyaml"])
+        self.assertEqual(deps[0]["operador"], ">=")
+        self.assertEqual(deps[1]["operador"], "==")
+
+    def test_version_vacia_no_cuenta_como_fijada(self):
+        raiz = crear_proyecto(self, {"requirements.txt": "requests==\n"})
+
+        vigencia = evaluar(raiz, con_red=False)["dimensiones"]["vigencia"]
+
+        self.assertFalse(vigencia["criterios"]["v1_dependencias_fijadas"])
+
+    def test_v4_sin_versiones_fijadas_no_finge_haber_comprobado(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "pandas>=2\nrequests\n",
+            "requirements.lock": "pandas==2.2.0\n",
+        })
+
+        with patch("evaluar_proyecto.ultima_version_pypi") as pypi, \
+                patch("evaluar_proyecto.licencia_pypi",
+                      return_value={"licencia": "MIT", "libre": True,
+                                    "error": ""}):
+            informe = evaluar(raiz, con_red=True)
+
+        pypi.assert_not_called()
+        vigencia = informe["dimensiones"]["vigencia"]
+        self.assertFalse(vigencia["criterios"]["v4_dependencias_al_dia"])
+        self.assertTrue(any("sin dependencias fijadas (==)" in nota
+                            for nota in vigencia["notas"]))
+        self.assertTrue(any(h["tipo_evidencia"] == "unverified"
+                            for h in vigencia["hallazgos"]))
+
+
 class TestCriteriosAnadidos(unittest.TestCase):
     """h6 (imports declarados), c5 (tests con aserciones) y h7 (decisiones)."""
 

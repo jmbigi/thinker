@@ -8,8 +8,8 @@ que tarda SIEMPRE más de 1 minuto no es práctico ni realista.
 - Coste 0 con modelos `:free` de OpenRouter (por defecto, el del proyecto).
 - Sin key definida NO se prueba: se reporta y se sale sin llamar (P1.29).
 - Nunca imprime la key.
-- Usa el SDK con timeout explícito por muestra: el cliente del proyecto aún no
-  expone un timeout configurable, y una sonda debe estar acotada.
+- Usa el SDK directamente con timeout explícito por muestra: así mide la
+  llamada cruda, sin la caché ni los reintentos del cliente del proyecto.
 
 Uso:
     python3 scripts/probe_model.py                      # 5 muestras del defecto

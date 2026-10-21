@@ -12,10 +12,11 @@ lista vacía silenciosamente cuando la causa es un fallo.
 """
 
 import html
+import ipaddress
 import re
+import socket
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
-import ipaddress
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import requests
@@ -96,13 +97,26 @@ def _es_host_publico(netloc: str) -> bool:
     host = urlparse(f"//{netloc}").hostname
     if not host:
         return False
-    host = host.lower()
+    # El punto final es válido en DNS (`localhost.`) y resolvía a loopback sin
+    # pasar el filtro. Se normaliza antes de comparar.
+    host = host.lower().rstrip(".")
+    if not host:
+        return False
     if host == "localhost" or host.endswith(".localhost"):
         return False
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
-        return True  # nombre DNS: se acepta
+        # Algunos resolvers aceptan IPv4 en notaciones alternativas
+        # (`127.1`, `0x7f000001`, `2130706433`, `0177.0.0.1`). `inet_aton`
+        # las normaliza; si no es una IP, es un nombre DNS y se acepta.
+        inet_aton = getattr(socket, "inet_aton", None)
+        if inet_aton is None:
+            return True
+        try:
+            ip = ipaddress.ip_address(inet_aton(host))
+        except OSError:
+            return True
     return not (ip.is_private or ip.is_loopback or ip.is_link_local
                 or ip.is_multicast or ip.is_unspecified or ip.is_reserved)
 
