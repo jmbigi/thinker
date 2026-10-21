@@ -578,14 +578,27 @@ class CodeImprovementOrchestrator:
 
 def _max_nesting(tree: ast.AST) -> int:
     """Profundidad máxima de anidamiento de bloques de control (if/for/while/
-    try/with). 0 = código plano."""
-    anidables = (ast.If, ast.While, ast.For, ast.AsyncFor, ast.Try,
-                 ast.With, ast.AsyncWith)
+    try/with, incluidos try/except* y match). 0 = código plano.
 
-    def profundidad(nodo: ast.AST, nivel: int) -> int:
-        if isinstance(nodo, anidables):
+    `elif` no tiene nodo propio en el AST: se representa como un `If` dentro
+    de `orelse` y comparte indentación con el `if`, así que no suma un nivel.
+    Un `if` dentro de un `else` real sí está indentado y sí suma.
+    """
+    anidables = (ast.If, ast.While, ast.For, ast.AsyncFor, ast.Try,
+                 ast.TryStar, ast.With, ast.AsyncWith, ast.Match)
+
+    def profundidad(nodo: ast.AST, nivel: int,
+                    padre: Optional[ast.AST] = None) -> int:
+        es_elif = (
+            isinstance(nodo, ast.If)
+            and isinstance(padre, ast.If)
+            and nodo.col_offset == padre.col_offset
+            and any(nodo is hijo for hijo in padre.orelse)
+        )
+        if isinstance(nodo, anidables) and not es_elif:
             nivel += 1
-        hijos = [profundidad(h, nivel) for h in ast.iter_child_nodes(nodo)]
+        hijos = [profundidad(hijo, nivel, nodo)
+                 for hijo in ast.iter_child_nodes(nodo)]
         return max([nivel, *hijos])
 
     return profundidad(tree, 0)

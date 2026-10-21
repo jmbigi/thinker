@@ -1699,3 +1699,69 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   a veces señala código que no debería existir. Antes de clasificar un
   equivalente como "aceptado", preguntarse si la línea mutada tiene
   justificación para seguir ahí.
+
+
+### Hallazgo 86: `elif` no es un nivel de anidamiento — y `try/except*`/`match` también son bloques de control
+
+- **Origen**: revisión de los cambios de las últimas 12 horas (2026-10-21).
+  El test de `max_nesting` cubría código plano y tres niveles reales, pero no
+  `elif`.
+- **Problema**: la documentación oficial de `ast` confirma que `elif` no
+  tiene nodo propio: se representa como un `If` dentro de `orelse`
+  (<https://docs.python.org/3/library/ast.html#ast.If>). La recursión
+  genérica lo contaba como un nivel nuevo; `if/elif/elif` plano devolvía 3
+  en vez de 1.
+- **Solución**: `_max_nesting` no incrementa cuando el `If` está en `orelse`
+  y comparte `col_offset` con el `if` padre (elif); un `if` dentro de un
+  `else` real sí suma. Se añadieron `ast.TryStar` (`except*`) y `ast.Match`
+  como bloques de control.
+- **Evidencia**: antes `if/elif/elif -> 3`; después `-> 1`; `else` con `if`
+  anidado `-> 2`; `try/except*` y `match` planos `-> 1`, con `if` dentro
+  `-> 2`. Suite 706/706, ruff 0, preflight 0; mutación **94,7%
+  (3581/3780; 199 supervivientes, 0 timeouts, 0 sospechosos)**: no queda
+  ningún superviviente en `_max_nesting`; los 11 mutantes nuevos se matan y
+  la tasa se mantiene.
+- **Regla derivada**: una métrica basada en AST necesita casos límite
+  (`elif`, `else`, `except*`, `match`), no solo el caso feliz; la fuente de
+  verdad es la representación real del AST, no la forma del texto.
+
+
+### Hallazgo 87: las cifras también viven en el README — la coherencia no termina en AGENTS.md
+
+- **Origen**: revisión 2026-10-21. El commit `da5aa31` decía «cifras al día»
+  y actualizó `AGENTS.md`/`EVALUACIONES.md`, pero el README seguía con la
+  medición de mutación de 2026-10-19 (79,8%) y con `openai` hasta 3.33.0.
+- **Problema**: la vitrina del proyecto mostraba cifras obsoletas; una
+  lectura rápida podía concluir que la suite era mucho más débil de lo que
+  es. Contradice la regla propia 11 y P1.10.
+- **Solución**: README con la medición vigente, historial de mediciones y
+  `openai 3.35.1`; aclaración de que la distribución es `thinker-research`
+  (`thinker` está ocupado en PyPI desde 2017, verificado en la API).
+- **Evidencia**: `grep` de las cifras antiguas; suite 706/706. Los artefactos
+  `dist/` de `0.1.0` no se regeneraron con esta corrección: el tag `v0.1.0`
+  apunta al commit anterior y regenerar el mismo número rompería la
+  correspondencia versión/tag. La corrección se preparó como `0.1.1` (build
+  + `twine check` PASSED), pendiente de tag/publicación.
+- **Regla derivada**: al cerrar un hito, buscar la cifra anterior en TODO el
+  repo (`grep`) y actualizar solo las afirmaciones vigentes; las históricas
+  se conservan con su fecha.
+
+
+### Hallazgo 88: `uv pip compile` reutiliza la caché — refrescar el paquete antes de dar el lock por actualizado
+
+- **Origen**: actualización de seguridad de `certifi` 2026.7.22 → 2026.10.19
+  (PYSEC-2026-4320), commit `be14329`.
+- **Problema**: `make lock` a secas no actualizó `certifi`: uv reutilizó la
+  caché del índice. La regeneración solo cambió la versión y los hashes
+  esperados tras refrescar ese paquete.
+- **Solución**: `uv pip compile --generate-hashes ... --refresh-package
+  certifi` (el header del lock registra el flag); `--upgrade-package` es la
+  opción documentada para actualizar un paquete concreto. Verificado que el
+  diff del lock solo tocaba `certifi`.
+- **Evidencia**: `make vuln-scan` «No known vulnerabilities found»; suite
+  706/706; `pip check` global con conflictos ajenos conocidos (`ccxt` fija
+  `certifi==2026.6.17`; `betterocr` pide `openai<2`), ya declarados en el
+  Hallazgo 77.
+- **Regla derivada**: un lock generado no garantiza que las versiones estén
+  al día; tras un aviso de seguridad, refrescar explícitamente el paquete,
+  regenerar y revisar el diff (no solo el exit code).

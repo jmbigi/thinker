@@ -144,6 +144,10 @@ mejora de código (`code_design_improvement_tools.py`).
   tras la limpieza del código muerto que el triaje señaló): 94,7%
   (3570/3769; 199 supervivientes, 0 timeouts, 0 sospechosos)** — el total
   baja de 3789 a 3769: el código muerto eliminado ya no genera mutantes.
+  **Re-medición 2026-10-21 (Hallazgo 86, tras el arreglo de `max_nesting`
+  y 3 tests nuevos): 94,7% (3581/3780; 199 supervivientes, 0 timeouts,
+  0 sospechosos)** — el total sube de 3769 a 3780 por los 11 mutantes nuevos
+  del arreglo; los 11 se matan y la tasa se mantiene.
   El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
@@ -160,12 +164,13 @@ mejora de código (`code_design_improvement_tools.py`).
   `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
-  muertas eliminadas) y la mutación global es 94,7% (3570/3769, re-medición
-  2026-10-21 tras la limpieza del Hallazgo 85).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**703/703 en ambos**;
-  3.12.3 en venv aislado recreado desde `requirements.lock` el 2026-10-20);
-  openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1 (lock en 3.35.1 desde
-  2026-10-20).
+  muertas eliminadas) y la mutación global es 94,7% (3581/3780; 199
+  supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-21 tras el
+  arreglo de `max_nesting` del Hallazgo 86).
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**706/706 en ambos**;
+  3.12.3 en venv aislado creado desde `requirements.lock` el 2026-10-21,
+  con openai 3.35.1); openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1
+  (lock en 3.35.1 desde 2026-10-20).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
@@ -173,7 +178,9 @@ mejora de código (`code_design_improvement_tools.py`).
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md` (PyPI pendiente de
   credenciales; vía sin keys operativa: tag `v0.1.0`,
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.0`).
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.0`; versión
+  `0.1.1` preparada localmente; distribución pendiente de tag/subida con
+  el commit preparado).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,

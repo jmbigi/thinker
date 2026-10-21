@@ -620,6 +620,57 @@ class TestAnalyzePythonSourceDetalle(unittest.TestCase):
         result = analyze_python_source(codigo)
         self.assertEqual(result["metrics"]["max_nesting"], 3)
 
+    def test_max_nesting_elif_no_suma_un_nivel(self):
+        cadena = (
+            "if a:\n"
+            "    pass\n"
+            "elif b:\n"
+            "    pass\n"
+            "elif c:\n"
+            "    pass\n")
+        self.assertEqual(
+            analyze_python_source(cadena)["metrics"]["max_nesting"], 1)
+        elif_con_if = (
+            "if a:\n"
+            "    pass\n"
+            "elif b:\n"
+            "    if c:\n"
+            "        pass\n")
+        self.assertEqual(
+            analyze_python_source(elif_con_if)["metrics"]["max_nesting"], 2)
+
+    def test_max_nesting_else_con_if_si_suma_un_nivel(self):
+        codigo = (
+            "if a:\n"
+            "    pass\n"
+            "else:\n"
+            "    if b:\n"
+            "        pass\n")
+        self.assertEqual(
+            analyze_python_source(codigo)["metrics"]["max_nesting"], 2)
+
+    def test_max_nesting_try_star_y_match_cuentan_como_bloques(self):
+        try_star = (
+            "try:\n"
+            "    pass\n"
+            "except* ValueError:\n"
+            "    pass\n")
+        self.assertEqual(
+            analyze_python_source(try_star)["metrics"]["max_nesting"], 1)
+        match_plano = (
+            "match x:\n"
+            "    case 1:\n"
+            "        pass\n")
+        self.assertEqual(
+            analyze_python_source(match_plano)["metrics"]["max_nesting"], 1)
+        match_anidado = (
+            "match x:\n"
+            "    case 1:\n"
+            "        if a:\n"
+            "            pass\n")
+        self.assertEqual(
+            analyze_python_source(match_anidado)["metrics"]["max_nesting"], 2)
+
     def test_archivo_no_utf8_devuelve_error_en_vez_de_elevar(self):
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as f:
             f.write(b"# codificaci\xf3n latin-1\nx = 1\n")

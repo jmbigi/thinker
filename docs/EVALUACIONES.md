@@ -113,6 +113,22 @@ completo del mismo día: autoevaluación con red **GLOBAL 1.000**, `make ci`
 OK, vuln-scan limpio, 4 tests honestos + 3 demos offline OK, benchmark de
 consenso detectando el caso divergente (`detectado: true`).
 
+**Actualización 2026-10-21 (revisión de coherencia — Hallazgos 86–88)**:
+revisión de los 7 commits de las últimas 12 h. Corregida la métrica
+`max_nesting` (`elif` ya no suma nivel; `try/except*` y `match` cuentan como
+bloques) con 3 tests nuevos. Suite **706/706 en 3.11 y 3.12** (3.12.3, venv
+aislado creado desde el lock, openai 3.35.1), cobertura 100% en los 6
+módulos mutados y mutación **94,7% (3581/3780; 199 supervivientes, 0 timeouts,
+0 sospechosos; los 11 mutantes nuevos se matan)**. Ruff 0, preflight 0,
+`make ci` en copia limpia de HEAD OK y copia limpia del árbol con los cambios
+706/706 OK; `make vuln-scan` limpio, demos y tests honestos OK. README
+actualizado a 94,7% y `openai 3.35.1`; distribución aclarada como
+`thinker-research`; handle de `gh` anonimizado en `PUBLICACION.md`.
+Autoevaluación con red: **GLOBAL 1.000**, `no_verificado` vacío y «nada que
+proponer». Los artefactos `0.1.0` quedan intactos (coinciden con el tag
+`v0.1.0`); la corrección se preparó como `0.1.1` con build + `twine check`
+PASSED, pendiente de tag/publicación para distribuirla.
+
 **Actualización 2026-10-20 (post-empaquetado — Hallazgo 82)**: tras hacer el
 proyecto instalable (`pip install .`, comando `evaluate-project`), la
 autoevaluación con red sigue en **GLOBAL 1.000**, `no_verificado` vacío y «nada

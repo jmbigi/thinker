@@ -34,7 +34,7 @@ herramientas de análisis estático de código.
   - Python 3.11 o superior (verificado en 3.11 y 3.12).
   - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML` (ver
     `requirements.txt`; el lock fija las exactas con hashes). `openai` verificado
-    en 1.109.1, 2.54.0 y 3.33.0.
+    en 1.109.1, 2.54.0, 3.33.0 y 3.35.1 (lock en 3.35.1).
   - Opcional: [Ollama](https://ollama.com/) para modelos locales.
 
 ## Instalación
@@ -52,8 +52,8 @@ pip install -r requirements.txt
 
 ## Uso desde otros proyectos (paquete instalable)
 
-`thinker` es un paquete pip instalable: otros proyectos pueden usarlo como
-librería o como herramienta de consola.
+El proyecto `thinker` se distribuye como el paquete pip `thinker-research`:
+otros proyectos pueden usarlo como librería o como herramienta de consola.
 
 ```bash
 pip install .                                  # desde una copia del repo
@@ -62,8 +62,9 @@ pip install git+https://github.com/jmbigi/thinker.git@v0.1.0   # versión fijada
 ```
 
 *(La publicación en PyPI como `thinker-research` está preparada pero
-pendiente de credenciales — ver `docs/PUBLICACION.md`. Mientras tanto, la
-vía sin keys es el tag de git: verificado en venv limpio el 2026-10-21.)*
+pendiente de credenciales — ver `docs/PUBLICACION.md`. La versión `0.1.1`,
+con el arreglo de `max_nesting`, está preparada localmente; la última
+etiquetada es `v0.1.0`, que sigue siendo la vía sin keys verificada.)*
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
 estática y read-only):
@@ -214,10 +215,12 @@ commit.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
   macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
-- La suite mata el **79,8%** de los mutantes de `mutmut` (3022/3789; 0
-  timeouts, 0 sospechosos; medición 2026-10-19, excluyendo las líneas `print`,
-  que solo generan mutantes equivalentes): cobertura alta no equivale a tests
-  fuertes. Mediciones anteriores: 79,9% (2863/3582) y 78,1% (2766/3543).
+- La suite mata el **94,7%** de los mutantes de `mutmut` (3581/3780; 199
+  supervivientes, 0 timeouts, 0 sospechosos; medición 2026-10-21, excluyendo
+  las líneas `print`, que solo generan mutantes equivalentes): cobertura alta
+  no equivale a tests fuertes. Mediciones anteriores: 94,7% (3570/3769),
+  94,1% (3567/3789), 79,8% (3022/3789), 79,9% (2863/3582) y 78,1%
+  (2766/3543).
 
 ## Licencia
 
