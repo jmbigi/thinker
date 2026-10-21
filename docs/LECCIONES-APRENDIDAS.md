@@ -1818,9 +1818,34 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   thinker-research`/`Version: 0.1.3` y ya no contiene esas frases. Suite
   706/706, ruff 0, preflight 0, build + `twine check` PASSED (wheel y sdist),
   wheel instalado en venv temporal con imports OK y `evaluate-project --help`
-  OK. `0.1.2` no se publica; `0.1.3` es la versión destinada a PyPI.
+  OK. `0.1.2` no se publica; `0.1.3` se publicó en TestPyPI y PyPI.
 - **Regla derivada**: antes de publicar, revisar el METADATA del wheel y el
   README empaquetado, no solo el README del árbol. Todo texto de release
   debe ser verdad antes y después de la publicación: evitar «pendiente»,
   «preparada» o «disponible» como estados, y usar condicionales o hechos
   estables.
+
+
+### Hallazgo 91: la ficha JSON de PyPI no garantiza que el pip local resuelva la versión
+
+- **Origen**: publicación de `0.1.3` (2026-10-21). Tras subir wheel y sdist,
+  la API JSON de PyPI y el índice simple mostraban `0.1.3` y los hashes
+  correctos, pero `pip install thinker-research==0.1.3` con la configuración
+  por defecto respondió «from versions: none».
+- **Problema**: un fallo de resolución local puede parecer un fallo de
+  publicación. No se determinó la causa (caché, propagación o un índice
+  configurado en el entorno); no se tocó la configuración global. Con
+  `--index-url https://pypi.org/simple/ --no-cache-dir` la instalación
+  funcionó, con imports OK y `pip check` limpio.
+- **Solución**: para verificar una publicación, contrastar JSON, índice
+  simple y hashes; si pip no ve la versión, forzar el índice oficial y
+  desactivar la caché antes de concluir que la subida falló. No cambiar la
+  configuración global sin orden (P0.5/P1.9).
+- **Evidencia**: PyPI JSON 200/`0.1.3`; índice simple con
+  `thinker_research-0.1.3-py3-none-any.whl` y `.tar.gz`; hashes
+  `7622495bd4976d937dc7892f5aea93674fc867260cda6965db2ed1549616aa4e` y
+  `f8bf541c3898ef779aa374e3f0d2774acb6ab526aba962deccaa997c171b400f`;
+  instalación limpia desde PyPI y `pip check` sin conflictos.
+- **Regla derivada**: separar «publicado en el índice» de «resuelto por el
+  pip local»; anotar el comando exacto que funcionó y no atribuir la causa
+  sin diagnóstico.

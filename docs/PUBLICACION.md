@@ -1,14 +1,14 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-21: **versión `0.1.3` preparada**; PyPI pendiente del
-> token. Tags `v0.1.0`, `v0.1.1` y `v0.1.2` ya empujados; `v0.1.2` es un tag
-> anotado. `0.1.2` **no se publicó**: su README decía que PyPI estaba
-> pendiente y la ficha se habría contradicho; `0.1.3` corrige el texto con
-> una formulación durable. No se usa la CLI de GitHub (regla propia 12):
-> las GitHub Releases se crean desde la web. Detalle del renombrado en
-> `LECCIONES-APRENDIDAS.md` (Hallazgo 85); incidencias de release en los
-> Hallazgos 89 y 90.
+> Estado al 2026-10-21: **versión `0.1.3` publicada en TestPyPI y PyPI**.
+> Tags `v0.1.0`, `v0.1.1`, `v0.1.2` y `v0.1.3` empujados; `v0.1.2` y
+> `v0.1.3` son anotados. `0.1.2` **no se publicó**: su README decía que
+> PyPI estaba pendiente y la ficha se habría contradicho; `0.1.3` corrige
+> el texto con una formulación durable. No se usa la CLI de GitHub (regla
+> propia 12): las GitHub Releases se crean desde la web. Detalle del
+> renombrado en `LECCIONES-APRENDIDAS.md` (Hallazgo 85); incidencias de
+> release en los Hallazgos 89, 90 y 91.
 
 ## Estado actual
 
@@ -22,27 +22,31 @@
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
   `dist/thinker_research-0.1.3*`.
-- **Bloqueo**: la subida requiere el token de PyPI del programador; la
-  GitHub Release requiere permisos de escritura en el repositorio. `0.1.3`
-  no se ha subido a PyPI. La distribución por git usará el tag anotado
-  `v0.1.3`, que se crea al cerrar esta release; verifica que esté empujado
-  antes de anunciarlo.
+- **Publicación completada**: `0.1.3` está en TestPyPI y PyPI; el tag
+  anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
+  artefactos generados desde el tag.
+- **Pendiente administrativo**: crear el token limitado a
+  `thinker-research` y revocar el token global; la GitHub Release, si se
+  quiere, se crea desde la web.
 
 ## Versión 0.1.3 (2026-10-21)
 
-Sustituye a `0.1.2` como versión destinada a PyPI. Corrige el README
-empaquetado, que en `0.1.2` decía «La publicación en PyPI sigue pendiente»:
-PyPI usa el README como descripción del proyecto, así que esa frase habría
-contradicho la ficha recién publicada (Hallazgo 90). La nueva formulación
-distingue la instalación por tag (siempre disponible) de la instalación por
-PyPI («cuando la versión esté publicada») y no afirma un estado transitorio.
+Publicada en TestPyPI y PyPI; sustituye a `0.1.2`, que no se publicó. Corrige
+el README empaquetado, que en `0.1.2` decía «La publicación en
+PyPI sigue pendiente»: PyPI usa el README como descripción del proyecto, así
+que esa frase habría contradicho la ficha recién publicada (Hallazgo 90). La
+nueva formulación distingue la instalación por tag (siempre disponible) de la
+instalación por PyPI y no afirma un estado transitorio.
 
-Verificación local del árbol de trabajo (2026-10-21): suite **706/706**,
-ruff 0, preflight 0, build + `twine check` **PASSED** (wheel y sdist),
-METADATA `Name: thinker-research` / `Version: 0.1.3` y sin la frase
-«PyPI pendiente»; wheel instalado en un venv temporal, imports OK y
-`evaluate-project --help` OK. Los artefactos finales se reconstruyen desde
-el tag `v0.1.3` antes de subir.
+Verificación local (2026-10-21): suite **706/706**, ruff 0, preflight 0,
+build + `twine check` **PASSED** (wheel y sdist), METADATA `Name:
+thinker-research` / `Version: 0.1.3` y sin la frase «PyPI pendiente»; wheel
+instalado en un venv temporal, imports OK y `evaluate-project --help` OK.
+Publicación: PyPI JSON 200 con `0.1.3`, wheel y sdist con los mismos hashes
+que `dist/`; TestPyPI instalable; instalación limpia desde PyPI con imports
+OK y `pip check` sin conflictos. El primer `pip install` con la configuración
+por defecto no vio la versión; con el índice oficial
+(`https://pypi.org/simple/`) y `--no-cache-dir` sí (Hallazgo 91).
 
 ## Versión 0.1.2 (2026-10-21) — no publicada
 
@@ -120,7 +124,7 @@ python3 -m venv /tmp/venv-testpypi-013
 ```
 
 (`--extra-index-url` es necesario: las dependencias están en PyPI real, no
-en TestPyPI. No usar `dist/*`: subiría también `0.1.0`–`0.1.2`.)
+en TestPyPI. No usar `dist/*`: subiría también `0.1.0`–`0.1.3`.)
 
 ## Publicación real
 
@@ -134,27 +138,33 @@ Verificación post-publicación (obligatoria, P0.1):
 curl -s https://pypi.org/pypi/thinker-research/json | python3 -c \
   "import json,sys; print(json.load(sys.stdin)['info']['version'])"
 python3 -m venv /tmp/venv-pypi-013
-/tmp/venv-pypi-013/bin/pip install thinker-research==0.1.3
+/tmp/venv-pypi-013/bin/pip install --index-url https://pypi.org/simple/ \
+  --no-cache-dir thinker-research==0.1.3
 cd /tmp && /tmp/venv-pypi-013/bin/evaluate-project --help
 ```
 
+Si pip no ve la versión pero el JSON y el índice simple sí, contrasta los
+hashes y prueba el índice oficial con `--no-cache-dir` antes de concluir que
+la subida falló (Hallazgo 91).
+
 ## Tareas tras publicar
 
-1. Actualizar el estado en `README.md`/`docs/PUBLICACION.md` solo después de
-   verificar la versión en PyPI. El README ya usa una frase condicional
-   durable; no prometas disponibilidad antes de comprobarla (P0.1).
-2. Token scoped al proyecto + revocar el global (ver reglas arriba).
-3. Tag anotado con la versión de `pyproject.toml` (para `0.1.3`:
-   `git tag -a v0.1.3 -m "Release 0.1.3"` si aún no existe; empújalo con
-   `git push origin v0.1.3`, con orden del programador, P0.7).
-4. Entrada en `docs/EVALUACIONES.md` y hallazgo en
-   `docs/LECCIONES-APRENDIDAS.md` si el proceso enseña algo nuevo (P1.20).
+Estado de `0.1.3`: publicación, hashes, tag anotado y documentación hechos.
+Quedan dos tareas administrativas:
+
+1. Token scoped al proyecto + revocar el global (ver reglas arriba).
+2. GitHub Release desde la web, si se quiere distribuir también allí.
+
+Para la próxima release: actualizar el estado en
+`README.md`/`docs/PUBLICACION.md` solo después de verificar la versión en
+PyPI; no prometas disponibilidad antes de comprobarla (P0.1).
 
 ## Vía sin keys: distribución por tag de git (OPERATIVA)
 
-Tags de referencia: `v0.1.0` (commit `e0f46b6`), `v0.1.1` (`a56e0b8`) y
-`v0.1.2` (anotado). `0.1.3` es la versión preparada para PyPI; para usarla
-por git, verifica que su tag esté en el remoto y instala:
+Tags de referencia: `v0.1.0` (commit `e0f46b6`), `v0.1.1` (`a56e0b8`),
+`v0.1.2` (anotado) y `v0.1.3` (anotado). `0.1.3` está publicada en PyPI y
+también puede instalarse por git; verifica que su tag esté en el remoto e
+instala:
 
 ```bash
 git ls-remote --tags origin v0.1.3   # debe aparecer antes de instalar

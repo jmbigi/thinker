@@ -133,15 +133,18 @@ esa contradicción; no se publicó en PyPI. Se preparó `0.1.2` con la
 documentación corregida, tag anotado, build desde el tag y `twine check`
 PASSED; publicación pendiente de token (Hallazgo 89).
 
-**Actualización 2026-10-21 (release 0.1.3 — Hallazgo 90)**: `0.1.2` no se
-publicó porque su README empaquetado decía «PyPI pendiente» y la ficha habría
-sido contradictoria. Se preparó `0.1.3` solo de documentación: README durable
-(instalación por tag siempre; por PyPI solo «cuando la versión esté
-publicada»), guía sin CLI de GitHub y versión actualizada. Verificación:
-suite **706/706**, ruff 0, preflight 0, build + `twine check` PASSED (wheel y
-sdist), METADATA `Version: 0.1.3` y sin frases transitorias; wheel instalado
-en venv temporal, imports OK y `evaluate-project --help` OK. `0.1.2` queda
-como tag de git, no se publica; `0.1.3` es la versión destinada a PyPI.
+**Actualización 2026-10-21 (release 0.1.3 — Hallazgos 90–91)**: `0.1.2` no
+se publicó porque su README empaquetado decía «PyPI pendiente» y la ficha
+habría sido contradictoria. Se preparó y publicó `0.1.3` solo de
+documentación: README durable, guía sin CLI de GitHub y versión actualizada.
+Verificación local: suite **706/706**, ruff 0, preflight 0, build + `twine
+check` PASSED (wheel y sdist), METADATA `Version: 0.1.3` y sin frases
+transitorias. Publicación: TestPyPI instalable; PyPI JSON 200 con versión
+`0.1.3`, wheel y sdist con los hashes de `dist/`; instalación limpia desde
+PyPI con imports OK, `evaluate-project --help` OK y `pip check` limpio. El
+primer `pip install` con la configuración por defecto no vio la versión; con
+el índice oficial y `--no-cache-dir` sí (Hallazgo 91). `0.1.2` queda como tag
+de git; `0.1.3` es la versión publicada.
 
 **Actualización 2026-10-20 (post-empaquetado — Hallazgo 82)**: tras hacer el
 proyecto instalable (`pip install .`, comando `evaluate-project`), la

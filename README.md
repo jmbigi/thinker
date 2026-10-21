@@ -59,12 +59,11 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
 pip install git+https://github.com/jmbigi/thinker.git@v0.1.3   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.3            # desde PyPI (cuando la versión esté publicada)
+pip install thinker-research==0.1.3            # desde PyPI
 ```
 
-La instalación por tag no requiere PyPI ni claves. Si la versión aún no está
-publicada en PyPI, usa el tag o una copia del repo; no se anuncia como
-disponible en PyPI hasta verificarlo. Estado de la publicación:
+La versión `0.1.3` está publicada en PyPI. La instalación por tag sigue
+disponible y no requiere PyPI ni claves. Estado de la publicación:
 `docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
