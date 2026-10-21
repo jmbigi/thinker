@@ -67,6 +67,12 @@ estática y read-only):
 evaluate-project RUTA_DEL_PROYECTO --sin-red   # añade --ejecutar-tests (opt-in)
 ```
 
+![Demo: evaluate-project evalúa un proyecto ajeno y propone mejoras](docs/img/demo-evaluador.gif)
+
+*(Captura real: la salida del GIF es verbatim de una ejecución de
+`evaluate-project` sobre un proyecto con defectos plantados — GLOBAL 0.344 y
+19 propuestas; solo el ritmo de aparición del texto es presentación.)*
+
 Como **librería** (los módulos públicos quedan importables):
 
 ```python
