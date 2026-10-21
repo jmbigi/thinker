@@ -95,6 +95,24 @@ con sus reglas derivadas en el Hallazgo 84. Mismo día: Ollama real 3/3 con
 con red **GLOBAL 1.000** y OpenRouter real 3/3 re-verificados, y `make ci`
 en copia limpia OK.
 
+**Actualización 2026-10-21 (limpieza de código muerto y distribución —
+Hallazgo 85)**: corregidas las 4 anomalías que el triaje señaló (firmas
+muertas en `thinking_engine`, dead store, literal duplicado,
+`UnicodeDecodeError` no capturado) y la métrica muerta `max_nesting`
+implementada de verdad. Suite 703/703 en 3.11 y 3.12; mutación re-medida:
+**94,7% (3570/3769; 199 supervivientes, 0 timeouts, 0 sospechosos)** — el
+total baja de 3789 a 3769 porque el código muerto eliminado ya no genera
+mutantes. Cobertura de los 6 módulos mutados re-verificada al 100% tras los
+cambios. Paquete renombrado a `thinker-research` (el nombre `thinker` está
+ocupado en PyPI desde 2017): build + `twine check` PASA y distribución sin
+keys operativa vía tag `v0.1.0` (instalación `git+...@v0.1.0` verificada en
+venv limpio); guía durable en `docs/PUBLICACION.md`. Hallazgo operativo:
+la cuenta autenticada en `gh` no tenía escritura en el repo (los permisos
+se verifican por API antes de prometer una GitHub Release). Barrido
+completo del mismo día: autoevaluación con red **GLOBAL 1.000**, `make ci`
+OK, vuln-scan limpio, 4 tests honestos + 3 demos offline OK, benchmark de
+consenso detectando el caso divergente (`detectado: true`).
+
 **Actualización 2026-10-20 (post-empaquetado — Hallazgo 82)**: tras hacer el
 proyecto instalable (`pip install .`, comando `evaluate-project`), la
 autoevaluación con red sigue en **GLOBAL 1.000**, `no_verificado` vacío y «nada
