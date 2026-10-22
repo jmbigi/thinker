@@ -50,6 +50,7 @@ import ast
 import configparser
 import json
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -66,7 +67,10 @@ from evidence import EvidenceKind, formato_resumen, resumen_evidencias
 
 IGNORAR = {".venv", "venv", "__pycache__", "node_modules", ".git", ".mypy_cache",
            ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist",
-           ".eggs", ".nox"}
+           ".eggs", ".nox", "_local_debug"}
+# `_local_debug` es el directorio de scripts locales ignorado por git en este
+# repo; preflight ya lo excluye. Analizarlo producía hallazgos c3 falsos en la
+# autoevaluación (ver Hallazgo 96).
 # Directorios cuyo contenido es test (se excluye del código de producción).
 DIRS_TEST = {"tests", "test", "spec", "specs", "__tests__", "cypress", "e2e",
              "testdata", "test-data"}
@@ -489,7 +493,7 @@ def tests_sin_aserciones(ruta: Path,
         try:
             arbol = ast.parse(leer(p), filename=str(p))
         except SyntaxError as exc:
-            con_error.append(f"{p.relative_to(ruta)}:{exc.lineno or 0}")
+            con_error.append(f"{p.relative_to(ruta).as_posix()}:{exc.lineno or 0}")
             continue
         for nodo, clase in _funciones_test(arbol):
             depende_de_setup = clase is not None and any(
@@ -498,7 +502,7 @@ def tests_sin_aserciones(ruta: Path,
                 for hijo in clase.body)
             if not depende_de_setup and not _tiene_asercion(nodo) \
                     and not _puede_fallar(nodo):
-                debiles.append(f"{p.relative_to(ruta)}:{nodo.lineno}")
+                debiles.append(f"{p.relative_to(ruta).as_posix()}:{nodo.lineno}")
     return debiles, con_error
 
 
@@ -632,8 +636,12 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
     Un ``package.json`` con el script de error de npm no se considera runner.
     """
     makefile = ruta / "Makefile"
-    if makefile.exists() and re.search(r"^test:", leer(makefile), re.M):
+    if makefile.exists() and re.search(r"^test:", leer(makefile), re.M) \
+            and shutil.which("make"):
         return {"comando": ["make", "test"], "origen": "Makefile (target test)"}
+    # Sin `make` disponible (p. ej. Windows), se sigue buscando el runner
+    # Python declarado o la convención de tests/ en vez de fallar con
+    # FileNotFoundError.
 
     patrones = (
         r"(python3? -m (?:unittest|pytest)[^\n`]*)",
@@ -652,7 +660,12 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
         for patron in patrones:
             m = re.search(patron, texto)
             if m:
-                return {"comando": m.group(1).split(),
+                comando = m.group(1).split()
+                if comando[0] in ("python", "python3"):
+                    # Usar el intérprete que ejecuta el evaluador evita
+                    # depender de un `python3` ausente o roto en Windows.
+                    comando[0] = sys.executable
+                return {"comando": comando,
                         "origen": f"{candidato.relative_to(ruta)}"}
 
     paquete = ruta / "package.json"
@@ -683,7 +696,8 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
         return {"comando": ["nox"], "origen": "noxfile.py"}
 
     if (ruta / "tests").is_dir() and any((ruta / "tests").glob("test_*.py")):
-        return {"comando": ["python3", "-m", "unittest", "discover", "-s", "tests"],
+        return {"comando": [sys.executable, "-m", "unittest", "discover",
+                            "-s", "tests"],
                 "origen": "convención: existe tests/"}
     return None
 
@@ -767,14 +781,23 @@ def evaluar_calidad(ruta: Path, perfil: Perfil,
 
     if ejecutar:
         resultado = ejecutar_tests(ruta)
-        dim.notas.append(f"suite: {resultado.get('resumen') or resultado.get('motivo')}"
-                         f" ({resultado.get('comando', 'sin comando')}, "
-                         f"{resultado.get('duracion_s', '?')}s)")
-        dim.criterios["c1b_suite_pasa"] = bool(resultado.get("ok"))
-        if not resultado.get("ok"):
-            dim.hallazgos.append(Hallazgo(
-                "alta", f"La suite NO pasa: {resultado.get('resumen') or resultado.get('error')}",
-                resultado.get("comando", "?"), criterio="c1b_suite_pasa"))
+        if not resultado.get("ejecutado") or resultado.get("error"):
+            motivo = resultado.get("motivo") or (
+                f"{resultado.get('error')}: {resultado.get('detalle', '')}")
+            dim.notas.append(f"suite NO ejecutada: {motivo} "
+                             f"({resultado.get('comando', 'sin comando')})")
+            dim.no_aplicable("c1b_suite_pasa", "runner no disponible")
+        else:
+            resumen = resultado.get("resumen") or (
+                f"código de salida {resultado.get('codigo', '?')}")
+            dim.notas.append(f"suite: {resumen}"
+                             f" ({resultado.get('comando', 'sin comando')}, "
+                             f"{resultado.get('duracion_s', '?')}s)")
+            dim.criterios["c1b_suite_pasa"] = bool(resultado.get("ok"))
+            if not resultado.get("ok"):
+                dim.hallazgos.append(Hallazgo(
+                    "alta", f"La suite NO pasa: {resumen}",
+                    resultado.get("comando", "?"), criterio="c1b_suite_pasa"))
     else:
         dim.notas.append("suite NO ejecutada (sin --ejecutar-tests): no verificado")
 
@@ -798,10 +821,11 @@ def evaluar_calidad(ruta: Path, perfil: Perfil,
             try:
                 ast.parse(leer(p), filename=str(p))
             except SyntaxError as exc:
-                con_error.append(f"{p.relative_to(ruta)}:{exc.lineno or 0}")
+                con_error.append(f"{p.relative_to(ruta).as_posix()}:"
+                                 f"{exc.lineno or 0}")
                 continue
             for linea in lineas_silenciosas(leer(p)):
-                silencios.append(f"{p.relative_to(ruta)}:{linea}")
+                silencios.append(f"{p.relative_to(ruta).as_posix()}:{linea}")
         dim.criterios["c3_sin_silencios"] = not silencios
         dim.notas.append(f"c3 sobre {len(perfil.codigo_paquete)} archivos de "
                          "producción; tests/scripts excluidos")

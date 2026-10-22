@@ -311,13 +311,19 @@ v4 se declara no verificado, no «al día».
 
 ### Autoevaluación de thinker
 
-- **Con red: 0.958** (27/29 criterios, cobertura alta). Único fallo:
-  `v4_dependencias_al_dia` — `openai 3.35.1 → 3.36.0` (el lock fija 3.35.1).
-  Es un aviso real, no una regresión del evaluador.
+- **Con red: 1.000** (27/27 criterios sin `--ejecutar-tests`; 28/28 con él;
+  2 N/A). Histórico del 2026-10-21:
+  0.958 con `v4_dependencias_al_dia` en rojo por `openai 3.35.1 → 3.36.0`
+  (el lock fijaba 3.35.1). Resuelto el 2026-10-22: el lock se actualizó primero
+  a 3.36.1 y, al publicar PyPI 3.37.0 durante la revisión, a 3.37.0 con hashes;
+  `v4` en OK y autoevaluación 1.000. La primera pasada de ese día dio 0.967
+  porque c3 leía `_local_debug/`; se excluyó ese directorio local (Hallazgo
+  96) y quedó 1.000.
 - **Sin red: 1.000** (25/27; `v4` y `h5` N/A, no fallos).
-- Suite: **747/747** en Python 3.11 y 3.12; ruff 0; preflight 0. El control con
-  defectos plantados sigue detectando los 10 defectos y el control de rangos
-  sigue fallando v4 sin consultar PyPI.
+- Suite: **750/750** en Windows 11 (Python 3.12.7/3.14.3, 2026-10-22) y
+  747/747 en la última medición Linux (3.11/3.12); ruff 0; preflight 0. El
+  control con defectos plantados sigue detectando los 10 defectos y el control
+  de rangos sigue fallando v4 sin consultar PyPI.
 
 ### Límites que permanecen
 

@@ -40,6 +40,8 @@ from evidence import EvidenceKind  # noqa: E402
 IGNORAR = {
     ".git", ".venv", "venv", "__pycache__", "node_modules", ".mypy_cache",
     ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist",
+    # Scripts locales de depuración: no forman parte del proyecto (.gitignore).
+    "_local_debug",
 }
 # Nombres de distribución que no coinciden con el módulo que se importa.
 ALIAS_IMPORTACION = {

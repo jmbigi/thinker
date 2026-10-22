@@ -32,17 +32,19 @@ herramientas de análisis estático de código.
 ## Requisitos
 
 - **Requisitos**
-  - Python 3.11 o superior (verificado en 3.11 y 3.12).
+  - Python 3.11 o superior (verificado en 3.11/3.12 en Linux y en
+    3.12.7/3.14.3 en Windows 11).
   - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML` (ver
     `requirements.txt`; el lock fija las exactas con hashes). `openai` verificado
-    en 1.109.1, 2.54.0, 3.33.0 y 3.35.1 (lock en 3.35.1).
+    en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0).
   - Opcional: [Ollama](https://ollama.com/) para modelos locales.
 
 ## Instalación
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\Activate.ps1    # Windows PowerShell (usa `python`, no `python3`)
 
 # Opción reproducible (versiones fijadas con hashes):
 python3 -m pip install --require-hashes -r requirements.lock
@@ -50,6 +52,9 @@ python3 -m pip install --require-hashes -r requirements.lock
 # Opción rápida (rangos de versión):
 pip install -r requirements.txt
 ```
+
+En Windows, `python3` no siempre existe o puede apuntar a otro intérprete; usa
+`python` (o la ruta explícita) y el activador de PowerShell/cmd.
 
 ## Uso desde otros proyectos (paquete instalable)
 
@@ -215,8 +220,9 @@ commit.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube (la verificación es local, por diseño).
-- Verificado en Linux con Python 3.11 y 3.12; no se ha probado en Windows ni
-  macOS (los scripts son `bash`; el código Python no usa rutas de sistema).
+- Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
+  750/750); macOS no se ha probado. Los scripts `bash`/`make` se verificaron en
+  Linux; en Windows se ejecutaron los comandos Python equivalentes.
 - La suite mata el **94,7%** de los mutantes de `mutmut` (3581/3780; 199
   supervivientes, 0 timeouts, 0 sospechosos; medición 2026-10-21, excluyendo
   las líneas `print`, que solo generan mutantes equivalentes): cobertura alta

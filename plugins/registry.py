@@ -149,7 +149,7 @@ class PluginRegistry:
         
         entry.runtime_config = config
         entry.metadata.status = PluginStatus.LOADING
-        start_time = time.time()
+        start_time = time.perf_counter()
         
         try:
             # Merge with config file if available
@@ -171,7 +171,7 @@ class PluginRegistry:
                 return False
             
             entry.metadata.status = PluginStatus.LOADED
-            entry.metadata.load_time = time.time() - start_time
+            entry.metadata.load_time = time.perf_counter() - start_time
             entry.metadata.error_message = ""
             
             # Register hooks if CorePlugin

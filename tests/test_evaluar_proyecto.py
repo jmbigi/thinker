@@ -13,7 +13,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from evaluar_proyecto import archivos_python, evaluar, informe_texto, main
+from evaluar_proyecto import (archivos_python, detectar_comando_tests, evaluar,
+                              informe_texto, main)
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -524,11 +525,27 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
                                  "        self.assertTrue(True)\n"),
         })
 
-        informe = evaluar(raiz, con_red=False, ejecutar_tests_flag=True)
+        with patch("evaluar_proyecto.shutil.which", return_value="/usr/bin/make"):
+            deteccion = detectar_comando_tests(raiz)
 
-        nota = next(n for n in informe["dimensiones"]["calidad"]["notas"]
-                    if n.startswith("suite:"))
-        self.assertIn("make test", nota)
+        self.assertEqual(deteccion["comando"], ["make", "test"])
+        self.assertIn("Makefile", deteccion["origen"])
+
+    def test_sin_make_usa_el_runner_python_disponible(self):
+        raiz = crear_proyecto(self, {
+            "Makefile": "test:\n\tpython3 -m unittest discover -s tests -q\n",
+            "tests/test_ok.py": ("import unittest\n\n\n"
+                                 "class T(unittest.TestCase):\n"
+                                 "    def test_ok(self):\n"
+                                 "        self.assertTrue(True)\n"),
+        })
+
+        with patch("evaluar_proyecto.shutil.which", return_value=None):
+            informe = evaluar(raiz, con_red=False, ejecutar_tests_flag=True)
+
+        calidad = informe["dimensiones"]["calidad"]
+        self.assertTrue(calidad["criterios"]["c1b_suite_pasa"])
+        self.assertTrue(any("unittest" in nota for nota in calidad["notas"]))
 
     def test_licencias_omitidas_sin_red(self):
         informe = evaluar(crear_proyecto(self, {"requirements.txt": "requests==2.31.0\n"}),
@@ -743,6 +760,23 @@ class TestMejorasV2(unittest.TestCase):
         calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
 
         self.assertTrue(calidad["criterios"]["c3_sin_silencios"])
+
+    def test_c3_ignora_scripts_locales_de_depuracion(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "def main():\n    return 1\n",
+            "_local_debug/check.py": ("try:\n"
+                                      "    import x\n"
+                                      "except Exception:\n"
+                                      "    pass\n"),
+        })
+
+        calidad = evaluar(raiz, con_red=False)["dimensiones"]["calidad"]
+
+        self.assertTrue(calidad["criterios"]["c3_sin_silencios"])
+        self.assertFalse(any("_local_debug" in h["evidencia"]
+                             for h in calidad["hallazgos"]))
+        self.assertNotIn("check.py",
+                         [p.name for p in archivos_python(raiz)])
 
     def test_dependencias_lee_requirements_anidado_y_pep735(self):
         from evaluar_proyecto import _dependencias

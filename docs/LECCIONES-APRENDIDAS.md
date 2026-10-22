@@ -1994,3 +1994,72 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   una recomendación sin evidencia de su propio criterio es ruido. Los metadatos
   se leen por el campo vigente del estándar (PEP 639), no por el primero que
   existió.
+
+### Hallazgo 95: portabilidad Windows — rutas, reloj de resolución gruesa y directorios locales
+
+- **Origen**: revisión y prueba de instalación del 2026-10-22 en Windows 11
+  (Python 3.12.7 y 3.14.3), con venv limpio, `pip install .` y
+  `pip install --require-hashes -r requirements.lock`.
+- **Problema**: la suite pasaba en Linux, pero en Windows fallaban 5 tests por
+  tres causas reales:
+  1. `tests_sin_aserciones()` construía la evidencia con `str(Path)`, que en
+     Windows usa `\`; el contrato del informe y sus tests esperan
+     `archivo:línea` con `/`. Fallaban c5 y el control de defectos plantados.
+  2. `preflight` recorría `_local_debug/`, un directorio local ignorado por git
+     (`.gitignore`) con scripts de depuración; el repo no pasaba su propio gate.
+  3. `load_time` y `uptime` de los plugins usaban `time.time()`. En Windows
+     3.12 ese reloj tiene una resolución de ~15,6 ms y una carga de plugin
+     tarda <1 ms: el valor quedaba en 0.0 y fallaban los dos tests de ciclo de
+     vida.
+- **Solución**: `Path.as_posix()` en las evidencias; `_local_debug` en la lista
+  `IGNORAR` de `preflight` (con test de regresión); `time.perf_counter()` para
+  duraciones (se mantiene `time.time()` para marcas de tiempo de pared como
+  `last_used`). No se cambió el contrato del informe ni se relajó ningún test.
+- **Evidencia**: antes, 747 tests con 3 fallos en 3.14 y 2 en 3.12; después,
+  **748/748** en Python 3.12.7 (openai 3.36.1) y **748/748** en 3.14.3
+  (openai 1.109.1), ruff 0 y preflight 0 (58 archivos, antes 72 por
+  `_local_debug`). Instalación limpia verificada: wheel `0.1.3`, imports de los
+  8 módulos públicos + `plugins` + `scripts.preflight` desde site-packages,
+  `pip check` sin conflictos y los 4 comandos de consola con exit 0; el lock
+  con hashes también instala en Windows 3.12. `python3` no es fiable en
+  Windows (en el equipo de prueba apuntaba a otro intérprete): se usó la ruta
+  explícita.
+- **Regla derivada**: medir duraciones con reloj monótono, emitir rutas de
+  evidencia en POSIX y excluir del análisis lo que el repo declara local;
+  probar la instalación en un SO distinto antes de afirmar que es portable.
+
+### Hallazgo 96: el lock no se actualizaba solo y el evaluador leía un directorio local
+
+- **Origen**: cierre de R1 y autoevaluación con red del 2026-10-22, tras
+  instalar `uv` 0.13.5 y regenerar `requirements.lock`.
+- **Problema**:
+  1. `make lock` ejecutaba `uv pip compile --generate-hashes ...` sin
+     `--upgrade`. uv conserva los pines del lock existente, así que el primer
+     intento mantuvo `openai 3.35.1` aunque PyPI ya servía 3.36.1: el target
+     parecía actualizar pero no lo hacía.
+  2. `evaluar_proyecto.IGNORAR` no incluía `_local_debug/`, el directorio de
+     scripts locales ignorado por git. La autoevaluación con red bajó a
+     **0.967** por 5 hallazgos c3 falsos en esos scripts; `preflight` ya los
+     excluía desde el Hallazgo 95, pero la lista del evaluador era otra copia.
+  3. Las evidencias c3 se construían con la ruta relativa de `Path`, que en
+     Windows usa `\`, y no cumplían el contrato `archivo:línea` en POSIX que ya
+     se había corregido en c5.
+- **Solución**: `make lock` añade `--upgrade`; `_local_debug` entra en
+  `IGNORAR` con comentario y test de regresión
+  (`test_c3_ignora_scripts_locales_de_depuracion`); las evidencias c3 usan
+  `Path.as_posix()`. No se relajó ningún criterio ni se ocultó el hallazgo:
+  simplemente se dejó de analizar lo que el repo declara local.
+- **Evidencia**: la primera regeneración fijó `openai 3.36.1`; al reejecutar
+  la autoevaluación, PyPI ya servía 3.37.0 y se regeneró de nuevo con
+  `--upgrade`. Lock final con `openai 3.37.0`, `httpx2/httpcore2 2.16.0` y el
+  resto de pines sin cambios; instalación con `--require-hashes` en Python
+  3.12.7 correcta; suite **750/750** en 3.12.7 (openai 3.37.0) y **750/750** en
+  3.14.3 (openai 1.109.1); autoevaluación con red **1.000** (27/27 sin
+  ejecutar tests; 28/28 con `--ejecutar-tests`; 2 N/A);
+  ruff 0; preflight 0 (58 archivos). La primera pasada de la autoevaluación
+  había dado 0.967 precisamente por los 5 hallazgos de `_local_debug`.
+- **Regla derivada**: un comando de actualización debe pedir la actualización
+  de forma explícita y verificarse contra el lock resultante; las políticas de
+  exclusión (git, preflight, evaluador) deben mantenerse alineadas o
+  centralizarse, porque las copias divergen; toda evidencia con rutas se emite
+  en POSIX.

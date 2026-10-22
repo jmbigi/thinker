@@ -1,6 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-21. **Base:** commit `48c5a41` (evaluador v2, Hallazgo 94).
+**Fecha:** 2026-10-22. **Base:** commit `7152838` (estado previo a la revisión
+Windows y al cierre de R1).
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -10,7 +11,7 @@ pendiente.
 
 | Prioridad | Recomendación | Por qué ahora | Esfuerzo | Riesgo |
 |---|---|---|---|---|
-| **P1** | R1. Actualizar el lock de `openai` y re-verificar la autoevaluación | La autoevaluación con red da 0.958 por `openai 3.35.1 → 3.36.0` | Bajo | Bajo |
+| **Hecho** | R1. [Cerrada 2026-10-22] Actualizar el lock de `openai` y re-verificar la autoevaluación | Lock 3.37.0 con hashes; autoevaluación con red 1.000 | Bajo | Bajo |
 | **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 83% / 87% (84% combinado); hay ramas de error sin prueba | Medio | Bajo |
 | **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 94,7% no los cubre | Medio-alto | Medio |
 | **P2** | R4. Benchmark reproducible de precisión/recall del evaluador | La evidencia actual es una campaña puntual, no una regresión automática | Medio | Bajo |
@@ -18,21 +19,23 @@ pendiente.
 | **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
 | **P2** | R7. Medir calidad de aserciones, no solo tests no-op | `assert True` pasa c5; c5 no mide fuerza de la suite | Medio | Bajo |
 | **P3** | R8. Versionar el esquema JSON del informe | v2 cambió campos (`N/A`, `cobertura`, `global_nota`) sin `schema_version` | Bajo | Bajo |
-| **P3** | R9. Publicar 0.1.4 tras R1–R3 | Hay cambios nuevos en `main` pero el paquete sigue en 0.1.3 | Medio | Medio |
+| **P3** | R9. Publicar 0.1.4 tras R2–R3 | Hay cambios nuevos en `main` pero el paquete sigue en 0.1.3 | Medio | Medio |
 | **P3** | R10. Reportar licencias de dev/opcionales sin mezclarlas con runtime | h5 solo puntúa runtime; el riesgo de dev no se ve | Bajo | Bajo |
 
-**Orden recomendado:** R1 → R2 → R4 → R3 → R8 → R9; R5, R6, R7 y R10 se
-deciden después de R1–R4. R1 y R9 son rutina verificable; R5 y R6 requieren
-decisión del programador y no deben hacerse «por inercia».
+**Orden recomendado:** R2 → R4 → R3 → R8 → R9; R5, R6, R7 y R10 se
+deciden después de R2–R4. R1 está cerrada (2026-10-22) y R9 es rutina
+verificable; R5 y R6 requieren decisión del programador y no deben hacerse «por
+inercia».
 
 ## 2. Estado medido (evidencia de partida)
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **747/747** en Python 3.11 y 3.12 | `python3 -m unittest discover -s tests -q` |
-| CI local sobre HEAD | **OK** | `make ci` (copia limpia de `48c5a41`) |
+| Suite completa | **750/750** en Windows 11 (3.12.7/3.14.3); 747/747 en la última medición Linux (3.11/3.12) | `python3 -m unittest discover -s tests -q` |
+| CI local (última copia limpia) | **OK** | `make ci` sobre `48c5a41`; no repetido en Windows (bash/make no disponibles allí) |
 | Lint / preflight | **0 / 0** | `ruff check .`, `python3 scripts/preflight.py` |
-| Autoevaluación con red | **0.958** (27/29, cobertura alta) | `python3 evaluar_proyecto.py . --json` |
+| Autoevaluación con red | **1.000** (27/27; 28/28 con `--ejecutar-tests`; 2 N/A) | `python3 evaluar_proyecto.py . --json` |
+| Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (v4/h5 N/A) | `python3 evaluar_proyecto.py . --sin-red --json` |
 | Cobertura `evaluar_proyecto.py` | **83%** (188/1136 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **87%** (50/371) | comando de la sección 8 |
@@ -63,23 +66,28 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   motivo medido: paralelización (agravaría el 429) y DSPy (dependencia y
   campaña). No se reabren en este documento.
 
-## 4. Recomendaciones abiertas
+## 4. Recomendaciones: estado y acciones
 
-### R1 — Actualizar el lock de `openai` (P1, bajo esfuerzo)
+### R1 — Actualizar el lock de `openai` (P1, bajo esfuerzo) — CERRADA 2026-10-22
 
-- **Problema medido:** `v4_dependencias_al_dia` es el único fallo de la
-  autoevaluación con red: `openai 3.35.1 → 3.36.0`. El lock fija 3.35.1 y el
-  manifiesto permite `<4`.
-- **Acción:** regenerar `requirements.lock` con `make lock`, instalar con
-  `python3 -m pip install --require-hashes -r requirements.lock`, ejecutar la
-  suite y el canario de compatibilidad de openai. Actualizar las cifras de
-  `AGENTS.md`/`docs/EVALUACIONES.md` **solo si** la verificación pasa.
-- **Criterio de aceptación:** 747/747 en 3.11 y 3.12; autoevaluación con red
-  1.000; `v4` en OK; lock con hashes; ninguna otra dependencia cambia sin
-  declararlo.
+- **Problema medido:** `v4_dependencias_al_dia` era el único fallo de la
+  autoevaluación con red: `openai 3.35.1 → 3.36.0` en la consulta del
+  2026-10-21 (durante la revisión PyPI publicó 3.37.0). El lock fijaba 3.35.1
+  y el manifiesto permite `<4`.
+- **Acción ejecutada:** `make lock` ahora usa `--upgrade` (sin él, uv conserva
+  los pines del lock anterior); lock regenerado primero con openai **3.36.1**
+  y, al publicarse 3.37.0, de nuevo con **3.37.0**;
+  httpx2/httpcore2 2.16.0 y el resto sin cambios. Instalación verificada con
+  `python3 -m pip install --require-hashes -r requirements.lock` en Python
+  3.12.7; suite y canario de compatibilidad en verde.
+- **Criterio de aceptación:** [x] suite en verde (750/750 en Windows 11
+  3.12.7/3.14.3; última medición Linux 747/747); [x] autoevaluación con red
+  **1.000** (27/27 criterios sin ejecutar tests; 28/28 con
+  `--ejecutar-tests`; 2 N/A); [x] `v4` en OK; [x] lock con hashes (3.37.0); [x]
+  ninguna otra dependencia cambió sin declararlo.
 - **Riesgo:** una versión nueva de openai puede romper la superficie usada. Si
-  falla, mantener 0.958 y documentar la incompatibilidad; no maquillar el
-  resultado.
+  falla, mantener el lock anterior y documentar la incompatibilidad; no
+  maquillar el resultado.
 
 ### R2 — Subir la cobertura del evaluador y preflight (P1, medio)
 
@@ -185,17 +193,18 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   consumidores actualizados o declarados incompatibles.
 - **Riesgo:** bajo.
 
-### R9 — Publicar 0.1.4 tras R1–R3 (P3, medio)
+### R9 — Publicar 0.1.4 tras R2–R3 (P3, medio)
 
 - **Problema medido:** `main` tiene cambios desde 0.1.3 (evaluador v2) pero el
   paquete publicado sigue en 0.1.3. No se debe publicar solo porque hay commits:
-  primero hay que cerrar lock, cobertura/mutación y verificar.
+  primero hay que cerrar cobertura/mutación y verificar (el lock ya está
+  cerrado).
 - **Acción:** seguir `docs/PUBLICACION.md`: bump de versión, actualizar README/
   AGENTS, construir, `twine check`, instalar en venv limpio desde el artefacto,
   subir a TestPyPI y PyPI, tag anotado y release por la web (sin `gh`, regla 12).
 - **Criterio de aceptación:** `pip install thinker-research==0.1.4` en venv
-  limpio; `evaluate-project --help` y una evaluación de humo; suite 747/747;
-  tag y release verificados.
+  limpio; `evaluate-project --help` y una evaluación de humo; suite 750/750
+  (Windows 3.12.7/3.14.3; Linux en verde); tag y release verificados.
 - **Riesgo:** medio; una release no se deshace.
 
 ### R10 — Licencias de dev/opcionales visibles, fuera del score runtime (P3, bajo)
@@ -242,8 +251,8 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 2. **R6:** ¿c3 estricto o marca `# noqa: silent` con motivo? Recomendación:
    estricto para thinker; la marca solo si un proyecto externo la necesita.
 3. **R9:** ventana de release 0.1.4 y si se publica en TestPyPI antes.
-4. **R1:** actualizar `openai` a 3.36.0 y asumir el cambio de lock; si el canario
-   falla, no se actualiza.
+4. **R1 (cerrada):** se actualizó `openai` a 3.37.0; el canario y la suite
+   pasan.
 
 ## 8. Verificación reproducible
 

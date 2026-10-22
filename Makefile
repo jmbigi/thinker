@@ -33,7 +33,7 @@ secrets:
 	bash scripts/scan-secrets.sh
 
 lock:
-	uv pip compile --generate-hashes requirements.txt -o requirements.lock
+	uv pip compile --generate-hashes --upgrade requirements.txt -o requirements.lock
 
 sbom:
 	bash scripts/generate-sbom.sh

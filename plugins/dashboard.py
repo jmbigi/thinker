@@ -30,7 +30,7 @@ class PluginDashboard:
 
     def __init__(self, registry=None):
         self.registry = registry or plugin_registry
-        self._start_time = time.time()
+        self._start_time = time.perf_counter()
         self._request_counts: Dict[str, int] = {}
         self._error_counts: Dict[str, int] = {}
 
@@ -54,7 +54,7 @@ class PluginDashboard:
             name = plugin["name"]
             plugin["requests"] = self._request_counts.get(name, 0)
             plugin["errors"] = self._error_counts.get(name, 0)
-            plugin["uptime"] = time.time() - self._start_time if plugin["status"] == "loaded" else 0
+            plugin["uptime"] = time.perf_counter() - self._start_time if plugin["status"] == "loaded" else 0
 
         return DashboardMetrics(
             timestamp=time.time(),
@@ -74,7 +74,7 @@ class PluginDashboard:
         print("\n" + "=" * 70)
         print("PLUGIN SYSTEM DASHBOARD")
         print("=" * 70)
-        print(f"Uptime: {time.time() - self._start_time:.1f}s")
+        print(f"Uptime: {time.perf_counter() - self._start_time:.1f}s")
         print(f"Total Plugins: {metrics.total_plugins} | Loaded: {metrics.loaded_plugins}")
         print(f"Active LLM: {metrics.active_llm or 'N/A'}")
         print(f"Active Search: {metrics.active_search or 'N/A'}")
@@ -120,7 +120,7 @@ class PluginDashboard:
             "active_search": metrics.active_search,
             "total_requests": metrics.total_requests,
             "error_rate": metrics.total_errors / max(metrics.total_requests, 1),
-            "uptime_seconds": time.time() - self._start_time,
+            "uptime_seconds": time.perf_counter() - self._start_time,
         }
 
 

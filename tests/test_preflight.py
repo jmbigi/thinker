@@ -241,6 +241,17 @@ class TestPreflight(unittest.TestCase):
         self.assertEqual(codigo, 2)
         self.assertIn("no es un directorio", error.getvalue())
 
+    def test_ignora_scripts_locales_de_depuracion(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import os\n",
+            "_local_debug/check.py": ("try:\n"
+                                      "    valor = 1\n"
+                                      "except Exception:\n"
+                                      "    pass\n"),
+        })
+
+        self.assertTrue(ejecutar(raiz)["ok"])
+
     def test_el_repositorio_real_pasa_su_propio_preflight(self):
         informe = ejecutar(RAIZ_THINKER)
 

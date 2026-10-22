@@ -80,10 +80,11 @@ mejora de código (`code_design_improvement_tools.py`).
 
 ## Entorno y verificación (comandos del proyecto)
 
-- SO: **Linux**. Python 3.11. Dependencias en `requirements.txt` (`requests`,
+- SO verificados: **Linux** (Python 3.11/3.12) y **Windows 11** (Python
+  3.12.7/3.14.3, 2026-10-22). Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0,
-  3.33.0 y 3.35.1** (canario en `tests/test_openai_compatibilidad.py`;
+  3.33.0, 3.35.1, 3.36.1 y 3.37.0** (canario en `tests/test_openai_compatibilidad.py`;
   3.35.1 verificado el 2026-10-20 con 703/703 en 3.11 y 3.12). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
@@ -124,7 +125,8 @@ mejora de código (`code_design_improvement_tools.py`).
   anidados/package.json y comparación con versiones resueltas por lock; c5 solo
   marca tests no-op y c3 excluye tests e imports opcionales. Autoevaluación v2
   (2026-10-21): con red **0.958** (único fallo real: `openai 3.35.1 → 3.36.0`
-  en el lock) y sin red **1.000**; informes de ejemplo en
+  en el lock; resuelto el 2026-10-22 con el lock en 3.37.0: **1.000**) y sin
+  red **1.000**; informes de ejemplo en
   `docs/EVALUACIONES.md` y recomendaciones abiertas priorizadas en
   `docs/RECOMENDACIONES-MEJORAS.md`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
@@ -181,9 +183,13 @@ mejora de código (`code_design_improvement_tools.py`).
   arreglo de `max_nesting` del Hallazgo 86).
 - Plataformas verificadas: Python **3.11 y 3.12** en Linux (**747/747 en ambos**;
   3.12.3 en venv aislado creado desde `requirements.lock` el 2026-10-21,
-  con openai 3.35.1); openai verificado en 1.109.1, 2.54.0, 3.33.0 y 3.35.1
-  (lock en 3.35.1 desde 2026-10-20). La suite del evaluador creció de 41 a 58
-  tests con las regresiones del audit (Hallazgo 94).
+  con openai 3.35.1); y **Windows 11** con Python **3.12.7** (openai 3.37.0)
+  y **3.14.3** (openai 1.109.1), **750/750 en ambos** (2026-10-22; incluye
+  instalación limpia con `pip install .` y desde el lock). openai verificado
+  en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0 con
+  hashes desde 2026-10-22). La suite del evaluador creció de 41 a 58 tests con las
+  regresiones del audit (Hallazgo 94) y a 60 con las regresiones de
+  `_local_debug` y del runner sin `make` (Hallazgo 96).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
