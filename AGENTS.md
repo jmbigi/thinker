@@ -123,7 +123,8 @@ mejora de código (`code_design_improvement_tools.py`).
   (tests/docs/scripts y opcionales excluidos), licencias PEP 639
   (`license_expression`), parsers de pyproject/PEP 735/setup.cfg/requirements
   anidados/package.json y comparación con versiones resueltas por lock; c5 solo
-  marca tests no-op y c3 excluye tests e imports opcionales. Autoevaluación v2
+  marca tests no-op y c3 excluye tests e imports opcionales. El informe JSON es
+  un contrato versionado (`schema_version: 2`). Autoevaluación v2
   (2026-10-21): con red **0.958** (único fallo real: `openai 3.35.1 → 3.36.0`
   en el lock; resuelto el 2026-10-22 con el lock en 3.37.0: **1.000**) y sin
   red **1.000**; informes de ejemplo en

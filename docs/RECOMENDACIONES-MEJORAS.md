@@ -18,11 +18,11 @@ pendiente.
 | **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
 | **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
 | **P2** | R7. Medir calidad de aserciones, no solo tests no-op | `assert True` pasa c5; c5 no mide fuerza de la suite | Medio | Bajo |
-| **P3** | R8. Versionar el esquema JSON del informe | v2 cambió campos (`N/A`, `cobertura`, `global_nota`) sin `schema_version` | Bajo | Bajo |
+| **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **P3** | R9. Publicar 0.1.4 tras R2–R3 | Hay cambios nuevos en `main` pero el paquete sigue en 0.1.3 | Medio | Medio |
 | **P3** | R10. Reportar licencias de dev/opcionales sin mezclarlas con runtime | h5 solo puntúa runtime; el riesgo de dev no se ve | Bajo | Bajo |
 
-**Orden recomendado:** R2 → R4 → R3 → R8 → R9; R5, R6, R7 y R10 se
+**Orden recomendado:** R2 → R4 → R3 → R9; R5, R6, R7 y R10 se
 deciden después de R2–R4. R1 está cerrada (2026-10-22) y R9 es rutina
 verificable; R5 y R6 requieren decisión del programador y no deben hacerse «por
 inercia».
@@ -181,16 +181,17 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   «no-op» de «débil» y no promete cobertura.
 - **Riesgo:** medio; la detección sintáctica de tautologías es limitada.
 
-### R8 — Versionar el esquema JSON (P3, bajo)
+### R8 — Versionar el esquema JSON (P3, bajo) — CERRADA 2026-10-22
 
 - **Problema medido:** el informe v2 añadió `cobertura`, `no_aplica`,
   `global_nota` y permite `global: null`. Un consumidor que asuma el esquema
   anterior puede romperse sin aviso.
-- **Acción:** añadir `"schema_version": 2` al nivel superior; documentar los
-  campos y su significado; probar el contrato con un test que falle si cambia
-  sin versión.
-- **Criterio de aceptación:** JSON con versión; documentación de campos;
-  consumidores actualizados o declarados incompatibles.
+- **Acción ejecutada:** `SCHEMA_VERSION = 2` y `"schema_version": 2` al nivel
+  superior del informe; test de contrato en
+  `test_thinker_pasa_su_propia_evaluacion`; campos documentados en README.
+- **Criterio de aceptación:** [x] JSON con versión; [x] documentación de
+  campos; [x] consumidores pueden declarar incompatibilidad comprobando la
+  versión.
 - **Riesgo:** bajo.
 
 ### R9 — Publicar 0.1.4 tras R2–R3 (P3, medio)
@@ -225,7 +226,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 2. **R2** (cobertura) — asegura que R3 y R4 miden sobre código ejercitado.
 3. **R4** (benchmark) — fija la línea base de precisión/recall.
 4. **R3** (mutación) — mide fuerza real; puede revelar tests débiles de R2.
-5. **R8** (schema) — antes de que más consumidores usen el JSON.
+5. **R8 (cerrada):** el JSON ya expone `schema_version: 2`.
 6. **R9** (release) — solo con R1–R3 cerrados y CI limpio.
 7. **R5, R6, R7, R10** — decisiones de producto/alcance; no bloquean R1–R4.
 

@@ -65,6 +65,9 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from deep_research_system import _parse_json_response  # reutilizado, no duplicado
 from evidence import EvidenceKind, formato_resumen, resumen_evidencias
 
+# Contrato del informe JSON: un cambio incompatible sube esta versión.
+SCHEMA_VERSION = 2
+
 IGNORAR = {".venv", "venv", "__pycache__", "node_modules", ".git", ".mypy_cache",
            ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist",
            ".eggs", ".nox", "_local_debug"}
@@ -2061,6 +2064,7 @@ def evaluar(ruta: Path, con_red: bool = True,
         "lenguajes": perfil.lenguajes,
     }
     informe = {
+        "schema_version": SCHEMA_VERSION,
         "ruta": str(ruta),
         "archivos_python": len(py),
         "lineas_python": sum(len(leer(p).splitlines()) for p in py),

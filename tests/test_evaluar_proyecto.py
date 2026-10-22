@@ -909,6 +909,7 @@ class TestAutoevaluacionDeThinker(unittest.TestCase):
     def test_thinker_pasa_su_propia_evaluacion(self):
         informe = evaluar(RAIZ_THINKER, con_red=False)
 
+        self.assertEqual(informe["schema_version"], 2)
         self.assertEqual(set(informe["dimensiones"]),
                          {"funcionalidades", "calidad", "vigencia",
                           "herramientas", "inteligencia", "eficiencia"})

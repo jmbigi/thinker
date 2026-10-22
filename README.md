@@ -86,6 +86,10 @@ sobre un proyecto con defectos plantados — GLOBAL 0.344 y 19 propuestas; solo
 el ritmo de aparición del texto es presentación. El evaluador v2 añade perfil,
 cobertura y criterios N/A: ver `docs/EVALUACIONES.md` para las cifras actuales.)*
 
+El informe `--json` es un contrato versionado: incluye `schema_version: 2` y
+los campos `cobertura`, `global_nota` y `no_verificado`. Un consumidor debe
+comprobar `schema_version` antes de asumir el resto del esquema.
+
 Como **librería** (los módulos públicos quedan importables):
 
 ```python
