@@ -106,6 +106,36 @@ veredictos son `CUMPLE` (suite verde), `CUBIERTO` (evidencia estática),
 `NO CUMPLE` y `NO VERIFICABLE`; el informe es aparte y **no altera el GLOBAL**.
 Formato completo, métodos y límites: `docs/REQUISITOS.md`.
 
+### Auditar cambios de agentes
+
+El auditor de cambios revisa un diff y marca señales mecánicas de cambios no
+solicitados: rutas prohibidas, tests debilitados, cobertura rebajada,
+supresiones, dependencias nuevas, requisitos modificados y diff excesivo. No
+detecta intención ni autoría; es una capa de evidencia para revisión humana.
+
+```bash
+python3 scripts/audit_changes.py --staged
+python3 scripts/audit_changes.py --base origin/main --json
+make audit-diff BASE=origin/main
+```
+
+Reglas, veredictos y límites: `docs/AUDITORIA-CAMBIOS.md`.
+
+### Holdout independiente
+
+`holdout/` no se descubre con `make test`. El runner verifica el SHA-256 de
+cada test contra `holdout/HASHES.json` y después los ejecuta; si un test cambió
+sin actualizar el manifiesto, falla:
+
+```bash
+python3 scripts/run_holdout.py
+make holdout
+```
+
+El hook pre-commit y `make ci` ejecutan auditor y holdout. Es
+**tamper-evidence**, no una protección criptográfica: el control real es
+ejecutarlo fuera del alcance de escritura del agente y revisar sus cambios.
+
 Como **librería** (los módulos públicos quedan importables):
 
 ```python
@@ -222,12 +252,14 @@ bash scripts/scan-secrets.sh
 python3 honest_test.py                        # comprobación honesta del sistema
 python3 evaluar_proyecto.py RUTA              # evaluación externa (6 dimensiones, read-only)
 python3 evaluar_proyecto.py RUTA --requisitos requisitos.md   # requisitos (opt-in)
+python3 scripts/audit_changes.py --base origin/main           # audita cambios de agentes
+python3 scripts/run_holdout.py                # holdout (hashes + tests)
 python3 scripts/probe_model.py --samples 5    # sonda de latencia del modelo (opt-in)
 ```
 
 El hook `.git/hooks/pre-commit` (instalado con `make hook`) ejecuta ruff, el
-escaneo de secretos, `py_compile`, el preflight y la suite antes de cada
-commit.
+escaneo de secretos, `py_compile`, el preflight, la suite, el auditor de
+cambios y el holdout antes de cada commit.
 
 ## Limitaciones conocidas (sin adornos)
 

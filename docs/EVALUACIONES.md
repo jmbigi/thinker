@@ -343,6 +343,17 @@ y `NO VERIFICABLE`; el informe es aparte y no altera el GLOBAL. 17 tests
 nuevos; Suite **795/795** en Linux (Python 3.11.9), ruff 0, preflight 0 y
 `scripts/check_docs.py` OK. Formato y límites: `docs/REQUISITOS.md`.
 
+**Actualización 2026-10-23 (auditoría de cambios)**: nuevo
+`scripts/audit_changes.py`, un auditor opt-in, offline y read-only de diffs.
+Marca rutas sensibles/CI, tests modificados o eliminados, skips, asserts
+eliminados, matchers flojos, supresiones, cobertura rebajada, configuración
+relajada, dependencias nuevas, requisitos modificados, comandos peligrosos y
+presupuesto excedido; veredictos `OK`/`REVISAR`/`BLOQUEAR`. 28 tests nuevos
+del auditor y 9 del runner de holdout; 4 tests holdout independientes con
+manifiesto de hashes. Suite **832/832** en Linux (Python 3.11.9), ruff 0,
+preflight 0 y `scripts/check_docs.py` OK; hook y `make ci` ejecutan auditor y
+holdout. Reglas y límites: `docs/AUDITORIA-CAMBIOS.md`.
+
 ### Límites que permanecen
 
 - Java/JS solo se evalúan con criterios genéricos (manifiesto, licencia, CI,

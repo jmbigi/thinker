@@ -1,5 +1,5 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint preflight docs-check test coverage secrets lock sbom vuln-scan mutation check ci hook install
+.PHONY: help lint preflight docs-check test coverage audit-diff holdout secrets lock sbom vuln-scan mutation check ci hook install
 
 help:
 	@echo "make lint        - ruff check ."
@@ -7,6 +7,8 @@ help:
 	@echo "make docs-check  - cifras de estado presente en docs vs realidad"
 	@echo "make test        - suite unittest (stdlib)"
 	@echo "make coverage    - cobertura de los módulos de producción"
+	@echo "make audit-diff  - audita el diff contra BASE (defecto origin/main)"
+	@echo "make holdout     - verifica hashes y ejecuta los tests holdout"
 	@echo "make secrets     - escaneo de secretos/datos personales (P0.6/P0.9)"
 	@echo "make lock        - regenera requirements.lock con hashes (uv)"
 	@echo "make sbom        - SBOM (syft si está; si no, inventario propio)"
@@ -32,6 +34,12 @@ test:
 coverage:
 	python3 -m coverage run --source=. -m unittest discover -s tests
 	python3 -m coverage report -m
+
+audit-diff:
+	python3 scripts/audit_changes.py --base $${BASE:-origin/main}
+
+holdout:
+	python3 scripts/run_holdout.py
 
 secrets:
 	bash scripts/scan-secrets.sh

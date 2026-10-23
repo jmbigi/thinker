@@ -140,6 +140,17 @@ mejora de código (`code_design_improvement_tools.py`).
   GLOBAL: `CUMPLE` exige suite verde, `CUBIERTO` es solo evidencia estática y
   `NO VERIFICABLE` declara lo que requiere revisión humana
   (`docs/REQUISITOS.md`).
+- Auditoría de cambios (opt-in, offline): `python3 scripts/audit_changes.py
+  --staged|--base REV|--diff ARCHIVO [--json] [--permitir RUTA]` (o
+  `make audit-diff BASE=origin/main`) — detecta señales mecánicas de cambios
+  no solicitados: rutas prohibidas, tests debilitados, cobertura rebajada,
+  supresiones, dependencias nuevas, requisitos modificados y diff excesivo.
+  No prueba autoría ni intención y no sustituye la revisión humana
+  (`docs/AUDITORIA-CAMBIOS.md`).
+- Holdout independiente: `python3 scripts/run_holdout.py` (o `make holdout`)
+  — verifica SHA-256 de `holdout/*.py` contra `holdout/HASHES.json` y ejecuta
+  la suite; si un test cambió sin actualizar el manifiesto, falla con código 2.
+  No se descubre con `make test`; se ejecuta en el hook y en `make ci`.
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
@@ -198,7 +209,7 @@ mejora de código (`code_design_improvement_tools.py`).
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**795/795 en
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**832/832 en
   ambos**, 2026-10-23; 3.12.3 en venv aislado recreado desde
   `requirements.lock`, con openai 3.37.0); y **Windows 11** con Python
   **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750 en
@@ -209,9 +220,11 @@ mejora de código (`code_design_improvement_tools.py`).
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97 y a 83 con los 17 tests del modo `--requisitos`
-  (2026-10-23).
+  (2026-10-23). El auditor de cambios de `scripts/` añadió 28 tests y el
+  runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
-  + py_compile + preflight + docs-check + tests). Instalación: `make hook`.
+  + py_compile + preflight + docs-check + tests + audit-changes + holdout).
+  Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.

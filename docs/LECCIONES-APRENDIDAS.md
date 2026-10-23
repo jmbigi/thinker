@@ -2186,3 +2186,32 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   sigue evidencias fuera del proyecto y ejecuta la suite una sola vez,
   reutilizando el resultado de calidad. Evidencia: 17 tests nuevos
   (**795/795**), ruff 0, preflight 0 y `scripts/check_docs.py` OK.
+- **Auditoría de cambios de agentes (2026-10-23)**: no se puede detectar
+  intención ni autoría con un diff; sí se pueden detectar señales mecánicas de
+  cambios no solicitados y test tampering. `scripts/audit_changes.py` clasifica
+  `OK`/`REVISAR`/`BLOQUEAR` con rutas sensibles, CI/hooks, tests borrados o
+  debilitados, skips, asserts eliminados, matchers flojos, supresiones,
+  cobertura rebajada, configuración relajada, dependencias nuevas, requisitos
+  modificados, comandos peligrosos y presupuesto excesivo. Lecciones: (a) las
+  instrucciones solas no bastan; (b) una suite verde es engañosa si el agente
+  puede editar los tests; (c) el auditor debe ejecutarse fuera del alcance de
+  escritura del agente (CI/otro checkout), o el propio control es editable;
+  (d) `--permitir tests/` no oculta un archivo de test eliminado ni un skip.
+  Evidencia: 28 tests nuevos del auditor y 9 del runner (**832/832**), ruff 0,
+  preflight 0 y `scripts/check_docs.py` OK.
+- **Holdout con hashes (2026-10-23)**: `holdout/` no se descubre con
+  `make test`; `scripts/run_holdout.py` verifica el SHA-256 de cada test contra
+  `HASHES.json` y ejecuta la suite. Si un test cambia sin actualizar el
+  manifiesto, falla con código 2; si se actualizan ambos, el auditor marca
+  `holdout_modificado` para revisión. Límite declarado: es tamper-evidence, no
+  una protección criptográfica; debe ejecutarse en hook/CI fuera del alcance de
+  escritura del agente. Evidencia: 4 tests holdout, hook y `make ci`
+  integrados.
+- **Ejecutar Python con `python3`, no con `bash` (2026-10-23)**: al probar
+  `run_holdout.py` se ejecutó por error con `bash`; las líneas `import ...`
+  invocaron el `import` de ImageMagick y crearon seis PostScript de ~12 MB en
+  la raíz del repo. Se detectaron en `git status` antes de comitear, se
+  inspeccionó solo tipo/tamaño (no contenido, P0.6) y se movieron a `/tmp`.
+  Lección: los scripts Python se ejecutan con `python3`; antes de comitear,
+  revisar `git status` para artefactos no versionados. El hook y el CI ya usan
+  `python3`.

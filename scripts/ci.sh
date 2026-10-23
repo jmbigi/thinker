@@ -21,7 +21,8 @@ else
 fi
 
 echo "[ci] py_compile"
-for f in *.py tests/*.py scripts/*.py; do
+for f in *.py tests/*.py scripts/*.py holdout/*.py; do
+    [ -e "$f" ] || continue
     python3 -m py_compile "$f"
 done
 
@@ -33,6 +34,9 @@ python3 scripts/check_docs.py
 
 echo "[ci] unittest (copia limpia, sin red)"
 python3 -m unittest discover -s tests -q
+
+echo "[ci] holdout (hashes + tests)"
+python3 scripts/run_holdout.py
 
 echo "[ci] escaneo de secretos"
 bash scripts/scan-secrets.sh

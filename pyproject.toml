@@ -98,6 +98,8 @@ pytest_add_cli_args_test_selection = [
     "--ignore=tests/test_check_docs.py",
     "--ignore=tests/test_evidence.py",
     "--ignore=tests/test_preflight.py",
+    "--ignore=tests/test_audit_changes.py",
+    "--ignore=tests/test_run_holdout.py",
 ]
 # Las líneas `print(...)` no alteran estado: mutarlas genera mutantes
 # equivalentes que ninguna prueba puede matar. Se excluyen con la opción que el
