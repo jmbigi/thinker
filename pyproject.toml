@@ -94,6 +94,8 @@ pytest_add_cli_args_test_selection = [
     "--ignore=tests/test_plugin_cli.py",
     "--ignore=tests/test_plugin_dashboard.py",
     "--ignore=tests/test_evaluar_proyecto.py",
+    "--ignore=tests/test_evaluador_corpus.py",
+    "--ignore=tests/test_check_docs.py",
     "--ignore=tests/test_evidence.py",
     "--ignore=tests/test_preflight.py",
 ]

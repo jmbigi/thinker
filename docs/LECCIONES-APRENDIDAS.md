@@ -2155,3 +2155,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   demos offline exit 0 y autoevaluación 1.000 (con y sin red). Los hallazgos
   R2 (cobertura ≥90%) y R3 (mutación del evaluador) siguen abiertos en
   `docs/RECOMENDACIONES-MEJORAS.md`.
+- **Seguimiento de mutación (2026-10-23)**: la primera campaña tras los tests
+  nuevos falló al colectar (`ModuleNotFoundError: scripts.check_docs`): los
+  tests que importan módulos fuera de `source_paths` deben añadirse a
+  `pytest_add_cli_args_test_selection` o el sandbox `mutants/` no puede
+  importarlos. Añadidos `test_check_docs.py` y `test_evaluador_corpus.py`;
+  colecta verificada (596 tests seleccionados) y campaña reanudada. El fallo
+  fue ruidoso y rápido, no silencioso: la regla P1.19 funcionó.
