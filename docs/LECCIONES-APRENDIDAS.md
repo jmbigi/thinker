@@ -2176,3 +2176,13 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   **95,2% (3635/3819; 184 supervivientes, 0 timeouts, 0 sospechosos)**;
   `deep_research_system` pasa de 90 a 57 supervivientes y el total baja en 13
   mutantes por el código redundante eliminado.
+- **Modo `--requisitos` (2026-10-23)**: el estado del arte no ofrece un
+  verificador general de requisitos naturales. Hay trazabilidad explícita
+  (OpenFastTrace, StrictDoc), requisitos ejecutables (BDD/contratos),
+  formalización (FRET, Simulink) y LLM con revisión humana (F1 ~80%,
+  explicaciones completas 43-71%). Lección: un enlace o un test declarado no es
+  un cumplimiento; el modo separa `CUBIERTO` (evidencia estática) de `CUMPLE`
+  (suite verde) y `NO VERIFICABLE` (manual o ambiguo). No altera el GLOBAL, no
+  sigue evidencias fuera del proyecto y ejecuta la suite una sola vez,
+  reutilizando el resultado de calidad. Evidencia: 17 tests nuevos
+  (**795/795**), ruff 0, preflight 0 y `scripts/check_docs.py` OK.

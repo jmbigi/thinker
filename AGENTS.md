@@ -117,7 +117,8 @@ mejora de código (`code_design_improvement_tools.py`).
   prueba).
 - Evaluación de un proyecto externo (estática, read-only; LLM opt-in):
   `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]
-  [--sintesis-llm] [--investigar]` — 6 dimensiones × 3-7 criterios binarios, con
+  [--requisitos ARCHIVO] [--sintesis-llm] [--investigar]` — 6 dimensiones × 3-7
+  criterios binarios, con
   perfil de proyecto y **criterios N/A** que no se cuentan como fallos; el
   informe declara cobertura y ratio. Evidencia por hallazgo **marcada por
   procedencia** (real / sintética / no verificada, según `evidence.py`) y
@@ -134,7 +135,11 @@ mejora de código (`code_design_improvement_tools.py`).
   en el lock; resuelto el 2026-10-22 con el lock en 3.37.0: **1.000**) y sin
   red **1.000**; informes de ejemplo en
   `docs/EVALUACIONES.md` y recomendaciones abiertas priorizadas en
-  `docs/RECOMENDACIONES-MEJORAS.md`.
+  `docs/RECOMENDACIONES-MEJORAS.md`. El modo opt-in `--requisitos` (2026-10-23)
+  contrasta una lista Markdown contra el código y los tests sin alterar el
+  GLOBAL: `CUMPLE` exige suite verde, `CUBIERTO` es solo evidencia estática y
+  `NO VERIFICABLE` declara lo que requiere revisión humana
+  (`docs/REQUISITOS.md`).
 - LLM local (opt-in, sin key ni coste): `python3 test_ollama_real.py` —
   verifica Ollama + pipeline completo (modelo: `OLLAMA_MODEL`, por defecto
   `qwen3:1.7b`); si el servidor no responde, la prueba se OMITE (no simula).
@@ -193,7 +198,7 @@ mejora de código (`code_design_improvement_tools.py`).
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**778/778 en
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**795/795 en
   ambos**, 2026-10-23; 3.12.3 en venv aislado recreado desde
   `requirements.lock`, con openai 3.37.0); y **Windows 11** con Python
   **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750 en
@@ -202,8 +207,9 @@ mejora de código (`code_design_improvement_tools.py`).
   en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0 con
   hashes desde 2026-10-22). La suite del evaluador creció de 41 a 58 tests con las
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
-  `_local_debug` y del runner sin `make` (Hallazgo 96) y a 66 con las
-  regresiones del Hallazgo 97.
+  `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
+  regresiones del Hallazgo 97 y a 83 con los 17 tests del modo `--requisitos`
+  (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,

@@ -13,8 +13,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import evaluar_proyecto
 from evaluar_proyecto import (archivos_python, detectar_comando_tests, evaluar,
-                              informe_texto, main)
+                              informe_texto, main, parsear_requisitos)
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -1038,6 +1039,257 @@ class TestAutoevaluacionDeThinker(unittest.TestCase):
         texto = "\n".join(informe_texto(informe))
         self.assertIn("[VERIFIED-REAL]", texto)
         self.assertIn("[UNVERIFIED]", texto)
+
+
+class TestRequisitos(unittest.TestCase):
+    """Modo --requisitos: parser estricto, evidencia estática y suite opt-in."""
+
+    REQ_BASE = (
+        "## R1: Login válido\n"
+        "- Enunciado: El sistema debe permitir login.\n"
+        "- Criterio de aceptación: Con credenciales válidas se crea una sesión.\n"
+        "- Verificación: test\n"
+        "- Evidencia: tests/test_app.py::test_ok\n")
+
+    def _proyecto(self, requisitos, archivos=None):
+        base = {
+            "app.py": "def main():\n    return 1\n# req~login~1\n",
+            "tests/test_app.py": ("import unittest\n\n\n"
+                                  "class T(unittest.TestCase):\n"
+                                  "    def test_ok(self):\n"
+                                  "        self.assertTrue(True)\n"),
+            "requisitos.md": requisitos,
+        }
+        if archivos:
+            base.update(archivos)
+        return crear_proyecto(self, base)
+
+    def _evaluar(self, raiz, **kwargs):
+        return evaluar(raiz, con_red=False,
+                       requisitos_path=raiz / "requisitos.md", **kwargs)
+
+    def _item(self, informe, indice=0):
+        return informe["requisitos"]["items"][indice]
+
+    def test_parsea_campos_y_autogenera_id(self):
+        raiz = crear_proyecto(self, {"requisitos.md": (
+            "# Requisitos\n\n## Login válido\n"
+            "- Enunciado: El sistema debe permitir login.\n"
+            "- Criterio de aceptación: Con credenciales válidas hay sesión.\n"
+            "- Verificación: test\n"
+            "- Evidencia: tests/test_app.py::test_ok\n"
+            "- Tags: req~login~1, req~sesion~2\n")})
+
+        requisitos = parsear_requisitos(raiz / "requisitos.md")
+
+        self.assertEqual(requisitos[0].id, "R1")
+        self.assertEqual(requisitos[0].verificacion, "test")
+        self.assertEqual(requisitos[0].tags, ["req~login~1", "req~sesion~2"])
+        self.assertTrue(any("ID autogenerado" in a for a in requisitos[0].avisos))
+
+    def test_falta_criterio_es_error_con_linea(self):
+        raiz = crear_proyecto(self, {"requisitos.md": (
+            "## R1: Sin criterio\n- Enunciado: Algo.\n"
+            "- Verificación: manual\n")})
+
+        with self.assertRaisesRegex(ValueError, r"requisitos\.md:\d+.*criterio"):
+            parsear_requisitos(raiz / "requisitos.md")
+
+    def test_metodo_desconocido_es_error(self):
+        raiz = crear_proyecto(self, {"requisitos.md": (
+            "## R1: Método raro\n- Enunciado: Algo.\n"
+            "- Criterio de aceptación: Algo medible.\n"
+            "- Verificación: telepatía\n")})
+
+        with self.assertRaisesRegex(
+                ValueError, "método de verificación no reconocido"):
+            parsear_requisitos(raiz / "requisitos.md")
+
+    def test_id_duplicado_es_error(self):
+        raiz = crear_proyecto(self, {"requisitos.md": (
+            "## R1: Uno\n- Enunciado: A.\n- Criterio de aceptación: B.\n\n"
+            "## R1: Dos\n- Enunciado: C.\n- Criterio de aceptación: D.\n")})
+
+        with self.assertRaisesRegex(ValueError, "duplicado"):
+            parsear_requisitos(raiz / "requisitos.md")
+
+    def test_test_inexistente_es_no_cumple(self):
+        raiz = self._proyecto(
+            "## R1: Logout\n- Enunciado: Debe existir logout.\n"
+            "- Criterio de aceptación: test_logout pasa.\n"
+            "- Verificación: test\n"
+            "- Evidencia: tests/test_app.py::test_logout\n")
+
+        item = self._item(self._evaluar(raiz))
+
+        self.assertEqual(item["veredicto"], "NO CUMPLE")
+        self.assertIn("no existe", item["motivo"])
+
+    def test_tag_encontrado_y_ausente(self):
+        raiz = self._proyecto(
+            "## R1: Tag presente\n- Enunciado: Login.\n"
+            "- Criterio de aceptación: El tag req~login~1 existe.\n"
+            "- Verificación: tag\n- Tags: req~login~1\n\n"
+            "## R2: Tag ausente\n- Enunciado: Logout.\n"
+            "- Criterio de aceptación: El tag req~logout~1 existe.\n"
+            "- Verificación: tag\n- Tags: req~logout~1\n")
+
+        informe = self._evaluar(raiz)
+
+        self.assertEqual(self._item(informe, 0)["veredicto"], "CUBIERTO")
+        self.assertEqual(self._item(informe, 1)["veredicto"], "NO CUMPLE")
+
+    def test_sin_flag_es_cubierto_y_con_suite_verde_es_cumple(self):
+        raiz = self._proyecto(self.REQ_BASE)
+
+        sin = self._evaluar(raiz)
+        con = self._evaluar(raiz, ejecutar_tests_flag=True)
+
+        self.assertEqual(self._item(sin)["veredicto"], "CUBIERTO")
+        self.assertIn("suite no ejecutada", self._item(sin)["motivo"])
+        self.assertEqual(self._item(con)["veredicto"], "CUMPLE")
+        self.assertIn("suite completa verde", self._item(con)["motivo"])
+
+    def test_suite_roja_es_no_cumple(self):
+        raiz = self._proyecto(self.REQ_BASE, {
+            "tests/test_app.py": ("import unittest\n\n\n"
+                                  "class T(unittest.TestCase):\n"
+                                  "    def test_ok(self):\n"
+                                  "        self.assertEqual(1, 2)\n")})
+
+        item = self._item(self._evaluar(raiz, ejecutar_tests_flag=True))
+
+        self.assertEqual(item["veredicto"], "NO CUMPLE")
+        self.assertIn("suite falló", item["motivo"])
+
+    def test_manual_y_sin_metodo_son_no_verificables(self):
+        raiz = self._proyecto(
+            "## R1: Manual\n- Enunciado: Accesibilidad.\n"
+            "- Criterio de aceptación: Revisión manual.\n"
+            "- Verificación: manual\n\n"
+            "## R2: Sin método\n- Enunciado: Algo.\n"
+            "- Criterio de aceptación: Algo medible.\n")
+
+        informe = self._evaluar(raiz)
+
+        self.assertEqual(self._item(informe, 0)["veredicto"], "NO VERIFICABLE")
+        self.assertEqual(self._item(informe, 1)["veredicto"], "NO VERIFICABLE")
+
+    def test_criterio_vago_genera_aviso(self):
+        raiz = self._proyecto(
+            "## R1: Vago\n- Enunciado: Debe ser fácil.\n"
+            "- Criterio de aceptación: Fácil de usar.\n"
+            "- Verificación: archivo\n- Evidencia: app.py\n")
+
+        item = self._item(self._evaluar(raiz))
+
+        self.assertEqual(item["veredicto"], "CUBIERTO")
+        self.assertTrue(any("términos vagos" in a for a in item["avisos"]))
+
+    def test_archivo_y_formal_presentes_son_cubiertos(self):
+        raiz = self._proyecto(
+            "## R1: Archivo\n- Enunciado: Módulo.\n"
+            "- Criterio de aceptación: app.py existe.\n"
+            "- Verificación: archivo\n- Evidencia: app.py\n\n"
+            "## R2: Formal\n- Enunciado: Prueba.\n"
+            "- Criterio de aceptación: prueba.lean existe.\n"
+            "- Verificación: formal\n- Evidencia: prueba.lean\n",
+            {"prueba.lean": "theorem x : True := trivial\n"})
+
+        informe = self._evaluar(raiz)
+
+        self.assertEqual(self._item(informe, 0)["veredicto"], "CUBIERTO")
+        self.assertEqual(self._item(informe, 1)["veredicto"], "CUBIERTO")
+
+    def test_evidencia_fuera_del_proyecto_no_se_lee(self):
+        with tempfile.TemporaryDirectory() as fuera:
+            evidencia = Path(fuera) / "fuera.txt"
+            evidencia.write_text("SECRETO-QUE-NO-DEBE-SALIR", encoding="utf-8")
+            raiz = self._proyecto(
+                "## R1: Fuera\n- Enunciado: Algo.\n"
+                "- Criterio de aceptación: El archivo externo existe.\n"
+                "- Verificación: archivo\n"
+                f"- Evidencia: {evidencia}\n")
+
+            informe = self._evaluar(raiz)
+            item = self._item(informe)
+
+            self.assertEqual(item["veredicto"], "NO VERIFICABLE")
+            self.assertIn("fuera del proyecto", item["motivo"])
+            self.assertNotIn("SECRETO-QUE-NO-DEBE-SALIR",
+                             json.dumps(informe, ensure_ascii=False))
+
+    def test_no_afecta_al_global_y_la_suite_se_ejecuta_una_vez(self):
+        raiz = self._proyecto(self.REQ_BASE)
+
+        sin = evaluar(raiz, con_red=False)
+        con = self._evaluar(raiz)
+        self.assertEqual(sin["global"], con["global"])
+        self.assertFalse(con["requisitos"]["afecta_global"])
+
+        with patch("evaluar_proyecto.ejecutar_tests",
+                   wraps=evaluar_proyecto.ejecutar_tests) as ejecutada:
+            con_suite = self._evaluar(raiz, ejecutar_tests_flag=True)
+
+        self.assertEqual(ejecutada.call_count, 1)
+        self.assertEqual(self._item(con_suite)["veredicto"], "CUMPLE")
+
+    def test_cli_requisitos_texto_y_json(self):
+        raiz = self._proyecto(self.REQ_BASE)
+
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida):
+            codigo = main([str(raiz), "--sin-red", "--requisitos",
+                           str(raiz / "requisitos.md")])
+        self.assertEqual(codigo, 0)
+        self.assertIn("== REQUISITOS", salida.getvalue())
+        self.assertIn("CUBIERTO", salida.getvalue())
+
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida):
+            codigo = main([str(raiz), "--sin-red", "--json", "--requisitos",
+                           str(raiz / "requisitos.md")])
+        datos = json.loads(salida.getvalue())
+        self.assertEqual(codigo, 0)
+        self.assertEqual(datos["schema_version"], 2)
+        self.assertIn("requisitos", datos)
+        self.assertEqual(datos["requisitos"]["items"][0]["veredicto"], "CUBIERTO")
+
+    def test_cli_requisitos_inexistente_devuelve_2(self):
+        raiz = self._proyecto(self.REQ_BASE)
+
+        error = io.StringIO()
+        with contextlib.redirect_stderr(error):
+            codigo = main([str(raiz), "--requisitos",
+                           str(raiz / "no-existe.md")])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("no existe el archivo de requisitos", error.getvalue())
+
+    def test_test_sin_evidencia_es_no_verificable(self):
+        raiz = self._proyecto(
+            "## R1: Sin evidencia\n- Enunciado: Algo.\n"
+            "- Criterio de aceptación: Algo medible.\n"
+            "- Verificación: test\n")
+
+        item = self._item(self._evaluar(raiz))
+
+        self.assertEqual(item["veredicto"], "NO VERIFICABLE")
+        self.assertIn("sin evidencia", item["motivo"])
+
+    def test_criterio_multilinea_se_conserva(self):
+        raiz = crear_proyecto(self, {"requisitos.md": (
+            "## R1: Multilínea\n"
+            "- Enunciado: El sistema debe permitir login.\n"
+            "- Criterio de aceptación: Con credenciales válidas se crea una "
+            "sesión\n  y se devuelve 200.\n"
+            "- Verificación: archivo\n- Evidencia: app.py\n")})
+
+        requisitos = parsear_requisitos(raiz / "requisitos.md")
+
+        self.assertEqual(
+            requisitos[0].criterio,
+            "Con credenciales válidas se crea una sesión y se devuelve 200.")
 
 
 if __name__ == "__main__":

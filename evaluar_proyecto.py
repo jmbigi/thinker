@@ -162,6 +162,39 @@ class Dimension:
 
 
 @dataclass
+class Requisito:
+    """Requisito declarado por el usuario y su evidencia esperada.
+
+    El parser no adivina: los campos obligatorios ausentes son un error. Un
+    requisito sin método verificable se declara `NO VERIFICABLE`, nunca se
+    promociona por su redacción.
+    """
+
+    id: str
+    titulo: str
+    enunciado: str
+    criterio: str
+    origen: str
+    verificacion: str = ""
+    evidencia: str = ""
+    tags: List[str] = field(default_factory=list)
+    avisos: List[str] = field(default_factory=list)
+
+    def a_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "titulo": self.titulo,
+            "origen": self.origen,
+            "enunciado": self.enunciado,
+            "criterio": self.criterio,
+            "verificacion": self.verificacion,
+            "evidencia": self.evidencia,
+            "tags": list(self.tags),
+            "avisos": list(self.avisos),
+        }
+
+
+@dataclass
 class Perfil:
     """Lo que el proyecto declara y lo que se puede analizar sin ejecutarlo."""
     ruta: Path
@@ -771,7 +804,8 @@ def ejecutar_tests(ruta: Path, timeout: int = 900) -> Dict[str, Any]:
 
 
 def evaluar_calidad(ruta: Path, perfil: Perfil,
-                    ejecutar: bool = False) -> Dimension:
+                    ejecutar: bool = False,
+                    resultado_tests: Optional[Dict[str, Any]] = None) -> Dimension:
     dim = Dimension("calidad")
     lineas_codigo = sum(len(leer(p).splitlines()) for p in perfil.codigo)
     lineas_test = sum(len(leer(p).splitlines()) for p in perfil.tests)
@@ -788,7 +822,8 @@ def evaluar_calidad(ruta: Path, perfil: Perfil,
         dim.no_aplicable("c1_suite_de_tests", "sin código")
 
     if ejecutar:
-        resultado = ejecutar_tests(ruta)
+        resultado = (resultado_tests if resultado_tests is not None
+                     else ejecutar_tests(ruta))
         if not resultado.get("ejecutado") or resultado.get("error"):
             motivo = resultado.get("motivo") or (
                 f"{resultado.get('error')}: {resultado.get('detalle', '')}")
@@ -2040,22 +2075,432 @@ def sintetizar_con_llm(informe: Dict[str, Any], llm) -> Dict[str, Any]:
             "sin_respaldo": sum(1 for p in propuestas if not p["con_respaldo"])}
 
 
+_CABECERA_REQ = re.compile(
+    r"^##\s+(?:(?P<id>(?:[A-Za-z]{1,6}[-_.]?\d+|\d+(?:\.\d+)*))"
+    r"\s*[:—–-]\s+)?(?P<titulo>.+?)\s*$")
+_CAMPO_REQ = re.compile(r"^\s*[-*]\s+(?P<clave>[^:]+?)\s*:\s*(?P<valor>.+?)\s*$")
+
+_CAMPOS_REQUISITO = {
+    "enunciado": "enunciado", "statement": "enunciado",
+    "requisito": "enunciado",
+    "criterio": "criterio", "criterio de aceptacion": "criterio",
+    "acceptance": "criterio", "acceptance criteria": "criterio",
+    "verificacion": "verificacion", "verification": "verificacion",
+    "metodo": "verificacion", "method": "verificacion",
+    "evidencia": "evidencia", "evidence": "evidencia",
+    "tags": "tags", "tag": "tags",
+    "notas": "notas", "notes": "notas",
+}
+
+_METODOS_VERIFICACION = {
+    "test": "test", "prueba": "test", "pruebas": "test", "pytest": "test",
+    "archivo": "archivo", "file": "archivo", "codigo": "archivo",
+    "tag": "tag", "etiqueta": "tag", "marca": "tag",
+    "manual": "manual", "humano": "manual", "revision": "manual",
+    "formal": "formal", "propiedad": "formal", "proof": "formal",
+    "demostracion": "formal",
+}
+
+_TERMINOS_VAGOS = (
+    "facil", "facilmente", "rapido", "rapidamente", "adecuad", "optim",
+    "amigable", "robusto", "etc", "varios", "algunos", "mejorar",
+    "eficiente", "suficiente", "apropiad",
+)
+
+
+def _normalizar_texto(texto: str) -> str:
+    """Minúsculas, sin acentos y con espacios colapsados (claves y términos)."""
+    return " ".join(texto.lower().translate(
+        str.maketrans("áéíóúüñ", "aeiouun")).split())
+
+
+def parsear_requisitos(archivo: Path) -> List[Requisito]:
+    """Lee el Markdown estructurado de requisitos; falla con línea, no adivina.
+
+    Formato: ``## ID: título`` y campos ``- Clave: valor``. Un campo
+    obligatorio ausente o duplicado es un ``ValueError`` con su línea; nunca se
+    convierte en un veredicto silencioso. Los bloques de código se ignoran.
+    """
+    try:
+        texto = leer(archivo)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValueError(f"No se pudo leer {archivo}: {exc}") from exc
+
+    requisitos: List[Requisito] = []
+    actual: Optional[Dict[str, Any]] = None
+    ultimo_campo: Optional[str] = None
+    ids: Set[str] = set()
+    en_bloque = False
+
+    def cerrar() -> None:
+        nonlocal actual, ultimo_campo
+        if actual is None:
+            return
+        faltan = [campo for campo in ("enunciado", "criterio")
+                  if not actual[campo]]
+        if faltan:
+            raise ValueError(
+                f"{archivo}:{actual['linea']}: requisito {actual['id']} sin "
+                + " ni ".join(f"`{campo}`" for campo in faltan))
+        requisitos.append(Requisito(
+            id=actual["id"], titulo=actual["titulo"],
+            enunciado=actual["enunciado"], criterio=actual["criterio"],
+            origen=f"{archivo.name}:{actual['linea']}",
+            verificacion=actual["verificacion"], evidencia=actual["evidencia"],
+            tags=actual["tags"], avisos=actual["avisos"]))
+        actual = None
+        ultimo_campo = None
+
+    for numero, linea in enumerate(texto.splitlines(), 1):
+        if linea.strip().startswith("```"):
+            en_bloque = not en_bloque
+            continue
+        if en_bloque:
+            continue
+        if not linea.strip():
+            ultimo_campo = None
+            continue
+        cabecera = _CABECERA_REQ.match(linea)
+        if cabecera:
+            cerrar()
+            ultimo_campo = None
+            titulo = cabecera.group("titulo").strip()
+            id_ = cabecera.group("id") or f"R{len(requisitos) + 1}"
+            if id_ in ids:
+                raise ValueError(
+                    f"{archivo}:{numero}: ID de requisito duplicado: {id_}")
+            ids.add(id_)
+            actual = {
+                "id": id_, "titulo": titulo, "linea": numero,
+                "enunciado": "", "criterio": "", "verificacion": "",
+                "evidencia": "", "tags": [], "avisos": [],
+            }
+            if not cabecera.group("id"):
+                actual["avisos"].append(
+                    "ID autogenerado; usa '## ID: título' para un ID estable")
+            continue
+        if actual is None:
+            continue
+        campo = _CAMPO_REQ.match(linea)
+        if not campo:
+            # Continuación indentada de un enunciado/criterio multilínea; el
+            # resto de prosa cierra el campo para no concatenar sin control.
+            if (ultimo_campo in ("enunciado", "criterio")
+                    and linea[:1].isspace()):
+                actual[ultimo_campo] = (
+                    f"{actual[ultimo_campo]} {linea.strip()}").strip()
+            else:
+                ultimo_campo = None
+            continue
+        clave = _normalizar_texto(campo.group("clave"))
+        valor = campo.group("valor").strip()
+        destino = _CAMPOS_REQUISITO.get(clave)
+        if destino is None:
+            actual["avisos"].append(
+                f"línea {numero}: campo no reconocido: "
+                f"{campo.group('clave').strip()}")
+            ultimo_campo = None
+            continue
+        if destino == "tags":
+            actual["tags"].extend(
+                tag.strip() for tag in valor.split(",") if tag.strip())
+            ultimo_campo = None
+            continue
+        if destino == "notas":
+            actual["avisos"].append(f"línea {numero}: {valor}")
+            ultimo_campo = None
+            continue
+        if destino == "verificacion":
+            if actual["verificacion"]:
+                raise ValueError(
+                    f"{archivo}:{numero}: campo duplicado en requisito "
+                    f"{actual['id']}: verificación")
+            metodo = _METODOS_VERIFICACION.get(_normalizar_texto(valor))
+            if metodo is None:
+                raise ValueError(
+                    f"{archivo}:{numero}: método de verificación no "
+                    f"reconocido: {valor!r}")
+            actual["verificacion"] = metodo
+            ultimo_campo = None
+            continue
+        if actual[destino]:
+            raise ValueError(
+                f"{archivo}:{numero}: campo duplicado en requisito "
+                f"{actual['id']}: {campo.group('clave').strip()}")
+        actual[destino] = valor
+        ultimo_campo = destino if destino in ("enunciado", "criterio") else None
+
+    cerrar()
+    if not requisitos:
+        raise ValueError(
+            f"{archivo}: no se encontró ningún requisito "
+            "('## ID: título' + '- Enunciado:' + '- Criterio de aceptación:')")
+    return requisitos
+
+
+def _texto_legible(ruta: Path, archivo: Path) -> str:
+    try:
+        return archivo.relative_to(ruta).as_posix()
+    except ValueError:
+        return str(archivo)
+
+
+def _resolver_evidencia(ruta: Path, texto: str) -> Optional[Path]:
+    """Resuelve una ruta de evidencia SOLO si queda dentro del proyecto."""
+    limpio = texto.strip().strip("`'\"")
+    if not limpio:
+        return None
+    candidato = Path(limpio)
+    if not candidato.is_absolute():
+        candidato = ruta / candidato
+    try:
+        candidato = candidato.resolve()
+        candidato.relative_to(ruta.resolve())
+    except (OSError, ValueError):
+        return None
+    return candidato
+
+
+def _test_existe(archivo: Path, nombre: str) -> Optional[bool]:
+    """Busca una función de test Python por nombre; None si no se puede leer."""
+    try:
+        arbol = ast.parse(leer(archivo), filename=str(archivo))
+    except (OSError, UnicodeDecodeError, SyntaxError):
+        return None
+    buscado = nombre.split("::")[-1].split("[", 1)[0].strip()
+    return any(
+        isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and nodo.name == buscado for nodo in ast.walk(arbol))
+
+
+def _buscar_tag(perfil: Perfil, tag: str,
+                avisos: Optional[List[str]] = None) -> str:
+    """Devuelve ``archivo:línea`` del primer tag encontrado, o cadena vacía.
+
+    Un archivo ilegible no se omite en silencio: se registra en ``avisos`` y la
+    búsqueda continúa (P1.19/P1.26).
+    """
+    if not tag:
+        return ""
+    vistos: Set[Path] = set()
+    for archivo in perfil.codigo + perfil.tests:
+        if archivo in vistos:
+            continue
+        vistos.add(archivo)
+        try:
+            texto = leer(archivo)
+        except (OSError, UnicodeDecodeError) as exc:
+            if avisos is not None:
+                avisos.append(
+                    f"no se pudo leer {_texto_legible(perfil.ruta, archivo)}: "
+                    f"{type(exc).__name__}")
+            continue
+        for numero, linea in enumerate(texto.splitlines(), 1):
+            if tag in linea:
+                return f"{_texto_legible(perfil.ruta, archivo)}:{numero}"
+    return ""
+
+
+def _avisos_criterio(criterio: str) -> List[str]:
+    """Heurística declarada: avisa de criterios poco medibles, no los absuelve."""
+    normalizado = _normalizar_texto(criterio)
+    avisos = []
+    if len(criterio.strip()) < 10:
+        avisos.append("criterio demasiado corto para ser medible")
+    vagos = [termino for termino in _TERMINOS_VAGOS if termino in normalizado]
+    if vagos:
+        avisos.append("criterio con términos vagos: " + ", ".join(vagos))
+    return avisos
+
+
+def _verificar_test(ruta: Path, req: Requisito,
+                    resultado_tests: Optional[Dict[str, Any]]):
+    if not req.evidencia:
+        return ("NO VERIFICABLE", "método 'test' sin evidencia declarada", "",
+                EvidenceKind.UNVERIFIED)
+    partes = req.evidencia.strip().strip("`'\"").split("::")
+    archivo = _resolver_evidencia(ruta, partes[0].strip())
+    test_nombre = "::".join(partes[1:]).strip()
+    if archivo is None:
+        return ("NO VERIFICABLE",
+                "evidencia fuera del proyecto o no resoluble", req.evidencia,
+                EvidenceKind.UNVERIFIED)
+    legible = _texto_legible(ruta, archivo)
+    if not archivo.is_file():
+        return ("NO CUMPLE", "la evidencia declarada no es un archivo",
+                legible, EvidenceKind.VERIFIED_REAL)
+    if not test_nombre:
+        return ("CUBIERTO", "archivo de test declarado, sin test concreto",
+                legible, EvidenceKind.VERIFIED_REAL)
+    if archivo.suffix != ".py":
+        return ("CUBIERTO",
+                "test declarado en lenguaje no Python: no validado "
+                "estáticamente", legible, EvidenceKind.VERIFIED_REAL)
+    existe = _test_existe(archivo, test_nombre)
+    if existe is None:
+        return ("NO VERIFICABLE", "no se pudo analizar el archivo de test",
+                legible, EvidenceKind.UNVERIFIED)
+    if not existe:
+        return ("NO CUMPLE",
+                f"el test {test_nombre!r} no existe en el archivo", legible,
+                EvidenceKind.VERIFIED_REAL)
+    if resultado_tests is None:
+        return ("CUBIERTO",
+                "test declarado; suite no ejecutada (--ejecutar-tests)",
+                legible, EvidenceKind.VERIFIED_REAL)
+    if not resultado_tests.get("ejecutado") or resultado_tests.get("error"):
+        motivo = (resultado_tests.get("motivo")
+                  or resultado_tests.get("error")
+                  or "suite no ejecutada")
+        return ("CUBIERTO", f"test declarado; {motivo}", legible,
+                EvidenceKind.UNVERIFIED)
+    if not resultado_tests.get("ok"):
+        return ("NO CUMPLE", "la suite falló; el test declarado no pasa",
+                legible, EvidenceKind.VERIFIED_REAL)
+    return ("CUMPLE", "suite completa verde (test declarado, no aislado)",
+            legible, EvidenceKind.VERIFIED_REAL)
+
+
+def _verificar_archivo(ruta: Path, req: Requisito):
+    if not req.evidencia:
+        return ("NO VERIFICABLE", "método 'archivo' sin evidencia declarada",
+                "", EvidenceKind.UNVERIFIED)
+    archivo = _resolver_evidencia(ruta, req.evidencia)
+    if archivo is None:
+        return ("NO VERIFICABLE",
+                "evidencia fuera del proyecto o no resoluble", req.evidencia,
+                EvidenceKind.UNVERIFIED)
+    legible = _texto_legible(ruta, archivo)
+    if not archivo.is_file():
+        return ("NO CUMPLE", "la evidencia declarada no es un archivo",
+                legible, EvidenceKind.VERIFIED_REAL)
+    return ("CUBIERTO", "archivo presente; no prueba comportamiento", legible,
+            EvidenceKind.VERIFIED_REAL)
+
+
+def _verificar_formal(ruta: Path, req: Requisito):
+    if not req.evidencia:
+        return ("NO VERIFICABLE", "método 'formal' sin evidencia declarada",
+                "", EvidenceKind.UNVERIFIED)
+    archivo = _resolver_evidencia(ruta, req.evidencia)
+    if archivo is None:
+        return ("NO VERIFICABLE",
+                "evidencia fuera del proyecto o no resoluble", req.evidencia,
+                EvidenceKind.UNVERIFIED)
+    legible = _texto_legible(ruta, archivo)
+    if not archivo.is_file():
+        return ("NO CUMPLE", "la evidencia declarada no es un archivo",
+                legible, EvidenceKind.VERIFIED_REAL)
+    return ("CUBIERTO", "artefacto formal declarado; no re-ejecutado",
+            legible, EvidenceKind.VERIFIED_REAL)
+
+
+def _verificar_tag(perfil: Perfil, req: Requisito):
+    tag = req.evidencia.strip().strip("`'\"") or (req.tags[0] if req.tags else "")
+    if not tag:
+        return ("NO VERIFICABLE", "método 'tag' sin etiqueta declarada", "",
+                EvidenceKind.UNVERIFIED)
+    ubicacion = _buscar_tag(perfil, tag, req.avisos)
+    if ubicacion:
+        return ("CUBIERTO", f"tag {tag!r} encontrado en código o tests",
+                ubicacion, EvidenceKind.VERIFIED_REAL)
+    return ("NO CUMPLE", f"tag {tag!r} no encontrado en código ni tests",
+            tag, EvidenceKind.VERIFIED_REAL)
+
+
+def _verificar_requisito(ruta: Path, perfil: Perfil, req: Requisito,
+                         resultado_tests: Optional[Dict[str, Any]]):
+    if not req.verificacion:
+        return ("NO VERIFICABLE", "sin método de verificación declarado", "",
+                EvidenceKind.UNVERIFIED)
+    if req.verificacion == "manual":
+        return ("NO VERIFICABLE",
+                "verificación manual: requiere revisión humana", "",
+                EvidenceKind.UNVERIFIED)
+    if req.verificacion == "test":
+        return _verificar_test(ruta, req, resultado_tests)
+    if req.verificacion == "archivo":
+        return _verificar_archivo(ruta, req)
+    if req.verificacion == "tag":
+        return _verificar_tag(perfil, req)
+    if req.verificacion == "formal":
+        return _verificar_formal(ruta, req)
+    return ("NO VERIFICABLE", f"método no soportado: {req.verificacion}", "",
+            EvidenceKind.UNVERIFIED)
+
+
+def verificar_requisitos(ruta: Path, perfil: Perfil,
+                         requisitos: List[Requisito], archivo: Path,
+                         resultado_tests: Optional[Dict[str, Any]] = None
+                         ) -> Dict[str, Any]:
+    """Contrasta requisitos contra evidencia estática y, opt-in, la suite.
+
+    No toca el GLOBAL de las seis dimensiones: devuelve un informe aparte.
+    ``CUMPLE`` solo se emite con la suite ejecutada y verde; ``CUBIERTO``
+    declara evidencia estática y nunca se presenta como cumplimiento.
+    """
+    items = []
+    resumen = {"cumple": 0, "cubierto": 0, "no_cumple": 0,
+               "no_verificable": 0}
+    claves = {"CUMPLE": "cumple", "CUBIERTO": "cubierto",
+              "NO CUMPLE": "no_cumple", "NO VERIFICABLE": "no_verificable"}
+    for req in requisitos:
+        veredicto, motivo, observada, tipo = _verificar_requisito(
+            ruta, perfil, req, resultado_tests)
+        item = req.a_dict()
+        item.update({
+            "veredicto": veredicto,
+            "motivo": motivo,
+            "evidencia_observada": observada,
+            "tipo_evidencia": tipo.value,
+            "avisos": list(req.avisos) + _avisos_criterio(req.criterio),
+        })
+        items.append(item)
+        resumen[claves[veredicto]] += 1
+
+    no_verificado = []
+    if resumen["cubierto"]:
+        no_verificado.append(
+            f"{resumen['cubierto']} requisito(s) CUBIERTO(S): evidencia "
+            "estática declarada, no comportamiento verificado")
+    if resumen["no_verificable"]:
+        no_verificado.append(
+            f"{resumen['no_verificable']} requisito(s) NO VERIFICABLE(S): "
+            "revisar criterio o método")
+    return {
+        "archivo": _texto_legible(ruta, archivo),
+        "total": len(items),
+        "resumen": resumen,
+        "afecta_global": False,
+        "nota": "CUMPLE exige suite verde; CUBIERTO es solo evidencia "
+                "estática; no afecta al GLOBAL",
+        "items": items,
+        "no_verificado": no_verificado,
+    }
+
+
 def evaluar(ruta: Path, con_red: bool = True,
             ejecutar_tests_flag: bool = False, llm=None,
-            investigar: bool = False, search_api=None) -> Dict[str, Any]:
+            investigar: bool = False, search_api=None,
+            requisitos_path: Optional[Path] = None) -> Dict[str, Any]:
     """Evalúa un proyecto y devuelve el informe completo (sin escribir nada).
 
     `ejecutar_tests_flag` es un opt-in EXPLÍCITO: es lo único que ejecuta código
     del proyecto evaluado (P0.8), siempre con el comando que el propio proyecto
-    declara.
+    declara. `requisitos_path` activa el informe aparte de requisitos; no
+    altera el GLOBAL de las seis dimensiones.
     """
     if not ruta.is_dir():
         raise ValueError(f"No es un directorio: {ruta}")
+    if requisitos_path is not None:
+        requisitos_path = Path(requisitos_path)
+    requisitos = parsear_requisitos(requisitos_path) if requisitos_path else None
     perfil = analizar_perfil(ruta)
     py = perfil.py
+    resultado_tests = ejecutar_tests(ruta) if ejecutar_tests_flag else None
     dimensiones = [
         evaluar_funcionalidades(ruta, perfil),
-        evaluar_calidad(ruta, perfil, ejecutar_tests_flag),
+        evaluar_calidad(ruta, perfil, ejecutar_tests_flag, resultado_tests),
         evaluar_vigencia(ruta, perfil, con_red),
         evaluar_herramientas(ruta, perfil, con_red),
         evaluar_inteligencia(ruta, perfil),
@@ -2080,6 +2525,11 @@ def evaluar(ruta: Path, con_red: bool = True,
             "cuentan como fallos (ver cobertura)")
     if not perfil.lenguajes:
         no_verificado.append("sin archivos de código detectados: cobertura vacía")
+    requisitos_informe = None
+    if requisitos is not None:
+        requisitos_informe = verificar_requisitos(
+            ruta, perfil, requisitos, requisitos_path, resultado_tests)
+        no_verificado.extend(requisitos_informe["no_verificado"])
     tipos_evidencia = [h.tipo_evidencia for d in dimensiones
                        for h in d.hallazgos]
     tipos_evidencia.extend([EvidenceKind.UNVERIFIED] * len(no_verificado))
@@ -2113,6 +2563,8 @@ def evaluar(ruta: Path, con_red: bool = True,
         "evidencia": resumen_evidencias(tipos_evidencia),
     }
     informe["mejoras"] = proponer_mejoras(informe)
+    if requisitos_informe is not None:
+        informe["requisitos"] = requisitos_informe
     if llm is not None:
         informe["sintesis_llm"] = sintetizar_con_llm(informe, llm)
         preguntas = informe["sintesis_llm"]["preguntas_abiertas"]
@@ -2152,6 +2604,26 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
                   f"{cobertura.get('ratio_evaluado', 0):.0%} de criterios)")
     lineas.append(f"Nota: {informe.get('global_nota', '')}")
     lineas.append(f"Evidencia: {formato_resumen(informe['evidencia'])}")
+    if "requisitos" in informe:
+        reqs = informe["requisitos"]
+        lineas.append("")
+        lineas.append(f"== REQUISITOS ({reqs['archivo']}) — {reqs['total']} ==")
+        for item in reqs["items"]:
+            lineas.append(f"  [{item['veredicto']}] {item['id']} — "
+                          f"{item['titulo']}")
+            lineas.append(f"      criterio: {item['criterio']}")
+            if item.get("evidencia_observada"):
+                lineas.append(f"      evidencia: {item['evidencia_observada']}")
+            lineas.append(f"      motivo: {item['motivo']}")
+            for aviso in item.get("avisos", []):
+                lineas.append(f"      aviso: {aviso}")
+        resumen = reqs["resumen"]
+        lineas.append(
+            f"  Resumen: {resumen['cumple']} CUMPLE | "
+            f"{resumen['cubierto']} CUBIERTO | "
+            f"{resumen['no_cumple']} NO CUMPLE | "
+            f"{resumen['no_verificable']} NO VERIFICABLE")
+        lineas.append(f"  Nota: {reqs['nota']}")
     lineas.append("")
     lineas.extend(plan_texto(informe))
     lineas.append("== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==")
@@ -2203,6 +2675,10 @@ def main(argv: List[str] = None) -> int:
                         help="EJECUTA el comando de tests declarado por el proyecto "
                              "(opt-in explícito: es lo único que corre código "
                              "ajeno, P0.8)")
+    parser.add_argument("--requisitos", metavar="ARCHIVO", default=None,
+                        help="verifica una lista de requisitos en Markdown "
+                             "estructurado (opt-in, read-only; ver "
+                             "docs/REQUISITOS.md)")
     parser.add_argument("--sintesis-llm", action="store_true",
                         help="pide a un LLM propuestas de FONDO a partir del informe "
                              "medido (opt-in; requiere key y red; coste 0 con :free)")
@@ -2213,6 +2689,14 @@ def main(argv: List[str] = None) -> int:
                              "las fuentes (implica --sintesis-llm; requiere red)")
     args = parser.parse_args(argv)
 
+    requisitos_path = None
+    if args.requisitos:
+        requisitos_path = Path(args.requisitos).resolve()
+        if not requisitos_path.is_file():
+            print(f"ERROR: no existe el archivo de requisitos: "
+                  f"{requisitos_path}", file=sys.stderr)
+            return 2
+
     llm = None
     if args.sintesis_llm or args.investigar:
         from llm_providers import OpenRouterLLM
@@ -2221,7 +2705,8 @@ def main(argv: List[str] = None) -> int:
     try:
         informe = evaluar(Path(args.ruta).resolve(), con_red=not args.sin_red,
                           ejecutar_tests_flag=args.ejecutar_tests, llm=llm,
-                          investigar=args.investigar)
+                          investigar=args.investigar,
+                          requisitos_path=requisitos_path)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

@@ -336,6 +336,13 @@ sesión: corpus adversario del evaluador (4 casos, R12), gate documental con
 10 tests (R11) y mutación re-medida tras el triaje: **95,2% (3635/3819; 184
 supervivientes, 0 timeouts, 0 sospechosos)**.
 
+**Actualización 2026-10-23 (modo `--requisitos`)**: nuevo modo opt-in que
+contrasta una lista Markdown de requisitos contra el código y los tests.
+Veredictos `CUMPLE` (suite verde), `CUBIERTO` (evidencia estática), `NO CUMPLE`
+y `NO VERIFICABLE`; el informe es aparte y no altera el GLOBAL. 17 tests
+nuevos; Suite **795/795** en Linux (Python 3.11.9), ruff 0, preflight 0 y
+`scripts/check_docs.py` OK. Formato y límites: `docs/REQUISITOS.md`.
+
 ### Límites que permanecen
 
 - Java/JS solo se evalúan con criterios genéricos (manifiesto, licencia, CI,

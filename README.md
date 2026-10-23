@@ -26,7 +26,7 @@ herramientas de análisis estático de código.
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
 | `docs/RECOMENDACIONES-MEJORAS.md` | Recomendaciones abiertas priorizadas, con evidencia, esfuerzo, riesgo y criterio de aceptación. |
 | `docs/REFERENCIAS-IA.md` | Teoría y práctica de IA (referencias verificadas contra arXiv y guías de ingeniería) con propuestas medidas por el benchmark. |
-| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Informes: `docs/EVALUACIONES.md`. |
+| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Incluye **verificación opt-in de requisitos** (`--requisitos`, ver `docs/REQUISITOS.md`). Informes: `docs/EVALUACIONES.md`. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
 ## Requisitos
@@ -89,6 +89,22 @@ cobertura y criterios N/A: ver `docs/EVALUACIONES.md` para las cifras actuales.)
 El informe `--json` es un contrato versionado: incluye `schema_version: 2` y
 los campos `cobertura`, `global_nota` y `no_verificado`. Un consumidor debe
 comprobar `schema_version` antes de asumir el resto del esquema.
+
+### Verificar una lista de requisitos
+
+Además del rubric fijo, el evaluador puede contrastar requisitos declarados por
+ti contra el código y los tests:
+
+```bash
+evaluate-project RUTA --requisitos requisitos.md
+evaluate-project RUTA --requisitos requisitos.md --ejecutar-tests
+```
+
+El archivo es Markdown estructurado (`## ID: título` + `- Enunciado:` +
+`- Criterio de aceptación:` + `- Verificación:` + `- Evidencia:`). Los
+veredictos son `CUMPLE` (suite verde), `CUBIERTO` (evidencia estática),
+`NO CUMPLE` y `NO VERIFICABLE`; el informe es aparte y **no altera el GLOBAL**.
+Formato completo, métodos y límites: `docs/REQUISITOS.md`.
 
 Como **librería** (los módulos públicos quedan importables):
 
@@ -205,6 +221,7 @@ python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m c
 bash scripts/scan-secrets.sh
 python3 honest_test.py                        # comprobación honesta del sistema
 python3 evaluar_proyecto.py RUTA              # evaluación externa (6 dimensiones, read-only)
+python3 evaluar_proyecto.py RUTA --requisitos requisitos.md   # requisitos (opt-in)
 python3 scripts/probe_model.py --samples 5    # sonda de latencia del modelo (opt-in)
 ```
 
