@@ -1,6 +1,7 @@
 # Estudio de teoría y práctica de IA aplicada a thinker
 
-**Fecha de verificación:** 2026-10-16. **Método:** cada referencia de arXiv se
+**Fecha de verificación:** 2026-10-16; **ampliado el 2026-10-23** con fuentes
+primarias re-verificadas (§4). **Método:** cada referencia de arXiv se
 comprobó contra la API oficial (`export.arxiv.org`, título/año/autores reales) y
 cada guía de ingeniería con una petición HTTP real (código 200 y contenido). No
 hay citas de memoria: una de las candidatas resultó ser OTRO paper (el id
@@ -125,7 +126,71 @@ Cada propuesta indica **qué**, **dónde**, **por qué** y **cómo se mide**.
   estudio exige medir en local antes de adoptarlo, y las rúbricas actuales no
   cambian sin una campaña comparable.
 
-## 4. Límites y responsabilidad
+## 4. Diversificación arquitectónica (añadido 2026-10-23)
+
+Contexto: revisión de un ensayo que propone sustituir el LLM monolítico por
+sistemas híbridos (modelos de decisión, *world models*, neuro-simbólico, SSM y
+modelos tabulares). Se incorpora **solo lo verificable y aplicable** a thinker;
+el resto se declara no aplicable o no verificado (P0.2). Las fuentes de esta
+sección se comprobaron con petición HTTP real a la fuente primaria el
+2026-10-23.
+
+### 4.1. Qué se verificó (fuentes primarias)
+
+| Referencia | Verificado | Implicación para thinker |
+|---|---|---|
+| **V-JEPA 2** — arXiv:2506.09985 (jun 2025) | Preentrenado con **>1 millón de horas** de vídeo; planificación robótica **zero-shot** con V-JEPA 2-AC en brazos Franka, sin datos de esos robots | **No aplica**: thinker no entrena ni usa modelos de vídeo. Se cita como evidencia de que los *world models* son una línea real, no una promesa de marketing |
+| **Mamba-2 / SSD** — arXiv:2405.21060 (ICML 2024) | El framework *State Space Duality* da una capa **2–8× más rápida** que Mamba, competitiva con Transformers en lenguaje | **No aplica** al entrenamiento; refuerza que ninguna arquitectura única agota el espacio |
+| **TabPFN** — Hollmann et al., *Nature* 637, 319–326 (2025) | Transformer preentrenado en datasets tabulares sintéticos; predicción en contexto sin entrenamiento por tarea | **No aplica**: thinker no hace aprendizaje tabular |
+| **DeepProbLog** — arXiv:1805.10872 (NeurIPS 2018) | Integra redes neuronales y lógica probabilística diferenciable de extremo a extremo | **El principio sí aplica**: thinker ya verifica propuestas del LLM con código determinista (AST en `preflight`, criterios binarios del evaluador); **no** se añaden solvers SMT (dependencia y coste sin medición) |
+
+### 4.2. No verificado en esta sesión (no incorporado como hecho)
+
+- **Jev / TypeSafe AI** y sus cifras de exactitud o coste (71–82%, $0,034/1k):
+  no se pudo consultar la evaluación citada (cuota de búsqueda agotada).
+- **AMI Labs** (nombre y ronda semilla): sin fuente primaria consultada.
+- **TabPFN-2.5** (50 000 filas, noviembre 2025): no verificado.
+- **DeepProbLog 74,8% OOD frente a 48,4% de LLM puro**: la cifra no aparece en
+  el abstract del paper; no se repite aquí.
+- **Modelos de ejecución de código** como categoría consolidada: el propio
+  ensayo la reconoce emergente; no se adopta taxonomía nueva.
+
+### 4.3. Qué se adopta como principio (sin código nuevo)
+
+1. **El LLM es interfaz, no oráculo.** thinker ya separa generador y
+   verificador (`llm_verificador`), declara la independencia real
+   (`proveedor-distinto`/`mismo-proveedor`) y marca `discrepancia_muestreo`
+   cuando el juicio no es estable. La orquestación explicitada en `decision_log`
+   es el núcleo, no un accesorio.
+2. **Restricción sintáctica ≠ calibración.** Los veredictos tipados y el JSON
+   validado eliminan la alucinación de formato libre, pero `credibility` y
+   `confidence` son **estimaciones del modelo**, no probabilidades calibradas.
+   No deben presentarse como tales (ver R14 en `RECOMENDACIONES-MEJORAS.md`).
+3. **Verificación simbólica donde es barata.** `scripts/preflight.py` (AST) y
+   los criterios binarios del evaluador son la versión práctica de
+   neuro-simbólico en este dominio; añadir solvers formales no se justifica sin
+   un caso que lo mida.
+4. **El enrutamiento no es determinista.** El routing por tarea (`llm_rapido`)
+   y el consenso (`voto_top_k`) ya existen; cualquier futuro «modelo de
+   decisión» para enrutar debe registrarse igual y someterse a reconciliación
+   (hoy: `discrepancia_muestreo` + `decision_log`), no tratarse como un
+   componente determinista.
+5. **No adoptar arquitecturas que resuelven problemas que thinker no tiene.**
+   SSM, tabulares y *world models* compiten en coste de entrenamiento e
+   inferencia de modelos; thinker orquesta APIs. Incorporarlas sería
+   complejidad sin medición (regla propia 1).
+
+### 4.4. Riesgos del ensayo que thinker debe mantener visibles
+
+- **Coste de ingeniería, latencia de composición y observabilidad**: thinker ya
+  tiene timeouts, caché y métricas; la deuda medida sigue siendo la mutación
+  del evaluador (R3) y la calibración de veredictos (R14).
+- **Madurez temprana de proveedores y no-determinismo**: el proyecto ya declara
+  proveedores opt-in, cadena de fallback con modelos `:free` y modelo gratuito
+  por defecto; ninguna decisión de producto se apoya en cifras de fabricante no
+  verificadas.
+
+## 5. Límites y responsabilidad
 
 - Los papers validan en sus propios entornos y modelos; aquí **solo cuenta la
   medición local** con `tests/benchmarks` (5 dominios, rúbricas propias).

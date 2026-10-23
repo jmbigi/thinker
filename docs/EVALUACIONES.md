@@ -321,7 +321,7 @@ v4 se declara no verificado, no «al día».
   96) y quedó 1.000.
 - **Sin red: 1.000** (25/29; `v4`, `h5`, `e1` y `e2` N/A, no fallos).
 - Suite: **750/750** en Windows 11 (Python 3.12.7/3.14.3, 2026-10-22) y
-  **775/775** en la última medición Linux (3.11/3.12, 2026-10-23); ruff 0;
+  **778/778** en la última medición Linux (3.11/3.12, 2026-10-23); ruff 0;
   preflight 0; docs-check OK. El
   control con defectos plantados sigue detectando los 10 defectos y el control
   de rangos sigue fallando v4 sin consultar PyPI.
@@ -330,10 +330,11 @@ v4 se declara no verificado, no «al día».
 2026-10-16 al 2026-10-22 — 50 commits, `17798f7..HEAD`, Hallazgo 97):
 autoevaluación **1.000 con red** (27/29,
 cobertura 93%, N/A: `e1`/`e2`) y **1.000 sin red** (25/29; 4 N/A: `v4`, `h5`,
-`e1`, `e2`). Suite **775/775** en Linux (Python 3.11.9 y 3.12.3, venv desde el
+`e1`, `e2`). Suite **778/778** en Linux (Python 3.11.9 y 3.12.3, venv desde el
 lock); ruff 0; preflight 0; `scripts/check_docs.py` OK. Añadidos en la misma
-sesión: corpus adversario del evaluador (4 casos, R12) y gate documental con
-10 tests (R11).
+sesión: corpus adversario del evaluador (4 casos, R12), gate documental con
+10 tests (R11) y mutación re-medida tras el triaje: **95,2% (3635/3819; 184
+supervivientes, 0 timeouts, 0 sospechosos)**.
 
 ### Límites que permanecen
 

@@ -168,6 +168,12 @@ mejora de código (`code_design_improvement_tools.py`).
   y 3 tests nuevos): 94,7% (3581/3780; 199 supervivientes, 0 timeouts,
   0 sospechosos)** — el total sube de 3769 a 3780 por los 11 mutantes nuevos
   del arreglo; los 11 se matan y la tasa se mantiene.
+  **Re-medición 2026-10-23 (Hallazgo 97, tras la auditoría y el triaje de la
+  campaña): 95,2% (3635/3819; 184 supervivientes, 0 timeouts,
+  0 sospechosos)** — 12 mutantes menos por la lógica redundante eliminada y
+  34 supervivientes menos tras el triaje (3 tests nuevos y una simplificación
+  de CoVe). Los supervivientes restantes de `_es_host_publico` y de los
+  mensajes de error se clasificaron como equivalentes con su razón.
   El refuerzo dirigido añadió 22 mutantes y mató 164
   más: la tasa exacta sube de 73,90% a 78,07%; `deep_research_system` 73,9%
   (772/1045) y `llm_providers` 81,4% (429/527). Es
@@ -184,10 +190,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make test`. La cobertura y la
   mutación miden cosas distintas: los seis módulos mutados están al 100% de
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
-  muertas eliminadas) y la mutación global es 94,7% (3581/3780; 199
-  supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-21 tras el
-  arreglo de `max_nesting` del Hallazgo 86).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**775/775 en
+  muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
+  supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
+  triaje del Hallazgo 97).
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**778/778 en
   ambos**, 2026-10-23; 3.12.3 en venv aislado recreado desde
   `requirements.lock`, con openai 3.37.0); y **Windows 11** con Python
   **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750 en

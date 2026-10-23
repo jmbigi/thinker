@@ -2130,7 +2130,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   CoVe pasa a devolver las fuentes vistas por la pasada principal y la
   independiente las excluye (si no quedan, `skip` registrado). Docs alineados
   con lo medido hoy. NO se tocó la numeración ni las cifras históricas fechadas.
-- **Evidencia**: suite **775/775** en Linux con Python 3.11.9 y 3.12.3 (venv
+- **Evidencia**: suite **778/778** en Linux con Python 3.11.9 y 3.12.3 (venv
   aislado recreado desde `requirements.lock`, openai 3.37.0); `ruff check .`
   0 errores; `preflight` 0; demos offline (`deep_research_system`,
   `pensamiento_layer`, `code_design_improvement_tools`) exit 0;
@@ -2151,7 +2151,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `pyproject.toml` no está publicada; integrado en `make check` y en el hook.
   `tests/test_evaluador_corpus.py` (4 casos) fija las regresiones del evaluador
   (Poetry, falso lock, prosa/runner, comando válido). Evidencia final: suite
-  **775/775** en Linux 3.11.9 y 3.12.3, ruff 0, preflight 0, docs-check OK,
+  **778/778** en Linux 3.11.9 y 3.12.3, ruff 0, preflight 0, docs-check OK,
   demos offline exit 0 y autoevaluación 1.000 (con y sin red). Los hallazgos
   R2 (cobertura ≥90%) y R3 (mutación del evaluador) siguen abiertos en
   `docs/RECOMENDACIONES-MEJORAS.md`.
@@ -2162,3 +2162,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   importarlos. Añadidos `test_check_docs.py` y `test_evaluador_corpus.py`;
   colecta verificada (596 tests seleccionados) y campaña reanudada. El fallo
   fue ruidoso y rápido, no silencioso: la regla P1.19 funcionó.
+- **Triaje y resultado final de mutación (2026-10-23)**: primera re-medición
+  **94,31% (3614/3832; 218 supervivientes)**; el triaje mostró dos clases:
+  (a) mutantes **equivalentes** en `_es_host_publico` (`rstrip("XX.XX")` tras
+  `lower()`, regex `[0-9X]` tras `lower()`, y precedencias `and`/`or` que la
+  rama `is_private` ya cubre) y en los argumentos de `json.JSONDecodeError`
+  (la excepción se captura igual); (b) **huecos reales**: forzar
+  `inet_aton=None`, aceptar host vacío y mutar el dict de respaldo de
+  `_evaluar`. Arreglo: 3 tests honestos (IP pública 8.8.8.8/1.1.1.1, host
+  vacío/punto, forma exacta del dict de respaldo) y eliminación de la lógica
+  redundante `origen` en `_evaluar_independiente` (sus 8 mutantes eran
+  equivalentes porque `fuentes_usadas` ya excluye el origen). Resultado final:
+  **95,2% (3635/3819; 184 supervivientes, 0 timeouts, 0 sospechosos)**;
+  `deep_research_system` pasa de 90 a 57 supervivientes y el total baja en 13
+  mutantes por el código redundante eliminado.

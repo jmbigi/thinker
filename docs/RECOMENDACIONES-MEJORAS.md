@@ -24,6 +24,7 @@ pendiente.
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **P3** | R10. Reportar licencias de dev/opcionales sin mezclarlas con runtime | h5 solo puntúa runtime; el riesgo de dev no se ve | Bajo | Bajo |
 | **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
+| **P3** | R14. Calibrar `credibility`/`confidence` o declararlas no calibradas | Restringir la salida evita texto inventado, no garantiza probabilidad correcta | Medio | Bajo |
 
 **Orden recomendado:** R2 → R3 → R9; R4, R5, R6, R7, R10 y R13 se
 deciden después de R2–R3. R1, R8, R11 y R12 están cerradas y R9 es rutina
@@ -42,7 +43,7 @@ verificable; R5, R6 y R13 requieren decisión del programador y no deben hacerse
 | Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
 | Cobertura `evaluar_proyecto.py` | **86%** (164/1145 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **87%** (50/371) | comando de la sección 8 |
-| Mutación global | **94,7%** (3581/3780; histórica) | `make mutation`; **excluye** evaluador y preflight |
+| Mutación global | **95,2%** (3635/3819; 2026-10-23) | `make mutation`; **excluye** evaluador y preflight |
 | Paquete publicado | **0.1.3** (anterior a las correcciones del 22–23 oct) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
@@ -282,6 +283,29 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Riesgo:** medio; más llamadas implican más coste y latencia, por eso es
   opt-in y no un defecto.
 
+### R14 — Calibrar `credibility`/`confidence` o declararlas no calibradas (P3, medio)
+
+- **Origen:** un ensayo sobre diversificación arquitectónica (2026) recuerda que
+  restringir la salida a un esquema elimina la alucinación de **formato libre**,
+  pero **no garantiza que la probabilidad asignada a la opción correcta sea la
+  más alta**. La fuente de producto que cita no se pudo verificar en esta sesión
+  (cuota de búsqueda), así que aquí se adopta el principio, no sus cifras
+  (ver `docs/REFERENCIAS-IA.md` §4).
+- **Problema medido:** `EvidenceEvaluator` pide `credibility` y `confidence` al
+  modelo y los normaliza a [0,1], pero nadie comprueba que estén calibrados:
+  un 0,9 puede no corresponder a un 90% de acierto.
+- **Acción propuesta (offline, sin dependencias):** benchmark con casos
+  etiquetados y un `MockLLM` que devuelva confianzas conocidas; calcular
+  **Brier score** y una tabla de fiabilidad por tramos (0–0,2, …, 0,8–1,0).
+  Con los datos reales (opt-in) repetir sobre un conjunto pequeño y declarar el
+  resultado. Si la calibración es mala, documentarlo en el README y no
+  presentar `confidence` como probabilidad.
+- **Criterio de aceptación:** informe reproducible con Brier y tabla de
+  fiabilidad; el README/AGENTS declara si `confidence` está calibrada o no;
+  ningún texto del proyecto la presenta como probabilidad sin esa medición.
+- **Riesgo:** bajo; el riesgo es interpretar mal una muestra pequeña, que se
+  declara como tal.
+
 ## 5. Orden de trabajo y dependencias
 
 1. **R1** (lock) — desbloquea una autoevaluación 1.000 honesta.
@@ -292,7 +316,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
    adversario ya están en el repositorio con tests.
 6. **R9** (release) — tras R2–R3 y con CI limpio; hoy el paquete publicado
    (0.1.3) no contiene las correcciones del 22–23 oct.
-7. **R5, R6, R7, R10 y R13** — decisiones de producto/alcance; no bloquean
+7. **R5, R6, R7, R10, R13 y R14** — decisiones de producto/alcance; no bloquean
    R1–R4.
 
 ## 6. Qué NO hacer
@@ -322,7 +346,10 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 4. **R13:** ¿se adopta el verificador barato y la descomposición de claims como
    piloto opt-in? Recomendación: sí, con benchmark offline y coste declarado;
    nunca como defecto sin medir el coste en llamadas.
-5. **R1, R8, R11 y R12 (cerradas):** lock 3.37.0, esquema JSON v2, gate
+5. **R14:** ¿se mide la calibración de `credibility`/`confidence` o se declara
+   directamente no calibrada? Recomendación: medir con Brier offline y
+   declararlo; no presentar confianza del modelo como probabilidad.
+6. **R1, R8, R11 y R12 (cerradas):** lock 3.37.0, esquema JSON v2, gate
    documental y corpus adversario; el canario y la suite pasan.
 
 ## 8. Verificación reproducible

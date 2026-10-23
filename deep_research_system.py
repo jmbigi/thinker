@@ -494,24 +494,22 @@ Return ONLY JSON (no markdown fences, no extra text):
                                verdict_principal: str,
                                fuentes_usadas: Tuple[str, ...] = ()
                                ) -> Optional[Dict[str, Any]]:
-        """Segunda pasada CoVe contra fuentes que NO originaron el claim.
+        """Segunda pasada CoVe contra fuentes que NO vio la pasada principal.
 
-        Excluye también las fuentes que ya vio la pasada principal
-        (`fuentes_usadas`): si el origen no casó y aquella cayó al fallback
-        `sources[:3]`, repetirlas aquí haría circular la verificación, justo lo
-        que CoVe debe evitar. Devuelve `None` (y lo registra) si no hay fuentes
-        alternativas: no se inventa una verificación sin evidencia distinta que
-        mirar. La pasada usa el verificador separado si lo hay y declara la
-        independencia real ("proveedor-distinto" | "mismo-proveedor").
+        Excluye las fuentes que ya usó `_evaluar` (`fuentes_usadas`): si el
+        origen no casó y aquella cayó al fallback `sources[:3]`, repetirlas
+        aquí haría circular la verificación, justo lo que CoVe debe evitar.
+        Devuelve `None` (y lo registra) si no hay fuentes alternativas: no se
+        inventa una verificación sin evidencia distinta que mirar. La pasada
+        usa el verificador separado si lo hay y declara la independencia real
+        ("proveedor-distinto" | "mismo-proveedor").
         """
-        # Origen verificado por el pipeline (`source_id` lo fija el extractor
-        # con la URL real de la fuente); `source_url` es solo lo que dijo el
-        # modelo y puede faltar o venir mal, re-incluyendo la fuente original.
-        origen = claim.get("source_id") or claim.get("source_url")
+        # El origen ya está cubierto por `fuentes_usadas`: si casó con una
+        # fuente, la pasada principal la vio; si no, vio el fallback. Excluir
+        # además por `origen` sería lógica redundante (mutantes equivalentes).
         vistas = set(fuentes_usadas)
         alternativas = [s for s in context.sources
-                        if s.get("url") and s.get("url") != origen
-                        and s.get("url") not in vistas]
+                        if s.get("url") and s.get("url") not in vistas]
         if not alternativas:
             context.add_decision("independent_verification", "skip",
                                  "Sin fuentes alternativas para verificar el claim")

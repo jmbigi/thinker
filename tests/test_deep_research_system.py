@@ -1319,6 +1319,24 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 1)
         self.assertEqual(ctx.decision_log[-1]["decision"], "skip")
 
+    def test_evaluacion_no_parseable_devuelve_forma_exacta(self):
+        # El dict de respaldo lo consumen el informe y los consumidores JSON:
+        # sus claves y valores son contrato, no detalle interno.
+        llm = self._llm(["no json"])
+        ctx = self._contexto()
+
+        evaluacion, fuentes = EvidenceEvaluator(llm)._evaluar(
+            ctx, {"claim": "c", "source_url": "u0"})
+
+        self.assertEqual(evaluacion, {
+            "verdict": "not_addressed", "credibility": 0.0, "confidence": 0.0,
+            "reasoning": "Failed to parse evaluation", "claim": "c",
+            "source_url": "u0",
+            "evaluated_at": evaluacion["evaluated_at"]})
+        self.assertIsInstance(evaluacion["evaluated_at"], float)
+        self.assertEqual(ctx.evaluations, [evaluacion])
+        self.assertEqual(fuentes, ["u0"])
+
     def test_registra_la_decision_de_verificacion(self):
         llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
                          '{"verdict": "contradicted", "credibility": 0.2}'])

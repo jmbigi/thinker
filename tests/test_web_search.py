@@ -124,6 +124,14 @@ class TestEsHostPublico(unittest.TestCase):
     def test_ip_multicast_se_rechaza(self):
         self.assertIs(_es_host_publico("224.0.0.1"), False)
 
+    def test_ip_publica_se_acepta(self):
+        self.assertIs(_es_host_publico("8.8.8.8"), True)
+        self.assertIs(_es_host_publico("1.1.1.1"), True)
+
+    def test_host_vacio_se_rechaza(self):
+        self.assertIs(_es_host_publico(""), False)
+        self.assertIs(_es_host_publico("."), False)
+
     def test_sin_inet_aton_rechaza_notaciones_numericas(self):
         """Plataformas sin `socket.inet_aton` (WASI/Emscripten): la política
         conservadora rechaza lo que parece IP numérica/hex y acepta nombres
