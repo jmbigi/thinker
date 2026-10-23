@@ -28,6 +28,9 @@ done
 echo "[ci] preflight"
 python3 scripts/preflight.py
 
+echo "[ci] docs-check"
+python3 scripts/check_docs.py
+
 echo "[ci] unittest (copia limpia, sin red)"
 python3 -m unittest discover -s tests -q
 

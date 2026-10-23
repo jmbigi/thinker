@@ -9,8 +9,6 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
-install_check.json
-install_result.json
 test_openrouter_result.txt
 test_ollama_result.txt
 test_results.txt

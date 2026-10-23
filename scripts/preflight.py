@@ -6,7 +6,10 @@ Comprueba, con AST y sin ejecutar el código analizado:
 1. **sintaxis**: todos los ``*.py`` parsean.
 2. **imports**: cada import de terceros está declarado en el manifiesto
    (``requirements.txt``/``pyproject.toml``); stdlib y módulos locales no
-   necesitan declaración.
+   necesitan declaración. Exenciones (no se exigen en el manifiesto): imports
+   bajo ``TYPE_CHECKING`` o ``if __name__ == "__main__"``, imports dentro de
+   ``try/except ImportError`` (dependencia opcional) e imports bajo flags
+   ``has_*`` (opcional ya detectada en tiempo de ejecución).
 3. **silencios**: ``except`` cuyo cuerpo es solo ``pass``, ``continue`` o
    ``...`` (P1.26).
 4. **duplicados**: cuerpos de función idénticos y sustanciales (>= 60 nodos

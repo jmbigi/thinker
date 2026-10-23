@@ -271,10 +271,21 @@ def _es_lock(archivo: Path) -> bool:
     if archivo.name.lower() in LOCKS_NOMBRES:
         return True
     # pip-compile deja el lock resuelto en requirements/*.txt. Los .in son
-    # entradas sin resolver y no cuentan como lock.
-    return archivo.parent.name.lower() == "requirements" \
-        and archivo.suffix.lower() == ".txt" \
-        and not archivo.name.lower().endswith(".in")
+    # entradas sin resolver y no cuentan como lock. Un requirements/*.txt con
+    # líneas sin fijar (`requests>=2.0`) TAMPOCO es un lock: tratarlo como tal
+    # afirmaba reproducibilidad falsa (P0.1). Solo cuenta si la mayoría de sus
+    # líneas de requisitos están fijadas (`==` o `--hash=`).
+    if archivo.parent.name.lower() != "requirements" \
+            or archivo.suffix.lower() != ".txt" \
+            or archivo.name.lower().endswith(".in"):
+        return False
+    requisitos = [linea for linea in
+                  (ln.split("#", 1)[0].strip() for ln in leer(archivo).splitlines())
+                  if linea and not linea.startswith("-")]
+    if not requisitos:
+        return False
+    fijadas = sum(1 for linea in requisitos if "==" in linea or "--hash=" in linea)
+    return fijadas * 2 > len(requisitos)
 
 
 def _modulos_propios(ruta: Path, py: List[Path]) -> Set[str]:
@@ -375,7 +386,7 @@ def _try_contiene_imports(nodo: ast.Try) -> bool:
                for item in nodo.body for sub in ast.walk(item))
 
 
-def lineas_silenciosas(texto: str) -> List[int]:
+def lineas_silenciosas(arbol: ast.AST) -> List[int]:
     """Líneas de ``except`` que silencian, con dos exclusiones honestas.
 
     - Los tests no se analizan en c3 (el llamador filtra): silenciar allí suele
@@ -383,24 +394,11 @@ def lineas_silenciosas(texto: str) -> List[int]:
     - Un ``try: import x except ImportError: pass`` es un import OPCIONAL, no
       un error tragado: se excluye. El resto de ``except: pass/continue`` sigue
       siendo un hallazgo (P1.26).
+
+    Recibe el árbol ya parseado: el único llamador (c3) parsea cada archivo
+    una vez para su check de sintaxis y reutiliza ese árbol (los archivos con
+    ``SyntaxError`` se declaran aparte y no llegan aquí).
     """
-    try:
-        arbol = ast.parse(texto)
-    except SyntaxError:
-        # Sin AST no se inventa: se conserva el detector de líneas, que puede
-        # dar un aviso conservador, y el llamador declara el error de sintaxis.
-        lineas = texto.splitlines()
-        sospechosas = []
-        for i, linea in enumerate(lineas):
-            if not re.match(r"\s*except\b", linea):
-                continue
-            for siguiente in lineas[i + 1:i + 4]:
-                if not siguiente.strip():
-                    continue
-                if re.match(r"\s*(pass|continue|break)\s*$", siguiente):
-                    sospechosas.append(i + 1)
-                break
-        return sospechosas
     padres = {hijo: padre for padre in ast.walk(arbol)
               for hijo in ast.iter_child_nodes(padre)}
     sospechosas = []
@@ -646,14 +644,21 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
     # Python declarado o la convención de tests/ en vez de fallar con
     # FileNotFoundError.
 
+    # La coincidencia se ancla al inicio del comando (inicio de línea o tras
+    # backtick, con `\b` implícito en cada token) y la captura se limita a
+    # tokens del comando: sin ese ancla, "django test runner" producía el
+    # comando basura ['go', 'test', 'runner', 'o', 'detox.'] y "detox en iOS"
+    # producía ['tox', 'en', 'iOS.'].
+    token = r"[\w./:=+@*-]+"
     patrones = (
-        r"(python3? -m (?:unittest|pytest)[^\n`]*)",
-        r"(npm (?:run )?test[^\n`]*)",
-        r"((?:\./)?gradlew? test[^\n`]*)",
-        r"(mvn(?:w)? test[^\n`]*)",
-        r"(go test[^\n`]*)",
-        r"(cargo test[^\n`]*)",
-        r"(tox[^\n`]*)",
+        rf"(python3? -m (?:unittest|pytest)(?:\s+{token})*)",
+        rf"(pytest(?:\s+{token})*)",
+        rf"(npm (?:run )?test(?:\s+{token})*)",
+        rf"((?:\./)?gradlew? test(?:\s+{token})*)",
+        rf"(mvn(?:w)? test(?:\s+{token})*)",
+        rf"(go test(?:\s+{token})*)",
+        rf"(cargo test(?:\s+{token})*)",
+        rf"(tox(?:\s+{token})*)",
     )
     for candidato in list((ruta / "scripts").glob("*.sh")) + [
             ruta / "README.md", ruta / "AGENTS.md", ruta / "README.rst"]:
@@ -661,7 +666,7 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
             continue
         texto = leer(candidato)
         for patron in patrones:
-            m = re.search(patron, texto)
+            m = re.search(r"(?:^|(?<=`))[ \t]*" + patron, texto, re.M)
             if m:
                 comando = m.group(1).split()
                 if comando[0] in ("python", "python3"):
@@ -822,12 +827,12 @@ def evaluar_calidad(ruta: Path, perfil: Perfil,
         con_error = []
         for p in perfil.codigo_paquete:
             try:
-                ast.parse(leer(p), filename=str(p))
+                arbol = ast.parse(leer(p), filename=str(p))
             except SyntaxError as exc:
                 con_error.append(f"{p.relative_to(ruta).as_posix()}:"
                                  f"{exc.lineno or 0}")
                 continue
-            for linea in lineas_silenciosas(leer(p)):
+            for linea in lineas_silenciosas(arbol):
                 silencios.append(f"{p.relative_to(ruta).as_posix()}:{linea}")
         dim.criterios["c3_sin_silencios"] = not silencios
         dim.notas.append(f"c3 sobre {len(perfil.codigo_paquete)} archivos de "
@@ -1035,10 +1040,14 @@ def _dependencias_pyproject(texto: str,
                 if str(nombre).lower() == "python":
                     continue
                 if isinstance(especificacion, str):
-                    _agregar_items(deps, [f"{nombre}{especificacion}"], origen, "runtime")
+                    _agregar_items(deps, [_requisito_poetry(str(nombre),
+                                                            especificacion)],
+                                   origen, "runtime")
                 elif isinstance(especificacion, dict):
                     version = especificacion.get("version", "")
-                    _agregar_items(deps, [f"{nombre}{version}"], origen, "runtime")
+                    _agregar_items(deps, [_requisito_poetry(str(nombre),
+                                                            str(version))],
+                                   origen, "runtime")
         grupos_poesia = poesia.get("group")
         if isinstance(grupos_poesia, dict):
             for grupo, contenido in grupos_poesia.items():
@@ -1050,13 +1059,28 @@ def _dependencias_pyproject(texto: str,
                 for dep_nombre, especificacion in \
                         (contenido.get("dependencies") or {}).items():
                     if isinstance(especificacion, str):
-                        _agregar_items(deps, [f"{dep_nombre}{especificacion}"],
-                                       origen, ambito)
+                        _agregar_items(deps, [_requisito_poetry(
+                            str(dep_nombre), especificacion)], origen, ambito)
                     elif isinstance(especificacion, dict):
-                        _agregar_items(deps, [f"{dep_nombre}"
-                                              f"{especificacion.get('version', '')}"],
-                                       origen, ambito)
+                        _agregar_items(deps, [_requisito_poetry(
+                            str(dep_nombre),
+                            str(especificacion.get("version", "")))],
+                            origen, ambito)
     return deps
+
+
+def _requisito_poetry(nombre: str, version: str) -> str:
+    """Línea PEP 508 aproximada desde una especificación Poetry.
+
+    Poetry admite la versión exacta a secas (``requests = "2.28.0"``); si se
+    concatenaba tal cual, ``_REQUISITO`` absorbía los dígitos en el nombre e
+    inventaba el paquete ``requests2.28.0`` (P0.2), que con red se consultaba
+    en PyPI. Sin operador conocido al inicio (``^``, ``~``, ``>``, ``<``,
+    ``=``, ``!``) se trata como versión exacta (``==``).
+    """
+    if version and not version.startswith(("^", "~", ">", "<", "=", "!")):
+        version = f"=={version}"
+    return f"{nombre}{version}"
 
 
 def _dependencias_setup_cfg(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
@@ -1391,18 +1415,26 @@ LICENCIAS_LIBRES = ("mit", "bsd", "apache", "gpl", "lgpl", "mpl", "isc",
                     "psf-2.0", "python-2.0", "cc0-1.0", "0bsd")
 
 
-def _es_licencia_libre(texto: str) -> bool:
+def _es_licencia_libre(texto: str) -> Optional[bool]:
     """Decide licencias libres por texto/expresión SPDX, sin inventar.
 
     PEP 639 hizo que PyPI publique ``license_expression``; los clasificadores
     OSI siguen existiendo pero ya no deben añadirse nuevos. Se aceptan ambos.
+
+    Una expresión mixta que combina licencias libres conocidas con
+    ``LicenseRef-`` (p. ej. ``MIT AND LicenseRef-X``) NO es «no libre»: la
+    parte conocida es libre pero la referencia no se puede verificar, así que
+    se devuelve ``None`` (no verificable), como manda licencia_pypi.
     """
     normalizado = (texto or "").lower()
     if not normalizado or "unknown" in normalizado:
         return False
-    if "proprietary" in normalizado or "licenseref-" in normalizado:
+    if "proprietary" in normalizado:
         return False
-    return any(marca in normalizado for marca in LICENCIAS_LIBRES)
+    libre_conocida = any(marca in normalizado for marca in LICENCIAS_LIBRES)
+    if "licenseref-" in normalizado:
+        return None if libre_conocida else False
+    return libre_conocida
 
 
 def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
@@ -1669,8 +1701,10 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
     dim.criterios["e3_mediciones_documentadas"] = mediciones
     if not mediciones:
         dim.hallazgos.append(Hallazgo(
-            "baja", "Sin mediciones reales (tiempo/RAM) en docs/",
-            "docs/*.md|*.rst", criterio="e3_mediciones_documentadas"))
+            "baja", "Sin mediciones reales (tiempo/RAM) en la documentación "
+                    "(*.md/*.rst) del repositorio",
+            "*.md|*.rst del repositorio",
+            criterio="e3_mediciones_documentadas"))
 
     dim.notas.append("sin medición en vivo: no se ejecuta código del proyecto "
                      "evaluado (P0.8)")

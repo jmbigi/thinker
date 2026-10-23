@@ -378,6 +378,55 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         self.assertTrue(informe["dimensiones"]["vigencia"]
                         ["criterios"]["v4_dependencias_al_dia"])
 
+    def test_poetry_version_exacta_no_inventa_paquete(self):
+        """Poetry admite `requests = "2.28.0"` (versión exacta a secas):
+        concatenarla tal cual creaba el paquete ficticio `requests2.28.0`
+        (P0.2), que con red se habría consultado en PyPI."""
+        from evaluar_proyecto import _dependencias
+
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                "[tool.poetry]\n"
+                "name = 'x'\n\n"
+                "[tool.poetry.dependencies]\n"
+                "python = '^3.11'\n"
+                "requests = '2.28.0'\n"
+                "click = '^8.1'\n"
+                "rich = '~13.7'\n\n"
+                "[tool.poetry.group.dev.dependencies]\n"
+                "pytest = '8.0.0'\n"),
+        })
+
+        deps = {d["nombre"]: d for d in _dependencias(raiz)}
+
+        self.assertNotIn("requests2.28.0", deps)
+        self.assertEqual((deps["requests"]["operador"], deps["requests"]["version"]),
+                         ("==", "2.28.0"))
+        self.assertTrue(deps["requests"]["fijada"])
+        self.assertEqual(deps["click"]["nombre"], "click")
+        self.assertEqual(deps["rich"]["nombre"], "rich")
+        self.assertEqual((deps["pytest"]["operador"], deps["pytest"]["version"]),
+                         ("==", "8.0.0"))
+        self.assertNotIn("python", deps)
+
+    def test_requirements_txt_solo_es_lock_si_esta_fijado(self):
+        """Un requirements/*.txt con líneas sin fijar (`requests>=2.0`) NO es
+        un lock: tratarlo como tal afirmaba reproducibilidad falsa (P0.1).
+        Solo cuenta si la mayoría de requisitos tienen `==` o `--hash=`."""
+        from evaluar_proyecto import _es_lock
+
+        raiz = crear_proyecto(self, {
+            "requirements/fijado.txt": ("requests==2.31.0 \\\n"
+                                        "    --hash=sha256:aaaa\n"
+                                        "click==8.1.7\n"),
+            "requirements/sin_fijar.txt": "requests>=2.0\nclick\n",
+            "requirements/a_medias.txt": "requests==2.31.0\nclick\n",
+        })
+
+        self.assertTrue(_es_lock(raiz / "requirements" / "fijado.txt"))
+        self.assertFalse(_es_lock(raiz / "requirements" / "sin_fijar.txt"))
+        self.assertFalse(_es_lock(raiz / "requirements" / "a_medias.txt"))
+
 
 class TestCriteriosAnadidos(unittest.TestCase):
     """h6 (imports declarados), c5 (tests con aserciones) y h7 (decisiones)."""
@@ -530,6 +579,36 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
 
         self.assertEqual(deteccion["comando"], ["make", "test"])
         self.assertIn("Makefile", deteccion["origen"])
+
+    def test_prosa_con_nombres_de_runners_no_es_comando(self):
+        """Regresión (auditoría 2026-10-23): "django test runner" producía el
+        comando basura ['go','test','runner','o','detox.'] y "detox en iOS"
+        producía ['tox','en','iOS.']. La prosa NO es un comando declarado."""
+        raiz = crear_proyecto(self, {
+            "README.md": ("Este proyecto usa el django test runner o detox.\n"
+                          "Para dispositivos: detox en iOS.\n"),
+        })
+
+        self.assertIsNone(detectar_comando_tests(raiz))
+
+    def test_comandos_validos_en_readme_siguen_detectandose(self):
+        raiz = crear_proyecto(self, {
+            "README.md": "Ejecuta las pruebas:\n\n    go test ./...\n",
+        })
+
+        deteccion = detectar_comando_tests(raiz)
+
+        self.assertEqual(deteccion["comando"], ["go", "test", "./..."])
+        self.assertEqual(deteccion["origen"], "README.md")
+
+    def test_pytest_declarado_en_readme_se_detecta(self):
+        raiz = crear_proyecto(self, {
+            "README.md": "Tests: `pytest -q`\n",
+        })
+
+        deteccion = detectar_comando_tests(raiz)
+
+        self.assertEqual(deteccion["comando"], ["pytest", "-q"])
 
     def test_sin_make_usa_el_runner_python_disponible(self):
         raiz = crear_proyecto(self, {
@@ -706,6 +785,18 @@ class TestMejorasV2(unittest.TestCase):
             info = licencia_pypi("x")
 
         self.assertIsNone(info["libre"])
+
+    def test_licencia_spdx_mixta_con_licenseref_es_no_verificable(self):
+        """`MIT AND LicenseRef-X` mezcla una licencia libre conocida con una
+        referencia no verificable: no es «no libre», es None (antes se
+        clasificaba entera como no libre)."""
+        from evaluar_proyecto import _es_licencia_libre
+
+        self.assertIsNone(_es_licencia_libre("MIT AND LicenseRef-X"))
+        self.assertIsNone(_es_licencia_libre("Apache-2.0 OR LicenseRef-Prop"))
+        self.assertFalse(_es_licencia_libre("LicenseRef-X"))
+        self.assertFalse(_es_licencia_libre("Proprietary"))
+        self.assertTrue(_es_licencia_libre("MIT OR Apache-2.0"))
 
     def test_c5_no_marca_endpoint_anidado_ni_helper(self):
         raiz = crear_proyecto(self, {

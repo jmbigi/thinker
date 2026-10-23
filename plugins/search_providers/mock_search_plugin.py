@@ -4,11 +4,26 @@ Mock Search Provider Plugin.
 Provides deterministic offline search results for testing and demos.
 """
 
-import time
 from typing import Any, Dict, List
 
 from plugins.interfaces import SearchProviderPlugin, PluginMetadata, PluginType
 from plugins.registry import plugin_registry
+
+
+class _BusquedaSimulada:
+    """Fuente de búsqueda simulada (offline, determinista) con la forma de
+    `SearchAPI`: el método `search` común de `SearchProviderPlugin` delega en
+    ella, igual que los plugins reales delegan en su API de `web_search`.
+    """
+
+    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        return [{
+            "title": f"Mock Result {i + 1} for: {query[:50]}",
+            "url": f"https://example.com/mock-result-{i + 1}",
+            "snippet": f"This is a simulated search result for query: {query}. "
+                       f"Result number {i + 1} contains relevant information about the topic.",
+            "source": "MockSearchAPI",
+        } for i in range(max_results)]
 
 
 class MockSearchPlugin(SearchProviderPlugin):
@@ -22,33 +37,25 @@ class MockSearchPlugin(SearchProviderPlugin):
             description="Deterministic offline search for testing and demos",
             author="Deep Research System",
             dependencies=[],
-            config_schema={},
+            config_schema={
+                "type": "object",
+                "properties": {
+                    "max_results": {"type": "integer", "default": 5},
+                },
+            },
         )
 
     def initialize(self) -> bool:
+        # `params.max_results` es el límite por defecto del plugin; un
+        # `max_results` explícito en `search()` tiene prioridad (contrato
+        # común de `SearchProviderPlugin`).
+        self._max_results = int(self.config.params.get("max_results", 5))
+        self._search = _BusquedaSimulada()
         self._initialized = True
         return True
 
     def shutdown(self) -> None:
         self._initialized = False
-
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
-        if not self._initialized:
-            raise RuntimeError("Plugin not initialized")
-        self.metadata.usage_count += 1
-        self.metadata.last_used = time.time()
-        
-        # Return deterministic mock results
-        results = []
-        for i in range(min(max_results, 3)):
-            results.append({
-                "title": f"Mock Result {i+1} for: {query[:50]}",
-                "url": f"https://example.com/mock-result-{i+1}",
-                "snippet": f"This is a simulated search result for query: {query}. "
-                           f"Result number {i+1} contains relevant information about the topic.",
-                "source": "MockSearchAPI",
-            })
-        return results
 
     def get_source_name(self) -> str:
         return "MockSearchAPI"

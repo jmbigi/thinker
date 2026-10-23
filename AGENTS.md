@@ -95,6 +95,11 @@ mejora de código (`code_design_improvement_tools.py`).
   read-only) — gates de imports declarados, silencios (`except: pass`),
   duplicados sustanciales y tareas asyncio sin referencia; integrado en
   `make check`, en el hook pre-commit y en `make ci`.
+- Gate documental: `python3 scripts/check_docs.py` (offline, read-only) —
+  contrasta las cifras de estado presente (nº de tests en `AGENTS.md` y
+  `docs/EVALUACIONES.md`, pines de `requirements.txt` vs lock y versión del
+  paquete vs `docs/PUBLICACION.md`) con la realidad; integrado en
+  `make check` y en el hook pre-commit. Los históricos fechados no se tocan.
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
 - Cobertura: `python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m coverage report -m`
   (como módulo, no el binario suelto del PATH: en esta máquina el `coverage`
@@ -182,17 +187,19 @@ mejora de código (`code_design_improvement_tools.py`).
   muertas eliminadas) y la mutación global es 94,7% (3581/3780; 199
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-21 tras el
   arreglo de `max_nesting` del Hallazgo 86).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**747/747 en ambos**;
-  3.12.3 en venv aislado creado desde `requirements.lock` el 2026-10-21,
-  con openai 3.35.1); y **Windows 11** con Python **3.12.7** (openai 3.37.0)
-  y **3.14.3** (openai 1.109.1), **750/750 en ambos** (2026-10-22; incluye
+- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**775/775 en
+  ambos**, 2026-10-23; 3.12.3 en venv aislado recreado desde
+  `requirements.lock`, con openai 3.37.0); y **Windows 11** con Python
+  **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750 en
+  ambos** (2026-10-22; incluye
   instalación limpia con `pip install .` y desde el lock). openai verificado
   en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0 con
   hashes desde 2026-10-22). La suite del evaluador creció de 41 a 58 tests con las
-  regresiones del audit (Hallazgo 94) y a 60 con las regresiones de
-  `_local_debug` y del runner sin `make` (Hallazgo 96).
+  regresiones del audit (Hallazgo 94), a 60 con las regresiones de
+  `_local_debug` y del runner sin `make` (Hallazgo 96) y a 66 con las
+  regresiones del Hallazgo 97.
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
-  + py_compile + preflight + tests). Instalación: `make hook`.
+  + py_compile + preflight + docs-check + tests). Instalación: `make hook`.
 - Cadena de suministro: `make lock` (versiones+hashes), `make sbom`,
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.

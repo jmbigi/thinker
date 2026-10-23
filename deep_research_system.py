@@ -358,10 +358,11 @@ Return ONLY JSON (no markdown fences, no extra text):
 {{"verdict": "supported|contradicted|not_addressed", "credibility": 0-1, "confidence": 0-1, "reasoning": "..."}}"""
 
     def decide(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
-        evaluation = self._evaluar(context, claim)
+        evaluation, fuentes_usadas = self._evaluar(context, claim)
         if self.verificacion_independiente:
             evaluation["verificacion_independiente"] = self._evaluar_independiente(
-                context, claim, evaluation.get("verdict", "not_addressed"))
+                context, claim, evaluation.get("verdict", "not_addressed"),
+                fuentes_usadas)
         return evaluation
 
     @staticmethod
@@ -389,14 +390,25 @@ Return ONLY JSON (no markdown fences, no extra text):
         return (self.llm_verificador is not None
                 and self.llm_verificador is not self.llm_provider)
 
-    def _evaluar(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
+    def _evaluar(self, context: ResearchContext, claim: Dict[str, Any]
+                 ) -> Tuple[Dict[str, Any], List[str]]:
+        # Origen verificado por el pipeline (`source_id` lo fija el extractor
+        # con la URL real de la fuente); `source_url` es solo lo que dijo el
+        # modelo y puede faltar, dejando el claim sin su fuente. Mismo criterio
+        # que la pasada independiente.
+        origen = claim.get("source_id") or claim.get("source_url")
         relevant_sources = [
             s for s in context.sources
-            if s.get("url") == claim.get("source_url")
+            if s.get("url") == origen
         ]
 
         if not relevant_sources:
             relevant_sources = context.sources[:3]
+        # Se devuelven las fuentes vistas por esta pasada para que la
+        # verificación independiente no las repita: si el origen no casó y se
+        # cayó al fallback, volver a enseñar las mismas fuentes convertiría
+        # CoVe en una comprobación circular.
+        fuentes_usadas = [s.get("url") for s in relevant_sources if s.get("url")]
 
         response = self.llm_provider.generate(
             self._prompt_evaluacion(claim, relevant_sources))
@@ -420,7 +432,7 @@ Return ONLY JSON (no markdown fences, no extra text):
             if self.muestras_consenso > 1:
                 self._consolidar_consenso(context, evaluation, claim,
                                           relevant_sources)
-            return evaluation
+            return evaluation, fuentes_usadas
         except (json.JSONDecodeError, TypeError):
             eval_result = {
                 "verdict": "not_addressed",
@@ -435,7 +447,7 @@ Return ONLY JSON (no markdown fences, no extra text):
             if self.muestras_consenso > 1:
                 self._consolidar_consenso(context, eval_result, claim,
                                           relevant_sources)
-            return eval_result
+            return eval_result, fuentes_usadas
 
     def _consolidar_consenso(self, context: ResearchContext,
                              evaluation: Dict[str, Any],
@@ -479,20 +491,27 @@ Return ONLY JSON (no markdown fences, no extra text):
                 f"coinciden: {veredictos[0]}")
 
     def _evaluar_independiente(self, context: ResearchContext, claim: Dict[str, Any],
-                               verdict_principal: str) -> Optional[Dict[str, Any]]:
+                               verdict_principal: str,
+                               fuentes_usadas: Tuple[str, ...] = ()
+                               ) -> Optional[Dict[str, Any]]:
         """Segunda pasada CoVe contra fuentes que NO originaron el claim.
 
-        Devuelve `None` (y lo registra) si no hay fuentes alternativas: no se
-        inventa una verificación sin evidencia distinta que mirar. La pasada
-        usa el verificador separado si lo hay y declara la independencia real
-        ("proveedor-distinto" | "mismo-proveedor").
+        Excluye también las fuentes que ya vio la pasada principal
+        (`fuentes_usadas`): si el origen no casó y aquella cayó al fallback
+        `sources[:3]`, repetirlas aquí haría circular la verificación, justo lo
+        que CoVe debe evitar. Devuelve `None` (y lo registra) si no hay fuentes
+        alternativas: no se inventa una verificación sin evidencia distinta que
+        mirar. La pasada usa el verificador separado si lo hay y declara la
+        independencia real ("proveedor-distinto" | "mismo-proveedor").
         """
         # Origen verificado por el pipeline (`source_id` lo fija el extractor
         # con la URL real de la fuente); `source_url` es solo lo que dijo el
         # modelo y puede faltar o venir mal, re-incluyendo la fuente original.
         origen = claim.get("source_id") or claim.get("source_url")
+        vistas = set(fuentes_usadas)
         alternativas = [s for s in context.sources
-                        if s.get("url") and s.get("url") != origen]
+                        if s.get("url") and s.get("url") != origen
+                        and s.get("url") not in vistas]
         if not alternativas:
             context.add_decision("independent_verification", "skip",
                                  "Sin fuentes alternativas para verificar el claim")

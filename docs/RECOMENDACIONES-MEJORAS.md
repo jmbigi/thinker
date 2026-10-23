@@ -1,7 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22. **Base:** commit `7152838` (estado previo a la revisión
-Windows y al cierre de R1).
+**Fecha:** 2026-10-22, actualizado el **2026-10-23**. **Base:** commit `19dbbd2`
+más los arreglos de la auditoría del Hallazgo 97 (sin publicar).
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -12,35 +12,38 @@ pendiente.
 | Prioridad | Recomendación | Por qué ahora | Esfuerzo | Riesgo |
 |---|---|---|---|---|
 | **Hecho** | R1. [Cerrada 2026-10-22] Actualizar el lock de `openai` y re-verificar la autoevaluación | Lock 3.37.0 con hashes; autoevaluación con red 1.000 | Bajo | Bajo |
-| **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 83% / 87% (84% combinado); hay ramas de error sin prueba | Medio | Bajo |
+| **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
+| **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
+| **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 86% / 87% (86% combinado); quedan ramas de error sin prueba | Medio | Bajo |
 | **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 94,7% no los cubre | Medio-alto | Medio |
-| **P2** | R4. Benchmark reproducible de precisión/recall del evaluador | La evidencia actual es una campaña puntual, no una regresión automática | Medio | Bajo |
+| **P1** | R9. Publicar 0.1.4 | 0.1.3 precede las correcciones del 22–23 oct (evaluador, CoVe) | Medio | Medio |
+| **P2** | R4. Benchmark completo de precisión/recall del evaluador | El corpus cubre regresiones conocidas; falta TP/FP/FN por criterio | Medio | Bajo |
 | **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
 | **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
 | **P2** | R7. Medir calidad de aserciones, no solo tests no-op | `assert True` pasa c5; c5 no mide fuerza de la suite | Medio | Bajo |
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
-| **P3** | R9. Publicar 0.1.4 tras R2–R3 | Hay cambios nuevos en `main` pero el paquete sigue en 0.1.3 | Medio | Medio |
 | **P3** | R10. Reportar licencias de dev/opcionales sin mezclarlas con runtime | h5 solo puntúa runtime; el riesgo de dev no se ve | Bajo | Bajo |
+| **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
 
-**Orden recomendado:** R2 → R4 → R3 → R9; R5, R6, R7 y R10 se
-deciden después de R2–R4. R1 está cerrada (2026-10-22) y R9 es rutina
-verificable; R5 y R6 requieren decisión del programador y no deben hacerse «por
-inercia».
+**Orden recomendado:** R2 → R3 → R9; R4, R5, R6, R7, R10 y R13 se
+deciden después de R2–R3. R1, R8, R11 y R12 están cerradas y R9 es rutina
+verificable; R5, R6 y R13 requieren decisión del programador y no deben hacerse
+«por inercia».
 
 ## 2. Estado medido (evidencia de partida)
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **750/750** en Windows 11 (3.12.7/3.14.3); 747/747 en la última medición Linux (3.11/3.12) | `python3 -m unittest discover -s tests -q` |
-| CI local (última copia limpia) | **OK** | `make ci` sobre `48c5a41`; no repetido en Windows (bash/make no disponibles allí) |
-| Lint / preflight | **0 / 0** | `ruff check .`, `python3 scripts/preflight.py` |
-| Autoevaluación con red | **1.000** (27/27; 28/28 con `--ejecutar-tests`; 2 N/A) | `python3 evaluar_proyecto.py . --json` |
+| Suite completa | **775/775** en Linux 3.11.9 y 3.12.3 (2026-10-23) | `python3 -m unittest discover -s tests -q` |
+| CI local (última copia limpia) | **OK** | `make ci`; verifica el HEAD comiteado |
+| Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
+| Autoevaluación con red | **1.000** (27/29; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --json` |
 | Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
-| Autoevaluación sin red | **1.000** (v4/h5 N/A) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **83%** (188/1136 sentencias sin ejecutar) | comando de la sección 8 |
+| Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
+| Cobertura `evaluar_proyecto.py` | **86%** (164/1145 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **87%** (50/371) | comando de la sección 8 |
 | Mutación global | **94,7%** (3581/3780; histórica) | `make mutation`; **excluye** evaluador y preflight |
-| Paquete publicado | **0.1.3** | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.3** (anterior a las correcciones del 22–23 oct) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
 no está medida con la misma fuerza que el núcleo: cobertura incompleta en ramas
@@ -91,10 +94,12 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 ### R2 — Subir la cobertura del evaluador y preflight (P1, medio)
 
-- **Problema medido:** 83% en `evaluar_proyecto.py` y 87% en
-  `scripts/preflight.py`. Las líneas sin cubrir incluyen ramas de error de
-  PyPI, licencias desconocidas, manifiestos malformados, imports condicionales,
-  `package-lock`, errores de sintaxis y rutas del CLI.
+- **Problema medido (actualizado 2026-10-23):** 86% en `evaluar_proyecto.py`
+  (164/1145 sentencias sin ejecutar) y 87% en `scripts/preflight.py` (50/371).
+  Las líneas sin cubrir incluyen ramas de error de PyPI, licencias
+  desconocidas, manifiestos malformados, imports condicionales,
+  `package-lock`, errores de sintaxis y rutas del CLI. El corpus adversario
+  subió el evaluador de 83% a 86%, pero el objetivo sigue sin alcanzarse.
 - **Acción:** añadir tests honestos para esas ramas; cada test debe fallar con
   el comportamiento anterior. No perseguir el 100% a costa de tests triviales.
   Objetivo inicial: **≥90% en cada archivo** y **≥90% combinado**.
@@ -124,11 +129,16 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Problema medido:** la auditoría de 7 repos y el control de 10 defectos fueron
   una campaña puntual. No hay un arnés que impida volver a introducir falsos
   positivos como los de h6 (853 en FastAPI) o h5 (12/12).
-- **Acción:** convertir el control en un benchmark determinista y offline con
-  etiquetas por criterio y trampas: imports en docs, tests anidados, helpers,
-  tests no-op reales, `license_expression`, imports opcionales, proyectos
-  multilingües y locks. Salida JSON con TP/FP/FN por criterio. Los clones de
-  terceros no se versionan; se usan solo como campaña manual opt-in.
+- **Estado 2026-10-23:** **parcialmente cerrada**. `tests/test_evaluador_corpus.py`
+  convierte en contrato 4 regresiones reales del Hallazgo 97 (Poetry exacta,
+  requirements sueltos como falso lock, prosa de README como runner y comando
+  válido detectado). Falta el benchmark completo con TP/FP/FN por criterio.
+- **Acción (pendiente):** convertir el control en un benchmark determinista y
+  offline con etiquetas por criterio y trampas: imports en docs, tests
+  anidados, helpers, tests no-op reales, `license_expression`, imports
+  opcionales, proyectos multilingües y locks. Salida JSON con TP/FP/FN por
+  criterio. Los clones de terceros no se versionan; se usan solo como campaña
+  manual opt-in.
 - **Criterio de aceptación:** control 10/10; 0 falsos positivos en las trampas
   etiquetadas; resultados reproducibles byte a byte; el benchmark falla si
   reaparece una regresión conocida.
@@ -194,18 +204,19 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   versión.
 - **Riesgo:** bajo.
 
-### R9 — Publicar 0.1.4 tras R2–R3 (P3, medio)
+### R9 — Publicar 0.1.4 (P1 desde 2026-10-23, medio)
 
-- **Problema medido:** `main` tiene cambios desde 0.1.3 (evaluador v2) pero el
-  paquete publicado sigue en 0.1.3. No se debe publicar solo porque hay commits:
-  primero hay que cerrar cobertura/mutación y verificar (el lock ya está
-  cerrado).
+- **Problema medido:** `main` tiene cambios desde 0.1.3 (evaluador v2, lock
+  3.37.0, arreglos del Hallazgo 97 y CoVe del 23-oct) pero el paquete publicado
+  sigue en 0.1.3. Verificado: el tag `v0.1.3` (`8a9d948`) **precede** los
+  arreglos del 22-oct (`b7711ab`), así que `pip install thinker-research==0.1.3`
+  no incluye las correcciones del evaluador ni las de esta auditoría.
 - **Acción:** seguir `docs/PUBLICACION.md`: bump de versión, actualizar README/
   AGENTS, construir, `twine check`, instalar en venv limpio desde el artefacto,
   subir a TestPyPI y PyPI, tag anotado y release por la web (sin `gh`, regla 12).
 - **Criterio de aceptación:** `pip install thinker-research==0.1.4` en venv
-  limpio; `evaluate-project --help` y una evaluación de humo; suite 750/750
-  (Windows 3.12.7/3.14.3; Linux en verde); tag y release verificados.
+  limpio; `evaluate-project --help` y una evaluación de humo; suite 775/775 en
+  Linux (y Windows cuando se re-verifique); tag y release verificados.
 - **Riesgo:** medio; una release no se deshace.
 
 ### R10 — Licencias de dev/opcionales visibles, fuera del score runtime (P3, bajo)
@@ -220,15 +231,69 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   un proyecto con extra no libre.
 - **Riesgo:** bajo.
 
+### R11 — Gate documental (P3, bajo) — CERRADA 2026-10-23
+
+- **Problema medido:** las cifras de estado presente derivaban entre auditorías
+  (`747` con la suite en 750; `25/27` con 4 N/A; `verify_install.py` eliminado
+  pero citado en presente). Detectarlo dependía de una revisión manual.
+- **Acción ejecutada:** `scripts/check_docs.py` (offline, read-only) contrasta
+  el nº de tests declarado en `AGENTS.md` y `docs/EVALUACIONES.md` con el
+  conteo estático por AST, los pines de `requirements.txt` con
+  `requirements.lock` (y los rangos), y la versión de `pyproject.toml` con la
+  publicada en `docs/PUBLICACION.md`. Integrado en `make check` y en el hook
+  pre-commit; 10 tests propios. Códigos 0/1/2 (cuadra/discrepancia/no
+  verificable).
+- **Criterio de aceptación:** [x] falla cuando una cifra no cuadra (validado
+  durante el desarrollo: declaraba 761 y había 774); [x] falla con el motivo y
+  el archivo correctos; [x] no toca históricos fechados.
+- **Riesgo:** bajo; un falso positivo obliga a actualizar la cifra, no a
+  silenciar el gate.
+
+### R12 — Corpus adversario del evaluador (P3, bajo) — CERRADA 2026-10-23
+
+- **Problema medido:** el parser Poetry inventaba paquetes, `_es_lock`
+  aceptaba requirements sueltos y la prosa del README se convertía en comando.
+- **Acción ejecutada:** `tests/test_evaluador_corpus.py` fija 4 contratos
+  offline: versión exacta Poetry sin paquete inventado, requirements sueltos
+  que no cuentan como lock, prosa que no se convierte en runner y comando
+  declarado que sí se detecta. Complementa a R4 (benchmark completo pendiente).
+- **Criterio de aceptación:** [x] cada caso falla con el comportamiento
+  anterior; [x] sin red ni escrituras fuera del temporal.
+- **Riesgo:** bajo.
+
+### R13 — CoVe con descomposición de claims y verificador más barato (P3, medio)
+
+- **Origen:** la literatura 2026 documenta la **asimetría de la verificación**
+  (clasificar es más fácil que generar, así que un verificador más pequeño
+  puede bastar) y la **descomposición de claims** en subpreguntas verificables
+  ([Zylos Research](https://zylos.ai/research/2026-04-10-llm-as-judge-production-agent-verification-2026/),
+  [DeepVerifier, arXiv 2601.15808](https://arxiv.org/pdf/2601.15808)).
+- **Estado actual:** thinker ya ofrece `llm_verificador` separado, declara la
+  independencia real y marca `discrepancia_muestreo`; lo que falta es un
+  ejemplo/helper de verificador barato y la descomposición de claims
+  compuestos.
+- **Acción propuesta (opt-in):** (a) documentar y probar un verificador de
+  modelo más barato en la segunda pasada; (b) descomponer claims con varias
+  afirmaciones en subpreguntas y registrar cada subveredicto; (c) mantener la
+  discrepancia para revisión humana, nunca silenciosa.
+- **Criterio de aceptación:** benchmark offline con `MockLLM` donde un claim
+  compuesto que la pasada monolítica dejaba pasar se detecta al descomponerlo;
+  coste en llamadas declarado; sin red por defecto.
+- **Riesgo:** medio; más llamadas implican más coste y latencia, por eso es
+  opt-in y no un defecto.
+
 ## 5. Orden de trabajo y dependencias
 
 1. **R1** (lock) — desbloquea una autoevaluación 1.000 honesta.
 2. **R2** (cobertura) — asegura que R3 y R4 miden sobre código ejercitado.
-3. **R4** (benchmark) — fija la línea base de precisión/recall.
-4. **R3** (mutación) — mide fuerza real; puede revelar tests débiles de R2.
-5. **R8 (cerrada):** el JSON ya expone `schema_version: 2`.
-6. **R9** (release) — solo con R1–R3 cerrados y CI limpio.
-7. **R5, R6, R7, R10** — decisiones de producto/alcance; no bloquean R1–R4.
+3. **R3** (mutación) — mide fuerza real; puede revelar tests débiles de R2.
+4. **R4** (benchmark completo) — amplía el corpus ya cerrado a TP/FP/FN.
+5. **R8, R11 y R12 (cerradas):** esquema JSON v2, gate documental y corpus
+   adversario ya están en el repositorio con tests.
+6. **R9** (release) — tras R2–R3 y con CI limpio; hoy el paquete publicado
+   (0.1.3) no contiene las correcciones del 22–23 oct.
+7. **R5, R6, R7, R10 y R13** — decisiones de producto/alcance; no bloquean
+   R1–R4.
 
 ## 6. Qué NO hacer
 
@@ -244,6 +309,8 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   métrica se corrige con evidencia, no con un bump.
 - **No** añadir un parser SPDX completo como dependencia sin evaluar licencia,
   mantenimiento y coste; primero medir los casos reales.
+- **No** silenciar el gate documental editando el script: si una cifra no
+  cuadra, se actualiza la cifra o se retira la afirmación (regla propia 11).
 
 ## 7. Decisiones que requieren al programador
 
@@ -252,26 +319,31 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 2. **R6:** ¿c3 estricto o marca `# noqa: silent` con motivo? Recomendación:
    estricto para thinker; la marca solo si un proyecto externo la necesita.
 3. **R9:** ventana de release 0.1.4 y si se publica en TestPyPI antes.
-4. **R1 (cerrada):** se actualizó `openai` a 3.37.0; el canario y la suite
-   pasan.
+4. **R13:** ¿se adopta el verificador barato y la descomposición de claims como
+   piloto opt-in? Recomendación: sí, con benchmark offline y coste declarado;
+   nunca como defecto sin medir el coste en llamadas.
+5. **R1, R8, R11 y R12 (cerradas):** lock 3.37.0, esquema JSON v2, gate
+   documental y corpus adversario; el canario y la suite pasan.
 
 ## 8. Verificación reproducible
 
-Sin red (tests, lint, preflight, autoevaluación offline):
+Sin red (tests, lint, preflight, gate documental, autoevaluación offline):
 
 ```bash
 python3 -m unittest discover -s tests -q
 ruff check .
 python3 scripts/preflight.py
+python3 scripts/check_docs.py
 python3 evaluar_proyecto.py . --sin-red --json
 make ci                 # exporta HEAD a una copia limpia
 ```
 
-Cobertura de evaluador/preflight:
+Cobertura de evaluador/preflight/corpus:
 
 ```bash
 COVERAGE_FILE=/tmp/coverage-eval \
-  python3 -m coverage run --source=. -m unittest tests.test_evaluar_proyecto tests.test_preflight
+  python3 -m coverage run --source=. -m unittest \
+    tests.test_evaluar_proyecto tests.test_preflight tests.test_evaluador_corpus
 COVERAGE_FILE=/tmp/coverage-eval \
   python3 -m coverage report -m evaluar_proyecto.py scripts/preflight.py
 ```

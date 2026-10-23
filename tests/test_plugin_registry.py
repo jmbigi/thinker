@@ -367,6 +367,22 @@ class TestPluginsRealesOffline(unittest.TestCase):
         self.assertEqual(len(resultados), 2)
         self.assertIn("url", resultados[0])
 
+    def test_mock_search_respeta_params_max_results(self):
+        """El mock sigue el contrato común de SearchProviderPlugin:
+        `params.max_results` fija el límite por defecto (antes lo ignoraba y,
+        con params max_results=2, devolvía 3 resultados)."""
+        from plugins.search_providers.mock_search_plugin import MockSearchPlugin
+
+        plugin = MockSearchPlugin(PluginConfig(params={"max_results": 2}))
+        self.assertTrue(plugin.initialize())
+
+        self.assertEqual(len(plugin.search("consulta")), 2)
+        self.assertEqual(len(plugin.search("consulta", max_results=4)), 4)
+
+        por_defecto = MockSearchPlugin()
+        self.assertTrue(por_defecto.initialize())
+        self.assertEqual(len(por_defecto.search("consulta")), 5)
+
     def test_load_all_sin_config_carga_los_simulados(self):
         registry = self.make_registry()
         registry.discover_plugins()

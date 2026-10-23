@@ -22,6 +22,9 @@ done
 echo "[pre-commit] preflight"
 python3 scripts/preflight.py
 
+echo "[pre-commit] docs-check"
+python3 scripts/check_docs.py
+
 echo "[pre-commit] unittest"
 if [ -d tests ]; then
     python3 -m unittest discover -s tests -q

@@ -93,6 +93,12 @@ def _es_host_publico(netloc: str) -> bool:
 
     Rechaza localhost y rangos privados (SSRF básico): coherente con la
     promesa de `DuckDuckGoSearchAPI` ("sólo hosts públicos", P0.13).
+
+    Degradación declarada: en plataformas sin `socket.inet_aton`
+    (WASI/Emscripten) no se pueden normalizar las notaciones alternativas de
+    IPv4, así que la política es conservadora: se rechaza todo host que
+    parezca una IP numérica/hex (`127.1`, `0x7f000001`, `2130706433`) y se
+    aceptan solo nombres DNS inequívocos.
     """
     host = urlparse(f"//{netloc}").hostname
     if not host:
@@ -112,7 +118,11 @@ def _es_host_publico(netloc: str) -> bool:
         # las normaliza; si no es una IP, es un nombre DNS y se acepta.
         inet_aton = getattr(socket, "inet_aton", None)
         if inet_aton is None:
-            return True
+            # Sin `inet_aton` no hay normalización: un host formado solo por
+            # dígitos, puntos y caracteres hex con al menos un dígito o 'x'
+            # puede ser una IP en notación alternativa y se rechaza.
+            return not (re.fullmatch(r"[0-9a-fx.:]+", host)
+                        and re.search(r"[0-9x]", host))
         try:
             ip = ipaddress.ip_address(inet_aton(host))
         except OSError:

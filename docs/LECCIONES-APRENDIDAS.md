@@ -58,8 +58,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Problema**: 5 archivos JSON de estado (`task_status.json`, `verify.json`,
   etc.) con rutas de otro SO y estados "in_progress/pending" obsoletos que
   contradecían la realidad.
-- **Solución**: eliminados (con verificación previa de destino, P1.28). El
-  estado real lo genera `verify_install.py` bajo demanda en `install_check.json`.
+- **Solución**: eliminados (con verificación previa de destino, P1.28). En
+  aquel momento el estado real lo generaba `verify_install.py` bajo demanda en
+  `install_check.json`; ese script se eliminó el 2026-10-20 y hoy el estado se
+  verifica con la suite de tests y los comandos de `AGENTS.md`.
 
 ---
 
@@ -2063,3 +2065,93 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   exclusión (git, preflight, evaluador) deben mantenerse alineadas o
   centralizarse, porque las copias divergen; toda evidencia con rutas se emite
   en POSIX.
+
+---
+
+## 2026-10-23 (ronda 16) — Auditoría independiente de los commits recientes (hallazgo 97)
+
+### Hallazgo 97: una auditoría externa encontró 19 defectos que la suite no veía
+
+- **Origen**: auditoría de la actividad del 2026-10-16 al 2026-10-22 —
+  **50 commits (`17798f7..HEAD`)**, revisados en dos tramos: 32 en
+  `84cbeac^..HEAD` y los 18 previos de esa sesión en `17798f7..84cbeac`. (El
+  encargo hablaba de 53; el recuento real con `git rev-list --count` es 50.)
+  La hicieron 4 revisores independientes con hallazgos verificados
+  individualmente, más un pase de coherencia docs/config (regla propia 11).
+- **Problema**: 12 defectos de código y 7 de coherencia, todos verificados en
+  el código real antes de tocar nada:
+  1. El parser Poetry concatenaba nombre+versión y lo reparseaba:
+     `requests = "2.28.0"` (sintaxis legal de versión exacta) producía la
+     dependencia ficticia `requests2.28.0` (P0.2), consultable en PyPI con red.
+  2. `_es_lock` trataba cualquier `requirements/*.txt` como lockfile: uno con
+     líneas sin fijar (`requests>=2.0`) afirmaba reproducibilidad falsa.
+  3. `detectar_comando_tests` casaba sin límites de palabra ni ancla: "django
+     test runner" producía el comando basura `['go','test','runner','o',
+     'detox.']` y "detox en iOS" producía `['tox','en','iOS.']`.
+  4. c3 leía y parseaba con `ast` cada archivo de producción dos veces.
+  5. `lineas_silenciosas` tenía una rama fallback regex por `SyntaxError`
+     inalcanzable (su único llamador hace `continue` antes; código muerto).
+  6. El hallazgo e3 decía "en docs/" pero la búsqueda cubre todo el repo.
+  7. `_es_licencia_libre` clasificaba una SPDX mixta (`MIT AND LicenseRef-X`)
+     entera como no libre en vez de no verificable.
+  8. `_evaluar` casaba fuentes por `source_url` (lo que dijo el modelo, puede
+     faltar) mientras la pasada independiente ya casaba por `source_id` (lo
+     fija el pipeline).
+  9. `_es_host_publico` sin `socket.inet_aton` (WASI/Emscripten) dejaba pasar
+     cualquier host como público (degradación silenciosa).
+  10. `MockSearchPlugin` ignoraba el contrato común de `SearchProviderPlugin`:
+      `search(query, max_results=5)` propio con tope fijo de 3 e indiferente a
+      `params.max_results` (con 2 devolvía 3).
+  11. El docstring de `preflight.py` sobreestimaba su gate de imports (omitía
+      las exenciones `TYPE_CHECKING`, `__main__`, `try/except ImportError` y
+      flags `has_*`).
+  12. **CoVe circular** (hallazgo del segundo tramo, introducido en 1198968):
+      si el claim llegaba sin `source_id` y con una `source_url` que no casaba
+      con ninguna fuente, la pasada principal caía a `sources[:3]` y la
+      "independiente" volvía a ver esas mismas fuentes: `contested: False`
+      garantizado, justo lo que CoVe debía evitar.
+  13. Coherencia docs/config: cifra de tests de Linux desactualizada en
+      `AGENTS.md` (747 cuando la suite ya corría 750), recuento de N/A sin red
+      mal en `EVALUACIONES.md` (25/27 con 2 N/A cuando son 25/29 con 4),
+      Hallazgo 6 hablando en presente de `verify_install.py` (eliminado el
+      2026-10-20 en e463aca), entradas huérfanas `install_check.json` e
+      `install_result.json` en `.gitignore`, la semántica `--upgrade` de
+      `make lock` sin documentar, docstring del canario openai con "403/403"
+      y versiones viejas, y notación de rango errónea (`674eb8c..f9b3cc8`
+      excluye el propio 674eb8c) en `docs/ESTADO-2026-10-16.md`.
+- **Solución**: cada arreglo con su test de regresión honesto (11 tests nuevos:
+  Poetry exacta/^/~, lock fijado/sin fijar/a medias, prosa que no es comando,
+  `go test`/`pytest` válidos, SPDX mixta, casado por `source_id`, hosts sin
+  `inet_aton`, `params.max_results` del mock y 2 de CoVe: exclusión de fuentes
+  del fallback y omisión declarada cuando se agotan). c3 parsea una sola vez y
+  `lineas_silenciosas` recibe el árbol (rama muerta eliminada, precedente del
+  Hallazgo 85). La SPDX mixta devuelve `None` (no verificable). El mock migra
+  al patrón común (`self._search` + `self._max_results` en `initialize()`).
+  CoVe pasa a devolver las fuentes vistas por la pasada principal y la
+  independiente las excluye (si no quedan, `skip` registrado). Docs alineados
+  con lo medido hoy. NO se tocó la numeración ni las cifras históricas fechadas.
+- **Evidencia**: suite **775/775** en Linux con Python 3.11.9 y 3.12.3 (venv
+  aislado recreado desde `requirements.lock`, openai 3.37.0); `ruff check .`
+  0 errores; `preflight` 0; demos offline (`deep_research_system`,
+  `pensamiento_layer`, `code_design_improvement_tools`) exit 0;
+  autoevaluación **1.000 con red** (27/29, cobertura 93%, N/A `e1`/`e2`) y
+  **1.000 sin red** (25/29; 4 N/A: `v4`, `h5`, `e1`, `e2`); dependencias
+  runtime ya en la última versión de PyPI (openai 3.37.0, requests 2.34.2,
+  python-dotenv 1.2.4, PyYAML 6.0.3) y `pip-audit` sin vulnerabilidades
+  conocidas.
+- **Regla derivada**: una suite verde y una mutación alta no bastan — la
+  revisión humana independiente sigue encontrando defectos de diseño
+  (inventar datos, falsos positivos de afirmación, degradaciones silenciosas)
+  que los tests no plantean; toda afirmación de estado presente en docs debe
+  re-medirse al tocarla.
+- **Seguimiento 2026-10-23 (misma sesión)**: los dos hallazgos sistémicos se
+  convierten en gates en vez de en promesas. `scripts/check_docs.py` (10 tests)
+  falla si el nº de tests declarado en `AGENTS.md`/`EVALUACIONES.md` no cuadra
+  con el conteo AST, si `requirements.txt` diverge del lock o si la versión de
+  `pyproject.toml` no está publicada; integrado en `make check` y en el hook.
+  `tests/test_evaluador_corpus.py` (4 casos) fija las regresiones del evaluador
+  (Poetry, falso lock, prosa/runner, comando válido). Evidencia final: suite
+  **775/775** en Linux 3.11.9 y 3.12.3, ruff 0, preflight 0, docs-check OK,
+  demos offline exit 0 y autoevaluación 1.000 (con y sin red). Los hallazgos
+  R2 (cobertura ≥90%) y R3 (mutación del evaluador) siguen abiertos en
+  `docs/RECOMENDACIONES-MEJORAS.md`.

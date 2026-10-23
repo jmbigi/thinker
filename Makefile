@@ -1,9 +1,10 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint preflight test coverage secrets lock sbom vuln-scan mutation check ci hook install
+.PHONY: help lint preflight docs-check test coverage secrets lock sbom vuln-scan mutation check ci hook install
 
 help:
 	@echo "make lint        - ruff check ."
 	@echo "make preflight   - gates deterministas (imports, silencios, duplicados, tareas)"
+	@echo "make docs-check  - cifras de estado presente en docs vs realidad"
 	@echo "make test        - suite unittest (stdlib)"
 	@echo "make coverage    - cobertura de los módulos de producción"
 	@echo "make secrets     - escaneo de secretos/datos personales (P0.6/P0.9)"
@@ -22,6 +23,9 @@ lint:
 preflight:
 	python3 scripts/preflight.py
 
+docs-check:
+	python3 scripts/check_docs.py
+
 test:
 	python3 -m unittest discover -s tests -v
 
@@ -33,6 +37,10 @@ secrets:
 	bash scripts/scan-secrets.sh
 
 lock:
+	# --upgrade es deliberado: cada regeneración sube TODAS las dependencias a
+	# la última versión compatible (así se hicieron los bumps de
+	# certifi/openai/requests); sin él, uv conserva los pines del lock
+	# existente y `make lock` parecería actualizar sin hacerlo (Hallazgo 96).
 	uv pip compile --generate-hashes --upgrade requirements.txt -o requirements.lock
 
 sbom:
@@ -48,7 +56,7 @@ mutation:
 ci:
 	bash scripts/ci.sh
 
-check: lint preflight test secrets ci
+check: lint preflight docs-check test secrets ci
 	bash scripts/hooks/pre-commit
 
 hook:

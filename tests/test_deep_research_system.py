@@ -1203,6 +1203,19 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertNotIn("T0", llm.prompts[1])
         self.assertEqual(ev["verificacion_independiente"]["fuentes_alternativas"], 1)
 
+    def test_evaluar_casa_fuente_por_source_id_sin_source_url(self):
+        """La pasada principal casa por `source_id` (lo fija el pipeline),
+        igual que la independiente: un claim sin `source_url` debe encontrar
+        su fuente real en vez de caer en las 3 primeras del contexto."""
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+
+        ev = EvidenceEvaluator(llm).decide(
+            self._contexto(), {"claim": "c", "source_id": "u1"})
+
+        self.assertIn("T1", llm.prompts[0])
+        self.assertNotIn("T0", llm.prompts[0])
+        self.assertEqual(ev["verdict"], "supported")
+
     def test_resultado_y_registro_exactos(self):
         llm = self._llm(['{"verdict": "supported", "credibility": 0.75, '
                          '"confidence": 0.6, "reasoning": "r"}'])
@@ -1273,6 +1286,38 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertEqual(ctx.decision_log[-1]["decision"], "skip")
         self.assertEqual(ctx.decision_log[-1]["rationale"],
                          "Sin fuentes alternativas para verificar el claim")
+
+    def test_fallback_no_repite_fuentes_en_la_verificacion_independiente(self):
+        # Claim sin origen coincidente: la pasada principal usa sources[:3].
+        # La independiente debe excluir esas mismas fuentes (si no, CoVe se
+        # vuelve circular: verificar con lo ya visto).
+        ctx = ResearchContext("q")
+        ctx.sources.extend([{"url": f"u{i}", "title": f"T{i}", "snippet": "s"}
+                            for i in range(4)])
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',
+                         '{"verdict": "supported", "credibility": 0.8}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "nada"})
+
+        self.assertIn("T3", llm.prompts[1])
+        for titulo in ("T0", "T1", "T2"):
+            self.assertNotIn(titulo, llm.prompts[1])
+        self.assertEqual(
+            ev["verificacion_independiente"]["fuentes_alternativas"], 1)
+
+    def test_fallback_agota_fuentes_y_omite_la_independiente(self):
+        ctx = ResearchContext("q")
+        ctx.sources.extend([{"url": f"u{i}", "title": f"T{i}", "snippet": "s"}
+                            for i in range(2)])
+        llm = self._llm(['{"verdict": "supported", "credibility": 0.9}'])
+
+        ev = EvidenceEvaluator(llm, verificacion_independiente=True).decide(
+            ctx, {"claim": "c", "source_url": "nada"})
+
+        self.assertIsNone(ev["verificacion_independiente"])
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertEqual(ctx.decision_log[-1]["decision"], "skip")
 
     def test_registra_la_decision_de_verificacion(self):
         llm = self._llm(['{"verdict": "supported", "credibility": 0.9}',

@@ -1,5 +1,6 @@
 """Tests offline de web_search.py: `requests` mockeado, cero llamadas de red reales."""
 
+import socket
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -122,6 +123,17 @@ class TestEsHostPublico(unittest.TestCase):
 
     def test_ip_multicast_se_rechaza(self):
         self.assertIs(_es_host_publico("224.0.0.1"), False)
+
+    def test_sin_inet_aton_rechaza_notaciones_numericas(self):
+        """Plataformas sin `socket.inet_aton` (WASI/Emscripten): la política
+        conservadora rechaza lo que parece IP numérica/hex y acepta nombres
+        DNS inequívocos (antes TODO host pasaba como público)."""
+        with patch.object(socket, "inet_aton", None):
+            for host in ("127.1", "0x7f000001", "2130706433", "0177.0.0.1"):
+                with self.subTest(host=host):
+                    self.assertIs(_es_host_publico(host), False)
+            self.assertIs(_es_host_publico("example.com"), True)
+            self.assertIs(_es_host_publico("es.wikipedia.org"), True)
 
 
 class TestMockSearchAPI(unittest.TestCase):
