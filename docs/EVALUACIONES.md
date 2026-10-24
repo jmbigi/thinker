@@ -369,3 +369,25 @@ holdout. Reglas y límites: `docs/AUDITORIA-CAMBIOS.md`.
 
 Las recomendaciones abiertas, su prioridad y sus criterios de aceptación están
 en `docs/RECOMENDACIONES-MEJORAS.md`.
+
+**Actualización 2026-10-24 (evaluación integral y dos arreglos — Hallazgo 98)**:
+autoevaluación con red **1.000** (28/30; 93%), `no_verificado` vacío y
+`[UNVERIFIED] 0`; sin red **1.000** (25/29; 4 N/A: `v4`, `h5`, `e1`, `e2`).
+Suite **842/842** en Linux (Python 3.11.9), ruff 0, preflight 0, docs-check OK
+y copia limpia del árbol (HEAD + diff) 842/842. Mutación re-medida: **95,2% (3635/3819; 184
+supervivientes, 0 timeouts, 0 sospechosos, 0 sin ejecutar)**, igual que el
+2026-10-23; los 10 tests nuevos (8 del evaluador, 2 de preflight) están en archivos excluidos de la campaña y los
+módulos mutados no cambiaron. Dos defectos corregidos: (1)
+`--sintesis-llm/--investigar` no cargaba `.env` y fallaba aunque la clave
+estuviera presente; ahora `cargar_entorno_llm()` la carga solo en esos modos y
+falla con un mensaje claro si falta; (2) los criterios N/A se contaban como
+evidencia `[UNVERIFIED]` (1 con todos los criterios en OK); ahora la nota vive
+en `cobertura.nota_no_aplicables` y `no_verificado` queda vacío. Cobertura:
+`evaluar_proyecto.py` **90%** (149/1432 sentencias sin ejecutar; antes 86%),
+`scripts/preflight.py` 91% (35/371), total 83%. Síntesis real con el modelo
+gratuito: 4 propuestas, **0 con respaldo medido** (se declaran juicio, no
+medición) y 3 preguntas abiertas. `test_openrouter_real.py` quedó **no
+concluyente** por 429 repetidos del modelo gratuito y se canceló (no se usa
+como evidencia). Ollama: servidor no disponible, prueba OMITIDA (no
+simulada). R2 sigue abierta: el objetivo ≥90% combinado no se
+alcanza (83%); R3 (mutación del evaluador y de preflight) sigue pendiente.

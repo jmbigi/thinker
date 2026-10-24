@@ -49,6 +49,7 @@ import argparse
 import ast
 import configparser
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -2519,8 +2520,12 @@ def evaluar(ruta: Path, con_red: bool = True,
         no_verificado.append("versiones y licencias de dependencias no "
                              "consultadas (--sin-red)")
     no_aplicables = sum(len(d.no_aplica) for d in dimensiones)
+    nota_no_aplicables = ""
     if no_aplicables:
-        no_verificado.append(
+        # N/A no es "no verificado": es un criterio que el perfil no puede
+        # aplicar. Se declara en cobertura, no se suma a la evidencia no
+        # verificada (antes inflaba [UNVERIFIED] sin ningún fallo real).
+        nota_no_aplicables = (
             f"{no_aplicables} criterios declarados N/A por el perfil: no se "
             "cuentan como fallos (ver cobertura)")
     if not perfil.lenguajes:
@@ -2546,6 +2551,7 @@ def evaluar(ruta: Path, con_red: bool = True,
         "dimensiones_no_aplicables": [d.nombre for d in dimensiones
                                       if d.puntuacion is None],
         "lenguajes": perfil.lenguajes,
+        "nota_no_aplicables": nota_no_aplicables,
     }
     informe = {
         "schema_version": SCHEMA_VERSION,
@@ -2660,8 +2666,23 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
             for fuente in hallazgo.get("fuentes", []):
                 lineas.append(f"    - {fuente['titulo']}: {fuente['url']}")
     lineas.append("")
+    nota_na = cobertura.get("nota_no_aplicables")
+    if nota_na:
+        lineas.append("No aplicable: " + nota_na)
     lineas.append("No verificado: " + "; ".join(informe["no_verificado"]))
     return lineas
+
+
+def cargar_entorno_llm(dotenv_path: Optional[Path] = None) -> None:
+    """Carga `.env` solo para los modos opt-in que llaman a un proveedor real.
+
+    El resto del evaluador sigue siendo offline: no lee `.env` ni toca la red
+    salvo que se pida `--sintesis-llm` o `--investigar`. El parámetro existe
+    para poder probar la carga sin depender del `.env` real del repositorio.
+    """
+    from dotenv import load_dotenv
+
+    load_dotenv(dotenv_path or (Path.cwd() / ".env"))
 
 
 def main(argv: List[str] = None) -> int:
@@ -2699,6 +2720,17 @@ def main(argv: List[str] = None) -> int:
 
     llm = None
     if args.sintesis_llm or args.investigar:
+        try:
+            cargar_entorno_llm()
+        except ImportError:
+            print("ERROR: --sintesis-llm/--investigar requiere python-dotenv "
+                  "para leer .env", file=sys.stderr)
+            return 2
+        if not os.environ.get("OPENROUTER_API_KEY"):
+            print("ERROR: --sintesis-llm/--investigar requiere "
+                  "OPENROUTER_API_KEY (en .env o en el entorno)",
+                  file=sys.stderr)
+            return 2
         from llm_providers import OpenRouterLLM
         llm = OpenRouterLLM(model=args.modelo) if args.modelo else OpenRouterLLM()
 

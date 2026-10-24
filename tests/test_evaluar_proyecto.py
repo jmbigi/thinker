@@ -8,8 +8,10 @@ evaluación es READ-ONLY (no escribe en el proyecto evaluado).
 import contextlib
 import io
 import json
+import os
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -995,6 +997,31 @@ class TestMejorasV2(unittest.TestCase):
         self.assertEqual(h6["datos_medidos"]["hallazgos"], len(h6["evidencia"]))
 
 
+class TestEntornoLLMOptIn(unittest.TestCase):
+    """--sintesis-llm/--investigar cargan .env sin afectar al modo offline."""
+
+    def test_carga_dotenv_desde_la_ruta_indicada(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp) / ".env"
+            ruta.write_text("OPENROUTER_API_KEY=clave-de-prueba\n",
+                            encoding="utf-8")
+            with patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("OPENROUTER_API_KEY", None)
+                evaluar_proyecto.cargar_entorno_llm(ruta)
+                self.assertEqual(os.environ.get("OPENROUTER_API_KEY"),
+                                 "clave-de-prueba")
+
+    def test_sin_key_falla_antes_de_llamar_al_proveedor(self):
+        with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
+                patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}):
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                codigo = main([".", "--sintesis-llm", "--sin-red"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("OPENROUTER_API_KEY", error.getvalue())
+
+
 class TestAutoevaluacionDeThinker(unittest.TestCase):
     """thinker se evalúa a sí mismo (offline): 6 dimensiones y sin sorpresas."""
 
@@ -1039,6 +1066,16 @@ class TestAutoevaluacionDeThinker(unittest.TestCase):
         texto = "\n".join(informe_texto(informe))
         self.assertIn("[VERIFIED-REAL]", texto)
         self.assertIn("[UNVERIFIED]", texto)
+
+    def test_criterios_na_no_se_cuentan_como_no_verificados(self):
+        informe = evaluar(RAIZ_THINKER, con_red=False)
+
+        self.assertIn("N/A", informe["cobertura"]["nota_no_aplicables"])
+        self.assertFalse(any("N/A" in nota for nota in informe["no_verificado"]))
+        self.assertEqual(informe["evidencia"]["unverified"],
+                         len(informe["no_verificado"]))
+        self.assertIn("No aplicable:",
+                      "\n".join(informe_texto(informe)))
 
 
 class TestRequisitos(unittest.TestCase):
@@ -1290,6 +1327,120 @@ class TestRequisitos(unittest.TestCase):
         self.assertEqual(
             requisitos[0].criterio,
             "Con credenciales válidas se crea una sesión y se devuelve 200.")
+
+
+class TestCoberturaDeRamasDelEvaluador(unittest.TestCase):
+    """Ramas de parseo y renderizado que no dependen de red ni del repo."""
+
+    def test_setup_py_lee_runtime_dev_y_extras(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            (ruta / "setup.py").write_text(
+                "from setuptools import setup\n"
+                "setup(install_requires=['requests==2.0'],\n"
+                "      tests_require=['pytest>=7'],\n"
+                "      extras_require={'docs': ['sphinx==7.0']})\n",
+                encoding="utf-8")
+
+            deps = evaluar_proyecto._dependencias_setup_py(
+                ruta / "setup.py", ruta)
+
+        por_nombre = {dep["nombre"]: dep for dep in deps}
+        self.assertEqual(por_nombre["requests"]["ambito"], "runtime")
+        self.assertEqual(por_nombre["pytest"]["ambito"], "dev")
+        self.assertEqual(por_nombre["sphinx"]["ambito"], "opcional")
+
+    def test_versiones_lock_lee_uv_pipfile_package_lock_y_texto(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            (ruta / "uv.lock").write_text(
+                '[[package]]\nname = "requests"\nversion = "2.34.2"\n\n'
+                '[[package]]\nname = "propio"\nversion = "0.1.0"\n'
+                'source = { editable = "." }\n', encoding="utf-8")
+            (ruta / "Pipfile.lock").write_text(json.dumps({
+                "default": {"flask": {"version": "==3.0.0"}},
+                "develop": {"pytest": {"version": "==8.0.0"}},
+            }), encoding="utf-8")
+            (ruta / "package-lock.json").write_text(json.dumps({
+                "packages": {"": {"name": "x"},
+                             "node_modules/react": {"version": "18.2.0"}},
+            }), encoding="utf-8")
+            (ruta / "custom.lock").write_text("numpy==2.0.0\n# comentario\n",
+                                              encoding="utf-8")
+            (ruta / "poetry.lock").write_text("esto no es toml [",
+                                              encoding="utf-8")
+
+            versiones = evaluar_proyecto._versiones_lock(ruta)
+
+        self.assertEqual(versiones["requests"], "2.34.2")
+        self.assertEqual(versiones["flask"], "3.0.0")
+        self.assertEqual(versiones["pytest"], "8.0.0")
+        self.assertEqual(versiones["react"], "18.2.0")
+        self.assertEqual(versiones["numpy"], "2.0.0")
+        self.assertNotIn("propio", versiones)
+
+    def test_versiones_lock_avisa_json_invalido(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            (ruta / "Pipfile.lock").write_text("{invalido", encoding="utf-8")
+            (ruta / "package-lock.json").write_text("{invalido",
+                                                    encoding="utf-8")
+
+            with warnings.catch_warnings(record=True) as capturados:
+                warnings.simplefilter("always")
+                versiones = evaluar_proyecto._versiones_lock(ruta)
+
+        self.assertEqual(versiones, {})
+        self.assertEqual(len(capturados), 2)
+        self.assertTrue(all("lock JSON inválido" in str(w.message)
+                            for w in capturados))
+
+    def test_informe_texto_renderiza_requisitos_sintesis_e_investigacion(self):
+        informe = evaluar(RAIZ_THINKER, con_red=False)
+        informe["requisitos"] = {
+            "archivo": "requisitos.md", "total": 1,
+            "items": [{"veredicto": "CUBIERTO", "id": "R1",
+                       "titulo": "Login", "criterio": "sesión",
+                       "evidencia_observada": "app.py", "motivo": "existe",
+                       "avisos": ["aviso de prueba"]}],
+            "resumen": {"cumple": 0, "cubierto": 1, "no_cumple": 0,
+                        "no_verificable": 0},
+            "nota": "CUBIERTO no es CUMPLE",
+        }
+        informe["sintesis_llm"] = {
+            "modelo": "modelo-de-prueba", "sin_respaldo": 1,
+            "propuestas": [{"dimension": "calidad", "propuesta": "Propuesta",
+                            "con_respaldo": False, "por_que": "porque",
+                            "evidencia": "evidencia", "como_verificar": "ver"}],
+            "preguntas_abiertas": ["¿Queda algo?"],
+        }
+        informe["investigacion"] = [
+            {"pregunta": "p1", "error": "sin red"},
+            {"pregunta": "p2", "sin_resultados": True,
+             "fuentes": [{"titulo": "T", "url": "https://ejemplo.test"}]},
+        ]
+
+        texto = "\n".join(informe_texto(informe))
+
+        self.assertIn("== REQUISITOS (requisitos.md) — 1 ==", texto)
+        self.assertIn("aviso: aviso de prueba", texto)
+        self.assertIn("CUBIERTO no es CUMPLE", texto)
+        self.assertIn("PROPUESTAS DEL MODELO (modelo-de-prueba)", texto)
+        self.assertIn("SIN RESPALDO", texto)
+        self.assertIn("¿Queda algo?", texto)
+        self.assertIn("ERROR: sin red", texto)
+        self.assertIn("sin resultados (se declara, no se inventa)", texto)
+        self.assertIn("https://ejemplo.test", texto)
+
+    def test_sintesis_sin_python_dotenv_devuelve_2(self):
+        with patch.object(evaluar_proyecto, "cargar_entorno_llm",
+                          side_effect=ImportError):
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                codigo = main([".", "--sintesis-llm", "--sin-red"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("python-dotenv", error.getvalue())
 
 
 if __name__ == "__main__":

@@ -208,20 +208,24 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
-  triaje del Hallazgo 97).
-- Plataformas verificadas: Python **3.11 y 3.12** en Linux (**832/832 en
-  ambos**, 2026-10-23; 3.12.3 en venv aislado recreado desde
-  `requirements.lock`, con openai 3.37.0); y **Windows 11** con Python
-  **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750 en
-  ambos** (2026-10-22; incluye
+  triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1432 sin
+  ejecutar) y de preflight **91%** (35/371), medidas el 2026-10-24.
+- Plataformas verificadas: Linux con Python **3.11.9**: **842/842 en la suite
+  Linux** (2026-10-24; openai 3.35.1 en el entorno actual) y **3.12.3**
+  verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
+  recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
+  Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
+  en ambos** con la suite de esa fecha (2026-10-22; incluye
   instalación limpia con `pip install .` y desde el lock). openai verificado
   en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0 con
   hashes desde 2026-10-22). La suite del evaluador creció de 41 a 58 tests con las
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
-  regresiones del Hallazgo 97 y a 83 con los 17 tests del modo `--requisitos`
-  (2026-10-23). El auditor de cambios de `scripts/` añadió 28 tests y el
-  runner de holdout 9 (2026-10-23).
+  regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`
+  (2026-10-23) y a 91 con los 8 tests del 2026-10-24 (carga de `.env`,
+  N/A vs no verificado y ramas de parseo); el preflight añadió 2 tests de
+  manifiestos (setup.cfg/setup.py, 22 en total). El auditor de cambios de
+  `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.

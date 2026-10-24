@@ -2215,3 +2215,56 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   Lección: los scripts Python se ejecutan con `python3`; antes de comitear,
   revisar `git status` para artefactos no versionados. El hook y el CI ya usan
   `python3`.
+
+## 2026-10-24 (ronda 17) — Evaluación integral: dos defectos reales del evaluador (hallazgo 98)
+
+### Hallazgo 98: la clave estaba en `.env` pero el evaluador no la leía; N/A se contaba como no verificado
+
+- **Origen**: evaluación integral pedida por el programador (6 dimensiones,
+  mutación, síntesis LLM, demos, tests honestos, cobertura y proveedores
+  reales). La mutación se re-midió y la síntesis se ejecutó de verdad; el
+  proveedor local Ollama no estaba disponible y se declaró OMITIDO.
+- **Problema 1**: `python3 evaluar_proyecto.py . --ejecutar-tests
+  --sintesis-llm --investigar` falló con `ERROR: OpenAI API key required`
+  aunque `OPENROUTER_API_KEY` estaba en `.env` (73 caracteres, nunca
+  impresos). `test_env_usage.py`, `test_openrouter_real.py`,
+  `scripts/probe_model.py` y el demo de OpenRouter cargan
+  `load_dotenv(".env")`; `main()` del evaluador no lo hacía. La síntesis solo
+  funcionó con un envoltorio que cargaba dotenv antes de llamar a `main`.
+- **Problema 2**: con todos los criterios en OK, el informe imprimía
+  `[UNVERIFIED] 1`: la nota «2 criterios declarados N/A» se añadía a
+  `no_verificado` y `resumen_evidencias` la contaba como evidencia no
+  verificada. Contradice el contrato declarado («N/A no se cuenta como
+  fallo») y hacía que `no_verificado` no quedara vacío en una pasada limpia.
+- **Solución 1**: `cargar_entorno_llm(dotenv_path=None)` carga
+  `Path.cwd()/".env"` solo con `--sintesis-llm`/`--investigar`; `main`
+  comprueba `OPENROUTER_API_KEY` antes de construir el proveedor y devuelve 2
+  con un mensaje explícito. El modo offline no lee `.env`.
+- **Solución 2**: la nota N/A se mueve a `cobertura.nota_no_aplicables`;
+  `no_verificado` solo contiene lo realmente no verificado y
+  `[UNVERIFIED]` cuenta solo eso. `informe_texto` imprime «No aplicable:».
+- **Tests**: 10 nuevos (suite del evaluador: 83 → 91; preflight: 20 → 22; total
+  832 → 842): carga
+  de dotenv desde ruta, fallo sin key antes del proveedor, `ImportError` de
+  dotenv, N/A vs no verificado, `setup.py`, locks (uv/Pipfile/package-lock/
+  texto/JSON inválido) y renderizado de requisitos, síntesis e investigación.
+  La reproducción previa al arreglo fue manual: el fallo real de la síntesis y
+  el `[UNVERIFIED] 1` con `no_verificado` no vacío. No se afirma que cada test
+  se haya ejecutado contra el código viejo.
+- **Evidencia**: suite **842/842** en Linux (Python 3.11.9); `ruff check .` 0;
+  preflight 0; `check_docs.py` OK; copia limpia del árbol (HEAD + diff) 842/842;
+  autoevaluación **1.000** (28/30; 93%) con `no_verificado` vacío y
+  `[UNVERIFIED] 0`; cobertura del evaluador **86% → 90%** (149/1432 sin
+  ejecutar), preflight 91%, total 83%; mutación re-medida **95,2%**
+  (3635/3819; 184 supervivientes, 0 timeouts, 0 sospechosos); síntesis real
+  con el modelo gratuito: 4 propuestas, **0 con respaldo medido** (juicio, no
+  medición) y 3 preguntas abiertas; `test_openrouter_real.py` quedó no
+  concluyente por 429 repetidos y se canceló; Ollama OMITIDO por servidor
+  ausente.
+- **Lección/regla**: (a) si el proyecto adopta `.env` como fuente de claves,
+  todo entrypoint opt-in debe cargarlo del mismo modo o declarar que exige la
+  variable exportada; (b) «N/A» y «no verificado» son categorías distintas:
+  mezclarlas infla la evidencia no verificada y erosiona la confianza en el
+  resumen; (c) un test que solo ejecuta líneas no basta: los nuevos tests
+  comprueban efectos (clave cargada, código 2, `[UNVERIFIED] 0`, versiones de
+  lock y texto renderizado).

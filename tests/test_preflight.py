@@ -252,6 +252,36 @@ class TestPreflight(unittest.TestCase):
 
         self.assertTrue(ejecutar(raiz)["ok"])
 
+    def test_setup_cfg_y_setup_py_declaran_imports(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import requests\nimport sphinx\n",
+            "setup.cfg": ("[options]\ninstall_requires =\n"
+                          "    requests==2.31.0\n"
+                          "[options.extras_require]\ndocs =\n"
+                          "    sphinx==7.0\n"),
+            "setup.py": ("setup(install_requires=['urllib3==2.0'],\n"
+                         "      extras_require={'extra': ['pyyaml==6.0']})\n"),
+        })
+
+        informe = ejecutar(raiz)
+
+        self.assertTrue(informe["ok"], [
+            hallazgo for gate in informe["gates"]
+            for hallazgo in gate["hallazgos"]])
+
+    def test_setup_cfg_invalido_es_hallazgo_de_imports(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import requests\n",
+            "setup.cfg": "[options\ninstall_requires = requests\n",
+        })
+
+        informe = ejecutar(raiz)
+        imports = self._gates(informe)["imports"]
+
+        self.assertFalse(informe["ok"])
+        self.assertTrue(any("setup.cfg inválido" in h["mensaje"]
+                            for h in imports["hallazgos"]))
+
     def test_el_repositorio_real_pasa_su_propio_preflight(self):
         informe = ejecutar(RAIZ_THINKER)
 

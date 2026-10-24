@@ -14,8 +14,8 @@ pendiente.
 | **Hecho** | R1. [Cerrada 2026-10-22] Actualizar el lock de `openai` y re-verificar la autoevaluación | Lock 3.37.0 con hashes; autoevaluación con red 1.000 | Bajo | Bajo |
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
-| **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 86% / 87% (86% combinado); quedan ramas de error sin prueba | Medio | Bajo |
-| **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 94,7% no los cubre | Medio-alto | Medio |
+| **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` (parcial) | 90% / 91% (83% combinado); faltan ramas de error | Medio | Bajo |
+| **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 95,2% no los cubre | Medio-alto | Medio |
 | **P1** | R9. Publicar 0.1.4 | 0.1.3 precede las correcciones del 22–23 oct (evaluador, CoVe) | Medio | Medio |
 | **P2** | R4. Benchmark completo de precisión/recall del evaluador | El corpus cubre regresiones conocidas; falta TP/FP/FN por criterio | Medio | Bajo |
 | **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
@@ -35,15 +35,15 @@ verificable; R5, R6 y R13 requieren decisión del programador y no deben hacerse
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **775/775** en Linux 3.11.9 y 3.12.3 (2026-10-23) | `python3 -m unittest discover -s tests -q` |
-| CI local (última copia limpia) | **OK** | `make ci`; verifica el HEAD comiteado |
+| Suite completa | **842/842** en Linux 3.11.9 (2026-10-24) | `python3 -m unittest discover -s tests -q` |
+| CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
-| Autoevaluación con red | **1.000** (27/29; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --json` |
+| Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **86%** (164/1145 sentencias sin ejecutar) | comando de la sección 8 |
-| Cobertura `scripts/preflight.py` | **87%** (50/371) | comando de la sección 8 |
-| Mutación global | **95,2%** (3635/3819; 2026-10-23) | `make mutation`; **excluye** evaluador y preflight |
+| Cobertura `evaluar_proyecto.py` | **90%** (149/1432 sentencias sin ejecutar) | comando de la sección 8 |
+| Cobertura `scripts/preflight.py` | **91%** (35/371) | comando de la sección 8 |
+| Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Paquete publicado | **0.1.3** (anterior a las correcciones del 22–23 oct) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
@@ -95,12 +95,15 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 ### R2 — Subir la cobertura del evaluador y preflight (P1, medio)
 
-- **Problema medido (actualizado 2026-10-23):** 86% en `evaluar_proyecto.py`
-  (164/1145 sentencias sin ejecutar) y 87% en `scripts/preflight.py` (50/371).
-  Las líneas sin cubrir incluyen ramas de error de PyPI, licencias
-  desconocidas, manifiestos malformados, imports condicionales,
+- **Problema medido (actualizado 2026-10-24):** **90%** en `evaluar_proyecto.py`
+  (149/1432 sentencias sin ejecutar) y 91% en `scripts/preflight.py` (35/371);
+  83% combinado. Las líneas sin cubrir incluyen ramas de error de PyPI,
+  licencias desconocidas, manifiestos malformados, imports condicionales,
   `package-lock`, errores de sintaxis y rutas del CLI. El corpus adversario
-  subió el evaluador de 83% a 86%, pero el objetivo sigue sin alcanzarse.
+  subió el evaluador de 83% a 86% (2026-10-23) y los 10 tests del 2026-10-24
+  (8 del evaluador: `.env`, N/A vs no verificado, `setup.py`, locks y
+  renderizado; 2 de preflight: setup.cfg/setup.py) lo llevaron a 90%, con
+  preflight en 91%; el objetivo combinado sigue sin alcanzarse.
 - **Acción:** añadir tests honestos para esas ramas; cada test debe fallar con
   el comportamiento anterior. No perseguir el 100% a costa de tests triviales.
   Objetivo inicial: **≥90% en cada archivo** y **≥90% combinado**.
@@ -114,12 +117,12 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 - **Problema medido:** `make mutation` mide el núcleo, pero excluye
   `evaluar_proyecto.py` y `scripts/preflight.py` (los tests que los importan
-  fuera de `source_paths` se excluyen de la campaña). El 94,7% histórico **no
-  cubre** el código nuevo del evaluador.
+  fuera de `source_paths` se excluyen de la campaña). El 95,2% actual **no
+  cubre** el código del evaluador ni el de preflight.
 - **Acción:** campaña de mutación separada para evaluador/preflight, con el
   mismo protocolo de triaje: aplicar mutante → test debe fallar → restaurar →
   test debe pasar. Registrar supervivientes y clasificar equivalentes con razón.
-  No mezclar su denominador con el 94,7% del núcleo.
+  No mezclar su denominador con el 95,2% del núcleo.
 - **Criterio de aceptación:** comando reproducible; línea base documentada;
   0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa declarada con su
   denominador y exclusiones.
