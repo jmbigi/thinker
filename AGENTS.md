@@ -208,9 +208,9 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
-  triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1432 sin
-  ejecutar) y de preflight **91%** (35/371), medidas el 2026-10-24.
-- Plataformas verificadas: Linux con Python **3.11.9**: **842/842 en la suite
+  triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1433 sin
+  ejecutar) y de preflight **91%** (35/376), medidas el 2026-10-24.
+- Plataformas verificadas: Linux con Python **3.11.9**: **846/846 en la suite
   Linux** (2026-10-24; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -222,9 +222,9 @@ mejora de código (`code_design_improvement_tools.py`).
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`
-  (2026-10-23) y a 91 con los 8 tests del 2026-10-24 (carga de `.env`,
-  N/A vs no verificado y ramas de parseo); el preflight añadió 2 tests de
-  manifiestos (setup.cfg/setup.py, 22 en total). El auditor de cambios de
+  (2026-10-23) y a 93 con los 10 tests del 2026-10-24 (carga de `.env`,
+  N/A vs no verificado, ramas de parseo, alias pywin32 y exclusiones); el
+  preflight añadió 4 tests de manifiestos y exclusiones (24 en total). El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

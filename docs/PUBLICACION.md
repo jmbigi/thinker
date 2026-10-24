@@ -1,9 +1,11 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-24: **versión `0.1.4` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-24: **versión `0.1.5` en preparación**; `0.1.4` es la
+> última publicada en TestPyPI y PyPI.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3` y `v0.1.4` empujados;
-> `v0.1.2`, `v0.1.3` y `v0.1.4` son anotados. `0.1.2` **no
+> `v0.1.2`, `v0.1.3` y `v0.1.4` son anotados; `v0.1.5` se etiquetará con esta
+> release. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI de GitHub (regla propia 12): las GitHub Releases se crean desde la
@@ -14,8 +16,8 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.4`
-  publicada en TestPyPI y PyPI.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.5` en
+  preparación. La última publicada en TestPyPI y PyPI es `0.1.4`.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub y versión actualizada. No cambia código.
 - `python3 -m build` genera `dist/thinker_research-0.1.3.tar.gz` + wheel;
@@ -56,6 +58,19 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.5 (2026-10-24) — en preparación
+
+Corrige dos falsos positivos y un coste de exploración del evaluador:
+alias de `win32api`/`win32con`/`win32gui`/`win32com`/`pythoncom`/`pywintypes`
+a `pywin32` (antes `import win32api` se marcaba como no declarado aunque
+`pywin32` estuviera en el manifiesto) y exclusiones por prefijo/sufijo para
+`.venv-*`, `venv-*`, `pytest-of-*` y `*.egg-info` en evaluador y preflight.
+`dist/` ya estaba excluido; `exe/` no se ignora a propósito. Cuatro tests
+nuevos; suite **846/846**, cobertura 90% evaluador / 91% preflight.
+
+Artefactos previstos: `thinker-research 0.1.5` (wheel y sdist). Estado:
+pendiente de build limpio, `twine check`, TestPyPI y PyPI.
 
 ## Versión 0.1.3 (2026-10-21)
 

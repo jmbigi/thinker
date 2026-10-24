@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from scripts.preflight import ejecutar, main
+from scripts.preflight import archivos_python, ejecutar, main
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -281,6 +281,30 @@ class TestPreflight(unittest.TestCase):
         self.assertFalse(informe["ok"])
         self.assertTrue(any("setup.cfg inválido" in h["mensaje"]
                             for h in imports["hallazgos"]))
+
+    def test_alias_pywin32_no_es_falso_positivo(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import win32api\n",
+            "pyproject.toml": ('[project]\nname = "x"\nversion = "0.1.0"\n'
+                               'dependencies = ["pywin32"]\n'),
+        })
+
+        self.assertTrue(ejecutar(raiz)["ok"])
+
+    def test_ignora_venvs_alternativos_temporales_y_egg_info(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "x = 1\n",
+            ".venv-docs/a.py": "x = 1\n",
+            "venv-old/b.py": "x = 1\n",
+            "pytest-of-1/c.py": "x = 1\n",
+            "paquete.egg-info/d.py": "x = 1\n",
+            "exe/e.py": "x = 1\n",
+        })
+
+        nombres = [p.relative_to(raiz).as_posix()
+                   for p in archivos_python(raiz)]
+
+        self.assertEqual(nombres, ["app.py", "exe/e.py"])
 
     def test_el_repositorio_real_pasa_su_propio_preflight(self):
         informe = ejecutar(RAIZ_THINKER)

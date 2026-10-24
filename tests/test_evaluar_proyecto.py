@@ -458,6 +458,32 @@ class TestCriteriosAnadidos(unittest.TestCase):
 
         self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
 
+    def test_h6_reconoce_modulos_de_pywin32(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import win32api\n",
+            "pyproject.toml": ('[project]\nname = "x"\nversion = "0.1.0"\n'
+                               'dependencies = ["pywin32"]\n'),
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+
+    def test_archivos_python_ignora_venvs_y_temporales(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "x = 1\n",
+            ".venv-docs/a.py": "x = 1\n",
+            "venv-old/b.py": "x = 1\n",
+            "pytest-of-1/c.py": "x = 1\n",
+            "paquete.egg-info/d.py": "x = 1\n",
+            "exe/e.py": "x = 1\n",
+        })
+
+        nombres = [p.relative_to(raiz).as_posix()
+                   for p in archivos_python(raiz)]
+
+        self.assertEqual(nombres, ["app.py", "exe/e.py"])
+
     def test_h6_stdlib_y_modulos_locales_no_necesitan_declaracion(self):
         raiz = crear_proyecto(self, {
             "app.py": "import json\nimport helper\n",

@@ -65,6 +65,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from deep_research_system import _parse_json_response  # reutilizado, no duplicado
 from evidence import EvidenceKind, formato_resumen, resumen_evidencias
+from scripts.preflight import es_parte_ignorada
 
 # Contrato del informe JSON: un cambio incompatible sube esta versión.
 SCHEMA_VERSION = 2
@@ -257,7 +258,7 @@ def archivos_python(ruta: Path) -> List[Path]:
     # partes absolutas excluía proyectos alojados en un directorio padre
     # llamado `build`, `dist` o `venv` (0 archivos, informe vacío).
     return sorted(p for p in ruta.rglob("*.py")
-                  if not any(parte in IGNORAR
+                  if not any(es_parte_ignorada(parte, IGNORAR)
                              for parte in p.relative_to(ruta).parts))
 
 
@@ -365,7 +366,7 @@ def analizar_perfil(ruta: Path) -> Perfil:
     for archivo in ruta.rglob("*"):
         if not archivo.is_file():
             continue
-        if any(parte in IGNORAR for parte in archivo.relative_to(ruta).parts):
+        if any(es_parte_ignorada(parte, IGNORAR) for parte in archivo.relative_to(ruta).parts):
             continue
         lenguaje = EXTENSIONES.get(archivo.suffix.lower())
         if not lenguaje or _es_no_codigo(ruta, archivo):
@@ -374,12 +375,12 @@ def analizar_perfil(ruta: Path) -> Perfil:
         (tests if _es_test(ruta, archivo) else codigo).append(archivo)
     manifiestos = sorted(p for p in ruta.rglob("*")
                          if p.is_file() and _es_manifiesto(p)
-                         and not any(parte in IGNORAR
+                         and not any(es_parte_ignorada(parte, IGNORAR)
                                      for parte in p.relative_to(ruta).parts))
     locks = sorted(p for p in ruta.rglob("*")
                    if p.is_file() and _es_lock(p)
                    and not _es_no_codigo(ruta, p)
-                   and not any(parte in IGNORAR
+                   and not any(es_parte_ignorada(parte, IGNORAR)
                                for parte in p.relative_to(ruta).parts))
     deps = _dependencias(ruta)
     pesadas = sorted({d["nombre"] for d in deps
@@ -1218,7 +1219,7 @@ def _dependencias(ruta: Path) -> List[Dict[str, str]]:
     vistos_req: Set[Path] = set()
     for archivo in sorted(p for p in ruta.rglob("*")
                           if p.is_file() and not any(
-                              parte in IGNORAR
+                              es_parte_ignorada(parte, IGNORAR)
                               for parte in p.relative_to(ruta).parts)):
         nombre = archivo.name.lower()
         es_requisitos = bool(re.match(r"requirements.*\.(txt|in)$", nombre)) or (
@@ -1277,7 +1278,7 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
                 str(paquete["version"])
 
     for archivo in ruta.rglob("*"):
-        if not archivo.is_file() or any(parte in IGNORAR
+        if not archivo.is_file() or any(es_parte_ignorada(parte, IGNORAR)
                                         for parte in archivo.relative_to(ruta).parts):
             continue
         nombre = archivo.name.lower()
@@ -1515,7 +1516,7 @@ def _registro_decisiones(ruta: Path, perfil: Perfil) -> List[str]:
     for archivo in ruta.rglob("*"):
         if not archivo.is_file() or archivo.suffix.lower() not in extensiones:
             continue
-        if any(parte in IGNORAR for parte in archivo.relative_to(ruta).parts):
+        if any(es_parte_ignorada(parte, IGNORAR) for parte in archivo.relative_to(ruta).parts):
             continue
         nombre = archivo.name.lower()
         if any(clave in nombre for clave in claves):
@@ -1731,7 +1732,7 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
 
     docs = [p for p in ruta.rglob("*")
             if p.is_file() and p.suffix.lower() in (".md", ".rst")
-            and not any(parte in IGNORAR for parte in p.relative_to(ruta).parts)]
+            and not any(es_parte_ignorada(parte, IGNORAR) for parte in p.relative_to(ruta).parts)]
     mediciones = any(re.search(r"\b\d+(\.\d+)?\s*(s|seg|MB|GB|min)\b", leer(d))
                      for d in docs)
     dim.criterios["e3_mediciones_documentadas"] = mediciones

@@ -2294,3 +2294,41 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: un caché de «latest» no invalida una publicación; hay que
   contrastar índice simple, endpoint versionado, hashes e instalación real.
   Refuerza el Hallazgo 91 y la regla P0.1.
+
+## 2026-10-24 (ronda 19) — Alias de importación y directorios generados (hallazgo 100)
+
+### Hallazgo 100: `pywin32` y los entornos con sufijo
+
+- **Origen**: revisión externa de dos falsos positivos del gate de imports y de
+  la exploración de directorios. Se verificaron con fixtures antes de tocar
+  código.
+- **Problema 1**: `ALIAS_IMPORTACION` no incluía los módulos de `pywin32`
+  (`win32api`, `win32con`, `win32gui`, `win32com`, `pythoncom`, `pywintypes`).
+  Un proyecto con `pywin32` declarado e `import win32api` producía
+  `import no declarado: win32api` (reproducido con un fixture).
+- **Problema 2**: `IGNORAR` comparaba nombres exactos. Un `.venv-docs/`,
+  `venv-old/` o `pytest-of-1/` se recorrían enteros, con el coste que eso
+  implica en un repo grande. `dist/` sí estaba excluido; `exe/` no se excluye
+  a propósito porque puede ser código real.
+- **Solución**: alias estáticos para los seis módulos de `pywin32` y un helper
+  compartido `es_parte_ignorada()` con prefijos `.venv`, `venv-`,
+  `pytest-of-` y sufijo `.egg-info`; lo usan `evaluar_proyecto` y `preflight`.
+  Cuatro tests nuevos: dos de alias/h6 y dos de exclusiones, incluido que
+  `exe/` sigue entrando.
+- **Investigación**: la documentación de Python separa distribución e import
+  package y ofrece `packages_distributions()`, pero advierte que las
+  instalaciones editables pueden no declarar top-level names; por eso el mapa
+  estático sigue siendo necesario para proyectos evaluados offline
+  ([docs.python.org](https://docs.python.org/3.12/library/importlib.metadata.html#mapping-import-to-distribution-packages)).
+  El código de pytest confirma que el directorio base temporal es
+  `pytest-of-{user}` ([docs.pytest.org](https://docs.pytest.org/en/6.2.x/_modules/_pytest/tmpdir.html)).
+  `pywin32` se distribuye desde PyPI
+  ([pypi.org/project/pywin32](https://pypi.org/project/pywin32/)).
+- **Evidencia**: suite **846/846**, autoevaluación **1.000**, preflight propio
+  0 hallazgos; cobertura del evaluador **90%** (149/1433) y preflight **91%**
+  (35/376), total 83%. La mutación no se re-mide porque los módulos mutados no
+  cambiaron y evaluador/preflight están excluidos de la campaña.
+- **Lección**: un alias de importación no puede deducirse solo del nombre de la
+  distribución; para offline hace falta un mapa curado. Y los directorios
+  generados se excluyen por patrón, no por nombre exacto, sin ignorar nombres
+  genéricos como `exe`.

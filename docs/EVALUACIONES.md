@@ -391,3 +391,16 @@ concluyente** por 429 repetidos del modelo gratuito y se canceló (no se usa
 como evidencia). Ollama: servidor no disponible, prueba OMITIDA (no
 simulada). R2 sigue abierta: el objetivo ≥90% combinado no se
 alcanza (83%); R3 (mutación del evaluador y de preflight) sigue pendiente.
+
+**Actualización 2026-10-24 (alias pywin32 y exclusiones — Hallazgo 100)**:
+autoevaluación con red **1.000** (28/30; 93%), `no_verificado` vacío y
+`[UNVERIFIED] 0`. Suite **846/846** en Linux (Python 3.11.9), ruff 0,
+preflight 0 y docs-check OK. Cuatro tests nuevos: alias de `win32*`/`pythoncom`
+a `pywin32` (antes `import win32api` se marcaba como no declarado aunque
+`pywin32` estuviera en el manifiesto) y exclusiones por prefijo/sufijo para
+`.venv-*`, `venv-*`, `pytest-of-*` y `*.egg-info` en evaluador y preflight
+(antes se recorrían enteros; `dist` ya estaba excluido). Cobertura:
+`evaluar_proyecto.py` **90%** (149/1433 sin ejecutar), `scripts/preflight.py`
+**91%** (35/376), total 83%. `exe/` no se ignora a propósito: puede ser código
+legítimo. La mutación no se re-mide: los módulos mutados no cambiaron y estos
+dos módulos están excluidos de la campaña (95,2% vigente).

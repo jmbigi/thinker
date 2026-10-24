@@ -34,14 +34,14 @@ decisión del programador y no deben hacerse «por inercia».
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **842/842** en Linux 3.11.9 (2026-10-24) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **846/846** en Linux 3.11.9 (2026-10-24) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **90%** (149/1432 sentencias sin ejecutar) | comando de la sección 8 |
-| Cobertura `scripts/preflight.py` | **91%** (35/371) | comando de la sección 8 |
+| Cobertura `evaluar_proyecto.py` | **90%** (149/1433 sentencias sin ejecutar) | comando de la sección 8 |
+| Cobertura `scripts/preflight.py` | **91%** (35/376) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Paquete publicado | **0.1.4** (2026-10-24; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
@@ -95,14 +95,13 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 ### R2 — Subir la cobertura del evaluador y preflight (P1, medio)
 
 - **Problema medido (actualizado 2026-10-24):** **90%** en `evaluar_proyecto.py`
-  (149/1432 sentencias sin ejecutar) y 91% en `scripts/preflight.py` (35/371);
+  (149/1433 sentencias sin ejecutar) y 91% en `scripts/preflight.py` (35/376);
   83% combinado. Las líneas sin cubrir incluyen ramas de error de PyPI,
   licencias desconocidas, manifiestos malformados, imports condicionales,
   `package-lock`, errores de sintaxis y rutas del CLI. El corpus adversario
-  subió el evaluador de 83% a 86% (2026-10-23) y los 10 tests del 2026-10-24
-  (8 del evaluador: `.env`, N/A vs no verificado, `setup.py`, locks y
-  renderizado; 2 de preflight: setup.cfg/setup.py) lo llevaron a 90%, con
-  preflight en 91%; el objetivo combinado sigue sin alcanzarse.
+  subió el evaluador de 83% a 86% (2026-10-23) y los 14 tests del 2026-10-24
+  (10 del evaluador y 4 de preflight, incluidos alias pywin32 y exclusiones
+  por prefijo) lo llevaron a 90%, con preflight en 91%; el objetivo combinado sigue sin alcanzarse.
 - **Acción:** añadir tests honestos para esas ramas; cada test debe fallar con
   el comportamiento anterior. No perseguir el 100% a costa de tests triviales.
   Objetivo inicial: **≥90% en cada archivo** y **≥90% combinado**.

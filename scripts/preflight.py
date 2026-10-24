@@ -43,9 +43,28 @@ from evidence import EvidenceKind  # noqa: E402
 IGNORAR = {
     ".git", ".venv", "venv", "__pycache__", "node_modules", ".mypy_cache",
     ".pytest_cache", ".ruff_cache", "mutants", ".tox", "build", "dist",
+    ".eggs", ".nox",
     # Scripts locales de depuración: no forman parte del proyecto (.gitignore).
     "_local_debug",
 }
+# Directorios generados que no siempre llevan el nombre exacto: entornos
+# virtuales con sufijo (`.venv-docs`, `venv-old`) y temporales de pytest.
+PREFIJOS_GENERADOS = (".venv", "venv-", "pytest-of-")
+SUFIJOS_GENERADOS = (".egg-info",)
+
+
+def es_parte_ignorada(parte: str, nombres: Iterable[str] = IGNORAR) -> bool:
+    """True si un componente de ruta es un directorio generado o ignorado.
+
+    ``nombres`` permite al evaluador aportar su propio conjunto sin duplicar
+    la regla de prefijos/sufijos. ``exe`` no se ignora: puede ser código real.
+    """
+    nombre = parte.lower()
+    return (nombre in nombres
+            or any(nombre.startswith(prefijo) for prefijo in PREFIJOS_GENERADOS)
+            or any(nombre.endswith(sufijo) for sufijo in SUFIJOS_GENERADOS))
+
+
 # Nombres de distribución que no coinciden con el módulo que se importa.
 ALIAS_IMPORTACION = {
     "dotenv": "python-dotenv",
@@ -60,6 +79,13 @@ ALIAS_IMPORTACION = {
     "openssl": "pyopenssl",
     "dateutil": "python-dateutil",
     "annotated_types": "annotated-types",
+    # pywin32 expone módulos de nivel superior que no se llaman pywin32.
+    "win32api": "pywin32",
+    "win32con": "pywin32",
+    "win32gui": "pywin32",
+    "win32com": "pywin32",
+    "pythoncom": "pywin32",
+    "pywintypes": "pywin32",
 }
 # Módulos de la stdlib que aún no existen en el Python que ejecuta el gate
 # (p. ej. annotationlib en 3.14): no son dependencias de terceros.
@@ -112,7 +138,8 @@ def archivos_python(root: Path) -> List[Path]:
     """Archivos ``*.py`` bajo ``root``, excluyendo directorios generados."""
     return sorted(
         p for p in root.rglob("*.py")
-        if not any(parte in IGNORAR for parte in p.relative_to(root).parts))
+        if not any(es_parte_ignorada(parte)
+                   for parte in p.relative_to(root).parts))
 
 
 def _relativa(root: Path, ruta: Path) -> str:
@@ -209,7 +236,7 @@ def dependencias_declaradas(root: Path) -> Tuple[Set[str], List[Hallazgo]]:
 
     for archivo in sorted(p for p in root.rglob("*")
                           if p.is_file() and not any(
-                              parte in IGNORAR
+                              es_parte_ignorada(parte)
                               for parte in p.relative_to(root).parts)):
         nombre = archivo.name.lower()
         relativa = _relativa(root, archivo)
