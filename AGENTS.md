@@ -233,10 +233,11 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.3` publicado en TestPyPI y PyPI; tags
-  `v0.1.0`/`v0.1.1`/`v0.1.2`/`v0.1.3` empujados, `v0.1.2` y `v0.1.3`
-  anotados; instalación `pip install thinker-research==0.1.3` o por tag con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.3`).
+  (`thinker-research 0.1.4` publicado en TestPyPI y PyPI; tags
+  `v0.1.0`/`v0.1.1`/`v0.1.2`/`v0.1.3`/`v0.1.4` empujados, `v0.1.2`,
+  `v0.1.3` y `v0.1.4` anotados; instalación
+  `pip install thinker-research==0.1.4` o por tag con
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.4`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,

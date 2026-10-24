@@ -2,8 +2,8 @@
 
 > Guía durable para publicar y mantener el paquete en PyPI.
 > Estado al 2026-10-24: **versión `0.1.4` publicada en TestPyPI y PyPI**.
-> Tags `v0.1.0`, `v0.1.1`, `v0.1.2` y `v0.1.3` empujados; `v0.1.4` se
-> etiqueta con esta release. `v0.1.2` y `v0.1.3` son anotados. `0.1.2` **no
+> Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3` y `v0.1.4` empujados;
+> `v0.1.2`, `v0.1.3` y `v0.1.4` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI de GitHub (regla propia 12): las GitHub Releases se crean desde la
@@ -51,9 +51,10 @@ tardar en reflejar la última versión aunque el índice simple y la instalació
 ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 `.../0.1.4/json` responde 200. El `README.md` empaquetado se actualizó en un
 commit posterior a la publicación, para no alterar los artefactos ya
-verificados.
+verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
+`git ls-remote` confirma el tag y su objeto.
 
-
+## Versión 0.1.3 (2026-10-21)
 
 Publicada en TestPyPI y PyPI; sustituye a `0.1.2`, que no se publicó. Corrige
 el README empaquetado, que en `0.1.2` decía «La publicación en

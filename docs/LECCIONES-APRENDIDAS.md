@@ -2268,3 +2268,29 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   resumen; (c) un test que solo ejecuta líneas no basta: los nuevos tests
   comprueban efectos (clave cargada, código 2, `[UNVERIFIED] 0`, versiones de
   lock y texto renderizado).
+
+## 2026-10-24 (ronda 18) — Publicación 0.1.4: el JSON de PyPI llega tarde (hallazgo 99)
+
+### Hallazgo 99: PyPI sirve 0.1.4 por el índice simple antes de que su JSON lo refleje
+
+- **Origen**: publicación de `thinker-research 0.1.4` en TestPyPI y PyPI el
+  2026-10-24, con los mismos artefactos verificados en ambos índices.
+- **Problema**: tras un `twine upload` correcto, el endpoint
+  `https://pypi.org/pypi/thinker-research/0.1.4/json` devolvió 404 durante
+  unos 30 s y el JSON del proyecto seguía anunciando `0.1.3`, mientras el
+  índice simple ya listaba `0.1.4` y `pip install thinker-research==0.1.4`
+  funcionaba. TestPyPI mostró el mismo retardo antes de actualizar su JSON.
+- **Solución**: verificar la publicación por tres vías independientes —
+  índice simple con hashes, endpoint versionado e instalación limpia en un
+  venv—; no declarar fallo por un JSON de «última versión» con caché. Los
+  artefactos de TestPyPI y PyPI tienen los mismos SHA-256; `twine check`
+  PASSED; la instalación limpia mostró `--requisitos`, imports OK y
+  `pip check` limpio.
+- **Evidencia**: wheel
+  `835a5c355322f2b0de2f15e1dc69b4911df6a6177d2dbc4cd66f287d6171d8fe` y
+  sdist `e3014903654316cd0760cdc950588dac8d9a998b1917c172bb0b468beec69422`;
+  `.../0.1.4/json` responde 200/`0.1.4`; tag anotado `v0.1.4` (commit
+  `858bdf8`) empujado; suite **842/842**.
+- **Lección**: un caché de «latest» no invalida una publicación; hay que
+  contrastar índice simple, endpoint versionado, hashes e instalación real.
+  Refuerza el Hallazgo 91 y la regla P0.1.
