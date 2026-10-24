@@ -16,7 +16,7 @@ pendiente.
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` (parcial) | 90% / 91% (83% combinado); faltan ramas de error | Medio | Bajo |
 | **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 95,2% no los cubre | Medio-alto | Medio |
-| **P1** | R9. Publicar 0.1.4 | 0.1.3 precede las correcciones del 22–23 oct (evaluador, CoVe) | Medio | Medio |
+| **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **P2** | R4. Benchmark completo de precisión/recall del evaluador | El corpus cubre regresiones conocidas; falta TP/FP/FN por criterio | Medio | Bajo |
 | **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
 | **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
@@ -26,10 +26,9 @@ pendiente.
 | **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
 | **P3** | R14. Calibrar `credibility`/`confidence` o declararlas no calibradas | Restringir la salida evita texto inventado, no garantiza probabilidad correcta | Medio | Bajo |
 
-**Orden recomendado:** R2 → R3 → R9; R4, R5, R6, R7, R10 y R13 se
-deciden después de R2–R3. R1, R8, R11 y R12 están cerradas y R9 es rutina
-verificable; R5, R6 y R13 requieren decisión del programador y no deben hacerse
-«por inercia».
+**Orden recomendado:** R2 → R3; R4, R5, R6, R7, R10 y R13 se deciden después
+de R2–R3. R1, R8, R9, R11 y R12 están cerradas; R5, R6 y R13 requieren
+decisión del programador y no deben hacerse «por inercia».
 
 ## 2. Estado medido (evidencia de partida)
 
@@ -44,7 +43,7 @@ verificable; R5, R6 y R13 requieren decisión del programador y no deben hacerse
 | Cobertura `evaluar_proyecto.py` | **90%** (149/1432 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **91%** (35/371) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
-| Paquete publicado | **0.1.3** (anterior a las correcciones del 22–23 oct) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.4** (2026-10-24; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
 no está medida con la misma fuerza que el núcleo: cobertura incompleta en ramas
@@ -208,20 +207,24 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   versión.
 - **Riesgo:** bajo.
 
-### R9 — Publicar 0.1.4 (P1 desde 2026-10-23, medio)
+### R9 — Publicar 0.1.4 (CERRADA 2026-10-24, medio)
 
-- **Problema medido:** `main` tiene cambios desde 0.1.3 (evaluador v2, lock
-  3.37.0, arreglos del Hallazgo 97 y CoVe del 23-oct) pero el paquete publicado
-  sigue en 0.1.3. Verificado: el tag `v0.1.3` (`8a9d948`) **precede** los
-  arreglos del 22-oct (`b7711ab`), así que `pip install thinker-research==0.1.3`
-  no incluye las correcciones del evaluador ni las de esta auditoría.
-- **Acción:** seguir `docs/PUBLICACION.md`: bump de versión, actualizar README/
-  AGENTS, construir, `twine check`, instalar en venv limpio desde el artefacto,
-  subir a TestPyPI y PyPI, tag anotado y release por la web (sin `gh`, regla 12).
-- **Criterio de aceptación:** `pip install thinker-research==0.1.4` en venv
-  limpio; `evaluate-project --help` y una evaluación de humo; suite 775/775 en
-  Linux (y Windows cuando se re-verifique); tag y release verificados.
-- **Riesgo:** medio; una release no se deshace.
+- **Problema medido (histórico):** `main` tenía cambios desde 0.1.3 (evaluador
+  v2, lock 3.37.0, arreglos del Hallazgo 97 y CoVe del 23-oct) pero el paquete
+  publicado seguía en 0.1.3. El tag `v0.1.3` (`8a9d948`) **precede** los
+  arreglos del 22-oct (`b7711ab`), así que `pip install
+  thinker-research==0.1.3` no incluía las correcciones del evaluador ni las de
+  esta auditoría.
+- **Cierre:** `0.1.4` publicado en TestPyPI y PyPI el 2026-10-24, con los
+  mismos hashes en ambos índices; tag anotado `v0.1.4` (`858bdf8`) empujado;
+  instalación limpia verificada, `--requisitos` presente, imports OK y
+  `pip check` limpio. La GitHub Release con artefactos queda como tarea manual
+  desde la web (regla 12).
+- **Criterio de aceptación:** [x] `pip install thinker-research==0.1.4` en venv
+  limpio; [x] `evaluate-project --help` y evaluación de humo; [x] suite
+  **842/842** en Linux; [x] tag verificado. Windows queda pendiente de
+  re-verificación con esta suite.
+- **Riesgo:** cerrado; una release no se deshace.
 
 ### R10 — Licencias de dev/opcionales visibles, fuera del score runtime (P3, bajo)
 
@@ -317,8 +320,9 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 4. **R4** (benchmark completo) — amplía el corpus ya cerrado a TP/FP/FN.
 5. **R8, R11 y R12 (cerradas):** esquema JSON v2, gate documental y corpus
    adversario ya están en el repositorio con tests.
-6. **R9** (release) — tras R2–R3 y con CI limpio; hoy el paquete publicado
-   (0.1.3) no contiene las correcciones del 22–23 oct.
+6. **R9 (cerrada):** `0.1.4` está publicada en TestPyPI y PyPI, con tag
+   `v0.1.4` y artefactos verificados; la GitHub Release queda como tarea
+   manual desde la web.
 7. **R5, R6, R7, R10, R13 y R14** — decisiones de producto/alcance; no bloquean
    R1–R4.
 

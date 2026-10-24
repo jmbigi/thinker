@@ -22,10 +22,13 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.4*` (cuando exista).
+  `dist/thinker_research-0.1.4*` (ya existen).
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
+- **Publicación completada de `0.1.4`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.4` (`858bdf8`) y verificación limpia; ver la
+  sección 0.1.4.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global; la GitHub Release, si se
   quiere, se crea desde la web.
@@ -129,43 +132,43 @@ https://test.pypi.org/manage/account/token/.
   construir desde una copia limpia del tag o apartar `build/` y
   `*.egg-info/`; no borrar `dist/`, que conserva las versiones anteriores.
 - [ ] `python3 -m build` y
-  `python3 -m twine check dist/thinker_research-0.1.3*` en verde.
+  `python3 -m twine check dist/thinker_research-0.1.4*` en verde.
 - [ ] Revisar el METADATA del wheel: `Name: thinker-research`,
-  `Version: 0.1.3` y sin frases transitorias sobre PyPI o el tag.
+  `Version: 0.1.4` y sin frases transitorias sobre PyPI o el tag.
 - [ ] `git status` limpio, tag anotado y `git ls-remote` confirma el tag en
   el remoto.
 
 ## Ensayo en TestPyPI (recomendado siempre)
 
 ```bash
-python3 -m twine upload -r testpypi dist/thinker_research-0.1.3*
+python3 -m twine upload -r testpypi dist/thinker_research-0.1.4*
 # Verificar instalación desde TestPyPI en un venv limpio:
-python3 -m venv /tmp/venv-testpypi-013
-/tmp/venv-testpypi-013/bin/pip install \
+python3 -m venv /tmp/venv-testpypi-014
+/tmp/venv-testpypi-014/bin/pip install \
   --index-url https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple/ \
-  thinker-research==0.1.3
-/tmp/venv-testpypi-013/bin/evaluate-project --help
+  thinker-research==0.1.4
+/tmp/venv-testpypi-014/bin/evaluate-project --help
 ```
 
 (`--extra-index-url` es necesario: las dependencias están en PyPI real, no
-en TestPyPI. No usar `dist/*`: subiría también `0.1.0`–`0.1.3`.)
+en TestPyPI. No usar `dist/*`: subiría también `0.1.0`–`0.1.4`.)
 
 ## Publicación real
 
 ```bash
-python3 -m twine upload dist/thinker_research-0.1.3*
+python3 -m twine upload dist/thinker_research-0.1.4*
 ```
 
 Verificación post-publicación (obligatoria, P0.1):
 
 ```bash
-curl -s https://pypi.org/pypi/thinker-research/json | python3 -c \
+curl -s https://pypi.org/pypi/thinker-research/0.1.4/json | python3 -c \
   "import json,sys; print(json.load(sys.stdin)['info']['version'])"
-python3 -m venv /tmp/venv-pypi-013
-/tmp/venv-pypi-013/bin/pip install --index-url https://pypi.org/simple/ \
-  --no-cache-dir thinker-research==0.1.3
-cd /tmp && /tmp/venv-pypi-013/bin/evaluate-project --help
+python3 -m venv /tmp/venv-pypi-014
+/tmp/venv-pypi-014/bin/pip install --index-url https://pypi.org/simple/ \
+  --no-cache-dir thinker-research==0.1.4
+cd /tmp && /tmp/venv-pypi-014/bin/evaluate-project --help
 ```
 
 Si pip no ve la versión pero el JSON y el índice simple sí, contrasta los
@@ -174,11 +177,13 @@ la subida falló (Hallazgo 91).
 
 ## Tareas tras publicar
 
-Estado de `0.1.3`: publicación, hashes, tag anotado y documentación hechos.
-Quedan dos tareas administrativas:
+Estado de `0.1.4`: publicación en TestPyPI y PyPI, hashes, tag anotado y
+documentación hechos. Quedan dos tareas administrativas:
 
 1. Token scoped al proyecto + revocar el global (ver reglas arriba).
-2. GitHub Release desde la web, si se quiere distribuir también allí.
+2. GitHub Release `v0.1.4`: el tag ya está empujado, pero la Release con
+   wheel/sdist sigue **pendiente de crear desde la web**; la API de GitHub no
+   muestra ninguna release para `v0.1.4` (verificado el 2026-10-24).
 
 Para la próxima release: actualizar el estado en
 `README.md`/`docs/PUBLICACION.md` solo después de verificar la versión en
@@ -187,13 +192,13 @@ PyPI; no prometas disponibilidad antes de comprobarla (P0.1).
 ## Vía sin keys: distribución por tag de git (OPERATIVA)
 
 Tags de referencia: `v0.1.0` (commit `e0f46b6`), `v0.1.1` (`a56e0b8`),
-`v0.1.2` (anotado) y `v0.1.3` (anotado). `0.1.3` está publicada en PyPI y
-también puede instalarse por git; verifica que su tag esté en el remoto e
-instala:
+`v0.1.2` (anotado), `v0.1.3` (anotado) y `v0.1.4` (anotado). `0.1.4` está
+publicada en PyPI y también puede instalarse por git; verifica que su tag esté
+en el remoto e instala:
 
 ```bash
-git ls-remote --tags origin v0.1.3   # debe aparecer antes de instalar
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.3
+git ls-remote --tags origin v0.1.4   # debe aparecer antes de instalar
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.4
 ```
 
 - `v0.1.0` verificado end-to-end el 2026-10-21: venv limpio +
@@ -203,12 +208,15 @@ pip install git+https://github.com/jmbigi/thinker.git@v0.1.3
   `evaluate-project` OK y `max_nesting` de `elif` = 1.
 - `v0.1.2` verificado localmente desde el tag antes de empujarlo; el remoto
   se comprueba con `git ls-remote` antes de anunciar la instalación.
+- `v0.1.4` verificado el 2026-10-24: tag anotado empujado (`858bdf8`) e
+  instalación limpia desde PyPI y TestPyPI; `--requisitos` presente, imports
+  OK y `pip check` limpio.
 - **GitHub Release con artefactos (wheel/sdist)**: se crea desde la web del
   repositorio (*Releases → Draft a new release*), eligiendo el tag y
-  adjuntando `dist/thinker_research-0.1.3*`. No se usa la CLI de GitHub
+  adjuntando `dist/thinker_research-0.1.4*`. No se usa la CLI de GitHub
   (regla propia 12). La cuenta debe tener permisos de escritura; si no, la
   release no se puede crear. En `dist/` están los artefactos de `v0.1.0`,
-  `v0.1.1`, `0.1.2` y `0.1.3`.
+  `v0.1.1`, `0.1.2`, `0.1.3` y `0.1.4`.
 
 ## Notas
 
