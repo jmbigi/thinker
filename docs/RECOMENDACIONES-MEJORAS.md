@@ -43,7 +43,7 @@ decisión del programador y no deben hacerse «por inercia».
 | Cobertura `evaluar_proyecto.py` | **90%** (149/1433 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **91%** (35/376) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
-| Paquete publicado | **0.1.4** (2026-10-24; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.5** (2026-10-24; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
 no está medida con la misma fuerza que el núcleo: cobertura incompleta en ramas

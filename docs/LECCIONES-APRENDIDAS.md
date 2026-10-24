@@ -2326,7 +2326,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   ([pypi.org/project/pywin32](https://pypi.org/project/pywin32/)).
 - **Evidencia**: suite **846/846**, autoevaluación **1.000**, preflight propio
   0 hallazgos; cobertura del evaluador **90%** (149/1433) y preflight **91%**
-  (35/376), total 83%. La mutación no se re-mide porque los módulos mutados no
+  (35/376), total 83%. Publicada como `0.1.5` en TestPyPI y PyPI el
+  2026-10-24. La mutación no se re-mide porque los módulos mutados no
   cambiaron y evaluador/preflight están excluidos de la campaña.
 - **Lección**: un alias de importación no puede deducirse solo del nombre de la
   distribución; para offline hace falta un mapa curado. Y los directorios
