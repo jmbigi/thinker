@@ -1,7 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `143d71b`
-más los arreglos de R7/R4 y la release `0.1.9` publicada.
+**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `e4765db`
+más el arnés y el piloto parcial de R3, y la release `0.1.9` publicada.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -15,7 +15,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 91% (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 95,2% no los cubre | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-25] Medir mutación del evaluador y preflight | Piloto preflight: 495/949 muertos, 414 supervivientes sin triaje; evaluador pendiente | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 10 casos/5 criterios con TP/FP/FN y 1.00/1.00; faltan 24 criterios y trampas reales | Medio | Bajo |
 | **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
@@ -34,7 +34,7 @@ decisión del programador y no deben hacerse «por inercia».
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **862/862** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **865/865** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -110,27 +110,38 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Evidencia:** en el cierre, `evaluar_proyecto.py` **91%** (130/1466 sin
   ejecutar), preflight **91%** (35/385), **91% combinado**. Tras R7/R4 el
   módulo crece a 1536 sentencias y sigue en **91%** (145/1536); suite
-  **862/862**, ruff 0. Comando: el de la sección 8.
+  **865/865**, ruff 0. Comando: el de la sección 8.
 - **Criterio de aceptación:** [x] ≥90% en cada archivo; [x] ≥90% combinado;
   [x] ramas de error cubiertas o declaradas; [x] suite en verde; [x] comando
   reproducible documentado.
 - **Riesgo:** bajo; los tests comprueban comportamiento, no solo ejecutan
   líneas.
 
-### R3 — Medir mutación del evaluador y preflight (P1, medio-alto)
+### R3 — Medir mutación del evaluador y preflight — PARCIAL 2026-10-25
 
 - **Problema medido:** `make mutation` mide el núcleo, pero excluye
-  `evaluar_proyecto.py` y `scripts/preflight.py` (los tests que los importan
-  fuera de `source_paths` se excluyen de la campaña). El 95,2% actual **no
-  cubre** el código del evaluador ni el de preflight.
-- **Acción:** campaña de mutación separada para evaluador/preflight, con el
-  mismo protocolo de triaje: aplicar mutante → test debe fallar → restaurar →
-  test debe pasar. Registrar supervivientes y clasificar equivalentes con razón.
-  No mezclar su denominador con el 95,2% del núcleo.
-- **Criterio de aceptación:** comando reproducible; línea base documentada;
-  0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa declarada con su
-  denominador y exclusiones.
-- **Riesgo:** medio; mutmut puede requerir aislar imports y puede ser lento.
+  `evaluar_proyecto.py` y `scripts/preflight.py`. El 95,2% actual **no cubre**
+  el código del evaluador ni el de preflight.
+- **Acción ejecutada (piloto preflight):** copia limpia de HEAD, `source_paths`
+  limitado a `scripts/preflight.py`, selección `tests/test_preflight.py` con
+  exclusión del test que evalúa el repo real, y `mutmut run --max-children 4`.
+  El test del repo real no aplica al sandbox de mutación y se deselecciona; sin
+  esa exclusión la línea base falla y mata mutantes por error.
+  El comando está empaquetado en `scripts/mutacion.py`:
+  `python3 scripts/mutacion.py --objetivo preflight` (y `--objetivo evaluar`).
+  El arnés copia sin `.env`/`.git`, usa `also_copy` para `evidence.py` y
+  `scripts/` (dependencias no mutadas) y suma 3 tests.
+- **Resultado del piloto:** **949 mutantes**, **495 muertos**, **414
+  supervivientes**, **40 sin tests**, 0 timeouts, 0 sospechosos. Tasa bruta
+  52,2% (495/949); excluyendo «sin tests», 54,4% (495/909). **No hay triaje de
+  los 414 supervivientes**, así que no es una tasa cerrada.
+- **Límite:** el evaluador sigue pendiente; el piloto no mezcla su denominador
+  con el 95,2% del núcleo. El resultado sugiere tests débiles en preflight, no
+  un problema del motor de mutación.
+- **Criterio de aceptación:** [ ] evaluador medido; [x] comando reproducible
+  empaquetado; [ ] 0 mutantes sin ejecutar; [ ] 0 supervivientes sin triaje;
+  [ ] tasa declarada con denominador y exclusiones.
+- **Riesgo:** medio; el piloto ya muestra que el triaje será costoso.
 
 ### R4 — Benchmark de precisión/recall del evaluador — PARCIAL 2026-10-25
 
@@ -199,7 +210,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   con literales. No toca `c5` ni la puntuación; no marca variables, helpers ni
   property tests.
 - **Evidencia:** dos tests nuevos (detección y no falsos positivos); suite
-  **862/862**, ruff 0; el informe distingue no-op de débil. Limitación
+  **865/865**, ruff 0; el informe distingue no-op de débil. Limitación
   declarada: no detecta tautologías con variables ni `__eq__` personalizados.
 - **Criterio de aceptación:** [x] fixtures con `assert True`; [x] 0 falsos
   positivos en property tests/helpers; [x] no-op y débil separados; [x] no
@@ -331,14 +342,14 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 ## 5. Deuda pendiente priorizada (2026-10-25)
 
-**Abiertas:** R3, R4 (parcial), R5, R6, R13 y R14. **Cerradas:** R1, R2, R7,
-R8, R9, R10, R11 y R12. Una recomendación abierta es deuda solo si tiene un
-criterio de aceptación medible; las limitaciones declaradas del README no se
-cuentan como deuda.
+**Abiertas:** R3 (parcial), R4 (parcial), R5, R6, R13 y R14. **Cerradas:** R1,
+R2, R7, R8, R9, R10, R11 y R12. Una recomendación abierta es deuda solo si
+tiene un criterio de aceptación medible; las limitaciones declaradas del README
+no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
-| 1 | **R3** | **P1** | Mutación del evaluador y preflight | Campaña separada de `mutmut` sobre esos dos módulos, sin mezclar su denominador con el 95,2% del núcleo | Comando reproducible; línea base; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
+| 1 | **R3** | **P1** | Mutación del evaluador y preflight (parcial) | Completar el evaluador, empaquetar el comando y triajar los 414 supervivientes de preflight | Comando reproducible; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
 | 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 10 casos/5 criterios actuales a más criterios y trampas reales | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
 | 3 | **R5** | P2 | Alcance Java/JS | Decidir soporte real o límite explícito; hoy la cobertura es 10/29 y 12/29 | Decisión documentada; si se limita, el informe lo dice sin presentar el GLOBAL como comparable | Alto |
 | 4 | **R6** | P2 | Silencios deliberados de producción | Política para `# noqa: silent` con motivo frente a `except: pass` real | Regla documentada; tests de ambos casos; sin falsos positivos en c3 | Bajo |
@@ -366,9 +377,9 @@ así, y el registro se conserva en el informe de cierre del lote:
 
 | Tarea | Componente de thinker | Evidencia que aportó | Verificación humana/automática |
 |---|---|---|---|
-| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | piloto preflight: 495/949 muertos, 414 supervivientes, 40 sin tests; evaluador pendiente | campaña reproducible y triaje |
+| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; piloto preflight 495/949 muertos, 414 supervivientes, 40 sin tests; evaluador pendiente | 3 tests del arnés; triaje pendiente |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 10 casos, 5 criterios, 5 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
-| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 862/862 |
+| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 865/865 |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se

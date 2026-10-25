@@ -2495,10 +2495,37 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   etiquetados sobre 5 criterios; TP/FP/FN, precision y recall por criterio y
   global. Resultado **5 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 5 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
-- **Evidencia**: suite **862/862**, ruff 0, cobertura evaluador 91% (145/1536),
+- **Evidencia**: suite **865/865**, ruff 0, cobertura evaluador 91% (145/1536),
   preflight 91%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
   c5; y un benchmark con 5 criterios sirve como regresión, no como certificado
   de precisión/recall global. La cobertura del benchmark debe declararse siempre
   (R4 sigue parcial).
+
+## 2026-10-25 (ronda 26) — Mutación fuera del núcleo (hallazgo 108)
+
+### Hallazgo 108: mutar el evaluador exige aislar dependencias y el triaje es el coste real
+
+- **Origen**: R3. El 95,2% de mutación global excluye `evaluar_proyecto.py` y
+  `scripts/preflight.py`; medirlos requiere una campaña separada.
+- **Fallo 1**: el test `test_el_repositorio_real_pasa_su_propio_preflight`
+  evalúa el repo completo y falla en el sandbox de mutantes; se deselecciona.
+  Sin eso, la línea base falla y mata mutantes por error.
+- **Fallo 2**: al mutar solo `evaluar_proyecto.py`, el sandbox importó
+  `scripts.preflight` desde `site-packages` (versión instalada sin
+  `es_parte_ignorada`) y la colecta falló. Se corrigió con
+  `also_copy = ["evidence.py", "scripts"]`, que copia dependencias sin mutarlas.
+- **Fallo 3**: `tempfile.mkdtemp` crea el destino y `shutil.copytree` fallaba
+  con `FileExistsError`; se corrigió con `dirs_exist_ok=True`.
+- **Piloto preflight**: **949 mutantes, 495 muertos, 414 supervivientes, 40 sin
+  tests**, 0 timeouts/sospechosos. Tasa bruta 52,2% (495/949); excluyendo «sin
+  tests», 54,4% (495/909). **Sin triaje**, así que no es una tasa cerrada.
+- **Estado del evaluador**: el arnés `scripts/mutacion.py` queda listo
+  (`--objetivo evaluar`), pero la campaña completa no terminó; no se publica
+  tasa del evaluador. R3 sigue **parcial**.
+- **Evidencia**: 3 tests del arnés, suite **865/865**, ruff 0, docs-check OK.
+- **Lección**: una campaña de mutación fuera de `source_paths` debe copiar sus
+  dependencias sin mutarlas y verificar primero la línea base; los mutantes «sin
+  tests» y los supervivientes son hallazgos, no ruido. Sin triaje no hay tasa
+  honesta que publicar.

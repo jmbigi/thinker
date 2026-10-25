@@ -243,8 +243,11 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97). Cobertura del evaluador **91%** (145/1536 sin
   ejecutar) y de preflight **91%** (35/385), **91% combinado**, medidas el
-  2026-10-25.
-- Plataformas verificadas: Linux con Python **3.11.9**: **862/862 en la suite
+  2026-10-25. **Piloto R3 2026-10-25**: preflight **949 mutantes, 495 muertos,
+  414 supervivientes, 40 sin tests**, 0 timeouts/sospechosos; sin triaje y sin
+  mezclar con el 95,2% del núcleo. El evaluador sigue pendiente; el comando es
+  `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
+- Plataformas verificadas: Linux con Python **3.11.9**: **865/865 en la suite
   Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
