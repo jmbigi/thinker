@@ -127,6 +127,80 @@ CASOS = [
             "requirements.txt": "requests==2.31.0\n",
         },
     },
+    {
+        "nombre": "c2_sin_linter",
+        "criterio": "c2_linter_configurado",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
+    {
+        "nombre": "c2_con_ruff",
+        "criterio": "c2_linter_configurado",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": ('[project]\nname = "demo"\nversion = "0.1.0"\n'
+                               '[tool.ruff]\nline-length = 100\n'),
+        },
+    },
+    {
+        "nombre": "v2_sin_lock",
+        "criterio": "v2_lockfile",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "requirements.txt": "requests==2.31.0\n",
+        },
+    },
+    {
+        "nombre": "v2_con_lock",
+        "criterio": "v2_lockfile",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "requirements.txt": "requests==2.31.0\n",
+            "requirements.lock": "requests==2.31.0 --hash=sha256:abc\n",
+        },
+    },
+    {
+        "nombre": "h3_sin_ci",
+        "criterio": "h3_verificacion_automatizada",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
+    {
+        "nombre": "h3_con_ci",
+        "criterio": "h3_verificacion_automatizada",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+            ".github/workflows/ci.yml": "name: ci\n",
+        },
+    },
+    {
+        "nombre": "h1_sin_manifiesto",
+        "criterio": "h1_manifiesto",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+        },
+    },
+    {
+        "nombre": "h1_con_manifiesto",
+        "criterio": "h1_manifiesto",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
 ]
 
 
