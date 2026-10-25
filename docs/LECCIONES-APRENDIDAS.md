@@ -2491,15 +2491,15 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   constantes verdaderas, comparaciones constantes que pasan y
   `assertTrue/assertFalse/assertEqual` con literales. No cambia c5 y no marca
   variables, helpers ni property tests.
-- **R4**: `tests/benchmarks/evaluador_precision.py` con 18 casos sintéticos
-  etiquetados sobre 9 criterios; TP/FP/FN, precision y recall por criterio y
-  global. Resultado **9 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 9 de 29
+- **R4**: `tests/benchmarks/evaluador_precision.py` con 28 casos sintéticos
+  etiquetados sobre 14 criterios; TP/FP/FN, precision y recall por criterio y
+  global. Resultado **14 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 14 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
 - **Evidencia**: suite **879/879**, ruff 0, cobertura evaluador 91% (145/1571),
   preflight 91%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
-  c5; y un benchmark con 9 criterios sirve como regresión, no como certificado
+  c5; y un benchmark con 14 criterios sirve como regresión, no como certificado
   de precisión/recall global. La cobertura del benchmark debe declararse siempre
   (R4 sigue parcial).
 

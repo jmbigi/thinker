@@ -201,6 +201,115 @@ CASOS = [
             "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
         },
     },
+    {
+        "nombre": "f2_readme_roto",
+        "criterio": "f2_readme_vs_realidad",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "README.md": "# Demo\n\nEjecuta `inexistente.py`.\n",
+        },
+    },
+    {
+        "nombre": "f2_readme_ok",
+        "criterio": "f2_readme_vs_realidad",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "README.md": "# Demo\n\nEjecuta `demo.py`.\n",
+        },
+    },
+    {
+        "nombre": "f4_un_solo_test",
+        "criterio": "f4_tests_de_varios_modulos",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "tests/test_a.py": (
+                "import unittest\n\n\n"
+                "class T(unittest.TestCase):\n"
+                "    def test_a(self):\n"
+                "        self.assertEqual(f(), 1)\n"),
+        },
+    },
+    {
+        "nombre": "f4_dos_modulos",
+        "criterio": "f4_tests_de_varios_modulos",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "tests/test_a.py": (
+                "import unittest\n\n\n"
+                "class T(unittest.TestCase):\n"
+                "    def test_a(self):\n"
+                "        self.assertEqual(f(), 1)\n"),
+            "tests/test_b.py": (
+                "import unittest\n\n\n"
+                "class U(unittest.TestCase):\n"
+                "    def test_b(self):\n"
+                "        self.assertEqual(f(), 1)\n"),
+        },
+    },
+    {
+        "nombre": "v1_sin_fijar",
+        "criterio": "v1_dependencias_fijadas",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "requirements.txt": "requests>=2.0\n",
+        },
+    },
+    {
+        "nombre": "v1_fijado",
+        "criterio": "v1_dependencias_fijadas",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "requirements.txt": "requests==2.31.0\n",
+        },
+    },
+    {
+        "nombre": "c1_sin_tests",
+        "criterio": "c1_suite_de_tests",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
+    {
+        "nombre": "c1_con_tests",
+        "criterio": "c1_suite_de_tests",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "tests/test_a.py": (
+                "import unittest\n\n\n"
+                "class T(unittest.TestCase):\n"
+                "    def test_a(self):\n"
+                "        self.assertEqual(f(), 1)\n"),
+        },
+    },
+    {
+        "nombre": "h7_sin_registro",
+        "criterio": "h7_decisiones_documentadas",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
+    {
+        "nombre": "h7_con_registro",
+        "criterio": "h7_decisiones_documentadas",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+            "docs/decisiones.md": "# Decisiones\n",
+        },
+    },
+
 ]
 
 

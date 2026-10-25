@@ -17,7 +17,7 @@ pendiente.
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 91% (91% combinado); ramas de error cubiertas | Medio | Bajo |
 | **Parcial** | R3. [Parcial 2026-10-25; decisión C] Medir mutación del evaluador y preflight | Preflight: 557/1005 muertos, 448 supervivientes sin triaje, 0 sin tests; evaluador pendiente | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
-| **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 18 casos/9 criterios con TP/FP/FN y 1.00/1.00; faltan 20 criterios y trampas reales | Medio | Bajo |
+| **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 28 casos/14 criterios con TP/FP/FN y 1.00/1.00; faltan 15 criterios y trampas reales | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
 | **Hecho** | R6. [Cerrada 2026-10-25, C con warnings] Política para silencios deliberados de producción | Marca externa con motivo; warnings en c3/preflight; 5 tests | Bajo | Político |
 | **Hecho** | R7. [Cerrada 2026-10-25] Medir calidad de aserciones, no solo tests no-op | `aserciones_debiles` informativo; c5 no cambia | Medio | Bajo |
@@ -168,12 +168,12 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   una campaña puntual. No hay un arnés que impida volver a introducir falsos
   positivos como los de h6 (853 en FastAPI) o h5 (12/12).
 - **Estado 2026-10-25:** **parcial**. `tests/benchmarks/evaluador_precision.py`
-  ejecuta 18 casos sintéticos etiquetados sobre 9 criterios (h1, h2, h3, h6,
-  v2, c2, c3, c5 y f3), calcula TP/FP/FN, precision y recall por criterio y global, y admite
-  `--json`. Resultado actual: **9 TP, 0 FP, 0 FN; precision 1.00, recall 1.00**
-  en esos 18 casos. `tests/test_evaluador_precision.py` fija métricas y
+  ejecuta 28 casos sintéticos etiquetados sobre 14 criterios (h1, h2, h3, h6,
+  v2, c1, c2, c3, c5, f2, f3, f4, v1 y h7), calcula TP/FP/FN, precision y
+  recall por criterio y global, y admite `--json`. Resultado actual: **14 TP,
+  0 FP, 0 FN; precision 1.00, recall 1.00** en esos 28 casos. `tests/test_evaluador_precision.py` fija métricas y
   balance del corpus.
-- **Límite declarado:** cubre **9 de los 29 criterios posibles** y son fixtures
+- **Límite declarado:** cubre **14 de los 29 criterios posibles** y son fixtures
   sintéticas; no es una campaña sobre proyectos reales. El benchmark no debe
   presentarse como validación global del evaluador.
 - **Acción pendiente:** ampliar a más criterios y trampas (imports en docs,
@@ -379,7 +379,7 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
 | 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; medir el evaluador y triajar los 448 supervivientes | Comando reproducible; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
-| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 18 casos/9 criterios actuales a más criterios y trampas reales | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
+| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 28 casos/14 criterios actuales a más criterios y trampas reales | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
 | 3 | **R13** | P3 / B | CoVe con verificador barato (C pendiente) | Implementar descomposición de claims (C) con benchmark | Claim compuesto detectado; coste declarado | Medio |
 
 **Orden:** R3-C es la deuda P1; R4 y R13-C siguen después. R5-A, R6-C y
@@ -404,7 +404,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | Tarea | Componente de thinker | Evidencia que aportó | Verificación humana/automática |
 |---|---|---|---|
 | R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; preflight 557/1005 muertos, 448 supervivientes, 0 sin tests; evaluador pendiente | 3 tests del arnés + 3 tests de helpers; triaje pendiente |
-| R4 | `evaluar_proyecto` y `tests/benchmarks` | 18 casos, 9 criterios, 9 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
+| R4 | `evaluar_proyecto` y `tests/benchmarks` | 28 casos, 14 criterios, 14 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
 | R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 879/879 |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
