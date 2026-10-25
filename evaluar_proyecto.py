@@ -2693,6 +2693,9 @@ def main(argv: List[str] = None) -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--sin-red", action="store_true",
                         help="omite la comprobación de versiones y licencias en PyPI")
+    parser.add_argument("--ignorar", action="append", default=[],
+                        metavar="DIRECTORIO",
+                        help="directorio a excluir del análisis (repetible)")
     parser.add_argument("--ejecutar-tests", action="store_true",
                         help="EJECUTA el comando de tests declarado por el proyecto "
                              "(opt-in explícito: es lo único que corre código "
@@ -2711,6 +2714,7 @@ def main(argv: List[str] = None) -> int:
                              "las fuentes (implica --sintesis-llm; requiere red)")
     args = parser.parse_args(argv)
 
+    IGNORAR.update(args.ignorar)
     requisitos_path = None
     if args.requisitos:
         requisitos_path = Path(args.requisitos).resolve()

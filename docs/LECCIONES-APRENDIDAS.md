@@ -2333,3 +2333,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   distribución; para offline hace falta un mapa curado. Y los directorios
   generados se excluyen por patrón, no por nombre exacto, sin ignorar nombres
   genéricos como `exe`.
+
+## 2026-10-24 (ronda 20) — Exclusiones configurables e imports hermanos (hallazgo 101)
+
+### Hallazgo 101: `tools/` no es una dependencia externa
+
+- **Origen**: evaluación externa de MultiStat. De 98 hallazgos restantes, 65
+  eran imports en `tools/` donde importar módulos hermanos por nombre es
+  intencional; el snapshot con lista blanca evitaba el coste pero no la causa.
+- **Problema 1**: `revisar_imports` resolvía módulos locales solo desde la
+  raíz/paquetes con `__init__.py`. `tools/a.py` con `import helper` y
+  `tools/helper.py` se marcaba como import no declarado.
+- **Problema 2**: no había forma de excluir `exe/` u otros directorios
+  generados sin editar el código o usar un snapshot; `dist/` ya estaba en
+  `IGNORAR`.
+- **Solución**: (a) cada archivo añade a su contexto los `.py` hermanos y los
+  paquetes hijos con `__init__.py`; (b) `--ignorar DIRECTORIO` repetible en
+  `evaluar_proyecto` y `preflight`, que actualiza el conjunto `IGNORAR` del
+  proceso. Tres tests nuevos: import hermano en `tools/`, y `--ignorar exe`
+  en ambas CLI (con restauración del global en los tests).
+- **Evidencia**: suite **849/849**, autoevaluación **1.000**, preflight propio
+  0; cobertura 90% evaluador (149/1435) y 91% preflight (35/385), total 83%.
+  No se publica todavía: queda pendiente decidir si corresponde 0.1.6.
+- **Lección**: la localidad de un import es contextual (directorio del archivo),
+  no solo global; y las exclusiones de análisis deben ser configurables por el
+  usuario, no un workaround con snapshot. `exe` no se ignora por defecto.

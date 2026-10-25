@@ -117,7 +117,8 @@ mejora de código (`code_design_improvement_tools.py`).
   prueba).
 - Evaluación de un proyecto externo (estática, read-only; LLM opt-in):
   `python3 evaluar_proyecto.py RUTA [--json] [--sin-red] [--ejecutar-tests]
-  [--requisitos ARCHIVO] [--sintesis-llm] [--investigar]` — 6 dimensiones × 3-7
+  [--ignorar DIRECTORIO] [--requisitos ARCHIVO] [--sintesis-llm]
+  [--investigar]` — 6 dimensiones × 3-7
   criterios binarios, con
   perfil de proyecto y **criterios N/A** que no se cuentan como fallos; el
   informe declara cobertura y ratio. Evidencia por hallazgo **marcada por
@@ -208,9 +209,9 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
-  triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1433 sin
-  ejecutar) y de preflight **91%** (35/376), medidas el 2026-10-24.
-- Plataformas verificadas: Linux con Python **3.11.9**: **846/846 en la suite
+  triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1435 sin
+  ejecutar) y de preflight **91%** (35/385), medidas el 2026-10-24.
+- Plataformas verificadas: Linux con Python **3.11.9**: **849/849 en la suite
   Linux** (2026-10-24; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -222,9 +223,10 @@ mejora de código (`code_design_improvement_tools.py`).
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`
-  (2026-10-23) y a 93 con los 10 tests del 2026-10-24 (carga de `.env`,
-  N/A vs no verificado, ramas de parseo, alias pywin32 y exclusiones); el
-  preflight añadió 4 tests de manifiestos y exclusiones (24 en total). El auditor de cambios de
+  (2026-10-23) y a 94 con los 11 tests del 2026-10-24 (carga de `.env`,
+  N/A vs no verificado, ramas de parseo, alias pywin32, exclusiones
+  configurables e imports hermanos); el preflight añadió 6 tests de
+  manifiestos, exclusiones e imports hermanos (26 en total). El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

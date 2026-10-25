@@ -7,6 +7,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from scripts.preflight import archivos_python, ejecutar, main
+import scripts.preflight as preflight_mod
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -305,6 +306,36 @@ class TestPreflight(unittest.TestCase):
                    for p in archivos_python(raiz)]
 
         self.assertEqual(nombres, ["app.py", "exe/e.py"])
+
+    def test_import_hermano_en_tools_es_local(self):
+        raiz = crear_proyecto(self, {
+            "tools/a.py": "import helper\n",
+            "tools/helper.py": "X = 1\n",
+        })
+
+        self.assertTrue(ejecutar(raiz)["ok"])
+
+    def test_cli_ignorar_excluye_directorio(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "x = 1\n",
+            "exe/malo.py": ("try:\n"
+                            "    x = 1\n"
+                            "except Exception:\n"
+                            "    pass\n"),
+        })
+        antes = set(preflight_mod.IGNORAR)
+        try:
+            salida = io.StringIO()
+            with redirect_stdout(salida):
+                codigo = main(["--root", str(raiz), "--ignorar", "exe",
+                               "--json"])
+            datos = json.loads(salida.getvalue())
+        finally:
+            preflight_mod.IGNORAR.clear()
+            preflight_mod.IGNORAR.update(antes)
+
+        self.assertEqual(codigo, 0)
+        self.assertTrue(datos["ok"])
 
     def test_el_repositorio_real_pasa_su_propio_preflight(self):
         informe = ejecutar(RAIZ_THINKER)

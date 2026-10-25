@@ -446,10 +446,20 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
     resultado.hallazgos.extend(hallazgos_manifiesto)
     stdlib = set(sys.stdlib_module_names)
     locales = modulos_locales(root)
+    locales_por_directorio: Dict[Path, Set[str]] = {}
     permitidos_norm = {_normalizar(m) for m in (permitidos or ())}
     vistos: Set[Tuple[Path, str]] = set()
 
     for ruta, arbol in sorted(modulos.items()):
+        directorio = ruta.parent
+        if directorio not in locales_por_directorio:
+            # `tools/a.py` puede importar `tools/helper.py` por nombre, sin
+            # paquete ni manifiesto: es local por contexto, no dependencia.
+            hermanos = {p.stem for p in directorio.glob("*.py")}
+            hermanos |= {p.parent.name
+                         for p in directorio.glob("*/__init__.py")}
+            locales_por_directorio[directorio] = locales | hermanos
+        locales_archivo = locales_por_directorio[directorio]
         opcionales = _lineas_no_runtime(arbol)
         if ignorar_opcionales:
             opcionales |= _lineas_import_opcional(arbol)
@@ -469,8 +479,8 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
                 if clave in vistos:
                     continue
                 vistos.add(clave)
-                if _import_declarado(modulo, stdlib, locales, declaradas,
-                                     permitidos_norm):
+                if _import_declarado(modulo, stdlib, locales_archivo,
+                                     declaradas, permitidos_norm):
                     continue
                 resultado.hallazgos.append(Hallazgo(
                     "imports", _relativa(root, ruta), linea,
@@ -627,8 +637,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--allow", action="append", default=[], metavar="MODULO",
         help="módulo de importación permitido sin declarar (repetible)")
+    parser.add_argument(
+        "--ignorar", action="append", default=[], metavar="DIRECTORIO",
+        help="directorio a excluir del análisis (repetible)")
     args = parser.parse_args(argv)
 
+    IGNORAR.update(args.ignorar)
     root = Path(args.root).resolve()
     if not root.is_dir():
         print(f"ERROR: no es un directorio: {root}", file=sys.stderr)

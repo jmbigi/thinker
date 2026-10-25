@@ -404,3 +404,13 @@ a `pywin32` (antes `import win32api` se marcaba como no declarado aunque
 **91%** (35/376), total 83%. `exe/` no se ignora a propósito: puede ser código
 legítimo. La mutación no se re-mide: los módulos mutados no cambiaron y estos
 dos módulos están excluidos de la campaña (95,2% vigente).
+
+**Actualización 2026-10-24 (exclusiones configurables e imports hermanos —
+Hallazgo 101)**: autoevaluación con red **1.000** (28/30; 93%),
+`no_verificado` vacío y `[UNVERIFIED] 0`. Suite **849/849** en Linux (Python
+3.11.9), ruff 0, preflight 0 y docs-check OK. Tres tests nuevos: `--ignorar
+DIRECTORIO` en las CLI de evaluador y preflight (excluye `exe/` u otros sin
+snapshot) e imports hermanos locales (`tools/a.py` puede importar
+`tools/helper.py` sin manifiesto). Cobertura: `evaluar_proyecto.py` **90%**
+(149/1435), `scripts/preflight.py` **91%** (35/385), total 83%. `dist/` ya
+estaba excluido; `exe/` se excluye solo si se pide con `--ignorar exe`.

@@ -484,6 +484,28 @@ class TestCriteriosAnadidos(unittest.TestCase):
 
         self.assertEqual(nombres, ["app.py", "exe/e.py"])
 
+    def test_cli_ignorar_excluye_directorio(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "x = 1\n",
+            "exe/malo.py": ("try:\n"
+                            "    x = 1\n"
+                            "except Exception:\n"
+                            "    pass\n"),
+        })
+        antes = set(evaluar_proyecto.IGNORAR)
+        try:
+            salida = io.StringIO()
+            with contextlib.redirect_stdout(salida):
+                codigo = main([str(raiz), "--sin-red", "--json",
+                               "--ignorar", "exe"])
+            datos = json.loads(salida.getvalue())
+        finally:
+            evaluar_proyecto.IGNORAR.clear()
+            evaluar_proyecto.IGNORAR.update(antes)
+
+        self.assertEqual(codigo, 0)
+        self.assertEqual(datos["archivos_python"], 1)
+
     def test_h6_stdlib_y_modulos_locales_no_necesitan_declaracion(self):
         raiz = crear_proyecto(self, {
             "app.py": "import json\nimport helper\n",
