@@ -84,8 +84,14 @@ manifiestos. R3 sigue parcial: preflight 1015 mutantes, 645 muertos, 370
 supervivientes sin triaje; el evaluador no se midió. Suite 891/891, cobertura
 evaluador 91% y preflight 94%.
 
-Artefactos: `thinker-research 0.1.11` (wheel y sdist); hashes pendientes de
-la publicación. **Publicada en TestPyPI y PyPI el 2026-10-25**.
+Artefactos: `thinker-research 0.1.11` (wheel y sdist), construidos desde el
+tag `v0.1.11`; `twine check` PASSED. Hashes SHA-256:
+`701091811d6cd3c2cbd352dd98ebdb51b48bb1efd8c8d0cdeba2b571f1fa3e76` (wheel)
+y `0fd2a514ae55b45cfe294e644e3cbb9fb2bb18a32452c3ad263094bcbb1d0434`
+(sdist). **Publicada en TestPyPI y PyPI el 2026-10-25**. Verificación: ambos
+índices publican esos hashes; instalación limpia
+`thinker-research==0.1.11` desde PyPI OK; `evaluate-project --help`, imports
+OK y `pip check` limpio. Tag anotado `v0.1.11` empujado.
 
 ## Versión 0.1.10 (2026-10-25)
 
