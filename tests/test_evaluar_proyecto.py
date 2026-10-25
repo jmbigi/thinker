@@ -469,6 +469,18 @@ class TestCriteriosAnadidos(unittest.TestCase):
 
         self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
 
+    def test_h6_reconoce_pil_docx_y_pptx(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import PIL\nimport docx\nimport pptx\n",
+            "pyproject.toml": ('[project]\nname = "x"\nversion = "0.1.0"\n'
+                               'dependencies = ["pillow", "python-docx", '
+                               '"python-pptx"]\n'),
+        })
+
+        herramientas = evaluar(raiz, con_red=False)["dimensiones"]["herramientas"]
+
+        self.assertTrue(herramientas["criterios"]["h6_imports_declarados"])
+
     def test_archivos_python_ignora_venvs_y_temporales(self):
         raiz = crear_proyecto(self, {
             "app.py": "x = 1\n",

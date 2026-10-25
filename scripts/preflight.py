@@ -86,6 +86,10 @@ ALIAS_IMPORTACION = {
     "win32com": "pywin32",
     "pythoncom": "pywin32",
     "pywintypes": "pywin32",
+    # Distribuciones con un import package distinto del nombre en PyPI.
+    "PIL": "pillow",
+    "docx": "python-docx",
+    "pptx": "python-pptx",
 }
 # Módulos de la stdlib que aún no existen en el Python que ejecuta el gate
 # (p. ej. annotationlib en 3.14): no son dependencias de terceros.

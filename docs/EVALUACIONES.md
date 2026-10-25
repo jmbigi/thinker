@@ -415,3 +415,12 @@ snapshot) e imports hermanos locales (`tools/a.py` puede importar
 (149/1435), `scripts/preflight.py` **91%** (35/385), total 83%. `dist/` ya
 estaba excluido; `exe/` se excluye solo si se pide con `--ignorar exe`.
 Publicada como `0.1.6` en TestPyPI y PyPI el 2026-10-24.
+
+**Actualización 2026-10-24 (alias PIL/docx/pptx — Hallazgo 102)**: tres alias
+reales más (`PIL`→`pillow`, `docx`→`python-docx`, `pptx`→`python-pptx`), con
+test de preflight y de h6. Suite **851/851** en Linux (Python 3.11.9), ruff 0,
+preflight 0 y docs-check OK; autoevaluación **1.000**, `[UNVERIFIED] 0`.
+Cobertura sin cambios: 90% evaluador (149/1435), 91% preflight (35/385), total
+83%. Los alias `pygetwindow`, `rapidocr_onnxruntime` y `shiboken6` **no** se
+añadieron: con la distribución declarada directamente ya pasan; el caso
+`shiboken6` con solo `PySide6` es dependencia transitiva y el flag es correcto.

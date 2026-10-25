@@ -34,7 +34,7 @@ decisión del programador y no deben hacerse «por inercia».
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **849/849** en Linux 3.11.9 (2026-10-24) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **851/851** en Linux 3.11.9 (2026-10-24) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -99,7 +99,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   83% combinado. Las líneas sin cubrir incluyen ramas de error de PyPI,
   licencias desconocidas, manifiestos malformados, imports condicionales,
   `package-lock`, errores de sintaxis y rutas del CLI. El corpus adversario
-  subió el evaluador de 83% a 86% (2026-10-23) y los 17 tests del 2026-10-24
+  subió el evaluador de 83% a 86% (2026-10-23) y los 19 tests del 2026-10-24
   (11 del evaluador y 6 de preflight, incluidos alias pywin32, exclusiones
   por prefijo, `--ignorar` e imports hermanos) lo llevaron a 90%, con
   preflight en 91%; el objetivo combinado sigue sin alcanzarse.

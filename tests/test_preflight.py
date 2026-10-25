@@ -307,6 +307,16 @@ class TestPreflight(unittest.TestCase):
 
         self.assertEqual(nombres, ["app.py", "exe/e.py"])
 
+    def test_alias_pil_docx_pptx_no_son_falsos_positivos(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import PIL\nimport docx\nimport pptx\n",
+            "pyproject.toml": ('[project]\nname = "x"\nversion = "0.1.0"\n'
+                               'dependencies = ["pillow", "python-docx", '
+                               '"python-pptx"]\n'),
+        })
+
+        self.assertTrue(ejecutar(raiz)["ok"])
+
     def test_import_hermano_en_tools_es_local(self):
         raiz = crear_proyecto(self, {
             "tools/a.py": "import helper\n",

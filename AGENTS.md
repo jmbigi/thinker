@@ -77,6 +77,16 @@ mejora de código (`code_design_improvement_tools.py`).
     estándar (`git push`, `git tag`, `git ls-remote`) o desde la interfaz web;
     las GitHub Releases y sus artefactos se crean/publican desde la web. La
     guía `docs/PUBLICACION.md` no debe contener comandos de `gh`.
+13. **No manipular la evaluación** (regla del programador, 2026-10-24): no se
+    cambia el código de thinker para subir artificialmente la evaluación de
+    thinker, ni la de los proyectos evaluados con thinker, ni por opiniones no
+    fundamentadas. Toda mejora debe responder a un defecto reproducible, a un
+    requisito explícito o a una decisión declarada, con evidencia; no se
+    modifican criterios, tests, umbrales, alias ni exclusiones para favorecer
+    una nota. Si un cambio reduce hallazgos, hay que explicar por qué eran
+    falsos o estaban fuera de alcance; nunca se oculta un fallo real para
+    mejorar el número. El conflicto «mejorar la nota» vs. «decir la verdad» se
+    resuelve siempre a favor de la verdad (P0.1/P0.2/P1.12).
 
 ## Entorno y verificación (comandos del proyecto)
 
@@ -211,7 +221,7 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1435 sin
   ejecutar) y de preflight **91%** (35/385), medidas el 2026-10-24.
-- Plataformas verificadas: Linux con Python **3.11.9**: **849/849 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **851/851 en la suite
   Linux** (2026-10-24; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -223,10 +233,10 @@ mejora de código (`code_design_improvement_tools.py`).
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`
-  (2026-10-23) y a 94 con los 11 tests del 2026-10-24 (carga de `.env`,
-  N/A vs no verificado, ramas de parseo, alias pywin32, exclusiones
-  configurables e imports hermanos); el preflight añadió 6 tests de
-  manifiestos, exclusiones e imports hermanos (26 en total). El auditor de cambios de
+  (2026-10-23) y a 95 con los 12 tests del 2026-10-24 (carga de `.env`,
+  N/A vs no verificado, ramas de parseo, alias pywin32/PIL/docx/pptx,
+  exclusiones configurables e imports hermanos); el preflight añadió 7 tests
+  de manifiestos, exclusiones, imports hermanos y alias (27 en total). El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
@@ -432,6 +442,7 @@ mejora de código (`code_design_improvement_tools.py`).
 - [ ] ¿Sin secretos ni datos personales en lo entregado? (P0.6–P0.11)
 - [ ] ¿Ejecuté py_compile + tests offline y muestro la salida? (P1.1)
 - [ ] ¿Solo cambié lo necesario y reporté qué falta? (P1.2/P1.6)
+- [ ] ¿Este cambio corrige un defecto reproducible o solo mejora una nota? ¿La opinión que lo motiva está fundamentada? (regla 13)
 - [ ] ¿Sin fallbacks silenciosos ni errores tragados? (P1.19/P1.26)
 - [ ] ¿Lecciones documentadas en `docs/LECCIONES-APRENDIDAS.md`? (P1.20)
 - [ ] ¿Lo simulado está declarado como simulado? (regla propia 4)

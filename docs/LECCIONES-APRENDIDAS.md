@@ -2359,3 +2359,24 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: la localidad de un import es contextual (directorio del archivo),
   no solo global; y las exclusiones de análisis deben ser configurables por el
   usuario, no un workaround con snapshot. `exe` no se ignora por defecto.
+
+## 2026-10-24 (ronda 21) — Alias reales y ruido de MultiStat (hallazgo 102)
+
+### Hallazgo 102: solo tres alias de los seis reportados eran reales
+
+- **Origen**: revisión de los cambios de las últimas 48 h y de los comentarios
+  de MultiStat. Se probaron los seis alias reportados con fixtures de
+  `pyproject` + import.
+- **Resultado**: `PIL`→`pillow`, `docx`→`python-docx` y `pptx`→`python-pptx`
+  eran falsos positivos reales. `pygetwindow`, `rapidocr_onnxruntime` y
+  `shiboken6` **pasan** si la distribución está declarada directamente; el
+  caso `shiboken6` con solo `PySide6` es una dependencia transitiva y el flag
+  es correcto según la política de dependencias directas.
+- **Solución**: tres alias con test de preflight y de h6; no se añadieron los
+  otros tres ni se debilitó el gate de silencios, conforme a la regla 13.
+- **Evidencia**: suite **851/851**, autoevaluación **1.000**, preflight 0;
+  cobertura 90% evaluador (149/1435) y 91% preflight (35/385). Sin release
+  todavía en el momento de escribir esta lección.
+- **Lección**: una opinión externa puede señalar un defecto real y, a la vez,
+  incluir falsos positivos; la única forma de separarlos es reproducir cada
+  caso. La regla 13 prohíbe tocar el gate para que la nota suba.
