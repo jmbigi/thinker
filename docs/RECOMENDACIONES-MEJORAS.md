@@ -1,7 +1,7 @@
 # Recomendaciones de mejora de thinker
 
 **Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `38f8839`
-más las decisiones del programador del 2026-10-25 y la release `0.1.10` publicada.
+más las decisiones del programador del 2026-10-25 y la release `0.1.11` publicada.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -58,7 +58,7 @@ mutantes sin tests y 0 supervivientes sin triaje.
 | Cobertura `evaluar_proyecto.py` | **91%** (145/1571 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **93%** (26/425) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
-| Paquete publicado | **0.1.10** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.11** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda principal que queda es la **mutación** de esos dos

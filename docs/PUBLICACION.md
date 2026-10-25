@@ -1,9 +1,9 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-25: **versión `0.1.10` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-25: **versión `0.1.11` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
-> `v0.1.7`, `v0.1.8`, `v0.1.9` y `v0.1.10` empujados; `v0.1.2` a `v0.1.10` son anotados. `0.1.2` **no
+> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10` y `v0.1.11` empujados; `v0.1.2` a `v0.1.11` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -15,7 +15,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.10`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.11`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -24,7 +24,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.10*` (ya existen).
+  `dist/thinker_research-0.1.11*` (ya existen).
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -74,6 +74,18 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.11 (2026-10-25)
+
+Incluye R13-C (descomposición opt-in de claims compuestos), R4 con 33
+casos/14 criterios y 5 trampas, R14-C con piloto real n=20 (Brier 0,0540), el
+arreglo de `extras_require` en `setup.py` y 3 tests de casos límite de
+manifiestos. R3 sigue parcial: preflight 1015 mutantes, 645 muertos, 370
+supervivientes sin triaje; el evaluador no se midió. Suite 891/891, cobertura
+evaluador 91% y preflight 94%.
+
+Artefactos: `thinker-research 0.1.11` (wheel y sdist); hashes pendientes de
+la publicación. **Publicada en TestPyPI y PyPI el 2026-10-25**.
 
 ## Versión 0.1.10 (2026-10-25)
 
@@ -265,7 +277,7 @@ https://test.pypi.org/manage/account/token/.
   construir desde una copia limpia del tag o apartar `build/` y
   `*.egg-info/`; no borrar `dist/`, que conserva las versiones anteriores.
 - [ ] `python3 -m build` y
-  `python3 -m twine check dist/thinker_research-0.1.10*` en verde.
+  `python3 -m twine check dist/thinker_research-0.1.11*` en verde.
 - [ ] Revisar el METADATA del wheel: `Name: thinker-research`,
   `Version: 0.1.9` y sin frases transitorias sobre PyPI o el tag.
 - [ ] `git status` limpio, tag anotado y `git ls-remote` confirma el tag en
@@ -274,13 +286,13 @@ https://test.pypi.org/manage/account/token/.
 ## Ensayo en TestPyPI (recomendado siempre)
 
 ```bash
-python3 -m twine upload -r testpypi dist/thinker_research-0.1.10*
+python3 -m twine upload -r testpypi dist/thinker_research-0.1.11*
 # Verificar instalación desde TestPyPI en un venv limpio:
 python3 -m venv /tmp/venv-testpypi-019
 /tmp/venv-testpypi-019/bin/pip install \
   --index-url https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple/ \
-  thinker-research==0.1.10
+  thinker-research==0.1.11
 /tmp/venv-testpypi-019/bin/evaluate-project --help
 ```
 
@@ -290,17 +302,17 @@ en TestPyPI. No usar `dist/*`: subiría también `0.1.0`–`0.1.9`.)
 ## Publicación real
 
 ```bash
-python3 -m twine upload dist/thinker_research-0.1.10*
+python3 -m twine upload dist/thinker_research-0.1.11*
 ```
 
 Verificación post-publicación (obligatoria, P0.1):
 
 ```bash
-curl -s https://pypi.org/pypi/thinker-research/0.1.10/json | python3 -c \
+curl -s https://pypi.org/pypi/thinker-research/0.1.11/json | python3 -c \
   "import json,sys; print(json.load(sys.stdin)['info']['version'])"
 python3 -m venv /tmp/venv-pypi-019
 /tmp/venv-pypi-019/bin/pip install --index-url https://pypi.org/simple/ \
-  --no-cache-dir thinker-research==0.1.10
+  --no-cache-dir thinker-research==0.1.11
 cd /tmp && /tmp/venv-pypi-019/bin/evaluate-project --help
 ```
 
