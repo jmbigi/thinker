@@ -7,9 +7,9 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from scripts.preflight import (archivos_python, ejecutar, main,
-                               _nombre_excepcion, _lineas_import_opcional,
-                               _lineas_condicionales)
+from scripts.preflight import (archivos_python, dependencias_declaradas,
+                               ejecutar, main, _nombre_excepcion,
+                               _lineas_import_opcional, _lineas_condicionales)
 import scripts.preflight as preflight_mod
 from tests.helpers import crear_proyecto
 
@@ -434,6 +434,92 @@ class TestHelpersSinTestsR3(unittest.TestCase):
             "if has_baz:\n"
             "    pass\n")
         self.assertEqual(_lineas_condicionales(arbol), {2})
+
+
+class TestDependenciasDeclaradasR3(unittest.TestCase):
+    """Triaje R3: cubre las ramas de manifiestos de dependencias."""
+
+    def test_pyproject_pep621_poetry_pdm(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                '[project]\nname = "d"\nversion = "0.1.0"\n'
+                'dependencies = ["requests>=2.0", "pkg[extra]==1.0"]\n'
+                '[project.optional-dependencies]\n'
+                'dev = ["pytest>=8"]\n'
+                '[dependency-groups]\n'
+                'test = ["coverage"]\n'
+                '[tool.poetry.dependencies]\n'
+                'python = "^3.11"\nflask = "^3"\n'
+                '[tool.poetry.group.dev.dependencies]\n'
+                'black = "^24"\n'
+                '[tool.pdm.dev-dependencies]\n'
+                'lint = ["ruff"]\n'),
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {
+            "requests", "pkg", "pytest", "coverage", "flask", "black", "ruff"})
+
+    def test_requirements_anidado(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "-r requirements/dev.txt\nrequests==2.31.0\n",
+            "requirements/dev.txt": "flask==3.0.0\n",
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {"requests", "flask"})
+
+    def test_setup_cfg(self):
+        raiz = crear_proyecto(self, {
+            "setup.cfg": (
+                "[options]\n"
+                "install_requires =\n"
+                "    requests>=2.0\n"
+                "    flask\n"
+                "tests_require =\n"
+                "    pytest\n"
+                "[options.extras_require]\n"
+                "dev =\n"
+                "    black\n"),
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {"requests", "flask", "pytest", "black"})
+
+    def test_setup_py(self):
+        raiz = crear_proyecto(self, {
+            "setup.py": (
+                "from setuptools import setup\n"
+                'setup(install_requires=["requests>=2.0"], '
+                'extras_require={"dev": ["pytest"]})\n'),
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {"requests", "pytest"})
+
+    def test_toml_invalido_reporta_hallazgo(self):
+        raiz = crear_proyecto(self, {"pyproject.toml": "[[[ roto\n"})
+
+        _, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(len(hallazgos), 1)
+        self.assertIn("TOML inválido", hallazgos[0].mensaje)
+
+    def test_setup_cfg_invalido_reporta_hallazgo(self):
+        raiz = crear_proyecto(self, {"setup.cfg": "[options\nsin cerrar\n"})
+
+        _, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(len(hallazgos), 1)
+        self.assertIn("setup.cfg inválido", hallazgos[0].mensaje)
 
 
 if __name__ == "__main__":

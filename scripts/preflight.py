@@ -229,6 +229,21 @@ def _nombres_de_lista(items: Any) -> Set[str]:
     return nombres
 
 
+def _nombres_setup(valor: Any) -> Set[str]:
+    """Nombres de dependencias en listas/dicts de setup.py (no las claves)."""
+    nombres: Set[str] = set()
+    if isinstance(valor, dict):
+        for lista in valor.values():
+            nombres.update(_nombres_setup(lista))
+    elif isinstance(valor, (list, tuple)):
+        for item in valor:
+            if isinstance(item, str):
+                nombre = _nombre_requisito(item)
+                if nombre:
+                    nombres.add(_normalizar(nombre))
+    return nombres
+
+
 def dependencias_declaradas(root: Path) -> Tuple[Set[str], List[Hallazgo]]:
     """Dependencias directas declaradas en TODOS los manifiestos Python.
 
@@ -326,13 +341,24 @@ def dependencias_declaradas(root: Path) -> Tuple[Set[str], List[Hallazgo]]:
                     f"setup.py ilegible, no se pueden verificar dependencias: "
                     f"{exc}", "alta"))
                 continue
-            for bloque in re.findall(
-                    r"(?:install_requires|tests_require|extras_require)"
-                    r"\s*=\s*[\[{](.*?)[\]}]", texto, re.S):
-                for item in re.findall(r'["\']([^"\']+)["\']', bloque):
-                    nombre_dep = _nombre_requisito(item)
-                    if nombre_dep:
-                        declaradas.add(_normalizar(nombre_dep))
+            try:
+                arbol = ast.parse(texto)
+            except SyntaxError:
+                arbol = None
+            if arbol is not None:
+                for nodo in ast.walk(arbol):
+                    if not isinstance(nodo, ast.Call):
+                        continue
+                    for kw in nodo.keywords:
+                        if kw.arg not in ("install_requires", "tests_require",
+                                          "extras_require"):
+                            continue
+                        try:
+                            valor = ast.literal_eval(kw.value)
+                        except (ValueError, TypeError):
+                            valor = None
+                        if valor is not None:
+                            declaradas.update(_nombres_setup(valor))
     return declaradas, hallazgos
 
 
