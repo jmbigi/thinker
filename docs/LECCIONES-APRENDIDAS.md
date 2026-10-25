@@ -2495,8 +2495,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   etiquetados sobre 9 criterios; TP/FP/FN, precision y recall por criterio y
   global. Resultado **9 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 9 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
-- **Evidencia**: suite **866/866**, ruff 0, cobertura evaluador 91% (145/1536),
-  preflight 91%; autoevaluación 1.000. El benchmark y sus métricas son
+- **Evidencia**: suite **876/876**, ruff 0, cobertura evaluador 91% (145/1571),
+  preflight 90%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
   c5; y un benchmark con 9 criterios sirve como regresión, no como certificado
@@ -2524,7 +2524,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Estado del evaluador**: el arnés `scripts/mutacion.py` queda listo
   (`--objetivo evaluar`), pero la campaña completa no terminó; no se publica
   tasa del evaluador. R3 sigue **parcial**.
-- **Evidencia**: 3 tests del arnés, suite **866/866**, ruff 0, docs-check OK.
+- **Evidencia**: 3 tests del arnés, suite **876/876**, ruff 0, docs-check OK.
 - **Lección**: una campaña de mutación fuera de `source_paths` debe copiar sus
   dependencias sin mutarlas y verificar primero la línea base; los mutantes «sin
   tests» y los supervivientes son hallazgos, no ruido. Sin triaje no hay tasa
@@ -2539,9 +2539,32 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   probabilidad.
 - **Acción**: README y AGENTS declaran que **no están calibradas** y que no se
   presentan como probabilidad de acierto. `tests/test_docs_calibracion.py`
-  protege la declaración contra borrados accidentales.
-- **Evidencia**: suite **866/866**, ruff 0, docs-check OK. **No se midió
-  Brier**; no se afirma calibración.
-- **Lección**: cuando no hay medición, la opción honesta es declarar la
-  limitación y evitar que el número se lea como probabilidad. La calibración
-  real sigue siendo trabajo futuro, no una promesa.
+  protege la declaración; `tests/benchmarks/calibracion_confianza.py` añade un
+  Brier **simulado** (0,1166 en 16 pares) que prueba el instrumento, no el
+  modelo.
+- **Evidencia**: suite **876/876**, ruff 0, docs-check OK. **No hay Brier
+  real**; no se afirma calibración.
+- **Lección**: cuando no hay medición real, la opción honesta es declarar la
+  limitación, etiquetar el simulador como simulado y evitar que el número se
+  lea como probabilidad.
+
+## 2026-10-25 (ronda 28) — Comparabilidad, warnings y verificador barato (hallazgo 110)
+
+### Hallazgo 110: un 1.000 con cobertura baja no es un ranking; una marca de silencio debe verse
+
+- **R5**: `cobertura.comparable` exige ratio ≥80%; con cobertura baja el texto
+  dice **«GLOBAL NO COMPARABLE»** y `motivo_no_comparable` explica por qué.
+  Java/JS solo reciben señales genéricas; no se promete paridad.
+- **R6**: `# noqa: silent: motivo` (≥3 caracteres) convierte el silencio en
+  **warning** visible en c3 y preflight; sin marca o sin motivo sigue siendo
+  hallazgo. Thinker no usa la marca.
+- **R13-B**: benchmark con generador y verificador simulados: 1 llamada al
+  generador, 1 al verificador, 1 extra; independencia `proveedor-distinto`.
+  La descomposición de claims (C) sigue pendiente.
+- **R14-B**: Brier simulado 0,1166 con 16 pares; la declaración «no calibrada»
+  sigue vigente. No se usa como evidencia de calibración real.
+- **Evidencia**: 10 tests nuevos, suite **876/876**, ruff 0, preflight 0,
+  docs-check OK; cobertura evaluador 91% (145/1571) y preflight 90% (39/401).
+- **Lección**: la honestidad del informe también se juega en los rótulos
+  (comparable/no comparable) y en los warnings; una marca sin motivo o invisible
+  es peor que un hallazgo.

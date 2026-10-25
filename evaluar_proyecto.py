@@ -449,6 +449,31 @@ def lineas_silenciosas(arbol: ast.AST) -> List[int]:
     return sospechosas
 
 
+_MARCA_SILENCIO = re.compile(
+    r"#\s*noqa:\s*silent\s*:\s*(?P<motivo>.+?)\s*$")
+
+
+def clasificar_silencios(arbol: ast.AST,
+                         fuente: str) -> Tuple[List[int], List[Tuple[int, str]]]:
+    """Separa silencios no marcados de los aceptados con motivo (R6).
+
+    La marca `# noqa: silent: motivo` solo vale en la línea del ``except`` y
+    exige un motivo de al menos 3 caracteres. Los aceptados se reportan como
+    warnings; nunca desaparecen del informe.
+    """
+    lineas = fuente.splitlines()
+    silencios, aceptados = [], []
+    for numero in lineas_silenciosas(arbol):
+        texto = lineas[numero - 1] if 0 < numero <= len(lineas) else ""
+        coincidencia = _MARCA_SILENCIO.search(texto)
+        motivo = coincidencia.group("motivo").strip() if coincidencia else ""
+        if len(motivo) >= 3:
+            aceptados.append((numero, motivo))
+        else:
+            silencios.append(numero)
+    return silencios, aceptados
+
+
 def _tiene_asercion(funcion) -> bool:
     """True si la función contiene una aserción real (assert, self.assert*,
     pytest.raises/warns). Las aserciones dentro de `with pytest.raises(...)`
@@ -947,21 +972,29 @@ def evaluar_calidad(ruta: Path, perfil: Perfil,
 
     if perfil.codigo_paquete:
         silencios = []
+        aceptados = []
         con_error = []
         for p in perfil.codigo_paquete:
+            fuente = leer(p)
             try:
-                arbol = ast.parse(leer(p), filename=str(p))
+                arbol = ast.parse(fuente, filename=str(p))
             except SyntaxError as exc:
                 con_error.append(f"{p.relative_to(ruta).as_posix()}:"
                                  f"{exc.lineno or 0}")
                 continue
-            for linea in lineas_silenciosas(arbol):
-                silencios.append(f"{p.relative_to(ruta).as_posix()}:{linea}")
+            relativa = p.relative_to(ruta).as_posix()
+            no_marcados, marcados = clasificar_silencios(arbol, fuente)
+            for linea in no_marcados:
+                silencios.append(f"{relativa}:{linea}")
+            for linea, motivo in marcados:
+                aceptados.append((f"{relativa}:{linea}", motivo))
         dim.criterios["c3_sin_silencios"] = not silencios
         dim.notas.append(f"c3 sobre {len(perfil.codigo_paquete)} archivos de "
                          "producción; tests/scripts excluidos")
         if silencios:
             dim.notas.append(f"silencios detectados: {len(silencios)}")
+        if aceptados:
+            dim.notas.append(f"silencios aceptados (warning): {len(aceptados)}")
         if con_error:
             dim.notas.append("código con error de sintaxis (no evaluable en c3): "
                              + ", ".join(con_error))
@@ -969,6 +1002,10 @@ def evaluar_calidad(ruta: Path, perfil: Perfil,
             dim.hallazgos.append(Hallazgo(
                 "media", "`except` con `pass`/`continue` en producción (P1.26)",
                 marca, criterio="c3_sin_silencios"))
+        for marca, motivo in aceptados:
+            dim.hallazgos.append(Hallazgo(
+                "baja", f"Silencio aceptado (warning): {motivo}", marca,
+                criterio="c3_sin_silencios"))
     else:
         dim.no_aplicable("c3_sin_silencios", "sin código Python de producción")
 
@@ -2678,11 +2715,26 @@ def evaluar(ruta: Path, con_red: bool = True,
     evaluados = sum(len(d.criterios) for d in dimensiones)
     total_criterios = evaluados + no_aplicables
     ratio = round(evaluados / total_criterios, 3) if total_criterios else 0.0
+    no_python = sorted(leng for leng in perfil.lenguajes
+                       if leng.lower() not in ("python", "py"))
+    comparable = ratio >= 0.8
+    motivo_no_comparable = ""
+    if not comparable:
+        motivo_no_comparable = f"cobertura {ratio:.0%} < 80%"
+        if no_python:
+            motivo_no_comparable += (
+                f"; {', '.join(no_python)} solo recibe señales genéricas")
     cobertura = {
         "criterios_evaluados": evaluados,
         "criterios_no_aplicables": no_aplicables,
         "ratio_evaluado": ratio,
         "nivel": "alta" if ratio >= 0.8 else ("media" if ratio >= 0.5 else "baja"),
+        "comparable": comparable,
+        "motivo_no_comparable": motivo_no_comparable,
+        "nota_lenguajes": (
+            f"Python: AST y criterios nativos; {', '.join(no_python)}: sin AST "
+            "ni paridad, solo señales genéricas" if no_python
+            else "Python: AST y criterios nativos"),
         "dimensiones_evaluadas": [d.nombre for d in dimensiones
                                   if d.puntuacion is not None],
         "dimensiones_no_aplicables": [d.nombre for d in dimensiones
@@ -2721,6 +2773,12 @@ def evaluar(ruta: Path, con_red: bool = True,
     return informe
 
 
+def _etiqueta_global(cobertura: Dict[str, Any]) -> str:
+    """Rótulo honesto: no llamar GLOBAL a una cobertura no comparable (R5)."""
+    return "GLOBAL" if cobertura.get("comparable", True) \
+        else "GLOBAL NO COMPARABLE"
+
+
 def informe_texto(informe: Dict[str, Any]) -> List[str]:
     cobertura = informe.get("cobertura", {})
     lineas = [f"EVALUACIÓN DE PROYECTO (read-only): {informe['ruta']}",
@@ -2744,9 +2802,14 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
         for nota in datos["notas"]:
             lineas.append(f"  · {nota}")
         lineas.append("")
-    lineas.append(f"GLOBAL: {_puntuacion_texto(informe['global'], 3)} "
+    lineas.append(f"{_etiqueta_global(cobertura)}: "
+                  f"{_puntuacion_texto(informe['global'], 3)} "
                   f"(cobertura {cobertura.get('nivel', '?')}, "
                   f"{cobertura.get('ratio_evaluado', 0):.0%} de criterios)")
+    if not cobertura.get("comparable", True):
+        lineas.append(f"Aviso: {cobertura.get('motivo_no_comparable', '')}")
+    if cobertura.get("nota_lenguajes"):
+        lineas.append(f"Lenguajes: {cobertura['nota_lenguajes']}")
     lineas.append(f"Nota: {informe.get('global_nota', '')}")
     lineas.append(f"Evidencia: {formato_resumen(informe['evidencia'])}")
     extras = informe.get("licencias_no_runtime", [])

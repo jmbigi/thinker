@@ -355,5 +355,48 @@ class TestPreflight(unittest.TestCase):
             for hallazgo in gate["hallazgos"]])
 
 
+class TestSilenciosR6(unittest.TestCase):
+    """R6: marca con motivo = warning; sin marca = hallazgo."""
+
+    def _gates(self, informe):
+        return {gate["nombre"]: gate for gate in informe["gates"]}
+
+    def test_marca_con_motivo_es_warning(self):
+        raiz = crear_proyecto(self, {
+            "paquete/mod.py": (
+                "def f():\n"
+                "    try:\n"
+                "        return 1\n"
+                "    except Exception:  # noqa: silent: limpieza temporal\n"
+                "        pass\n"),
+        })
+
+        informe = ejecutar(raiz)
+        gate = self._gates(informe)["silencios"]
+
+        self.assertTrue(informe["ok"])
+        self.assertEqual(gate["hallazgos"], [])
+        self.assertEqual(len(gate["advertencias"]), 1)
+        self.assertIn("limpieza temporal",
+                      gate["advertencias"][0]["mensaje"])
+        self.assertEqual(informe["total_advertencias"], 1)
+
+    def test_marca_sin_motivo_sigue_fallando(self):
+        raiz = crear_proyecto(self, {
+            "paquete/mod.py": (
+                "def f():\n"
+                "    try:\n"
+                "        return 1\n"
+                "    except Exception:  # noqa: silent:\n"
+                "        pass\n"),
+        })
+
+        informe = ejecutar(raiz)
+
+        self.assertFalse(informe["ok"])
+        self.assertEqual(
+            len(self._gates(informe)["silencios"]["hallazgos"]), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

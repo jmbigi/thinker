@@ -1,7 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `e4765db`
-más el arnés y el piloto parcial de R3, y la release `0.1.9` publicada.
+**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `38f8839`
+más las decisiones del programador del 2026-10-25 y la release `0.1.9` publicada.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -15,33 +15,49 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 91% (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-25] Medir mutación del evaluador y preflight | Piloto preflight: 495/949 muertos, 414 supervivientes sin triaje; evaluador pendiente | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-25; decisión C] Medir mutación del evaluador y preflight | Piloto preflight: 495/949 muertos, 414 supervivientes sin triaje; evaluador pendiente | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 18 casos/9 criterios con TP/FP/FN y 1.00/1.00; faltan 20 criterios y trampas reales | Medio | Bajo |
-| **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
-| **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
+| **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
+| **Hecho** | R6. [Cerrada 2026-10-25, C con warnings] Política para silencios deliberados de producción | Marca externa con motivo; warnings en c3/preflight; 5 tests | Bajo | Político |
 | **Hecho** | R7. [Cerrada 2026-10-25] Medir calidad de aserciones, no solo tests no-op | `aserciones_debiles` informativo; c5 no cambia | Medio | Bajo |
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **Hecho** | R10. [Cerrada 2026-10-25] Reportar licencias de dev/opcionales sin mezclarlas con runtime | `licencias_no_runtime` informativo; h5 sigue siendo runtime | Bajo | Bajo |
-| **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
-| **Hecho** | R14. [Cerrada 2026-10-25, por declaración] Declarar `credibility`/`confidence` no calibradas | README/AGENTS lo declaran; test documental; sin Brier | Medio | Bajo |
+| **Parcial** | R13. [B implementada 2026-10-25; C pendiente] CoVe con verificador barato | 1 llamada generador + 1 verificador; falta descomposición | Medio | Medio |
+| **Hecho** | R14. [Cerrada 2026-10-25, por declaración; B implementada] Declarar `credibility`/`confidence` no calibradas | README/AGENTS lo declaran; Brier simulado 0,1166; C real pendiente | Medio | Bajo |
 
-**Orden recomendado:** R3; R4 y las decisiones R5/R6 después.
-R1, R2, R7, R8, R9, R10, R11 y R12 están cerradas; R5, R6 y R13 requieren
-decisión del programador y no deben hacerse «por inercia».
+**Estado de decisiones (2026-10-25):** R5-A, R6-C, R13-B y R14-B
+implementadas; R3-C pendiente. R4 sigue parcial; R3 es la deuda P1.
+R1, R2, R7, R8, R9, R10, R11 y R12 están cerradas.
+
+### 1.1 Decisiones del programador (2026-10-25)
+
+| ID | Decisión | Estado | Siguiente paso |
+|---|---|---|---|
+| **R5** | **A**: alcance Python explícito y bloqueo de comparabilidad | **Implementada y cerrada** | Hecho: `cobertura.comparable` y tests |
+| **R6** | **C con warnings**: estricto para thinker; marca externa con motivo, reportada como warning | **Implementada y cerrada** | Hecho: warnings en c3/preflight |
+| **R13** | **B con vía a C**: verificador barato; descomposición después | **B implementada; C pendiente** | Descomposición (C) solo si se eleva |
+| **R14** | **B con vía a C**: Brier offline simulado; datos reales solo si se eleva | **B implementada; declaración vigente** | Brier real (C) solo con etiquetas |
+| **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | Decidida, no implementada; R3 parcial | Medir evaluador, atacar 40 sin tests, triajar 414 supervivientes |
+| **R4** | Sin decisión de producto; ampliar cobertura | En curso, parcial (18 casos/9 criterios) | Completar los 20 criterios y trampas reales |
+
+**No queda ninguna decisión de producto pendiente.** Lo que falta es ejecución
+y, para R13/R14, decidir más adelante si se eleva a C con la evidencia del
+piloto. R3 no se cierra hasta que queden 0 mutantes sin tests y 0
+supervivientes sin triaje.
 
 ## 2. Estado medido (evidencia de partida)
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **866/866** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **876/876** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **91%** (145/1536 sentencias sin ejecutar) | comando de la sección 8 |
-| Cobertura `scripts/preflight.py` | **91%** (35/385) | comando de la sección 8 |
+| Cobertura `evaluar_proyecto.py` | **91%** (145/1571 sentencias sin ejecutar) | comando de la sección 8 |
+| Cobertura `scripts/preflight.py` | **90%** (39/401) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Paquete publicado | **0.1.9** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
@@ -108,17 +124,20 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   npm/Gradle/Maven/Go/Cargo/tox/nox, tuplas de excepciones y `OSError` de
   lectura). No se persiguió el 100% ni se añadieron tests triviales.
 - **Evidencia:** en el cierre, `evaluar_proyecto.py` **91%** (130/1466 sin
-  ejecutar), preflight **91%** (35/385), **91% combinado**. Tras R7/R4 el
-  módulo crece a 1536 sentencias y sigue en **91%** (145/1536); suite
-  **866/866**, ruff 0. Comando: el de la sección 8.
+  ejecutar), preflight **91%** (35/385), **91% combinado**. Tras R5/R6 el
+  módulo crece a 1571 sentencias y sigue en **91%** (145/1571); suite
+  **876/876**, ruff 0. Comando: el de la sección 8.
 - **Criterio de aceptación:** [x] ≥90% en cada archivo; [x] ≥90% combinado;
   [x] ramas de error cubiertas o declaradas; [x] suite en verde; [x] comando
   reproducible documentado.
 - **Riesgo:** bajo; los tests comprueban comportamiento, no solo ejecutan
   líneas.
 
-### R3 — Medir mutación del evaluador y preflight — PARCIAL 2026-10-25
+### R3 — Medir mutación del evaluador y preflight — PARCIAL 2026-10-25 (decisión C)
 
+- **Decisión 2026-10-25: C.** Test-first, luego triaje; reporte parcial con el
+  número de no triados; no cerrar hasta 0 sin tests y 0 supervivientes sin
+  triaje. Pendiente de implementar.
 - **Problema medido:** `make mutation` mide el núcleo, pero excluye
   `evaluar_proyecto.py` y `scripts/preflight.py`. El 95,2% actual **no cubre**
   el código del evaluador ni el de preflight.
@@ -166,38 +185,42 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   [ ] trampas reales adicionales.
 - **Riesgo:** bajo; el riesgo es sobreajustar el benchmark a los casos ya vistos.
 
-### R5 — Decidir el alcance Java/JS (P2, alto)
+### R5 — Decidir el alcance Java/JS — CERRADA 2026-10-25 (decisión A)
 
-- **Problema medido:** Testcontainers Java tiene 10/29 criterios y QA JS 12/29;
+- **Decisión 2026-10-25: A, implementada.** Alcance Python explícito y bloqueo
+  de comparabilidad; Java/JS solo reciben señales genéricas.
+- **Problema medido:** Testcontainers Java tenía 10/29 criterios y QA JS 12/29;
   no hay AST de Java/JS, ni comparación npm/Maven, ni aserciones de esos
-  lenguajes. El 1.000/0.692 es «todo lo aplicable pasó», no calidad global.
-- **Acción:** elegir una de dos:
-  1. **Alcance explícito (recomendado ahora):** declarar que el evaluador es
-     para Python y que Java/JS solo reciben señales genéricas; impedir rankings
-     entre coberturas distintas y mostrar la advertencia en el informe.
-  2. **Soporte real (solo si hay demanda):** parsear Gradle/Maven/npm,
-     lockfiles y tests con aserciones; añadir fixtures y controles.
-- **Criterio de aceptación (opción 1):** el informe no presenta un global
-  comparable si la cobertura es baja; documentado y probado. (Opción 2): tests
-  de dependencias, locks y aserciones para cada ecosistema, con control de
-  falsos positivos.
-- **Riesgo:** alto; prometer paridad multi-lenguaje sin AST sería peor que
-  declarar el límite.
+  lenguajes. El 1.000/0.692 era «todo lo aplicable pasó», no calidad global.
+- **Implementación:** `cobertura.comparable` (solo con ratio ≥80%),
+  `cobertura.motivo_no_comparable`, `cobertura.nota_lenguajes` y rótulo
+  **«GLOBAL NO COMPARABLE»** en el informe de texto. Un proyecto Java de prueba
+  (8/29, 28%) queda marcado como no comparable.
+- **Evidencia:** 2 tests nuevos (`TestComparabilidadR5`), suite **876/876**,
+  ruff 0, docs-check OK. JSON aditivo: no rompe `schema_version: 2`.
+- **Criterio de aceptación:** [x] no se presenta un global comparable con
+  cobertura baja; [x] advertencia visible; [x] documentado y probado.
+- **Riesgo:** bajo; no se promete paridad Java/JS. Invertir en soporte real
+  sigue abierto solo con demanda.
 
-### R6 — Política para silencios deliberados de producción (P2, bajo)
+### R6 — Política para silencios deliberados de producción — CERRADA 2026-10-25 (decisión C con warnings)
 
-- **Problema medido:** c3 marca 97 silencios en Hypothesis. Muchos son
-  defensivos (`except OSError: pass` al borrar un archivo temporal), pero P1.26
-  prohíbe silencios. El informe es correcto; la acción no es obvia.
-- **Acción:** decisión del programador, no automática:
-  - **Opción A (recomendada para este proyecto):** mantener c3 estricto y
-    corregir o justificar cada silencio en el proyecto evaluado.
-  - **Opción B:** permitir una marca explícita `# noqa: silent` con motivo
-    obligatorio, y que c3 la reporte como «silencioso aceptado», nunca la ignore
-    en silencio.
-- **Criterio de aceptación:** política escrita; tests de la marca (si B);
-  ningún `except: pass` desaparece del informe sin trazabilidad.
-- **Riesgo:** político; una marca mal usada puede convertirse en un bypass.
+- **Decisión 2026-10-25: C con warnings, implementada.** Thinker mantiene c3
+  estricto; los proyectos externos pueden usar `# noqa: silent: motivo`; los
+  marcados se reportan como warning y nunca se ocultan.
+- **Problema medido:** c3 marcaba 97 silencios en Hypothesis; muchos son
+  defensivos (`except OSError: pass` al borrar un temporal), pero P1.26 prohíbe
+  silencios. El informe era correcto; faltaba una vía trazable para externos.
+- **Implementación:** marca `# noqa: silent: motivo` (motivo ≥3 caracteres) en
+  la línea del `except`; c3 y preflight separan hallazgos de **advertencias**.
+  Sin marca o con motivo vacío sigue fallando. Los warnings se muestran en
+  texto y JSON; thinker no usa la marca.
+- **Evidencia:** 5 tests nuevos (3 de c3 y 2 de preflight), suite **876/876**,
+  ruff 0, docs-check OK; preflight propio: 0 hallazgos, 0 warnings.
+- **Criterio de aceptación:** [x] política escrita; [x] tests de marca; [x]
+  ningún silencio desaparece sin trazabilidad; [x] thinker estricto.
+- **Riesgo:** político; la marca puede usarse mal, por eso exige motivo y se
+  reporta como warning, nunca como limpio.
 
 ### R7 — Medir calidad de aserciones, no solo tests no-op — CERRADA 2026-10-25
 
@@ -210,7 +233,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   con literales. No toca `c5` ni la puntuación; no marca variables, helpers ni
   property tests.
 - **Evidencia:** dos tests nuevos (detección y no falsos positivos); suite
-  **866/866**, ruff 0; el informe distingue no-op de débil. Limitación
+  **876/876**, ruff 0; el informe distingue no-op de débil. Limitación
   declarada: no detecta tautologías con variables ni `__eq__` personalizados.
 - **Criterio de aceptación:** [x] fixtures con `assert True`; [x] 0 falsos
   positivos en property tests/helpers; [x] no-op y débil separados; [x] no
@@ -296,29 +319,32 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   anterior; [x] sin red ni escrituras fuera del temporal.
 - **Riesgo:** bajo.
 
-### R13 — CoVe con descomposición de claims y verificador más barato (P3, medio)
+### R13 — CoVe con descomposición de claims y verificador más barato — PARCIAL 2026-10-25 (B implementada, vía a C)
 
+- **Decisión 2026-10-25: B con vía a C, B implementada.** Primero verificador
+  barato; la descomposición de claims queda para C.
 - **Origen:** la literatura 2026 documenta la **asimetría de la verificación**
   (clasificar es más fácil que generar, así que un verificador más pequeño
   puede bastar) y la **descomposición de claims** en subpreguntas verificables
   ([Zylos Research](https://zylos.ai/research/2026-04-10-llm-as-judge-production-agent-verification-2026/),
   [DeepVerifier, arXiv 2601.15808](https://arxiv.org/pdf/2601.15808)).
-- **Estado actual:** thinker ya ofrece `llm_verificador` separado, declara la
-  independencia real y marca `discrepancia_muestreo`; lo que falta es un
-  ejemplo/helper de verificador barato y la descomposición de claims
-  compuestos.
-- **Acción propuesta (opt-in):** (a) documentar y probar un verificador de
-  modelo más barato en la segunda pasada; (b) descomponer claims con varias
-  afirmaciones en subpreguntas y registrar cada subveredicto; (c) mantener la
-  discrepancia para revisión humana, nunca silenciosa.
-- **Criterio de aceptación:** benchmark offline con `MockLLM` donde un claim
-  compuesto que la pasada monolítica dejaba pasar se detecta al descomponerlo;
-  coste en llamadas declarado; sin red por defecto.
-- **Riesgo:** medio; más llamadas implican más coste y latencia, por eso es
-  opt-in y no un defecto.
+- **Estado actual:** thinker ya ofrece `llm_verificador` separado y declara la
+  independencia real. El nuevo benchmark `tests/benchmarks/verificador_barato.py`
+  usa un generador y un verificador simulados con nombres distintos y mide el
+  coste: **1 llamada al generador, 1 al verificador, 1 llamada extra**; la
+  independencia se declara `proveedor-distinto`.
+- **Evidencia:** 1 test (`TestVerificadorBarato`), suite **876/876**, ruff 0.
+  Sin red: los LLM son simulados y se declara que no miden calidad real.
+- **Criterio de aceptación:** [x] verificador barato documentado y probado;
+  [x] coste en llamadas declarado; [x] sin red por defecto; [ ] claim compuesto
+  detectado por descomposición (C, pendiente).
+- **Riesgo:** medio; C añadirá más llamadas y latencia, por eso será opt-in.
 
-### R14 — Calibrar `credibility`/`confidence` o declararlas no calibradas — CERRADA 2026-10-25 (por declaración, sin Brier)
+### R14 — Calibrar `credibility`/`confidence` o declararlas no calibradas — CERRADA 2026-10-25 (por declaración; decisión B→C)
 
+- **Decisión 2026-10-25: B con vía a C, B implementada.** Brier offline
+  simulado; la declaración «no calibrada» sigue vigente; C solo con etiquetas
+  reales.
 - **Origen:** un ensayo sobre diversificación arquitectónica (2026) recuerda que
   restringir la salida a un esquema elimina la alucinación de **formato libre**,
   pero **no garantiza que la probabilidad asignada a la opción correcta sea la
@@ -328,43 +354,43 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Problema medido:** `EvidenceEvaluator` pide `credibility` y `confidence` al
   modelo y los normaliza a [0,1], pero nadie comprueba que estén calibrados:
   un 0,9 puede no corresponder a un 90% de acierto.
-- **Acción ejecutada:** se elige la alternativa de **declararlas no
-  calibradas** en README y AGENTS: no hay Brier ni tabla de fiabilidad, y no se
-  presentan como probabilidad de acierto. `tests/test_docs_calibracion.py`
-  verifica que la declaración siga presente.
-- **Evidencia:** test de documentación, suite **866/866**, ruff 0. **No se
-  midió Brier**: no se afirma calibración ni se usa `confidence` como
-  probabilidad.
+- **Acción ejecutada:** README y AGENTS declaran que **no están calibradas**.
+  Se añadió `tests/benchmarks/calibracion_confianza.py`: Brier y tabla de
+  fiabilidad con **16 pares simulados**, resultado **0,1166**. No prueba
+  calibración real; `tests/test_calibracion_confianza.py` prueba la fórmula y
+  `tests/test_docs_calibracion.py` protege la declaración.
+- **Evidencia:** 3 tests (1 documental, 2 del benchmark), suite **876/876**,
+  ruff 0. **No hay Brier real**: no se afirma calibración ni se usa
+  `confidence` como probabilidad.
 - **Criterio de aceptación:** [x] README/AGENTS declara que no está calibrada;
   [x] ningún texto la presenta como probabilidad; [x] test que protege la
-  declaración; [ ] Brier/tabla de fiabilidad (no medidos, declarado).
-- **Riesgo:** bajo; el riesgo es interpretar mal una muestra pequeña, que se
-  declara como tal. Una calibración real sigue siendo trabajo futuro.
+  declaración; [x] Brier/tabla offline **simulados**; [ ] Brier con datos
+  reales (C, pendiente).
+- **Riesgo:** bajo; el riesgo es interpretar mal una muestra pequeña. El
+  benchmark simulado se etiqueta como tal y no se usa para afirmar calibración.
 
 ## 5. Deuda pendiente priorizada (2026-10-25)
 
-**Abiertas:** R3 (parcial), R4 (parcial), R5, R6 y R13. **Cerradas:** R1, R2,
-R7, R8, R9, R10, R11, R12 y R14. Una recomendación abierta es deuda solo si
-tiene un criterio de aceptación medible; las limitaciones declaradas del README
-no se cuentan como deuda.
+**Abiertas:** R3-C (parcial), R4 (parcial) y R13-C (B implementada).
+**Cerradas:** R1, R2, R5, R6, R7, R8, R9, R10, R11, R12 y R14. Una
+recomendación abierta es deuda solo si tiene un criterio de aceptación
+medible; las limitaciones declaradas del README no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
-| 1 | **R3** | **P1** | Mutación del evaluador y preflight (parcial) | Completar el evaluador, empaquetar el comando y triajar los 414 supervivientes de preflight | Comando reproducible; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
+| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; medir el evaluador y atacar los 40 sin tests | Comando reproducible; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
 | 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 18 casos/9 criterios actuales a más criterios y trampas reales | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
-| 3 | **R5** | P2 | Alcance Java/JS | Decidir soporte real o límite explícito; hoy la cobertura es 10/29 y 12/29 | Decisión documentada; si se limita, el informe lo dice sin presentar el GLOBAL como comparable | Alto |
-| 4 | **R6** | P2 | Silencios deliberados de producción | Política para `# noqa: silent` con motivo frente a `except: pass` real | Regla documentada; tests de ambos casos; sin falsos positivos en c3 | Bajo |
-| 5 | **R13** | P3 | CoVe con descomposición de claims | Piloto opt-in con verificador más barato y coste declarado | Benchmark offline de coste/calidad; nunca como defecto sin medir llamadas | Medio |
+| 3 | **R13** | P3 / B | CoVe con verificador barato (C pendiente) | Implementar descomposición de claims (C) con benchmark | Claim compuesto detectado; coste declarado | Medio |
 
-**Orden recomendado:** R3 → R4 → decisiones R5/R6 → R13.
+**Orden:** R3-C es la deuda P1; R4 y R13-C siguen después. R5-A, R6-C y
+R14-B ya están implementadas; R13-B también, pero R13 no se cierra hasta C.
 
-- **R3 y R4 no requieren decisión del programador**: se pueden ejecutar cuando
-  haya tiempo; R3 es la deuda P1 principal.
-- **R5, R6 y R13 sí requieren decisión** de producto/alcance; no deben hacerse
-  «por inercia».
-- **R14** está cerrada por declaración explícita: `confidence` no está
-  calibrada y no se presenta como probabilidad; Brier sigue sin medirse.
-- Las cerradas R1/R2/R7/R8/R9/R10/R11/R12/R14 no se reabren sin evidencia nueva.
+- **R3 y R4 no requieren decisión de producto**: R3-C es P1; R4 se amplía.
+- **R5 y R6 están cerradas**; no se reabren sin evidencia nueva.
+- **R13** sigue parcial: B implementada, C pendiente de decisión con benchmark.
+- **R14** cerrada por declaración; B (Brier simulado) implementada; C con datos
+  reales sigue pendiente.
+- Las cerradas R1/R2/R5/R6/R7/R8/R9/R10/R11/R12/R14 no se reabren sin evidencia.
 
 **No es deuda** (son límites declarados, no defectos pendientes): que
 `MockSearchAPI` no haga investigación real, los 429 de modelos gratuitos, que
@@ -379,7 +405,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 |---|---|---|---|
 | R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; piloto preflight 495/949 muertos, 414 supervivientes, 40 sin tests; evaluador pendiente | 3 tests del arnés; triaje pendiente |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 18 casos, 9 criterios, 9 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
-| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 866/866 |
+| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 876/876 |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -402,20 +428,21 @@ descarta y se anota; la verificación empírica sigue siendo obligatoria.
 - **No** silenciar el gate documental editando el script: si una cifra no
   cuadra, se actualiza la cifra o se retira la afirmación (regla propia 11).
 
-## 7. Decisiones que requieren al programador
+## 7. Estado de ejecución
 
-1. **R5:** ¿se invierte en Java/JS o se declara el alcance Python? Recomendación:
-   declarar alcance ahora; invertir solo con demanda real.
-2. **R6:** ¿c3 estricto o marca `# noqa: silent` con motivo? Recomendación:
-   estricto para thinker; la marca solo si un proyecto externo la necesita.
-3. **R13:** ¿se adopta el verificador barato y la descomposición de claims como
-   piloto opt-in? Recomendación: sí, con benchmark offline y coste declarado;
-   nunca como defecto sin medir el coste en llamadas.
+**Implementado:** R5-A (comparabilidad), R6-C (warnings), R13-B (verificador
+barato) y R14-B (Brier simulado). **Pendiente de ejecución:**
 
-R3 y R4 no requieren una decisión de producto: se pueden ejecutar cuando haya
-tiempo. R1, R2, R7, R8, R9, R10, R11, R12 y R14 están cerradas y no se reabren
-sin evidencia nueva. R14 se cerró por declaración; medir Brier sigue siendo
-trabajo futuro, no una promesa.
+1. **R3-C:** medir el evaluador, atacar los 40 sin tests, triajar los 414
+   supervivientes y no cerrar hasta 0/0.
+2. **R4:** ampliar de 18 casos/9 criterios a los 29 criterios y trampas reales.
+3. **R13-C:** descomposición de claims, opt-in y con benchmark de coste.
+4. **R14-C:** Brier con etiquetas reales; solo entonces se podría afirmar
+   calibración en esa muestra.
+
+**Elevaciones futuras:** R13→C y R14→C solo se deciden con la evidencia del
+piloto. R1, R2, R5, R6, R7, R8, R9, R10, R11 y R12 están cerradas; R14 sigue
+cerrada por declaración, no por calibración real.
 
 ## 8. Verificación reproducible
 

@@ -474,14 +474,19 @@ tests. R4 añade `tests/benchmarks/evaluador_precision.py`: 18 casos etiquetados
 sobre 9 criterios (h1, h2, h3, h6, v2, c2, c3, c5, f3), con TP/FP/FN, precision y recall por
 criterio y global; resultado actual **9 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 9/29 criterios y fixtures sintéticas. Cobertura:
-`evaluar_proyecto.py` **91%** (145/1536 sin ejecutar), preflight **91%**
-(35/385), total 83%. Suite **866/866** en Linux (Python 3.11.9), ruff 0,
+`evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **90%**
+(39/401), total 83%. Suite **876/876** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
 verificados). R3 queda **parcial**: piloto de preflight con **949 mutantes, 495
 muertos, 414 supervivientes y 40 sin tests**, sin triaje todavía; el evaluador
 no se midió y no se publica su tasa. El arnés `scripts/mutacion.py` (3 tests)
 deja el comando reproducible, pero R3 no se cierra hasta triajar los
-supervivientes y medir el evaluador. R14 se cierra por **declaración**: README
-y AGENTS dicen que `credibility`/`confidence` no están calibradas y no se
-presentan como probabilidad; `tests/test_docs_calibracion.py` lo protege. No se
-midió Brier.
+supervivientes y medir el evaluador. R5 añade `cobertura.comparable`,
+`motivo_no_comparable` y «GLOBAL NO COMPARABLE»; Java/JS queda como no
+comparable. R6 admite `# noqa: silent: motivo` como **warning** en c3 y
+preflight; sin marca sigue fallando. R13-B mide el verificador barato: 1 llamada
+al generador, 1 al verificador y 1 extra, con independencia declarada
+`proveedor-distinto`; la descomposición (C) sigue pendiente. R14 se cierra por
+**declaración**: README y AGENTS dicen que `credibility`/`confidence` no están
+calibradas y no se presentan como probabilidad; el Brier offline es **simulado**
+(0,1166 en 16 casos) y no prueba calibración real.

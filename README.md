@@ -90,7 +90,9 @@ El informe `--json` es un contrato versionado: incluye `schema_version: 2` y
 los campos `cobertura`, `global_nota`, `no_verificado`,
 `licencias_no_runtime` (dependencias de desarrollo/opcionales, informativas y
 fuera del score `h5`) y `aserciones_debiles` (señal informativa separada de
-c5). Un consumidor debe comprobar `schema_version` antes de asumir el resto del
+c5). La cobertura incluye `comparable`, `motivo_no_comparable` y
+`nota_lenguajes`: con cobertura baja el GLOBAL se rotula «NO COMPARABLE». Un
+consumidor debe comprobar `schema_version` antes de asumir el resto del
 esquema.
 
 ### Verificar una lista de requisitos
@@ -278,8 +280,9 @@ auditor de cambios y el holdout antes de cada commit.
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - `credibility` y `confidence` **no están calibradas**: son estimaciones del
-  modelo, no probabilidades; no se ha medido Brier ni una tabla de fiabilidad,
-  y no deben interpretarse como probabilidad de acierto (R14).
+  modelo, no probabilidades; el Brier offline es **simulado** y no prueba
+  calibración real, así que no deben interpretarse como probabilidad de
+  acierto (R14).
 - Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
   Los scripts `bash`/`make` se verificaron en Linux; en Windows se ejecutaron

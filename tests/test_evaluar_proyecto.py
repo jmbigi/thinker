@@ -265,7 +265,7 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         texto = salida.getvalue()
         self.assertEqual(codigo, 0)
         self.assertIn("EVALUACIÓN DE PROYECTO", texto)
-        self.assertIn("GLOBAL:", texto)
+        self.assertIn("GLOBAL NO COMPARABLE", texto)
 
     def test_cli_con_ruta_inexistente_devuelve_codigo_2(self):
         error = io.StringIO()
@@ -1679,6 +1679,74 @@ class TestAsercionesDebiles(unittest.TestCase):
         self.assertEqual(informe["aserciones_debiles"], [])
         self.assertFalse(informe["dimensiones"]["calidad"]
                          ["criterios"]["c5_tests_con_aserciones"])
+
+
+class TestComparabilidadR5(unittest.TestCase):
+    """R5: una cobertura baja no se presenta como GLOBAL comparable."""
+
+    def test_java_baja_no_es_comparable(self):
+        raiz = crear_proyecto(self, {
+            "pom.xml": "<project></project>\n",
+            "src/main/java/Demo.java": "class Demo {}\n",
+        })
+
+        informe = evaluar(raiz, con_red=False)
+
+        cobertura = informe["cobertura"]
+        self.assertFalse(cobertura["comparable"])
+        self.assertIn("cobertura", cobertura["motivo_no_comparable"])
+        self.assertIn("Java", cobertura["nota_lenguajes"])
+        texto = "\n".join(informe_texto(informe))
+        self.assertIn("GLOBAL NO COMPARABLE", texto)
+        self.assertIn("Aviso:", texto)
+
+    def test_etiqueta_global(self):
+        self.assertEqual(
+            evaluar_proyecto._etiqueta_global({"comparable": True}), "GLOBAL")
+        self.assertEqual(
+            evaluar_proyecto._etiqueta_global({"comparable": False}),
+            "GLOBAL NO COMPARABLE")
+
+
+class TestSilenciosR6(unittest.TestCase):
+    """R6: la marca con motivo es un warning; sin marca sigue fallando c3."""
+
+    def _fixture(self, except_line):
+        return crear_proyecto(self, {
+            "demo.py": (
+                "def f():\n"
+                "    try:\n"
+                "        return 1\n"
+                f"    {except_line}\n"
+                "        pass\n"),
+        })
+
+    def test_silencio_marcado_es_warning_y_c3_pasa(self):
+        raiz = self._fixture(
+            "except Exception:  # noqa: silent: limpieza temporal")
+        informe = evaluar(raiz, con_red=False)
+        calidad = informe["dimensiones"]["calidad"]
+
+        self.assertTrue(calidad["criterios"]["c3_sin_silencios"])
+        self.assertTrue(any(h["severidad"] == "baja"
+                            and "Silencio aceptado" in h["descripcion"]
+                            for h in calidad["hallazgos"]))
+        texto = "\n".join(informe_texto(informe))
+        self.assertIn("Silencio aceptado (warning)", texto)
+
+    def test_silencio_sin_marca_falla_c3(self):
+        raiz = self._fixture("except Exception:")
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertFalse(informe["dimensiones"]["calidad"]
+                         ["criterios"]["c3_sin_silencios"])
+
+    def test_marca_sin_motivo_no_acepta(self):
+        raiz = self._fixture("except Exception:  # noqa: silent:")
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertFalse(informe["dimensiones"]["calidad"]
+                         ["criterios"]["c3_sin_silencios"])
 
 
 if __name__ == "__main__":

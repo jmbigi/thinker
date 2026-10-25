@@ -121,10 +121,11 @@ class Hallazgo:
 
 @dataclass
 class ResultadoGate:
-    """Hallazgos de una comprobación concreta."""
+    """Hallazgos y warnings de una comprobación concreta."""
 
     nombre: str
     hallazgos: List[Hallazgo] = field(default_factory=list)
+    advertencias: List[Hallazgo] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -135,6 +136,7 @@ class ResultadoGate:
             "nombre": self.nombre,
             "ok": self.ok,
             "hallazgos": [h.a_dict() for h in self.hallazgos],
+            "advertencias": [h.a_dict() for h in self.advertencias],
         }
 
 
@@ -492,6 +494,10 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
     return resultado
 
 
+_MARCA_SILENCIO = re.compile(
+    r"#\s*noqa:\s*silent\s*:\s*(?P<motivo>.+?)\s*$")
+
+
 def _cuerpo_silencioso(cuerpo: List[ast.stmt]) -> bool:
     if len(cuerpo) != 1:
         return False
@@ -507,9 +513,22 @@ def revisar_silencios(root: Path,
                       modulos: Dict[Path, ast.Module]) -> ResultadoGate:
     resultado = ResultadoGate("silencios")
     for ruta, arbol in sorted(modulos.items()):
+        try:
+            lineas = ruta.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lineas = []
         for nodo in ast.walk(arbol):
-            if (isinstance(nodo, ast.ExceptHandler)
+            if not (isinstance(nodo, ast.ExceptHandler)
                     and _cuerpo_silencioso(nodo.body)):
+                continue
+            texto = lineas[nodo.lineno - 1] if 0 < nodo.lineno <= len(lineas) else ""
+            coincidencia = _MARCA_SILENCIO.search(texto)
+            motivo = coincidencia.group("motivo").strip() if coincidencia else ""
+            if len(motivo) >= 3:
+                resultado.advertencias.append(Hallazgo(
+                    "silencios", _relativa(root, ruta), nodo.lineno,
+                    f"silencio aceptado (warning): {motivo}", "baja"))
+            else:
                 resultado.hallazgos.append(Hallazgo(
                     "silencios", _relativa(root, ruta), nodo.lineno,
                     "except con pass/continue/... (P1.26)", "alta"))
@@ -603,11 +622,13 @@ def ejecutar(root: Path, permitidos: Optional[Iterable[str]] = None) -> Dict[str
         revisar_tareas(root, modulos),
     ]
     total = sum(len(gate.hallazgos) for gate in gates)
+    total_advertencias = sum(len(gate.advertencias) for gate in gates)
     return {
         "root": str(root),
         "archivos_python": len(archivos_python(root)),
         "gates": [gate.a_dict() for gate in gates],
         "total_hallazgos": total,
+        "total_advertencias": total_advertencias,
         "ok": total == 0,
         "evidencia": EvidenceKind.VERIFIED_REAL.value,
     }
@@ -621,13 +642,19 @@ def imprimir(informe: Dict[str, Any]) -> None:
     for gate in informe["gates"]:
         estado = "OK" if gate["ok"] else "FAIL"
         print(f"  [{estado}] {gate['nombre']}: "
-              f"{len(gate['hallazgos'])} hallazgos")
+              f"{len(gate['hallazgos'])} hallazgos, "
+              f"{len(gate.get('advertencias', []))} warnings")
         for hallazgo in gate["hallazgos"]:
             marca = EvidenceKind(hallazgo["tipo_evidencia"]).marcador
             print(f"    {marca} {hallazgo['archivo']}:{hallazgo['linea']} "
                   f"{hallazgo['mensaje']}")
+        for advertencia in gate.get("advertencias", []):
+            marca = EvidenceKind(advertencia["tipo_evidencia"]).marcador
+            print(f"    {marca} WARNING {advertencia['archivo']}:"
+                  f"{advertencia['linea']} {advertencia['mensaje']}")
     veredicto = "OK" if informe["ok"] else "FAIL"
-    print(f"PREFLIGHT: {veredicto} ({informe['total_hallazgos']} hallazgos)")
+    print(f"PREFLIGHT: {veredicto} ({informe['total_hallazgos']} hallazgos, "
+          f"{informe.get('total_advertencias', 0)} warnings)")
 
 
 def main(argv: Optional[List[str]] = None) -> int:

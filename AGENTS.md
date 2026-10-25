@@ -173,10 +173,17 @@ mejora de código (`code_design_improvement_tools.py`).
   GLOBAL: `CUMPLE` exige suite verde, `CUBIERTO` es solo evidencia estática y
   `NO VERIFICABLE` declara lo que requiere revisión humana
   (`docs/REQUISITOS.md`).
+- Comparabilidad (R5, 2026-10-25): el informe añade `cobertura.comparable`
+  (solo con cobertura ≥80%) y `motivo_no_comparable`; con cobertura baja el
+  rótulo es **«GLOBAL NO COMPARABLE»**. Java/JS solo reciben señales genéricas.
+- Silencios (R6, 2026-10-25): `# noqa: silent: motivo` (≥3 caracteres) se
+  reporta como **warning** en c3 y preflight; sin marca sigue siendo hallazgo.
+  Thinker no usa la marca en su propio código.
 - Calibración (R14, 2026-10-25): `credibility` y `confidence` **no están
-  calibradas**; no hay Brier ni tabla de fiabilidad. No se presentan como
-  probabilidad de acierto. El test `tests/test_docs_calibracion.py` verifica
-  que README y AGENTS mantengan la declaración.
+  calibradas**; hay un Brier offline **simulado** (0,1166 en 16 casos) que no
+  prueba calibración real. No se presentan como probabilidad. Los tests
+  `tests/test_docs_calibracion.py` y `tests/test_calibracion_confianza.py`
+  protegen la declaración y el instrumento.
 - Auditoría de cambios (opt-in, offline): `python3 scripts/audit_changes.py
   --staged|--base REV|--diff ARCHIVO [--json] [--permitir RUTA]` (o
   `make audit-diff BASE=origin/main`) — detecta señales mecánicas de cambios
@@ -245,13 +252,13 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
-  triaje del Hallazgo 97). Cobertura del evaluador **91%** (145/1536 sin
-  ejecutar) y de preflight **91%** (35/385), **91% combinado**, medidas el
+  triaje del Hallazgo 97). Cobertura del evaluador **91%** (145/1571 sin
+  ejecutar) y de preflight **90%** (39/401), **91% combinado**, medidas el
   2026-10-25. **Piloto R3 2026-10-25**: preflight **949 mutantes, 495 muertos,
   414 supervivientes, 40 sin tests**, 0 timeouts/sospechosos; sin triaje y sin
   mezclar con el 95,2% del núcleo. El evaluador sigue pendiente; el comando es
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **866/866 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **876/876 en la suite
   Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
