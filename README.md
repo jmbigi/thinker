@@ -277,6 +277,9 @@ auditor de cambios y el holdout antes de cada commit.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube (la verificación es local, por diseño).
+- `credibility` y `confidence` **no están calibradas**: son estimaciones del
+  modelo, no probabilidades; no se ha medido Brier ni una tabla de fiabilidad,
+  y no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
   Los scripts `bash`/`make` se verificaron en Linux; en Windows se ejecutaron

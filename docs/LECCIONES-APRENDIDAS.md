@@ -2495,7 +2495,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   etiquetados sobre 5 criterios; TP/FP/FN, precision y recall por criterio y
   global. Resultado **5 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 5 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
-- **Evidencia**: suite **865/865**, ruff 0, cobertura evaluador 91% (145/1536),
+- **Evidencia**: suite **866/866**, ruff 0, cobertura evaluador 91% (145/1536),
   preflight 91%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
@@ -2524,8 +2524,24 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Estado del evaluador**: el arnés `scripts/mutacion.py` queda listo
   (`--objetivo evaluar`), pero la campaña completa no terminó; no se publica
   tasa del evaluador. R3 sigue **parcial**.
-- **Evidencia**: 3 tests del arnés, suite **865/865**, ruff 0, docs-check OK.
+- **Evidencia**: 3 tests del arnés, suite **866/866**, ruff 0, docs-check OK.
 - **Lección**: una campaña de mutación fuera de `source_paths` debe copiar sus
   dependencias sin mutarlas y verificar primero la línea base; los mutantes «sin
   tests» y los supervivientes son hallazgos, no ruido. Sin triaje no hay tasa
   honesta que publicar.
+
+## 2026-10-25 (ronda 27) — Confianza no calibrada (hallazgo 109)
+
+### Hallazgo 109: declarar «no calibrada» es más honesto que fingir una probabilidad
+
+- **Origen**: R14. `EvidenceEvaluator` normaliza `credibility`/`confidence` a
+  [0,1], pero no hay Brier ni tabla de fiabilidad que justifique leerlos como
+  probabilidad.
+- **Acción**: README y AGENTS declaran que **no están calibradas** y que no se
+  presentan como probabilidad de acierto. `tests/test_docs_calibracion.py`
+  protege la declaración contra borrados accidentales.
+- **Evidencia**: suite **866/866**, ruff 0, docs-check OK. **No se midió
+  Brier**; no se afirma calibración.
+- **Lección**: cuando no hay medición, la opción honesta es declarar la
+  limitación y evitar que el número se lea como probabilidad. La calibración
+  real sigue siendo trabajo futuro, no una promesa.

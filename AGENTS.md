@@ -173,6 +173,10 @@ mejora de código (`code_design_improvement_tools.py`).
   GLOBAL: `CUMPLE` exige suite verde, `CUBIERTO` es solo evidencia estática y
   `NO VERIFICABLE` declara lo que requiere revisión humana
   (`docs/REQUISITOS.md`).
+- Calibración (R14, 2026-10-25): `credibility` y `confidence` **no están
+  calibradas**; no hay Brier ni tabla de fiabilidad. No se presentan como
+  probabilidad de acierto. El test `tests/test_docs_calibracion.py` verifica
+  que README y AGENTS mantengan la declaración.
 - Auditoría de cambios (opt-in, offline): `python3 scripts/audit_changes.py
   --staged|--base REV|--diff ARCHIVO [--json] [--permitir RUTA]` (o
   `make audit-diff BASE=origin/main`) — detecta señales mecánicas de cambios
@@ -247,7 +251,7 @@ mejora de código (`code_design_improvement_tools.py`).
   414 supervivientes, 40 sin tests**, 0 timeouts/sospechosos; sin triaje y sin
   mezclar con el 95,2% del núcleo. El evaluador sigue pendiente; el comando es
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **865/865 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **866/866 en la suite
   Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

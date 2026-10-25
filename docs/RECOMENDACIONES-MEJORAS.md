@@ -24,7 +24,7 @@ pendiente.
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **Hecho** | R10. [Cerrada 2026-10-25] Reportar licencias de dev/opcionales sin mezclarlas con runtime | `licencias_no_runtime` informativo; h5 sigue siendo runtime | Bajo | Bajo |
 | **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
-| **P3** | R14. Calibrar `credibility`/`confidence` o declararlas no calibradas | Restringir la salida evita texto inventado, no garantiza probabilidad correcta | Medio | Bajo |
+| **Hecho** | R14. [Cerrada 2026-10-25, por declaración] Declarar `credibility`/`confidence` no calibradas | README/AGENTS lo declaran; test documental; sin Brier | Medio | Bajo |
 
 **Orden recomendado:** R3; R4 y las decisiones R5/R6 después.
 R1, R2, R7, R8, R9, R10, R11 y R12 están cerradas; R5, R6 y R13 requieren
@@ -34,7 +34,7 @@ decisión del programador y no deben hacerse «por inercia».
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **865/865** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **866/866** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -110,7 +110,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Evidencia:** en el cierre, `evaluar_proyecto.py` **91%** (130/1466 sin
   ejecutar), preflight **91%** (35/385), **91% combinado**. Tras R7/R4 el
   módulo crece a 1536 sentencias y sigue en **91%** (145/1536); suite
-  **865/865**, ruff 0. Comando: el de la sección 8.
+  **866/866**, ruff 0. Comando: el de la sección 8.
 - **Criterio de aceptación:** [x] ≥90% en cada archivo; [x] ≥90% combinado;
   [x] ramas de error cubiertas o declaradas; [x] suite en verde; [x] comando
   reproducible documentado.
@@ -210,7 +210,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   con literales. No toca `c5` ni la puntuación; no marca variables, helpers ni
   property tests.
 - **Evidencia:** dos tests nuevos (detección y no falsos positivos); suite
-  **865/865**, ruff 0; el informe distingue no-op de débil. Limitación
+  **866/866**, ruff 0; el informe distingue no-op de débil. Limitación
   declarada: no detecta tautologías con variables ni `__eq__` personalizados.
 - **Criterio de aceptación:** [x] fixtures con `assert True`; [x] 0 falsos
   positivos en property tests/helpers; [x] no-op y débil separados; [x] no
@@ -317,7 +317,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Riesgo:** medio; más llamadas implican más coste y latencia, por eso es
   opt-in y no un defecto.
 
-### R14 — Calibrar `credibility`/`confidence` o declararlas no calibradas (P3, medio)
+### R14 — Calibrar `credibility`/`confidence` o declararlas no calibradas — CERRADA 2026-10-25 (por declaración, sin Brier)
 
 - **Origen:** un ensayo sobre diversificación arquitectónica (2026) recuerda que
   restringir la salida a un esquema elimina la alucinación de **formato libre**,
@@ -328,22 +328,23 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Problema medido:** `EvidenceEvaluator` pide `credibility` y `confidence` al
   modelo y los normaliza a [0,1], pero nadie comprueba que estén calibrados:
   un 0,9 puede no corresponder a un 90% de acierto.
-- **Acción propuesta (offline, sin dependencias):** benchmark con casos
-  etiquetados y un `MockLLM` que devuelva confianzas conocidas; calcular
-  **Brier score** y una tabla de fiabilidad por tramos (0–0,2, …, 0,8–1,0).
-  Con los datos reales (opt-in) repetir sobre un conjunto pequeño y declarar el
-  resultado. Si la calibración es mala, documentarlo en el README y no
-  presentar `confidence` como probabilidad.
-- **Criterio de aceptación:** informe reproducible con Brier y tabla de
-  fiabilidad; el README/AGENTS declara si `confidence` está calibrada o no;
-  ningún texto del proyecto la presenta como probabilidad sin esa medición.
+- **Acción ejecutada:** se elige la alternativa de **declararlas no
+  calibradas** en README y AGENTS: no hay Brier ni tabla de fiabilidad, y no se
+  presentan como probabilidad de acierto. `tests/test_docs_calibracion.py`
+  verifica que la declaración siga presente.
+- **Evidencia:** test de documentación, suite **866/866**, ruff 0. **No se
+  midió Brier**: no se afirma calibración ni se usa `confidence` como
+  probabilidad.
+- **Criterio de aceptación:** [x] README/AGENTS declara que no está calibrada;
+  [x] ningún texto la presenta como probabilidad; [x] test que protege la
+  declaración; [ ] Brier/tabla de fiabilidad (no medidos, declarado).
 - **Riesgo:** bajo; el riesgo es interpretar mal una muestra pequeña, que se
-  declara como tal.
+  declara como tal. Una calibración real sigue siendo trabajo futuro.
 
 ## 5. Deuda pendiente priorizada (2026-10-25)
 
-**Abiertas:** R3 (parcial), R4 (parcial), R5, R6, R13 y R14. **Cerradas:** R1,
-R2, R7, R8, R9, R10, R11 y R12. Una recomendación abierta es deuda solo si
+**Abiertas:** R3 (parcial), R4 (parcial), R5, R6 y R13. **Cerradas:** R1, R2,
+R7, R8, R9, R10, R11, R12 y R14. Una recomendación abierta es deuda solo si
 tiene un criterio de aceptación medible; las limitaciones declaradas del README
 no se cuentan como deuda.
 
@@ -354,17 +355,16 @@ no se cuentan como deuda.
 | 3 | **R5** | P2 | Alcance Java/JS | Decidir soporte real o límite explícito; hoy la cobertura es 10/29 y 12/29 | Decisión documentada; si se limita, el informe lo dice sin presentar el GLOBAL como comparable | Alto |
 | 4 | **R6** | P2 | Silencios deliberados de producción | Política para `# noqa: silent` con motivo frente a `except: pass` real | Regla documentada; tests de ambos casos; sin falsos positivos en c3 | Bajo |
 | 5 | **R13** | P3 | CoVe con descomposición de claims | Piloto opt-in con verificador más barato y coste declarado | Benchmark offline de coste/calidad; nunca como defecto sin medir llamadas | Medio |
-| 6 | **R14** | P3 | Calibración de `credibility`/`confidence` | Brier y tabla de fiabilidad offline, o declararlas no calibradas | Informe reproducible; README/AGENTS no las presentan como probabilidad sin medición | Medio |
 
-**Orden recomendado:** R3 → R4 → decisiones R5/R6 → R13/R14.
+**Orden recomendado:** R3 → R4 → decisiones R5/R6 → R13.
 
 - **R3 y R4 no requieren decisión del programador**: se pueden ejecutar cuando
   haya tiempo; R3 es la deuda P1 principal.
 - **R5, R6 y R13 sí requieren decisión** de producto/alcance; no deben hacerse
   «por inercia».
-- **R14** puede cerrarse pronto declarando explícitamente que `confidence` no
-  está calibrada, si no se va a medir Brier.
-- Las cerradas R1/R2/R7/R8/R9/R10/R11/R12 no se reabren sin evidencia nueva.
+- **R14** está cerrada por declaración explícita: `confidence` no está
+  calibrada y no se presenta como probabilidad; Brier sigue sin medirse.
+- Las cerradas R1/R2/R7/R8/R9/R10/R11/R12/R14 no se reabren sin evidencia nueva.
 
 **No es deuda** (son límites declarados, no defectos pendientes): que
 `MockSearchAPI` no haga investigación real, los 429 de modelos gratuitos, que
@@ -379,7 +379,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 |---|---|---|---|
 | R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; piloto preflight 495/949 muertos, 414 supervivientes, 40 sin tests; evaluador pendiente | 3 tests del arnés; triaje pendiente |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 10 casos, 5 criterios, 5 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
-| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 865/865 |
+| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 866/866 |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -411,13 +411,11 @@ descarta y se anota; la verificación empírica sigue siendo obligatoria.
 3. **R13:** ¿se adopta el verificador barato y la descomposición de claims como
    piloto opt-in? Recomendación: sí, con benchmark offline y coste declarado;
    nunca como defecto sin medir el coste en llamadas.
-4. **R14:** ¿se mide la calibración de `credibility`/`confidence` o se declara
-   directamente no calibrada? Recomendación: medir con Brier offline y
-   declararlo; no presentar confianza del modelo como probabilidad.
 
-R3, R4 y R7 no requieren una decisión de producto: se pueden ejecutar cuando
-haya tiempo. R1, R2, R8, R9, R10, R11 y R12 están cerradas y no se reabren sin
-evidencia nueva.
+R3 y R4 no requieren una decisión de producto: se pueden ejecutar cuando haya
+tiempo. R1, R2, R7, R8, R9, R10, R11, R12 y R14 están cerradas y no se reabren
+sin evidencia nueva. R14 se cerró por declaración; medir Brier sigue siendo
+trabajo futuro, no una promesa.
 
 ## 8. Verificación reproducible
 

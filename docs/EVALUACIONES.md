@@ -475,10 +475,13 @@ sobre 5 criterios (h2, c3, c5, f3, h6), con TP/FP/FN, precision y recall por
 criterio y global; resultado actual **5 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 5/29 criterios y fixtures sintéticas. Cobertura:
 `evaluar_proyecto.py` **91%** (145/1536 sin ejecutar), preflight **91%**
-(35/385), total 83%. Suite **865/865** en Linux (Python 3.11.9), ruff 0,
+(35/385), total 83%. Suite **866/866** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
 verificados). R3 queda **parcial**: piloto de preflight con **949 mutantes, 495
 muertos, 414 supervivientes y 40 sin tests**, sin triaje todavía; el evaluador
 no se midió y no se publica su tasa. El arnés `scripts/mutacion.py` (3 tests)
 deja el comando reproducible, pero R3 no se cierra hasta triajar los
-supervivientes y medir el evaluador.
+supervivientes y medir el evaluador. R14 se cierra por **declaración**: README
+y AGENTS dicen que `credibility`/`confidence` no están calibradas y no se
+presentan como probabilidad; `tests/test_docs_calibracion.py` lo protege. No se
+midió Brier.
