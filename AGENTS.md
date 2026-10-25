@@ -250,9 +250,9 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.7` publicado en TestPyPI y PyPI; tags
-  `v0.1.0` a `v0.1.7` empujados, `v0.1.2` a `v0.1.7` anotados; instalación
-  `pip install thinker-research==0.1.7` o por tag con
+  (`thinker-research 0.1.8` en preparación; la última publicada es `0.1.7`;
+  tags `v0.1.0` a `v0.1.7` empujados, `v0.1.2` a `v0.1.7` anotados;
+  instalación `pip install thinker-research==0.1.7` o por tag con
   `pip install git+https://github.com/jmbigi/thinker.git@v0.1.7`; sin
   GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
   cuentas de GitHub (regla 12).

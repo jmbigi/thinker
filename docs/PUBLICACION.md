@@ -1,7 +1,8 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-25: **versión `0.1.7` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-25: **versión `0.1.8` en preparación**; `0.1.7` es la
+> última publicada en TestPyPI y PyPI.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`
 > y `v0.1.7` empujados; `v0.1.2` a `v0.1.7` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
@@ -15,8 +16,8 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.7`
-  publicada en TestPyPI y PyPI.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.8`
+  en preparación; la última publicada es `0.1.7`.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -68,6 +69,17 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.8 (2026-10-25) — en preparación
+
+Amplía la regla 12 (sin `gh` ni GitHub Releases desde el repo), corrige la
+cifra de mutación de README a 95,2% (3635/3819; 2026-10-23), actualiza la
+cabecera de RECOMENDACIONES y amplía `check_docs` para contrastar la mutación
+de README con AGENTS, con test de regresión; retira duplicados de STOPWORDS
+(B033). Suite 852/852, cobertura 90% evaluador / 91% preflight.
+
+Artefactos: `thinker-research 0.1.8` (wheel y sdist), en preparación; sin
+publicar todavía.
 
 ## Versión 0.1.7 (2026-10-24)
 
