@@ -2375,8 +2375,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Solución**: tres alias con test de preflight y de h6; no se añadieron los
   otros tres ni se debilitó el gate de silencios, conforme a la regla 13.
 - **Evidencia**: suite **851/851**, autoevaluación **1.000**, preflight 0;
-  cobertura 90% evaluador (149/1435) y 91% preflight (35/385). Sin release
-  todavía en el momento de escribir esta lección.
+  cobertura 90% evaluador (149/1435) y 91% preflight (35/385). Publicada como
+  `0.1.7` en TestPyPI y PyPI el 2026-10-24; tag `v0.1.7` (`4e631ed`).
 - **Lección**: una opinión externa puede señalar un defecto real y, a la vez,
   incluir falsos positivos; la única forma de separarlos es reproducir cada
   caso. La regla 13 prohíbe tocar el gate para que la nota suba.

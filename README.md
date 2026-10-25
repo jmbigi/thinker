@@ -68,9 +68,9 @@ pip install git+https://github.com/jmbigi/thinker.git@v0.1.7   # tag fijado (ver
 pip install thinker-research==0.1.7            # desde PyPI
 ```
 
-La versión `0.1.7` es la release actual. La instalación por tag sigue
-disponible y no requiere PyPI ni claves. El estado de publicación de cada
-índice está en `docs/PUBLICACION.md`.
+La versión `0.1.7` está publicada en TestPyPI y PyPI. La instalación por tag
+sigue disponible y no requiere PyPI ni claves. Estado de la publicación:
+`docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
 estática y read-only):
