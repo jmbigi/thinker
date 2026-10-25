@@ -258,7 +258,7 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 376 supervivientes sin
   triaje y sin mezclar con el 95,2% del núcleo. El evaluador sigue pendiente; el
   comando es `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **885/885 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **886/886 en la suite
   Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

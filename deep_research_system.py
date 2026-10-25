@@ -330,7 +330,8 @@ class EvidenceEvaluator(DecisionEngine):
     """
 
     def __init__(self, llm_provider, verificacion_independiente: bool = False,
-                 llm_verificador=None, muestras_consenso: int = 1):
+                 llm_verificador=None, muestras_consenso: int = 1,
+                 descomponer_claims: bool = False):
         self.llm_provider = llm_provider
         self.verificacion_independiente = verificacion_independiente
         self.llm_verificador = llm_verificador
@@ -338,6 +339,7 @@ class EvidenceEvaluator(DecisionEngine):
                 or muestras_consenso < 1:
             raise ValueError("muestras_consenso debe ser un entero >= 1")
         self.muestras_consenso = muestras_consenso
+        self.descomponer_claims = descomponer_claims
 
     @staticmethod
     def _prompt_evaluacion(claim: Dict[str, Any], fuentes: List[Dict[str, Any]]) -> str:
@@ -357,7 +359,62 @@ Claim: {claim.get("claim", "")}
 Return ONLY JSON (no markdown fences, no extra text):
 {{"verdict": "supported|contradicted|not_addressed", "credibility": 0-1, "confidence": 0-1, "reasoning": "..."}}"""
 
+    @staticmethod
+    def _partir_claim(texto: str) -> List[str]:
+        """Divide un claim compuesto por conjunciones simples (opt-in R13-C).
+
+        Es una heurística declarada, no una descomposición semántica: solo
+        separa por `` y ``/`` and `` y exige que cada parte tenga >= 2 palabras.
+        """
+        partes = re.split(r"\s+(?:y|and)\s+", texto, flags=re.IGNORECASE)
+        return [p.strip(" .;,") for p in partes if len(p.split()) >= 2]
+
+    @staticmethod
+    def _agregar_subclaims(claim: Dict[str, Any],
+                           evaluaciones: List[Dict[str, Any]]) -> Dict[str, Any]:
+        veredictos = [e.get("verdict", "not_addressed") for e in evaluaciones]
+        if "contradicted" in veredictos:
+            veredicto = "contradicted"
+        elif veredictos and all(v == "supported" for v in veredictos):
+            veredicto = "supported"
+        else:
+            veredicto = "not_addressed"
+        n = len(evaluaciones) or 1
+        return {
+            "verdict": veredicto,
+            "credibility": round(sum(e.get("credibility", 0.0)
+                                     for e in evaluaciones) / n, 4),
+            "confidence": round(sum(e.get("confidence", 0.0)
+                                    for e in evaluaciones) / n, 4),
+            "reasoning": "Agregado de subclaims (R13-C)",
+            "claim": claim.get("claim", ""),
+            "source_url": claim.get("source_url", ""),
+            "evaluated_at": time.time(),
+            "subclaims": evaluaciones,
+            "descomposicion": "heuristica-opt-in",
+        }
+
     def decide(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
+        if self.descomponer_claims:
+            partes = self._partir_claim(claim.get("claim", ""))
+            if len(partes) > 1:
+                evaluaciones = []
+                for texto in partes:
+                    subclaim = dict(claim)
+                    subclaim["claim"] = texto
+                    evaluacion, _ = self._evaluar(context, subclaim)
+                    evaluaciones.append(evaluacion)
+                evaluation = self._agregar_subclaims(claim, evaluaciones)
+                context.evaluations.append(evaluation)
+                context.add_decision(
+                    "claim_decomposition", "decompose",
+                    f"{len(partes)} subclaims; veredicto {evaluation['verdict']}")
+                if self.verificacion_independiente:
+                    evaluation["verificacion_independiente"] = (
+                        self._evaluar_independiente(
+                            context, claim,
+                            evaluation.get("verdict", "not_addressed"), []))
+                return evaluation
         evaluation, fuentes_usadas = self._evaluar(context, claim)
         if self.verificacion_independiente:
             evaluation["verificacion_independiente"] = self._evaluar_independiente(

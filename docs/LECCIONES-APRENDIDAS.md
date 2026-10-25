@@ -2495,7 +2495,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   etiquetados sobre 14 criterios; TP/FP/FN, precision y recall por criterio y
   global. Resultado **14 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 14 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
-- **Evidencia**: suite **885/885**, ruff 0, cobertura evaluador 91% (145/1571),
+- **Evidencia**: suite **886/886**, ruff 0, cobertura evaluador 91% (145/1571),
   preflight 93%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
@@ -2526,7 +2526,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Estado del evaluador**: el arnés `scripts/mutacion.py` queda listo
   (`--objetivo evaluar`), pero la campaña completa no terminó; no se publica
   tasa del evaluador. R3 sigue **parcial**.
-- **Evidencia**: 3 tests del arnés, suite **885/885**, ruff 0, docs-check OK.
+- **Evidencia**: 3 tests del arnés, suite **886/886**, ruff 0, docs-check OK.
 - **Lección**: una campaña de mutación fuera de `source_paths` debe copiar sus
   dependencias sin mutarlas y verificar primero la línea base; los mutantes «sin
   tests» y los supervivientes son hallazgos, no ruido. Sin triaje no hay tasa
@@ -2544,7 +2544,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   protege la declaración; `tests/benchmarks/calibracion_confianza.py` añade un
   Brier **simulado** (0,1166 en 16 pares) que prueba el instrumento, no el
   modelo.
-- **Evidencia**: suite **885/885**, ruff 0, docs-check OK. **No hay Brier
+- **Evidencia**: suite **886/886**, ruff 0, docs-check OK. **No hay Brier
   real**; no se afirma calibración.
 - **Lección**: cuando no hay medición real, la opción honesta es declarar la
   limitación, etiquetar el simulador como simulado y evitar que el número se
@@ -2565,7 +2565,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   La descomposición de claims (C) sigue pendiente.
 - **R14-B**: Brier simulado 0,1166 con 16 pares; la declaración «no calibrada»
   sigue vigente. No se usa como evidencia de calibración real.
-- **Evidencia**: 10 tests nuevos, suite **885/885**, ruff 0, preflight 0,
+- **Evidencia**: 10 tests nuevos, suite **886/886**, ruff 0, preflight 0,
   docs-check OK; cobertura evaluador 91% (145/1571) y preflight 93% (29/425).
 - **Lección**: la honestidad del informe también se juega en los rótulos
   (comparable/no comparable) y en los warnings; una marca sin motivo o invisible
@@ -2587,3 +2587,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: verificar JSON/hashes no basta para pip; hay que comprobar el
   índice simple y reintentar tras la propagación (misma clase que el Hallazgo
   104). No confundir retardo de índice con artefacto ausente.
+
+## 2026-10-25 (ronda 30) — Descomposición de claims y triaje R3
+
+### Hallazgo 112: dividir claims es heurístico; sirve como piloto opt-in, no como verdad
+
+- **R13-C**: `EvidenceEvaluator(descomponer_claims=True)` separa por
+  conjunciones simples, evalúa cada subclaim y agrega por contradicción. El
+  benchmark muestra el claim compuesto monolítico como `supported` con 1
+  llamada y el descompuesto como `contradicted` con 2. Es opt-in y la división
+  se declara heurística, no semántica.
+- **R3**: 6 tests de manifiestos y un arreglo real (`extras_require` contaba
+  sus claves como dependencias). Preflight queda en **1015 mutantes, 639
+  muertos, 376 supervivientes, 0 sin tests**; cobertura 93% y suite 886/886.
+  Los 376 supervivientes siguen sin triaje; no se publica tasa cerrada.
+- **Lección**: una descomposición por conjunciones mejora el caso compuesto
+  medido, pero puede partir mal una frase; el modo por defecto no se toca. En
+  mutación, atacar los clusters con tests directos reduce el trabajo, pero no
+  sustituye el triaje de los supervivientes.

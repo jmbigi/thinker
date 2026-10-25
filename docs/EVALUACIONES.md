@@ -474,8 +474,8 @@ tests. R4 añade `tests/benchmarks/evaluador_precision.py`: 28 casos etiquetados
 sobre 14 criterios (h1, h2, h3, h6, v2, c1, c2, c3, c5, f2, f3, f4, v1, h7), con TP/FP/FN, precision y recall por
 criterio y global; resultado actual **14 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 14/29 criterios y fixtures sintéticas. Cobertura:
-`evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **90%**
-(39/401), total 83%. Suite **885/885** en Linux (Python 3.11.9), ruff 0,
+`evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **93%**
+(29/425), total 83%. Suite **886/886** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
 verificados). R3 queda **parcial**: preflight con **1015 mutantes, 639 muertos, 376
 supervivientes y 0 sin tests**, sin triaje todavía; el evaluador no se midió y
@@ -484,9 +484,9 @@ reproducible, pero R3 no se cierra hasta triajar los 376 supervivientes y medir
 el evaluador. R5 añade `cobertura.comparable`,
 `motivo_no_comparable` y «GLOBAL NO COMPARABLE»; Java/JS queda como no
 comparable. R6 admite `# noqa: silent: motivo` como **warning** en c3 y
-preflight; sin marca sigue fallando. R13-B mide el verificador barato: 1 llamada
-al generador, 1 al verificador y 1 extra, con independencia declarada
-`proveedor-distinto`; la descomposición (C) sigue pendiente. R14 se cierra por
+preflight; sin marca sigue fallando. R13-B/C mide el verificador barato y la descomposición opt-in:
+1 llamada al generador, 1 al verificador y 1 extra; el claim compuesto
+monolítico pasa y el descompuesto detecta la contradicción con 2 llamadas. R14 se cierra por
 **declaración**: README y AGENTS dicen que `credibility`/`confidence` no están
 calibradas y no se presentan como probabilidad; el Brier offline es **simulado**
 (0,1166 en 16 casos) y no prueba calibración real.
