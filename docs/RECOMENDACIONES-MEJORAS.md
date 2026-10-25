@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `eaea4d4`
+**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `18990b0`
 más los arreglos de la revisión del 2026-10-25 (documentación, regla 12,
 gate documental y permisos locales).
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -44,7 +44,7 @@ decisión del programador y no deben hacerse «por inercia».
 | Cobertura `evaluar_proyecto.py` | **90%** (149/1435 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **91%** (35/385) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
-| Paquete | **0.1.8 en preparación** (última publicada: 0.1.7, 2026-10-24) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.8** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
 no está medida con la misma fuerza que el núcleo: cobertura incompleta en ramas

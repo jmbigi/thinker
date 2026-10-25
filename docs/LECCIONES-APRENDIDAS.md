@@ -2408,3 +2408,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   la mira; o se centraliza o se comprueba. Los permisos de un `.env` local
   también son parte de P0.6 aunque el archivo no se versione, y publicar no
   debe depender de la CLI ni de una cuenta de GitHub (regla 12).
+
+## 2026-10-25 (ronda 22) — Publicación 0.1.8 (hallazgo 104)
+
+### Hallazgo 104: el índice simple de PyPI tarda en ver una versión recién subida
+
+- **Origen**: publicación de `thinker-research 0.1.8` tras la revisión
+  integral y la ampliación de la regla 12.
+- **Problema**: tras subir a TestPyPI y PyPI, el JSON versionado y los hashes
+  ya mostraban `0.1.8`, pero `pip install thinker-research==0.1.8` respondía
+  «from versions: ... 0.1.7»; `--no-cache-dir` no bastó en el primer intento.
+  Es el retardo del índice simple, no un fallo del artefacto (misma clase que
+  el Hallazgo 91).
+- **Solución**: contrastar JSON, índice simple y hashes; esperar la
+  propagación y reintentar la instalación limpia. No se re-subió nada.
+  TestPyPI y PyPI aceptaron la misma wheel/sdist con hashes idénticos.
+- **Evidencia**: wheel
+  `91dd0168fda2d4e8c8d5da0d695ae06cc1a70e15bf0e87465fc1e1a49d9afa02` y sdist
+  `4a4f36a20746e0d03135a9c0e195cb8e521e618b7f345d4f6f7880ee00ae9f6a`;
+  instalación limpia desde TestPyPI y PyPI OK; `evaluate-project --help`,
+  imports OK y `pip check` limpio; suite 852/852; tag anotado `v0.1.8`
+  (`18990b0`); autoevaluación 1.000.
+- **Lección**: un «no matching distribution» inmediato tras publicar no
+  prueba que la subida falló; verificar el JSON y los hashes antes de
+  concluir y no duplicar la subida.

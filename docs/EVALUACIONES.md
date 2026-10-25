@@ -439,3 +439,16 @@ Suite **852/852** en Linux (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
 autoevaluación **1.000**, `[UNVERIFIED] 0`. Cobertura sin cambios en
 evaluador/preflight (90%/91%). No se re-mide la mutación: los módulos mutados
 no cambiaron.
+
+**Actualización 2026-10-25 (publicación 0.1.8 — Hallazgo 104)**: release
+`0.1.8` construida desde el tag `v0.1.8` (`18990b0`) y publicada en TestPyPI y
+PyPI. Wheel SHA-256
+`91dd0168fda2d4e8c8d5da0d695ae06cc1a70e15bf0e87465fc1e1a49d9afa02`; sdist
+`4a4f36a20746e0d03135a9c0e195cb8e521e618b7f345d4f6f7880ee00ae9f6a`; ambos
+índices publican los mismos hashes. Instalación limpia
+`thinker-research==0.1.8` desde TestPyPI y PyPI OK; `evaluate-project --help`,
+imports OK y `pip check` limpio. El índice simple no mostraba `0.1.8` en el
+primer intento aunque el JSON y los hashes ya eran correctos; tras la
+propagación la instalación funcionó (Hallazgo 104). Suite **852/852** en Linux
+(Python 3.11.9), ruff 0, preflight 0, docs-check OK; autoevaluación **1.000**,
+`[UNVERIFIED] 0`.

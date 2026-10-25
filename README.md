@@ -68,8 +68,8 @@ pip install git+https://github.com/jmbigi/thinker.git@v0.1.8   # tag fijado (ver
 pip install thinker-research==0.1.8            # desde PyPI
 ```
 
-La versión `0.1.8` es la release actual. La instalación por tag sigue
-disponible y no requiere PyPI ni claves. Estado de la publicación:
+La versión `0.1.8` está publicada en TestPyPI y PyPI. La instalación por tag
+sigue disponible y no requiere PyPI ni claves. Estado de la publicación:
 `docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
