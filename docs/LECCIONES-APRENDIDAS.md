@@ -2611,11 +2611,12 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 ### Hallazgo 113: un Brier bajo en seis hechos fáciles no es calibración
 
 - **Acción**: `tests/benchmarks/calibracion_real.py` con 6 claims factuales,
-  fuentes y veredicto esperado; llamadas reales a OpenRouter
-  (`poolside/laguna-xs-2.1:free`).
-- **Resultado**: **6/6 aciertos, Brier 0,0017**, confianza media 0,963. Es un
-  piloto, no una calibración: la muestra es diminuta y los hechos son fáciles
-  (agua a 100 °C, Tierra no plana, París capital, oro sólido).
+  fuentes y veredicto esperado; ampliado a **20 claims**. Llamadas reales a
+  OpenRouter (`poolside/laguna-xs-2.1:free`; con 429 se usó el fallback
+  `cohere/north-mini-code:free`).
+- **Resultado**: **20/20 aciertos, Brier 0,0540** (el piloto inicial de 6 daba
+  0,0017; al ampliar, la confianza fue menos optimista). Es un piloto, no una
+  calibración: la muestra es pequeña y los hechos son fáciles.
 - **Decisión**: la declaración «confidence no calibrada» sigue vigente. Para
   afirmar calibración general haría falta una muestra representativa, con
   intervalos y casos difíciles.

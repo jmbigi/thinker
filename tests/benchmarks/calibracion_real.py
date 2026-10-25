@@ -54,6 +54,77 @@ CASOS = [
         "fuente": "El oro es un metal solido a temperatura ambiente.",
         "esperado": "contradicted",
     },
+    {
+        "claim": "El monte Everest es la montana mas alta del mundo.",
+        "fuente": "El Everest, con 8849 metros, es la montana mas alta sobre el nivel del mar.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "La Gran Muralla China es visible desde la Luna a simple vista.",
+        "fuente": "La Gran Muralla no es visible a simple vista desde la Luna.",
+        "esperado": "contradicted",
+    },
+    {
+        "claim": "El ser humano adulto tiene 206 huesos.",
+        "fuente": "Un adulto tiene 206 huesos.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "Los murcielagos son aves.",
+        "fuente": "Los murcielagos son mamiferos.",
+        "esperado": "contradicted",
+    },
+    {
+        "claim": "El Sol es una estrella.",
+        "fuente": "El Sol es una estrella de tipo G.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "Mercurio es el planeta mas cercano al Sol.",
+        "fuente": "Mercurio es el planeta mas proximo al Sol.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "Venus es el planeta mas frio del sistema solar.",
+        "fuente": "Neptuno es el planeta mas frio del sistema solar.",
+        "esperado": "contradicted",
+    },
+    {
+        "claim": "El ADN tiene estructura de doble helice.",
+        "fuente": "El ADN tiene una estructura de doble helice.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "Los antibioticos curan infecciones virales.",
+        "fuente": "Los antibioticos no actuan contra los virus.",
+        "esperado": "contradicted",
+    },
+    {
+        "claim": "La fotosintesis produce oxigeno.",
+        "fuente": "La fotosintesis libera oxigeno.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "El sonido viaja mas rapido que la luz.",
+        "fuente": "La luz viaja mucho mas rapido que el sonido.",
+        "esperado": "contradicted",
+    },
+    {
+        "claim": "El atomo de hidrogeno tiene un proton.",
+        "fuente": "El hidrogeno tiene un proton y ningun neutron.",
+        "esperado": "supported",
+    },
+    {
+        "claim": "La sangre humana es azul.",
+        "fuente": "La sangre humana es roja.",
+        "esperado": "contradicted",
+    },
+    {
+        "claim": "Un ano bisiesto tiene 366 dias.",
+        "fuente": "El ano bisiesto tiene 366 dias.",
+        "esperado": "supported",
+    },
+
 ]
 
 

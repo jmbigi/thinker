@@ -280,8 +280,8 @@ auditor de cambios y el holdout antes de cada commit.
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - `credibility` y `confidence` **no están calibradas**: son estimaciones del
-  modelo, no probabilidades. Hay un Brier simulado y un piloto real n=6
-  (Brier 0,0017, muestra fácil y diminuta); ninguno prueba calibración general,
+  modelo, no probabilidades. Hay un Brier simulado y un piloto real n=20
+  (Brier 0,054, muestra pequeña y fácil); ninguno prueba calibración general,
   así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.

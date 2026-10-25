@@ -489,8 +489,9 @@ preflight; sin marca sigue fallando. R13-B/C mide el verificador barato y la des
 monolítico pasa y el descompuesto detecta la contradicción con 2 llamadas. R14 se cierra por
 **declaración**: README y AGENTS dicen que `credibility`/`confidence` no están
 calibradas y no se presentan como probabilidad; el Brier offline es **simulado**
-(0,1166 en 16 casos) y el piloto real n=6 da **0,0017** (6/6, confianza media
-0,963), pero la muestra es fácil y diminuta: no prueba calibración general.
+(0,1166 en 16 casos) y el piloto real n=20 da **0,0540** (20/20, modelo de
+fallback `cohere/north-mini-code:free`), pero la muestra es pequeña y fácil: no
+prueba calibración general.
 
 Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
 `v0.1.10` (`551d693`). Wheel SHA-256

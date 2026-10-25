@@ -24,7 +24,7 @@ pendiente.
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **Hecho** | R10. [Cerrada 2026-10-25] Reportar licencias de dev/opcionales sin mezclarlas con runtime | `licencias_no_runtime` informativo; h5 sigue siendo runtime | Bajo | Bajo |
 | **Hecho** | R13. [Cerrada 2026-10-25, B+C] CoVe con verificador barato y descomposición opt-in | 1+1 llamadas; claim compuesto detectado; 28/14 en R4 | Medio | Medio |
-| **Hecho** | R14. [Cerrada 2026-10-25, por declaración; B+C piloto] Declarar `credibility`/`confidence` no calibradas | Brier simulado 0,1166; piloto real n=6 Brier 0,0017; sin calibración general | Medio | Bajo |
+| **Hecho** | R14. [Cerrada 2026-10-25, por declaración; B+C piloto] Declarar `credibility`/`confidence` no calibradas | Brier simulado 0,1166; piloto real n=20 Brier 0,0540; sin calibración general | Medio | Bajo |
 
 **Estado de decisiones (2026-10-25):** R5-A, R6-C, R13-B/C y R14-B/C
 implementadas; R3-C pendiente. R4 sigue parcial; R3 es la deuda P1.
@@ -37,7 +37,7 @@ R1, R2, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 | **R5** | **A**: alcance Python explícito y bloqueo de comparabilidad | **Implementada y cerrada** | Hecho: `cobertura.comparable` y tests |
 | **R6** | **C con warnings**: estricto para thinker; marca externa con motivo, reportada como warning | **Implementada y cerrada** | Hecho: warnings en c3/preflight |
 | **R13** | **B con vía a C**: verificador barato; descomposición después | **B y C implementadas; cerrada** | Hecho: descomposición opt-in |
-| **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=6); declaración vigente** | Ampliar muestra real; no afirmar calibración general |
+| **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=20); declaración vigente** | Ampliar muestra; no afirmar calibración general |
 | **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | Decidida, no implementada; R3 parcial | Medir evaluador y triajar 376 supervivientes |
 | **R4** | Sin decisión de producto; ampliar cobertura | En curso, parcial (28 casos/14 criterios) | Completar los 15 criterios y trampas reales |
 
@@ -345,12 +345,13 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Decisión 2026-10-25: B con vía a C, B y C (piloto) implementadas.**
 - **Acción:** README/AGENTS declaran que **no están calibradas**. Brier
   offline simulado (0,1166, 16 pares) y piloto real con OpenRouter:
-  **n=6, Brier 0,0017, 6/6 aciertos, confianza media 0,963**.
-- **Límite:** la muestra real es diminuta y fácil (hechos evidentes); no prueba
+  **n=20, Brier 0,0540, 20/20 aciertos**, modelo de fallback
+  `cohere/north-mini-code:free`.
+- **Límite:** la muestra real es pequeña y fácil (hechos evidentes); no prueba
   calibración general. No se presenta `confidence` como probabilidad.
 - **Evidencia:** `tests/benchmarks/calibracion_real.py`,
   `tests/test_calibracion_real.py` (2 tests), suite **888/888**, ruff 0.
-- **Criterio:** [x] declaración; [x] Brier simulado; [x] Brier real n=6;
+- **Criterio:** [x] declaración; [x] Brier simulado; [x] Brier real n=20;
   [ ] muestra representativa/intervalos (trabajo futuro).
 - **Riesgo:** bajo; el piloto se declara como piloto, no como certificado.
 
@@ -367,7 +368,7 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 | 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 33 casos/14 criterios actuales a más criterios | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
 
 **Orden:** R3-C es la deuda P1; R4 sigue después. R5-A, R6-C, R13-B/C y
-R14-B/C están implementadas; R14-C es un piloto real n=6, no una calibración
+R14-B/C están implementadas; R14-C es un piloto real n=20, no una calibración
 general.
 
 - **R3 y R4 no requieren decisión de producto**: R3-C es P1; R4 se amplía.
@@ -422,7 +423,7 @@ n=6). **Pendiente de ejecución:**
    hasta 0/0.
 2. **R4:** ampliar de 33 casos/14 criterios a los 29 criterios.
 
-R14-C completó un piloto real n=6 (Brier 0,0017); ampliar la muestra para
+R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
 R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 
