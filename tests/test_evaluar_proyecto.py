@@ -722,6 +722,57 @@ class TestEjecucionDeTestsYLicencias(unittest.TestCase):
         self.assertTrue(any("Propietaria" in h["descripcion"]
                             for h in herramientas["hallazgos"]))
 
+    def test_licencias_no_runtime_se_reportan_fuera_del_score(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                '[project]\nname = "demo"\nversion = "0.1.0"\n'
+                'dependencies = ["requests==2.31.0"]\n'
+                '[project.optional-dependencies]\n'
+                'dev = ["pytest==8.0.0"]\n'),
+            "demo.py": "import requests\n",
+        })
+
+        def fake_licencia(nombre, timeout=15):
+            if nombre == "requests":
+                return {"licencia": "Apache-2.0", "libre": True,
+                        "fuente": "license_expression", "error": ""}
+            return {"licencia": "Propietaria", "libre": False,
+                    "fuente": "license", "error": ""}
+
+        with patch("evaluar_proyecto.licencia_pypi", side_effect=fake_licencia), \
+                patch("evaluar_proyecto.ultima_version_pypi",
+                      return_value={"version": "2.31.0", "error": ""}):
+            informe = evaluar(raiz, con_red=True)
+
+        self.assertTrue(informe["dimensiones"]["herramientas"]
+                        ["criterios"]["h5_licencias_libres"])
+        extra = {entrada["nombre"]: entrada
+                 for entrada in informe["licencias_no_runtime"]}
+        self.assertEqual(extra["pytest"]["ambito"], "dev")
+        self.assertFalse(extra["pytest"]["libre"])
+        self.assertEqual(extra["pytest"]["procedencia"], "real")
+        self.assertIn("LICENCIAS NO RUNTIME", "\n".join(informe_texto(informe)))
+
+    def test_licencias_no_runtime_sin_red_son_unverified(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                '[project]\nname = "demo"\nversion = "0.1.0"\n'
+                'dependencies = ["requests==2.31.0"]\n'
+                '[project.optional-dependencies]\n'
+                'dev = ["pytest==8.0.0"]\n'),
+            "demo.py": "import requests\n",
+        })
+
+        informe = evaluar(raiz, con_red=False)
+
+        extra = {entrada["nombre"]: entrada
+                 for entrada in informe["licencias_no_runtime"]}
+        self.assertIsNone(extra["pytest"]["libre"])
+        self.assertEqual(extra["pytest"]["procedencia"], "unverified")
+        self.assertIn("--sin-red", extra["pytest"]["fuente"])
+        self.assertNotIn("h5_licencias_libres",
+                         informe["dimensiones"]["herramientas"]["criterios"])
+
     def test_hallazgo_no_verificado_lleva_marcador(self):
         with patch("evaluar_proyecto.ultima_version_pypi",
                    return_value={"version": "", "error": "timeout"}), \
@@ -1454,6 +1505,77 @@ class TestCoberturaDeRamasDelEvaluador(unittest.TestCase):
         self.assertEqual(len(capturados), 2)
         self.assertTrue(all("lock JSON inválido" in str(w.message)
                             for w in capturados))
+
+    def test_parsear_requisito_y_ambito_requirements(self):
+        from evaluar_proyecto import _ambito_requirements, _parsear_requisito
+
+        for linea in ("-r base.txt", "--index-url https://pypi.org/simple",
+                      "https://example.test/pkg.whl", "git+https://example.test/x",
+                      "pkg @ https://example.test/x", "pkg.whl", "pkg.tar.gz"):
+            self.assertIsNone(_parsear_requisito(linea), linea)
+
+        dep = _parsear_requisito("requests==2.31.0", "requirements.txt")
+        self.assertEqual(dep["nombre"], "requests")
+        self.assertEqual(dep["ambito"], "runtime")
+        self.assertTrue(dep["fijada"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            casos = {
+                "docs/requirements.txt": "docs",
+                "tests/requirements.txt": "test",
+                "requirements-dev.txt": "dev",
+                "requirements.txt": "runtime",
+                "base.txt": "runtime",
+                "sub/requirements.txt": "dev",
+            }
+            for relativo, esperado in casos.items():
+                archivo = ruta / relativo
+                archivo.parent.mkdir(parents=True, exist_ok=True)
+                archivo.write_text("", encoding="utf-8")
+                self.assertEqual(_ambito_requirements(archivo, ruta), esperado,
+                                 relativo)
+
+    def test_dependencias_pyproject_toml_invalido_extrae_lista(self):
+        deps = evaluar_proyecto._dependencias_pyproject(
+            '[project\n'
+            'dependencies = ["requests==2.0", "pytest>=7"]\n')
+        self.assertEqual({dep["nombre"] for dep in deps}, {"requests", "pytest"})
+        self.assertTrue(all(dep["ambito"] == "runtime" for dep in deps))
+
+    def test_detectar_comando_tests_en_manifiestos_no_python(self):
+        casos = [
+            ({"package.json": '{"scripts": {"test": "pytest"}}'}, "npm"),
+            ({"gradlew": "", "build.gradle": ""}, "./gradlew"),
+            ({"pom.xml": "<project/>"}, "mvn"),
+            ({"go.mod": "module demo"}, "go"),
+            ({"Cargo.toml": "[package]\nname='demo'\n"}, "cargo"),
+            ({"tox.ini": "[tox]"}, "tox"),
+            ({"noxfile.py": ""}, "nox"),
+        ]
+        for archivos, esperado in casos:
+            with tempfile.TemporaryDirectory() as tmp:
+                ruta = Path(tmp)
+                for nombre, contenido in archivos.items():
+                    (ruta / nombre).write_text(contenido, encoding="utf-8")
+                resultado = detectar_comando_tests(ruta)
+            self.assertIsNotNone(resultado, archivos)
+            self.assertEqual(resultado["comando"][0], esperado, archivos)
+
+    def test_leer_y_nombre_excepcion_ramas(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            self.assertEqual(evaluar_proyecto.leer(ruta / "no-existe.txt"), "")
+
+        arbol = evaluar_proyecto.ast.parse(
+            "try:\n    pass\nexcept (ValueError, TypeError):\n    pass\n")
+        manejador = next(n for n in evaluar_proyecto.ast.walk(arbol)
+                         if isinstance(n, evaluar_proyecto.ast.ExceptHandler))
+        self.assertEqual(evaluar_proyecto._nombre_excepcion(manejador.type),
+                         "ValueError,TypeError")
+        self.assertEqual(
+            evaluar_proyecto._nombre_excepcion(
+                evaluar_proyecto.ast.Constant(value=1)), "")
 
     def test_informe_texto_renderiza_requisitos_sintesis_e_investigacion(self):
         informe = evaluar(RAIZ_THINKER, con_red=False)

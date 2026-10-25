@@ -452,3 +452,13 @@ primer intento aunque el JSON y los hashes ya eran correctos; tras la
 propagación la instalación funcionó (Hallazgo 104). Suite **852/852** en Linux
 (Python 3.11.9), ruff 0, preflight 0, docs-check OK; autoevaluación **1.000**,
 `[UNVERIFIED] 0`.
+
+**Actualización 2026-10-25 (R2 y R10 — Hallazgo 105)**: cerradas la cobertura
+del evaluador/preflight y la visibilidad de licencias no runtime. Cobertura:
+`evaluar_proyecto.py` **91%** (130/1466 sin ejecutar), `scripts/preflight.py`
+**91%** (35/385), **91% combinado** (1686/1851), total 83%. Tests nuevos de
+ramas de error (requisitos, ámbitos, TOML inválido, manifiestos no Python,
+tuplas de excepciones y `OSError`) y de `licencias_no_runtime`, que informa
+dev/opcionales sin tocar `h5` y marca `unverified` sin red.
+Suite **858/858** en Linux (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
+autoevaluación **1.000**, `[UNVERIFIED] 0`. Release `0.1.9` en preparación.

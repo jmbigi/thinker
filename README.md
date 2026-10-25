@@ -64,12 +64,12 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.8   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.8            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.9   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.9            # desde PyPI
 ```
 
-La versión `0.1.8` está publicada en TestPyPI y PyPI. La instalación por tag
-sigue disponible y no requiere PyPI ni claves. Estado de la publicación:
+La versión `0.1.9` es la release actual. La instalación por tag sigue
+disponible y no requiere PyPI ni claves. Estado de la publicación:
 `docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
@@ -87,8 +87,10 @@ el ritmo de aparición del texto es presentación. El evaluador v2 añade perfil
 cobertura y criterios N/A: ver `docs/EVALUACIONES.md` para las cifras actuales.)*
 
 El informe `--json` es un contrato versionado: incluye `schema_version: 2` y
-los campos `cobertura`, `global_nota` y `no_verificado`. Un consumidor debe
-comprobar `schema_version` antes de asumir el resto del esquema.
+los campos `cobertura`, `global_nota`, `no_verificado` y
+`licencias_no_runtime` (dependencias de desarrollo/opcionales, informativas y
+fuera del score `h5`). Un consumidor debe comprobar `schema_version` antes de
+asumir el resto del esquema.
 
 ### Verificar una lista de requisitos
 

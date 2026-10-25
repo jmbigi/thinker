@@ -1,8 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `18990b0`
-más los arreglos de la revisión del 2026-10-25 (documentación, regla 12,
-gate documental y permisos locales).
+**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `0556240`
+más los arreglos de R2/R10 y la release `0.1.9` en preparación.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -15,7 +14,7 @@ pendiente.
 | **Hecho** | R1. [Cerrada 2026-10-22] Actualizar el lock de `openai` y re-verificar la autoevaluación | Lock 3.37.0 con hashes; autoevaluación con red 1.000 | Bajo | Bajo |
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
-| **P1** | R2. Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` (parcial) | 90% / 91% (83% combinado); faltan ramas de error | Medio | Bajo |
+| **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 91% (91% combinado); ramas de error cubiertas | Medio | Bajo |
 | **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 95,2% no los cubre | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **P2** | R4. Benchmark completo de precisión/recall del evaluador | El corpus cubre regresiones conocidas; falta TP/FP/FN por criterio | Medio | Bajo |
@@ -23,32 +22,32 @@ pendiente.
 | **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
 | **P2** | R7. Medir calidad de aserciones, no solo tests no-op | `assert True` pasa c5; c5 no mide fuerza de la suite | Medio | Bajo |
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
-| **P3** | R10. Reportar licencias de dev/opcionales sin mezclarlas con runtime | h5 solo puntúa runtime; el riesgo de dev no se ve | Bajo | Bajo |
+| **Hecho** | R10. [Cerrada 2026-10-25] Reportar licencias de dev/opcionales sin mezclarlas con runtime | `licencias_no_runtime` informativo; h5 sigue siendo runtime | Bajo | Bajo |
 | **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
 | **P3** | R14. Calibrar `credibility`/`confidence` o declararlas no calibradas | Restringir la salida evita texto inventado, no garantiza probabilidad correcta | Medio | Bajo |
 
-**Orden recomendado:** R2 → R3; R4, R5, R6, R7, R10 y R13 se deciden después
-de R2–R3. R1, R8, R9, R11 y R12 están cerradas; R5, R6 y R13 requieren
+**Orden recomendado:** R3; R4, R5, R6, R7, R13 y R14 se deciden después.
+R1, R2, R8, R9, R10, R11 y R12 están cerradas; R5, R6 y R13 requieren
 decisión del programador y no deben hacerse «por inercia».
 
 ## 2. Estado medido (evidencia de partida)
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **852/852** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **858/858** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **90%** (149/1435 sentencias sin ejecutar) | comando de la sección 8 |
+| Cobertura `evaluar_proyecto.py` | **91%** (130/1466 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **91%** (35/385) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
-| Paquete publicado | **0.1.8** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete | **0.1.9 en preparación** (última publicada: 0.1.8) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
-Lectura: el proyecto está sano en tests y CI, pero la calidad del **evaluador**
-no está medida con la misma fuerza que el núcleo: cobertura incompleta en ramas
-de error y ausencia de campaña de mutación. Esa es la deuda principal.
+Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
+preflight). La deuda principal que queda es la **mutación** de esos dos
+módulos (R3) y el benchmark de precisión/recall (R4); no la cobertura.
 
 ## 3. Lo que ya está cerrado (no reabrir sin nueva evidencia)
 
@@ -58,6 +57,9 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   setup.py, requirements anidados, `TYPE_CHECKING`, opcionales y `if __name__`.
 - h5 con `license_expression` PEP 639, clasificador OSI y `unverified` cuando
   no hay metadato.
+- R2: cobertura del evaluador y preflight al 91% cada uno y 91% combinado,
+  con ramas de error cubiertas.
+- R10: `licencias_no_runtime` informa dev/opcionales sin tocar el score h5.
 - c5 sin falsos positivos por helpers, endpoints anidados o property tests; c3
   sin tests ni imports opcionales.
 - Perfil de proyecto, criterios N/A, cobertura y plan con evidencia por criterio.
@@ -93,25 +95,24 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   falla, mantener el lock anterior y documentar la incompatibilidad; no
   maquillar el resultado.
 
-### R2 — Subir la cobertura del evaluador y preflight (P1, medio)
+### R2 — Subir la cobertura del evaluador y preflight — CERRADA 2026-10-25
 
-- **Problema medido (actualizado 2026-10-24):** **90%** en `evaluar_proyecto.py`
-  (149/1435 sentencias sin ejecutar) y 91% en `scripts/preflight.py` (35/385);
-  83% combinado. Las líneas sin cubrir incluyen ramas de error de PyPI,
-  licencias desconocidas, manifiestos malformados, imports condicionales,
-  `package-lock`, errores de sintaxis y rutas del CLI. El corpus adversario
-  subió el evaluador de 83% a 86% (2026-10-23) y los 19 tests del 2026-10-24
-  (11 del evaluador y 6 de preflight, incluidos alias pywin32, exclusiones
-  por prefijo, `--ignorar` e imports hermanos) lo llevaron a 90%, con
-  preflight en 91%; el objetivo combinado sigue sin alcanzarse.
-- **Acción:** añadir tests honestos para esas ramas; cada test debe fallar con
-  el comportamiento anterior. No perseguir el 100% a costa de tests triviales.
-  Objetivo inicial: **≥90% en cada archivo** y **≥90% combinado**.
-- **Criterio de aceptación:** informe de cobertura reproducible; ramas de error
-  declaradas o cubiertas; suite completa en verde; documentar el comando y el
-  resultado.
-- **Riesgo:** bajo; el riesgo real es escribir tests que solo ejecutan líneas y
-  no comprueban comportamiento.
+- **Problema medido (histórico):** 90% en `evaluar_proyecto.py` (149/1435 sin
+  ejecutar) y 91% en preflight (35/385); 83% total del proyecto. Faltaban
+  ramas de error de requisitos, ámbitos de requirements, TOML inválido,
+  manifiestos no Python, excepciones y lectura.
+- **Acción ejecutada:** tests honestos para esas ramas (`_parsear_requisito`,
+  `_ambito_requirements`, fallback de TOML inválido, manifiestos
+  npm/Gradle/Maven/Go/Cargo/tox/nox, tuplas de excepciones y `OSError` de
+  lectura). No se persiguió el 100% ni se añadieron tests triviales.
+- **Evidencia:** `evaluar_proyecto.py` **91%** (130/1466 sin ejecutar),
+  `scripts/preflight.py` **91%** (35/385), **91% combinado** (1686/1851);
+  suite **858/858**, ruff 0. Comando: el de la sección 8.
+- **Criterio de aceptación:** [x] ≥90% en cada archivo; [x] ≥90% combinado;
+  [x] ramas de error cubiertas o declaradas; [x] suite en verde; [x] comando
+  reproducible documentado.
+- **Riesgo:** bajo; los tests comprueban comportamiento, no solo ejecutan
+  líneas.
 
 ### R3 — Medir mutación del evaluador y preflight (P1, medio-alto)
 
@@ -227,16 +228,20 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   re-verificación con esta suite.
 - **Riesgo:** cerrado; una release no se deshace.
 
-### R10 — Licencias de dev/opcionales visibles, fuera del score runtime (P3, bajo)
+### R10 — Licencias de dev/opcionales visibles, fuera del score runtime — CERRADA 2026-10-25
 
-- **Problema medido:** h5 solo consulta dependencias runtime. Las de desarrollo
-  y opcionales no se ven, aunque también se distribuyen en el repositorio y
-  pueden afectar a la reproducibilidad/licencias.
-- **Acción:** añadir una sección informativa `licencias_no_runtime` con ámbito
-  y fuente, sin cambiar la puntuación h5 (que sigue siendo runtime). Si no hay
-  red, declararlo `unverified`.
-- **Criterio de aceptación:** informe separado; no mezcla con el score; tests de
-  un proyecto con extra no libre.
+- **Problema medido:** h5 solo consultaba dependencias runtime. Las de
+  desarrollo y opcionales no se veían, aunque también se distribuyen en el
+  repositorio y pueden afectar a la reproducibilidad/licencias.
+- **Acción ejecutada:** campo de primer nivel `licencias_no_runtime` con
+  nombre, ámbito, origen, versión, licencia, fuente y procedencia
+  (`real`/`unverified`). `h5_licencias_libres` sigue midiendo solo runtime.
+  Sin red, cada entrada se declara `unverified`; el informe de texto incluye
+  una sección informativa separada.
+- **Evidencia:** dos tests nuevos: un extra no libre se reporta fuera del score
+  y no cambia h5; sin red queda `unverified`. Suite 858/858.
+- **Criterio de aceptación:** [x] informe separado; [x] no mezcla con el score;
+  [x] test de extra no libre; [x] `--sin-red` declarado.
 - **Riesgo:** bajo.
 
 ### R11 — Gate documental (P3, bajo) — CERRADA 2026-10-23

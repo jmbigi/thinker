@@ -224,9 +224,10 @@ mejora de código (`code_design_improvement_tools.py`).
   cobertura (cuerpos abstractos excluidos con `# pragma: no cover`; ramas
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
-  triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1435 sin
-  ejecutar) y de preflight **91%** (35/385), medidas el 2026-10-25.
-- Plataformas verificadas: Linux con Python **3.11.9**: **852/852 en la suite
+  triaje del Hallazgo 97). Cobertura del evaluador **91%** (130/1466 sin
+  ejecutar) y de preflight **91%** (35/385), **91% combinado**, medidas el
+  2026-10-25.
+- Plataformas verificadas: Linux con Python **3.11.9**: **858/858 en la suite
   Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -250,9 +251,9 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.8` publicado en TestPyPI y PyPI; tags
-  `v0.1.0` a `v0.1.8` empujados, `v0.1.2` a `v0.1.8` anotados; instalación
-  `pip install thinker-research==0.1.8` o por tag con
+  (`thinker-research 0.1.9` en preparación; la última publicada es `0.1.8`;
+  tags `v0.1.0` a `v0.1.8` empujados, `v0.1.2` a `v0.1.8` anotados;
+  instalación `pip install thinker-research==0.1.8` o por tag con
   `pip install git+https://github.com/jmbigi/thinker.git@v0.1.8`; sin
   GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
   cuentas de GitHub (regla 12).

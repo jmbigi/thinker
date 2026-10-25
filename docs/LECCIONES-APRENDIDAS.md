@@ -2432,3 +2432,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: un «no matching distribution» inmediato tras publicar no
   prueba que la subida falló; verificar el JSON y los hashes antes de
   concluir y no duplicar la subida.
+
+## 2026-10-25 (ronda 23) — Cobertura de ramas y licencias no runtime (hallazgo 105)
+
+### Hallazgo 105: el 90% combinado estaba a una rama y las licencias dev no se veían
+
+- **Origen**: recomendaciones abiertas R2 y R10 de
+  `docs/RECOMENDACIONES-MEJORAS.md`.
+- **Problema 1**: la cobertura era 90% en `evaluar_proyecto.py` y 91% en
+  preflight, pero **89,9% combinada**; el objetivo ≥90% no se alcanzaba por
+  dos sentencias. Las ramas de error de requisitos, ámbitos de requirements,
+  TOML inválido y manifiestos no Python no tenían test.
+- **Problema 2**: `h5` solo miraba licencias runtime; las de desarrollo y
+  opcionales no aparecían, aunque también se distribuyen.
+- **Solución**: tests de comportamiento para las ramas de error y campo
+  `licencias_no_runtime` (nombre, ámbito, origen, versión, licencia, fuente y
+  procedencia). `h5` no cambia; sin red cada entrada es `unverified`.
+- **Evidencia**: evaluador **91%** (130/1466 sin ejecutar), preflight **91%**
+  (35/385), **91% combinado** (1686/1851); suite **858/858**, ruff 0,
+  autoevaluación **1.000**. Dos tests de licencias no runtime: un extra no
+  libre no altera `h5` y sin red queda `unverified`.
+- **Lección**: un objetivo de cobertura debe medirse con su denominador exacto
+  (el 90% redondeado ocultaba un 89,9%); y una licencia fuera del score sigue
+  siendo un riesgo que hay que hacer visible, separado del runtime.

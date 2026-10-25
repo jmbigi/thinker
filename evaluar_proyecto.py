@@ -1507,6 +1507,48 @@ def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
             "fuente": "license", "error": ""}
 
 
+def licencias_no_runtime(perfil: Perfil, con_red: bool) -> List[Dict[str, Any]]:
+    """Licencias informativas de dependencias no runtime (R10).
+
+    No se mezclan con `h5_licencias_libres`, que sigue midiendo solo runtime.
+    Sin red, o si PyPI no da metadato, cada entrada se declara `unverified`
+    con su motivo; no se inventa una licencia.
+    """
+    entradas: List[Dict[str, Any]] = []
+    vistos = set()
+    for dep in perfil.deps_python:
+        if dep.get("ambito") == "runtime":
+            continue
+        nombre = dep.get("nombre", "")
+        if not nombre or nombre in vistos:
+            continue
+        vistos.add(nombre)
+        entrada: Dict[str, Any] = {
+            "nombre": nombre,
+            "ambito": dep.get("ambito", "opcional"),
+            "origen": dep.get("origen", ""),
+            "version": dep.get("version", ""),
+            "operador": dep.get("operador", ""),
+            "licencia": None,
+            "libre": None,
+            "fuente": "",
+            "procedencia": "unverified",
+        }
+        if con_red:
+            info = licencia_pypi(nombre)
+            entrada["licencia"] = info.get("licencia")
+            entrada["libre"] = info.get("libre")
+            entrada["fuente"] = info.get("fuente") or "PyPI"
+            if info.get("error"):
+                entrada["error"] = info["error"]
+            elif info.get("libre") is not None:
+                entrada["procedencia"] = "real"
+        else:
+            entrada["fuente"] = "no consultada (--sin-red)"
+        entradas.append(entrada)
+    return entradas
+
+
 def _registro_decisiones(ruta: Path, perfil: Perfil) -> List[str]:
     """Documentos de decisiones/ADR/changelog, en cualquier subdirectorio."""
     claves = ("adr", "decision", "changelog", "changes", "history",
@@ -2500,6 +2542,7 @@ def evaluar(ruta: Path, con_red: bool = True,
     perfil = analizar_perfil(ruta)
     py = perfil.py
     resultado_tests = ejecutar_tests(ruta) if ejecutar_tests_flag else None
+    licencias_extra = licencias_no_runtime(perfil, con_red)
     dimensiones = [
         evaluar_funcionalidades(ruta, perfil),
         evaluar_calidad(ruta, perfil, ejecutar_tests_flag, resultado_tests),
@@ -2562,6 +2605,7 @@ def evaluar(ruta: Path, con_red: bool = True,
         "perfil": perfil.a_dict(),
         "cobertura": cobertura,
         "dependencias": perfil.deps,
+        "licencias_no_runtime": licencias_extra,
         "dimensiones": {d.nombre: d.a_dict() for d in dimensiones},
         "global": global_,
         "global_nota": "media de criterios aplicables: no es comparable entre "
@@ -2611,6 +2655,14 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
                   f"{cobertura.get('ratio_evaluado', 0):.0%} de criterios)")
     lineas.append(f"Nota: {informe.get('global_nota', '')}")
     lineas.append(f"Evidencia: {formato_resumen(informe['evidencia'])}")
+    extras = informe.get("licencias_no_runtime", [])
+    if extras:
+        lineas.append("")
+        lineas.append("== LICENCIAS NO RUNTIME (informativas; no puntúan h5) ==")
+        for item in extras:
+            licencia = item.get("licencia") or "no verificable"
+            lineas.append(f"  - {item['nombre']} [{item['ambito']}] {licencia} "
+                          f"({item['procedencia']})")
     if "requisitos" in informe:
         reqs = informe["requisitos"]
         lineas.append("")
