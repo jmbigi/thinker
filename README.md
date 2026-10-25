@@ -64,11 +64,11 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.9   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.9            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.10   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.10            # desde PyPI
 ```
 
-La versión `0.1.9` está publicada en TestPyPI y PyPI. La instalación por tag
+La versión `0.1.10` está publicada en TestPyPI y PyPI. La instalación por tag
 sigue disponible y no requiere PyPI ni claves. Estado de la publicación:
 `docs/PUBLICACION.md`.
 
