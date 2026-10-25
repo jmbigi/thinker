@@ -474,13 +474,13 @@ tests. R4 añade `tests/benchmarks/evaluador_precision.py`: 33 casos etiquetados
 sobre 14 criterios, incluidos 5 casos trampa de falsos positivos (h1, h2, h3, h6, v2, c1, c2, c3, c5, f2, f3, f4, v1, h7), con TP/FP/FN, precision y recall por
 criterio y global; resultado actual **14 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 14/29 criterios y fixtures sintéticas. Cobertura:
-`evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **93%**
-(29/425), total 83%. Suite **888/888** en Linux (Python 3.11.9), ruff 0,
+`evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **94%**
+(26/425), total 83%. Suite **891/891** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
 verificados). R3 queda **parcial**: preflight con **1015 mutantes, 639 muertos, 376
 supervivientes y 0 sin tests**, sin triaje todavía; el evaluador no se midió y
 no se publica su tasa. El arnés `scripts/mutacion.py` (3 tests) deja el comando
-reproducible, pero R3 no se cierra hasta triajar los 376 supervivientes y medir
+reproducible, pero R3 no se cierra hasta triajar los 370 supervivientes y medir
 el evaluador. R5 añade `cobertura.comparable`,
 `motivo_no_comparable` y «GLOBAL NO COMPARABLE»; Java/JS queda como no
 comparable. R6 admite `# noqa: silent: motivo` como **warning** en c3 y

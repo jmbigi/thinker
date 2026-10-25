@@ -9,7 +9,9 @@ from pathlib import Path
 
 from scripts.preflight import (archivos_python, dependencias_declaradas,
                                ejecutar, main, _nombre_excepcion,
-                               _lineas_import_opcional, _lineas_condicionales)
+                               _lineas_import_opcional, _lineas_condicionales,
+                               _leer_requisitos, _nombres_de_lista,
+                               _nombres_setup)
 import scripts.preflight as preflight_mod
 from tests.helpers import crear_proyecto
 
@@ -520,6 +522,38 @@ class TestDependenciasDeclaradasR3(unittest.TestCase):
 
         self.assertEqual(len(hallazgos), 1)
         self.assertIn("setup.cfg inválido", hallazgos[0].mensaje)
+
+
+class TestLecturaManifiestosR3(unittest.TestCase):
+    """Triaje R3: casos límite de lectura de manifiestos."""
+
+    def test_nombres_de_lista_y_setup(self):
+        self.assertEqual(_nombres_de_lista(None), set())
+        self.assertEqual(_nombres_de_lista(["a==1", 2, "b[extra]>=2"]),
+                         {"a", "b"})
+        self.assertEqual(_nombres_setup("no-es-lista"), set())
+        self.assertEqual(
+            _nombres_setup({"dev": ["pytest>=8", "black"], "x": "no"}),
+            {"pytest", "black"})
+
+    def test_requirements_ciclo_y_archivo_faltante(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "-r requirements-2.txt\nrequests==2.31\n# c\n",
+            "requirements-2.txt": "-r requirements.txt\nflask==3.0\n",
+        })
+
+        nombres = _leer_requisitos(raiz / "requirements.txt", set())
+
+        self.assertEqual(nombres, {"requests", "flask"})
+        self.assertEqual(
+            _leer_requisitos(raiz / "no-existe.txt", set()), set())
+
+    def test_requirements_con_unicode_invalido(self):
+        raiz = crear_proyecto(self, {})
+        ruta = raiz / "requirements.txt"
+        ruta.write_bytes(b"\xff\xfe\x00")
+
+        self.assertEqual(_leer_requisitos(ruta, set()), set())
 
 
 if __name__ == "__main__":
