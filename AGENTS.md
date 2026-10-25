@@ -72,11 +72,15 @@ mejora de código (`code_design_improvement_tools.py`).
     probar y comprender el sistema, no son la naturaleza del proyecto. Toda
     cifra o promesa documentada se mantiene al día tras cada cambio, con
     evidencia verificable.
-12. **Sin CLI de GitHub** (regla del programador, 2026-10-21): no se ejecuta
-    la CLI `gh` en ningún paso. Las operaciones de GitHub se hacen con git
-    estándar (`git push`, `git tag`, `git ls-remote`) o desde la interfaz web;
-    las GitHub Releases y sus artefactos se crean/publican desde la web. La
-    guía `docs/PUBLICACION.md` no debe contener comandos de `gh`.
+12. **Sin `gh` ni GitHub Releases desde el repo** (regla del programador,
+    2026-10-21; ampliada el 2026-10-25): no se ejecuta la CLI `gh` en ningún
+    paso ni se crean o publican GitHub Releases como parte del flujo del
+    repositorio. La publicación se hace con git estándar (`git push`, `git
+    tag`, `git ls-remote`) y con PyPI/TestPyPI; no se depende de instalar
+    herramientas ni de cuentas de GitHub para distribuir. Cualquier release
+    web queda fuera del flujo, es opcional y no se documenta como tarea
+    pendiente. La guía `docs/PUBLICACION.md` no debe contener comandos de
+    `gh` ni pasos de GitHub Release.
 13. **No manipular la evaluación** (regla del programador, 2026-10-24): no se
     cambia el código de thinker para subir artificialmente la evaluación de
     thinker, ni la de los proyectos evaluados con thinker, ni por opiniones no
@@ -107,9 +111,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make check`, en el hook pre-commit y en `make ci`.
 - Gate documental: `python3 scripts/check_docs.py` (offline, read-only) —
   contrasta las cifras de estado presente (nº de tests en `AGENTS.md` y
-  `docs/EVALUACIONES.md`, pines de `requirements.txt` vs lock y versión del
-  paquete vs `docs/PUBLICACION.md`) con la realidad; integrado en
-  `make check` y en el hook pre-commit. Los históricos fechados no se tocan.
+  `docs/EVALUACIONES.md`, pines de `requirements.txt` vs lock, versión del
+  paquete vs `docs/PUBLICACION.md` y cifra de mutación de `README.md` frente
+  a `AGENTS.md`) con la realidad; integrado en `make check` y en el hook
+  pre-commit. Los históricos fechados no se tocan.
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
 - Cobertura: `python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m coverage report -m`
   (como módulo, no el binario suelto del PATH: en esta máquina el `coverage`
@@ -220,9 +225,9 @@ mejora de código (`code_design_improvement_tools.py`).
   muertas eliminadas) y la mutación global es 95,2% (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97). Cobertura del evaluador **90%** (149/1435 sin
-  ejecutar) y de preflight **91%** (35/385), medidas el 2026-10-24.
-- Plataformas verificadas: Linux con Python **3.11.9**: **851/851 en la suite
-  Linux** (2026-10-24; openai 3.35.1 en el entorno actual) y **3.12.3**
+  ejecutar) y de preflight **91%** (35/385), medidas el 2026-10-25.
+- Plataformas verificadas: Linux con Python **3.11.9**: **852/852 en la suite
+  Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
@@ -248,7 +253,9 @@ mejora de código (`code_design_improvement_tools.py`).
   (`thinker-research 0.1.7` publicado en TestPyPI y PyPI; tags
   `v0.1.0` a `v0.1.7` empujados, `v0.1.2` a `v0.1.7` anotados; instalación
   `pip install thinker-research==0.1.7` o por tag con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.7`).
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.7`; sin
+  GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
+  cuentas de GitHub (regla 12).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,

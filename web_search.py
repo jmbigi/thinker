@@ -36,9 +36,9 @@ STOPWORDS = {
     "ser", "tiene", "tienen", "existe", "existen", "actual", "actualmente",
     "actuales", "principales", "diferentes", "posibles", "según", "tras",
     "durante", "desde", "hasta", "tanto", "cada", "otros", "otras", "este",
-    "esta", "estos", "estas", "ese", "esa", "esos", "esas",
+    "estos", "estas", "ese", "esa", "esos", "esas",
     # inglés
-    "the", "a", "an", "of", "to", "in", "on", "for", "and", "or", "is", "are",
+    "the", "an", "of", "to", "in", "on", "for", "and", "or", "is", "are",
     "was", "were", "what", "which", "who", "how", "why", "when", "where",
     "that", "this", "these", "those", "with", "from", "by", "at", "as", "it",
     "its", "be", "been", "has", "have", "had", "do", "does", "did", "about",

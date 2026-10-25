@@ -2380,3 +2380,31 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: una opinión externa puede señalar un defecto real y, a la vez,
   incluir falsos positivos; la única forma de separarlos es reproducir cada
   caso. La regla 13 prohíbe tocar el gate para que la nota suba.
+
+## 2026-10-25 (ronda 21) — Revisión integral y regla 12 (hallazgo 103)
+
+### Hallazgo 103: cifras duplicadas que derivan y un `.env` demasiado abierto
+
+- **Origen**: revisión integral del repositorio en `eaea4d4` y nueva regla del
+  programador sobre `gh`/GitHub Releases (2026-10-25).
+- **Problema 1**: `README.md` declaraba 94,7% de mutación (3581/3780) mientras
+  `AGENTS.md`, `docs/EVALUACIONES.md` y `docs/RECOMENDACIONES-MEJORAS.md`
+  tenían 95,2% (3635/3819); el gate documental no comprobaba esa cifra.
+- **Problema 2**: la cabecera de `docs/RECOMENDACIONES-MEJORAS.md` seguía
+  fechada el 2026-10-23 y decía «sin publicar» cuando `0.1.7` ya estaba
+  publicada el 2026-10-24.
+- **Problema 3 (seguridad local)**: `.env` estaba en modo 644; `AGENTS.md`
+  indica que contiene una clave real. No se leyó su contenido.
+- **Solución**: cifras y cabecera alineadas; regla 12 ampliada (sin `gh` ni
+  GitHub Releases desde el repo) y `docs/PUBLICACION.md` sin pasos de release;
+  `chmod 600 .env`; dos palabras duplicadas de `STOPWORDS` retiradas (B033);
+  completada la descripción de `docs-check` en README. El gate documental
+  contrasta ahora la cifra de mutación de README con la vigente de AGENTS, con
+  test de regresión. No se tocó ningún criterio de evaluación (regla 13).
+- **Evidencia**: suite **852/852**, ruff 0, preflight 0, docs-check OK;
+  autoevaluación **1.000**; `.env` en 600; el test del gate falla si las
+  cifras de README y AGENTS divergen.
+- **Lección**: una cifra duplicada en varios documentos deriva si el gate no
+  la mira; o se centraliza o se comprueba. Los permisos de un `.env` local
+  también son parte de P0.6 aunque el archivo no se versione, y publicar no
+  debe depender de la CLI ni de una cuenta de GitHub (regla 12).

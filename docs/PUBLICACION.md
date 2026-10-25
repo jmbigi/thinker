@@ -1,13 +1,14 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-24: **versión `0.1.7` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-25: **versión `0.1.7` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`
 > y `v0.1.7` empujados; `v0.1.2` a `v0.1.7` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
-> la CLI de GitHub (regla propia 12): las GitHub Releases se crean desde la
-> web. Detalle del renombrado en `LECCIONES-APRENDIDAS.md` (Hallazgo 85);
+> la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
+> 12): la distribución se hace por PyPI/TestPyPI y tags de git. Detalle del
+> renombrado en `LECCIONES-APRENDIDAS.md` (Hallazgo 85);
 > incidencias de release en los Hallazgos 89, 90 y 91.
 
 ## Estado actual
@@ -17,7 +18,8 @@
 - `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.7`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
-  publicación sin CLI de GitHub y versión actualizada. No cambia código.
+  publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
+  cambia código.
 - `python3 -m build` genera `dist/thinker_research-0.1.3.tar.gz` + wheel;
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
@@ -39,8 +41,9 @@
   coincidentes, tag anotado `v0.1.7` (`4e631ed`) y verificación limpia; ver la
   sección 0.1.7.
 - **Pendiente administrativo**: crear el token limitado a
-  `thinker-research` y revocar el token global; la GitHub Release, si se
-  quiere, se crea desde la web.
+  `thinker-research` y revocar el token global.
+- **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
+  documenta como tarea pendiente (regla 12).
 
 ## Versión 0.1.4 (2026-10-24)
 
@@ -248,12 +251,12 @@ la subida falló (Hallazgo 91).
 ## Tareas tras publicar
 
 Estado de `0.1.7`: publicación en TestPyPI y PyPI, hashes, tag anotado y
-documentación hechos. Quedan dos tareas administrativas:
+documentación hechos. Queda una tarea administrativa:
 
 1. Token scoped al proyecto + revocar el global (ver reglas arriba).
-2. GitHub Release `v0.1.7`: el tag ya está empujado, pero la Release con
-   wheel/sdist sigue **pendiente de crear desde la web**; la API de GitHub no
-   muestra ninguna release para `v0.1.7` (verificado el 2026-10-24).
+
+No hay tarea de GitHub Release: la distribución se hace con PyPI/TestPyPI y
+tags de git, y no se depende de la CLI ni de una cuenta de GitHub (regla 12).
 
 Para la próxima release: actualizar el estado en
 `README.md`/`docs/PUBLICACION.md` solo después de verificar la versión en
@@ -291,12 +294,11 @@ pip install git+https://github.com/jmbigi/thinker.git@v0.1.7
 - `v0.1.7` verificado el 2026-10-24: tag anotado empujado, instalación limpia
   desde PyPI y TestPyPI; alias PIL/docx/pptx incluidos, imports OK y
   `pip check` limpio.
-- **GitHub Release con artefactos (wheel/sdist)**: se crea desde la web del
-  repositorio (*Releases → Draft a new release*), eligiendo el tag y
-  adjuntando `dist/thinker_research-0.1.7*`. No se usa la CLI de GitHub
-  (regla propia 12). La cuenta debe tener permisos de escritura; si no, la
-  release no se puede crear. En `dist/` están los artefactos de `v0.1.0`,
-  `v0.1.1`, `0.1.2`, `0.1.3`, `0.1.4`, `0.1.5`, `0.1.6` y `0.1.7`.
+- **Sin GitHub Release**: la distribución se hace con los artefactos de
+  PyPI/TestPyPI y los tags de git; no se crean releases desde el repositorio
+  ni se depende de la CLI o de una cuenta de GitHub (regla propia 12). En
+  `dist/` están los artefactos de `v0.1.0`, `v0.1.1`, `0.1.2`, `0.1.3`,
+  `0.1.4`, `0.1.5`, `0.1.6` y `0.1.7`.
 
 ## Notas
 

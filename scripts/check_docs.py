@@ -2,8 +2,9 @@
 
 Offline y read-only (P0.1/P0.2): contrasta las afirmaciones volátiles que
 envejecen con cada cambio contra el estado real del repositorio — nº de tests
-declarado, pines de `requirements.txt` frente a `requirements.lock` y versión
-del paquete frente a la publicada. Los históricos fechados no se comprueban.
+declarado, pines de `requirements.txt` frente a `requirements.lock`, versión
+del paquete frente a la publicada y cifra de mutación de `README.md` frente a
+la vigente de `AGENTS.md`. Los históricos fechados no se comprueban.
 
 Uso: python3 scripts/check_docs.py [RAIZ]
 Códigos: 0 todo cuadra | 1 discrepancias | 2 error de lectura/parseo.
@@ -16,6 +17,11 @@ import tomllib
 from pathlib import Path
 
 PATRON_TESTS = re.compile(r"(\d+)/(\d+) en")
+PATRON_MUTACION_README = re.compile(
+    r"La suite mata el \*\*([\d,]+)%\*\* de los mutantes de `mutmut`"
+    r"\s*\((\d+)/(\d+);", re.S | re.I)
+PATRON_MUTACION_AGENTS = re.compile(
+    r"la mutación global es ([\d,]+)% \((\d+)/(\d+);", re.I)
 
 
 def contar_tests(raiz: Path) -> int:
@@ -65,6 +71,15 @@ def _declarado_evaluaciones(raiz: Path) -> int:
         raise ValueError("el último bloque de EVALUACIONES.md no declara "
                          "'Suite **N/N** en Linux'")
     return int(coincidencia.group(1))
+
+
+def _cifra_mutacion(texto: str, patron: re.Pattern) -> tuple | None:
+    """Extrae (porcentaje, muertos, total) de una afirmación de mutación."""
+    coincidencia = patron.search(texto)
+    if coincidencia is None:
+        return None
+    return (coincidencia.group(1), int(coincidencia.group(2)),
+            int(coincidencia.group(3)))
 
 
 def _leer_requisitos(raiz: Path):
@@ -130,6 +145,28 @@ def verificar(raiz: Path) -> list[str]:
         if declarado != real:
             problemas.append(f"{nombre} declara {declarado} tests y hay {real}: "
                              "actualiza la cifra o retira la afirmación")
+
+    readme = raiz / "README.md"
+    if readme.exists():
+        de_readme = _cifra_mutacion(readme.read_text(encoding="utf-8"),
+                                    PATRON_MUTACION_README)
+        de_agents = _cifra_mutacion(
+            (raiz / "AGENTS.md").read_text(encoding="utf-8"),
+            PATRON_MUTACION_AGENTS)
+        if de_readme is None:
+            problemas.append(
+                "README.md no declara la cifra de mutación en el formato "
+                "esperado ('La suite mata el **N%** ...')")
+        elif de_agents is None:
+            problemas.append(
+                "README.md declara la cifra de mutación y AGENTS.md no tiene "
+                "la cifra vigente ('la mutación global es ...')")
+        elif de_readme != de_agents:
+            problemas.append(
+                f"README.md declara mutación {de_readme[0]}% "
+                f"({de_readme[1]}/{de_readme[2]}) y AGENTS.md "
+                f"{de_agents[0]}% ({de_agents[1]}/{de_agents[2]}): "
+                "actualiza la cifra o retira la afirmación")
 
     pines, rangos = _leer_requisitos(raiz)
     lock = _leer_lock(raiz)

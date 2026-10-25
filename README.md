@@ -227,7 +227,7 @@ Modos piloto opt-in (desactivados por defecto; ver Hallazgo 76 en
 ## Verificación
 
 ```bash
-make check                                    # lint + preflight + tests + secretos + ci + hook
+make check                                    # lint + preflight + docs-check + tests + secretos + ci + hook
 make lint                                     # ruff check .
 make preflight                                # gates deterministas (imports, silencios, duplicados, tareas)
 make test                                     # suite unittest (stdlib)
@@ -246,6 +246,7 @@ Equivalente sin `make`:
 ```bash
 ruff check .
 python3 scripts/preflight.py                  # gates estáticos deterministas (AST, offline)
+python3 scripts/check_docs.py                 # cifras de estado presente vs realidad
 python3 -m unittest discover -s tests -v
 python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m coverage report -m
 bash scripts/scan-secrets.sh
@@ -258,8 +259,8 @@ python3 scripts/probe_model.py --samples 5    # sonda de latencia del modelo (op
 ```
 
 El hook `.git/hooks/pre-commit` (instalado con `make hook`) ejecuta ruff, el
-escaneo de secretos, `py_compile`, el preflight, la suite, el auditor de
-cambios y el holdout antes de cada commit.
+escaneo de secretos, `py_compile`, el preflight, `docs-check`, la suite, el
+auditor de cambios y el holdout antes de cada commit.
 
 ## Limitaciones conocidas (sin adornos)
 
@@ -274,14 +275,15 @@ cambios y el holdout antes de cada commit.
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube (la verificación es local, por diseño).
 - Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
-  750/750); macOS no se ha probado. Los scripts `bash`/`make` se verificaron en
-  Linux; en Windows se ejecutaron los comandos Python equivalentes.
-- La suite mata el **94,7%** de los mutantes de `mutmut` (3581/3780; 199
-  supervivientes, 0 timeouts, 0 sospechosos; medición 2026-10-21, excluyendo
-  las líneas `print`, que solo generan mutantes equivalentes): cobertura alta
-  no equivale a tests fuertes. Mediciones anteriores: 94,7% (3570/3769),
-  94,1% (3567/3789), 79,8% (3022/3789), 79,9% (2863/3582) y 78,1%
-  (2766/3543).
+  750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
+  Los scripts `bash`/`make` se verificaron en Linux; en Windows se ejecutaron
+  los comandos Python equivalentes.
+- La suite mata el **95,2%** de los mutantes de `mutmut` (3635/3819; 184
+  supervivientes, 0 timeouts, 0 sospechosos; medición 2026-10-23, re-medida
+  el 2026-10-24 sin cambios, excluyendo las líneas `print`, que solo generan
+  mutantes equivalentes): cobertura alta no equivale a tests fuertes.
+  Mediciones anteriores: 94,7% (3581/3780), 94,7% (3570/3769), 94,1%
+  (3567/3789), 79,8% (3022/3789), 79,9% (2863/3582) y 78,1% (2766/3543).
 
 ## Licencia
 

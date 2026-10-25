@@ -106,6 +106,33 @@ class TestCheckDocs(unittest.TestCase):
         self.assertEqual(codigo_roto, 1)
         self.assertIn("DOCS: 1 discrepancia", salida_rota.getvalue())
 
+    def test_cifra_de_mutacion_de_readme_debe_cuadrar_con_agents(self):
+        agents = ("# Reglas\n\n- Plataformas verificadas: **3/3 en ambos**.\n"
+                  "- La mutación global es 95,2% (3635/3819; 184 supervivientes).\n")
+        readme = ("La suite mata el **95,2%** de los mutantes de `mutmut` "
+                  "(3635/3819; 184 supervivientes).\n")
+        self.assertEqual(verificar(self._repo(**{
+            "AGENTS.md": agents, "README.md": readme})), [])
+
+        problemas = verificar(self._repo(**{
+            "AGENTS.md": agents,
+            "README.md": readme.replace("95,2", "94,7")
+                               .replace("3635", "3581")
+                               .replace("3819", "3780")}))
+        self.assertTrue(any("README.md declara mutación" in p
+                            for p in problemas), problemas)
+
+        sin_agents = verificar(self._repo(**{
+            "AGENTS.md": "# Reglas\n\n- Plataformas verificadas: **3/3 en ambos**.\n",
+            "README.md": readme}))
+        self.assertTrue(any("AGENTS.md no tiene la cifra vigente" in p
+                            for p in sin_agents), sin_agents)
+
+        sin_readme = verificar(self._repo(**{
+            "AGENTS.md": agents, "README.md": "# README sin cifra\n"}))
+        self.assertTrue(any("README.md no declara la cifra de mutación" in p
+                            for p in sin_readme), sin_readme)
+
     def test_main_devuelve_2_si_no_puede_verificar(self):
         error = io.StringIO()
         with contextlib.redirect_stderr(error):

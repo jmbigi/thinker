@@ -1,7 +1,8 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-23**. **Base:** commit `19dbbd2`
-más los arreglos de la auditoría del Hallazgo 97 (sin publicar).
+**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `eaea4d4`
+más los arreglos de la revisión del 2026-10-25 (documentación, regla 12,
+gate documental y permisos locales).
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -34,7 +35,7 @@ decisión del programador y no deben hacerse «por inercia».
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **851/851** en Linux 3.11.9 (2026-10-24) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **852/852** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -218,8 +219,8 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Cierre:** `0.1.4` publicado en TestPyPI y PyPI el 2026-10-24, con los
   mismos hashes en ambos índices; tag anotado `v0.1.4` (`858bdf8`) empujado;
   instalación limpia verificada, `--requisitos` presente, imports OK y
-  `pip check` limpio. La GitHub Release con artefactos queda como tarea manual
-  desde la web (regla 12).
+  `pip check` limpio. No hay tarea de GitHub Release: la distribución es
+  PyPI/TestPyPI y tags de git (regla 12 ampliada el 2026-10-25).
 - **Criterio de aceptación:** [x] `pip install thinker-research==0.1.4` en venv
   limpio; [x] `evaluate-project --help` y evaluación de humo; [x] suite
   **842/842** en Linux; [x] tag verificado. Windows queda pendiente de
@@ -246,10 +247,11 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Acción ejecutada:** `scripts/check_docs.py` (offline, read-only) contrasta
   el nº de tests declarado en `AGENTS.md` y `docs/EVALUACIONES.md` con el
   conteo estático por AST, los pines de `requirements.txt` con
-  `requirements.lock` (y los rangos), y la versión de `pyproject.toml` con la
-  publicada en `docs/PUBLICACION.md`. Integrado en `make check` y en el hook
-  pre-commit; 10 tests propios. Códigos 0/1/2 (cuadra/discrepancia/no
-  verificable).
+  `requirements.lock` (y los rangos), la versión de `pyproject.toml` con la
+  publicada en `docs/PUBLICACION.md` y la cifra de mutación de `README.md` con
+  la vigente de `AGENTS.md`. Integrado en `make check` y en el hook
+  pre-commit; 11 tests propios. Códigos 0/1/2
+  (cuadra/discrepancia/no verificable).
 - **Criterio de aceptación:** [x] falla cuando una cifra no cuadra (validado
   durante el desarrollo: declaraba 761 y había 774); [x] falla con el motivo y
   el archivo correctos; [x] no toca históricos fechados.
@@ -321,8 +323,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 5. **R8, R11 y R12 (cerradas):** esquema JSON v2, gate documental y corpus
    adversario ya están en el repositorio con tests.
 6. **R9 (cerrada):** `0.1.4` está publicada en TestPyPI y PyPI, con tag
-   `v0.1.4` y artefactos verificados; la GitHub Release queda como tarea
-   manual desde la web.
+   `v0.1.4` y artefactos verificados; no requiere GitHub Release (regla 12).
 7. **R5, R6, R7, R10, R13 y R14** — decisiones de producto/alcance; no bloquean
    R1–R4.
 

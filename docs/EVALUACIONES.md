@@ -424,3 +424,18 @@ Cobertura sin cambios: 90% evaluador (149/1435), 91% preflight (35/385), total
 83%. Los alias `pygetwindow`, `rapidocr_onnxruntime` y `shiboken6` **no** se
 añadieron: con la distribución declarada directamente ya pasan; el caso
 `shiboken6` con solo `PySide6` es dependencia transitiva y el flag es correcto.
+
+**Actualización 2026-10-25 (revisión integral y regla 12 — Hallazgo 103)**:
+corregidas dos cifras de estado que habían derivado: README declaraba 94,7%
+de mutación (3581/3780) y la vigente es 95,2% (3635/3819; 2026-10-23), y la
+cabecera de `docs/RECOMENDACIONES-MEJORAS.md` seguía en 2026-10-23 y «sin
+publicar» cuando `0.1.7` ya estaba publicada. Se amplió la regla 12: no se usa
+`gh` ni se crean GitHub Releases desde el repositorio; la distribución es
+PyPI/TestPyPI y tags, y `docs/PUBLICACION.md` ya no incluye pasos de release.
+También se restringió `.env` a 600 y se retiraron dos palabras duplicadas de
+`STOPWORDS` (ruff B033). El gate documental contrasta ahora la cifra de
+mutación de README con la vigente de AGENTS, con test de regresión.
+Suite **852/852** en Linux (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
+autoevaluación **1.000**, `[UNVERIFIED] 0`. Cobertura sin cambios en
+evaluador/preflight (90%/91%). No se re-mide la mutación: los módulos mutados
+no cambiaron.
