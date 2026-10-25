@@ -2569,3 +2569,20 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: la honestidad del informe también se juega en los rótulos
   (comparable/no comparable) y en los warnings; una marca sin motivo o invisible
   es peor que un hallazgo.
+
+## 2026-10-25 (ronda 29) — Publicación 0.1.10
+
+### Hallazgo 111: el índice simple puede ir por detrás del JSON
+
+- **Acción**: publicar `0.1.10` en TestPyPI y PyPI desde el tag `v0.1.10`
+  (`551d693`), con wheel SHA-256
+  `9571519215f336bd1b1b05e5f7a9f516f64500ebde57f2e16dbd5abdf7d26caa` y sdist
+  `5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713891621f75`.
+- **Incidencia**: el JSON y los hashes ya publicaban `0.1.10`, pero `pip`
+  seguía sin verla en el índice simple; tras esperar la propagación, la
+  instalación limpia funcionó. No se re-subió nada.
+- **Evidencia**: `pip show` → `Version: 0.1.10`, `pip check` limpio,
+  `evaluate-project --help` e imports OK desde PyPI y TestPyPI.
+- **Lección**: verificar JSON/hashes no basta para pip; hay que comprobar el
+  índice simple y reintentar tras la propagación (misma clase que el Hallazgo
+  104). No confundir retardo de índice con artefacto ausente.

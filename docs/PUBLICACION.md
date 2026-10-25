@@ -83,8 +83,14 @@ silencio con motivo y warnings), R13-B (verificador barato medido) y R14-B
 parcial: preflight 1005 mutantes, 557 muertos, 448 supervivientes sin triaje;
 el evaluador no se midió. Suite 879/879, docs-check OK.
 
-Artefactos: `thinker-research 0.1.10` (wheel y sdist); hashes pendientes de la
-publicación. **Publicada en TestPyPI y PyPI el 2026-10-25**.
+Artefactos: `thinker-research 0.1.10` (wheel y sdist), `twine check` PASSED.
+Hashes SHA-256:
+`9571519215f336bd1b1b05e5f7a9f516f64500ebde57f2e16dbd5abdf7d26caa` (wheel)
+y `5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713891621f75`
+(sdist). **Publicada en TestPyPI y PyPI el 2026-10-25**. Verificación:
+ambos índices publican esos hashes; instalación limpia
+`thinker-research==0.1.10` desde TestPyPI y PyPI OK; `evaluate-project --help`,
+imports OK y `pip check` limpio. Tag anotado `v0.1.10` (`551d693`) empujado.
 
 ## Versión 0.1.9 (2026-10-25)
 
@@ -99,7 +105,7 @@ tag `v0.1.9`; `twine check` PASSED. Hashes SHA-256:
 y `756d838ff11659c3a172a50b354c190edfbe1912747259a903febbcd046f8a81`
 (sdist). **Publicada en TestPyPI y PyPI el 2026-10-25**. Verificación:
 ambos índices publican esos hashes; instalación limpia
-`thinker-research==0.1.10` desde TestPyPI y PyPI OK; `evaluate-project --help`,
+`thinker-research==0.1.9` desde TestPyPI y PyPI OK; `evaluate-project --help`,
 imports OK y `pip check` limpio. El índice simple tardó unos segundos en ver
 la versión (JSON y hashes ya correctos); se verificó tras la propagación
 (Hallazgo 104). Tag anotado `v0.1.9` (`14e2b7f`) empujado y verificado.

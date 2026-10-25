@@ -490,3 +490,8 @@ al generador, 1 al verificador y 1 extra, con independencia declarada
 **declaración**: README y AGENTS dicen que `credibility`/`confidence` no están
 calibradas y no se presentan como probabilidad; el Brier offline es **simulado**
 (0,1166 en 16 casos) y no prueba calibración real.
+
+Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
+`v0.1.10` (`551d693`). Wheel SHA-256
+`9571519215f336bd1b1b05e5f7a9f516f64500ebde57f2e16dbd5abdf7d26caa`; sdist
+`5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713891621f75`.
