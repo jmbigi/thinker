@@ -414,3 +414,4 @@ snapshot) e imports hermanos locales (`tools/a.py` puede importar
 `tools/helper.py` sin manifiesto). Cobertura: `evaluar_proyecto.py` **90%**
 (149/1435), `scripts/preflight.py` **91%** (35/385), total 83%. `dist/` ya
 estaba excluido; `exe/` se excluye solo si se pide con `--ignorar exe`.
+Publicada como `0.1.6` en TestPyPI y PyPI el 2026-10-24.

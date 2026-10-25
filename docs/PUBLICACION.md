@@ -1,11 +1,9 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-24: **versión `0.1.6` en preparación**; `0.1.5` es la
-> última publicada en TestPyPI y PyPI.
-> Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4` y `v0.1.5`
-> empujados; `v0.1.2`, `v0.1.3`, `v0.1.4` y `v0.1.5` son anotados; `v0.1.6`
-> se etiquetará con esta release. `0.1.2` **no
+> Estado al 2026-10-24: **versión `0.1.6` publicada en TestPyPI y PyPI**.
+> Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5` y `v0.1.6`
+> empujados; `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5` y `v0.1.6` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI de GitHub (regla propia 12): las GitHub Releases se crean desde la
@@ -16,15 +14,15 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.6` en
-  preparación. La última publicada en TestPyPI y PyPI es `0.1.5`.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.6`
+  publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub y versión actualizada. No cambia código.
 - `python3 -m build` genera `dist/thinker_research-0.1.3.tar.gz` + wheel;
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.6*` (cuando exista).
+  `dist/thinker_research-0.1.6*` (ya existen).
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -34,6 +32,9 @@
 - **Publicación completada de `0.1.5`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.5` (`6ed121c`) y verificación limpia; ver la
   sección 0.1.5.
+- **Publicación completada de `0.1.6`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.6` (`4b4216e`) y verificación limpia; ver la
+  sección 0.1.6.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global; la GitHub Release, si se
   quiere, se crea desde la web.
@@ -62,7 +63,7 @@ commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
 
-## Versión 0.1.6 (2026-10-24) — en preparación
+## Versión 0.1.6 (2026-10-24)
 
 Mejoras rápidas de usabilidad y precisión:
 `--ignorar DIRECTORIO` repetible en las CLI de evaluador y preflight (permite
@@ -71,8 +72,16 @@ excluir `exe/` u otros directorios sin snapshot) e imports hermanos locales
 estaba excluido; `exe/` no se ignora por defecto. Tres tests nuevos; suite
 **849/849**, cobertura 90% evaluador / 91% preflight.
 
-Artefactos previstos: `thinker-research 0.1.6` (wheel y sdist). Estado:
-pendiente de build limpio, `twine check`, TestPyPI y PyPI.
+Artefactos: `thinker-research 0.1.6` (wheel y sdist), construidos desde el
+tag `v0.1.6`; `twine check` PASSED. Hashes SHA-256:
+`4ed2ef35251d570dbc36d0ab0dd83817cac3ef1f2546b79a2a6b5e99ea5e3bc2` (wheel)
+y `189d57a7dee4c7d2d5ad6b100973a7c0893362b9f7cea10323b1831fe0b4f04c`
+(sdist). **Publicada en TestPyPI y PyPI el 2026-10-24**. Verificación:
+ambos índices simples publican esos hashes; instalación limpia
+`thinker-research==0.1.6` desde TestPyPI y PyPI OK; `--ignorar` presente,
+imports OK y `pip check` limpio. El índice simple mostró 0.1.6 antes que
+pip; tras unos segundos de propagación la instalación quedó verificada
+(misma clase de retardo que el Hallazgo 91).
 
 ## Versión 0.1.5 (2026-10-24)
 

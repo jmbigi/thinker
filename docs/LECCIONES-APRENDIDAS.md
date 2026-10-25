@@ -2354,7 +2354,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   en ambas CLI (con restauración del global en los tests).
 - **Evidencia**: suite **849/849**, autoevaluación **1.000**, preflight propio
   0; cobertura 90% evaluador (149/1435) y 91% preflight (35/385), total 83%.
-  No se publica todavía: queda pendiente decidir si corresponde 0.1.6.
+  Publicada como `0.1.6` en TestPyPI y PyPI el 2026-10-24; hashes wheel
+  `4ed2ef35…e3bc2` y sdist `189d57a7…f04c`, tag `v0.1.6` (`4b4216e`).
 - **Lección**: la localidad de un import es contextual (directorio del archivo),
   no solo global; y las exclusiones de análisis deben ser configurables por el
   usuario, no un workaround con snapshot. `exe` no se ignora por defecto.
