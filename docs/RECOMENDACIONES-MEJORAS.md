@@ -1,7 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `0556240`
-más los arreglos de R2/R10 y la release `0.1.9` publicada.
+**Fecha:** 2026-10-22, actualizado el **2026-10-25**. **Base:** commit `143d71b`
+más los arreglos de R7/R4 y la release `0.1.9` publicada.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -17,30 +17,30 @@ pendiente.
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 91% (91% combinado); ramas de error cubiertas | Medio | Bajo |
 | **P1** | R3. Medir mutación del evaluador y preflight | La mutación global excluye ambos módulos; 95,2% no los cubre | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
-| **P2** | R4. Benchmark completo de precisión/recall del evaluador | El corpus cubre regresiones conocidas; falta TP/FP/FN por criterio | Medio | Bajo |
+| **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 10 casos/5 criterios con TP/FP/FN y 1.00/1.00; faltan 24 criterios y trampas reales | Medio | Bajo |
 | **P2** | R5. Decidir el alcance Java/JS (soporte real o límite explícito) | Cobertura 10/29 y 12/29; un 1.000/0.692 no es comparable | Alto | Alto |
 | **P2** | R6. Política para silencios deliberados de producción | c3 marca 97 en Hypothesis; son reales para P1.26 pero no accionables sin política | Bajo | Político |
-| **P2** | R7. Medir calidad de aserciones, no solo tests no-op | `assert True` pasa c5; c5 no mide fuerza de la suite | Medio | Bajo |
+| **Hecho** | R7. [Cerrada 2026-10-25] Medir calidad de aserciones, no solo tests no-op | `aserciones_debiles` informativo; c5 no cambia | Medio | Bajo |
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **Hecho** | R10. [Cerrada 2026-10-25] Reportar licencias de dev/opcionales sin mezclarlas con runtime | `licencias_no_runtime` informativo; h5 sigue siendo runtime | Bajo | Bajo |
 | **P3** | R13. CoVe con descomposición de claims y verificador más barato | La literatura 2026 documenta la asimetría de la verificación | Medio | Medio |
 | **P3** | R14. Calibrar `credibility`/`confidence` o declararlas no calibradas | Restringir la salida evita texto inventado, no garantiza probabilidad correcta | Medio | Bajo |
 
-**Orden recomendado:** R3; R4, R5, R6, R7, R13 y R14 se deciden después.
-R1, R2, R8, R9, R10, R11 y R12 están cerradas; R5, R6 y R13 requieren
+**Orden recomendado:** R3; R4 y las decisiones R5/R6 después.
+R1, R2, R7, R8, R9, R10, R11 y R12 están cerradas; R5, R6 y R13 requieren
 decisión del programador y no deben hacerse «por inercia».
 
 ## 2. Estado medido (evidencia de partida)
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **858/858** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **862/862** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **91%** (130/1466 sentencias sin ejecutar) | comando de la sección 8 |
+| Cobertura `evaluar_proyecto.py` | **91%** (145/1536 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **91%** (35/385) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Paquete publicado | **0.1.9** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
@@ -60,6 +60,8 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - R2: cobertura del evaluador y preflight al 91% cada uno y 91% combinado,
   con ramas de error cubiertas.
 - R10: `licencias_no_runtime` informa dev/opcionales sin tocar el score h5.
+- R7: `aserciones_debiles` separa la señal informativa de c5; no marca
+  variables, helpers ni property tests.
 - c5 sin falsos positivos por helpers, endpoints anidados o property tests; c3
   sin tests ni imports opcionales.
 - Perfil de proyecto, criterios N/A, cobertura y plan con evidencia por criterio.
@@ -105,9 +107,10 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   `_ambito_requirements`, fallback de TOML inválido, manifiestos
   npm/Gradle/Maven/Go/Cargo/tox/nox, tuplas de excepciones y `OSError` de
   lectura). No se persiguió el 100% ni se añadieron tests triviales.
-- **Evidencia:** `evaluar_proyecto.py` **91%** (130/1466 sin ejecutar),
-  `scripts/preflight.py` **91%** (35/385), **91% combinado** (1686/1851);
-  suite **858/858**, ruff 0. Comando: el de la sección 8.
+- **Evidencia:** en el cierre, `evaluar_proyecto.py` **91%** (130/1466 sin
+  ejecutar), preflight **91%** (35/385), **91% combinado**. Tras R7/R4 el
+  módulo crece a 1536 sentencias y sigue en **91%** (145/1536); suite
+  **862/862**, ruff 0. Comando: el de la sección 8.
 - **Criterio de aceptación:** [x] ≥90% en cada archivo; [x] ≥90% combinado;
   [x] ramas de error cubiertas o declaradas; [x] suite en verde; [x] comando
   reproducible documentado.
@@ -129,24 +132,27 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   denominador y exclusiones.
 - **Riesgo:** medio; mutmut puede requerir aislar imports y puede ser lento.
 
-### R4 — Benchmark de precisión/recall del evaluador (P2, medio)
+### R4 — Benchmark de precisión/recall del evaluador — PARCIAL 2026-10-25
 
 - **Problema medido:** la auditoría de 7 repos y el control de 10 defectos fueron
   una campaña puntual. No hay un arnés que impida volver a introducir falsos
   positivos como los de h6 (853 en FastAPI) o h5 (12/12).
-- **Estado 2026-10-23:** **parcialmente cerrada**. `tests/test_evaluador_corpus.py`
-  convierte en contrato 4 regresiones reales del Hallazgo 97 (Poetry exacta,
-  requirements sueltos como falso lock, prosa de README como runner y comando
-  válido detectado). Falta el benchmark completo con TP/FP/FN por criterio.
-- **Acción (pendiente):** convertir el control en un benchmark determinista y
-  offline con etiquetas por criterio y trampas: imports en docs, tests
-  anidados, helpers, tests no-op reales, `license_expression`, imports
-  opcionales, proyectos multilingües y locks. Salida JSON con TP/FP/FN por
-  criterio. Los clones de terceros no se versionan; se usan solo como campaña
-  manual opt-in.
-- **Criterio de aceptación:** control 10/10; 0 falsos positivos en las trampas
-  etiquetadas; resultados reproducibles byte a byte; el benchmark falla si
-  reaparece una regresión conocida.
+- **Estado 2026-10-25:** **parcial**. `tests/benchmarks/evaluador_precision.py`
+  ejecuta 10 casos sintéticos etiquetados sobre 5 criterios (h2, c3, c5, f3 y
+  h6), calcula TP/FP/FN, precision y recall por criterio y global, y admite
+  `--json`. Resultado actual: **5 TP, 0 FP, 0 FN; precision 1.00, recall 1.00**
+  en esos 10 casos. `tests/test_evaluador_precision.py` fija métricas y
+  balance del corpus.
+- **Límite declarado:** cubre **5 de los 29 criterios posibles** y son fixtures
+  sintéticas; no es una campaña sobre proyectos reales. El benchmark no debe
+  presentarse como validación global del evaluador.
+- **Acción pendiente:** ampliar a más criterios y trampas (imports en docs,
+  tests anidados, helpers, `license_expression`, imports opcionales, proyectos
+  multilingües y locks), y conservar clones reales solo como campaña manual
+  opt-in.
+- **Criterio de aceptación:** [x] TP/FP/FN por criterio; [x] JSON reproducible;
+  [x] 0 FP en los casos etiquetados; [ ] cobertura completa de criterios;
+  [ ] trampas reales adicionales.
 - **Riesgo:** bajo; el riesgo es sobreajustar el benchmark a los casos ya vistos.
 
 ### R5 — Decidir el alcance Java/JS (P2, alto)
@@ -182,19 +188,23 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   ningún `except: pass` desaparece del informe sin trazabilidad.
 - **Riesgo:** político; una marca mal usada puede convertirse en un bypass.
 
-### R7 — Medir calidad de aserciones, no solo tests no-op (P2, medio)
+### R7 — Medir calidad de aserciones, no solo tests no-op — CERRADA 2026-10-25
 
-- **Problema medido:** c5 detecta tests que no pueden fallar (`pass`,
-  `print(1+1)`), pero `assert True` y tautologías pasan. c5 no mide la fuerza de
-  la suite y no debe presentarse como si lo hiciera.
-- **Acción:** añadir una señal separada de «aserción débil» para constantes
-  obvias (`assert True`, `assert 1`, comparaciones de una constante consigo
-  misma) y documentar que la fuerza real se mide con mutación. No convertirla
-  en fallo automático sin revisar falsos positivos.
-- **Criterio de aceptación:** fixtures con `assert True`, property tests y
-  helpers; 0 falsos positivos en los casos válidos; el informe distingue
-  «no-op» de «débil» y no promete cobertura.
-- **Riesgo:** medio; la detección sintáctica de tautologías es limitada.
+- **Problema medido:** c5 detectaba tests que no pueden fallar (`pass`,
+  `print(1+1)`), pero `assert True` y tautologías pasaban. c5 no mide la fuerza
+  de la suite y no debe presentarse como si lo hiciera.
+- **Acción ejecutada:** campo `aserciones_debiles` y sección de texto, con
+  detección conservadora de `assert True`/constantes verdaderas,
+  comparaciones de constantes que pasan y `assertTrue/assertFalse/assertEqual`
+  con literales. No toca `c5` ni la puntuación; no marca variables, helpers ni
+  property tests.
+- **Evidencia:** dos tests nuevos (detección y no falsos positivos); suite
+  **862/862**, ruff 0; el informe distingue no-op de débil. Limitación
+  declarada: no detecta tautologías con variables ni `__eq__` personalizados.
+- **Criterio de aceptación:** [x] fixtures con `assert True`; [x] 0 falsos
+  positivos en property tests/helpers; [x] no-op y débil separados; [x] no
+  promete cobertura.
+- **Riesgo:** bajo; la detección sintáctica es limitada y se declara.
 
 ### R8 — Versionar el esquema JSON (P3, bajo) — CERRADA 2026-10-22
 
@@ -321,30 +331,29 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 ## 5. Deuda pendiente priorizada (2026-10-25)
 
-**Abiertas:** R3, R4, R5, R6, R7, R13 y R14. **Cerradas:** R1, R2, R8, R9,
-R10, R11 y R12. Una recomendación abierta es deuda solo si tiene un criterio
-de aceptación medible; las limitaciones declaradas del README no se cuentan
-como deuda.
+**Abiertas:** R3, R4 (parcial), R5, R6, R13 y R14. **Cerradas:** R1, R2, R7,
+R8, R9, R10, R11 y R12. Una recomendación abierta es deuda solo si tiene un
+criterio de aceptación medible; las limitaciones declaradas del README no se
+cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
 | 1 | **R3** | **P1** | Mutación del evaluador y preflight | Campaña separada de `mutmut` sobre esos dos módulos, sin mezclar su denominador con el 95,2% del núcleo | Comando reproducible; línea base; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
-| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador | Corpus etiquetado por criterio y cálculo de precisión/recall, no solo regresiones | Precisión y recall por criterio y global; N/A declarados; casos difíciles conservados | Medio |
-| 3 | **R7** | P2 | Calidad de aserciones | Señal separada de «aserción débil» para `assert True`/tautologías, sin tocar c5 | Fixtures con `assert True`, property tests y helpers; 0 falsos positivos; el informe distingue no-op de débil | Medio |
-| 4 | **R5** | P2 | Alcance Java/JS | Decidir soporte real o límite explícito; hoy la cobertura es 10/29 y 12/29 | Decisión documentada; si se limita, el informe lo dice sin presentar el GLOBAL como comparable | Alto |
-| 5 | **R6** | P2 | Silencios deliberados de producción | Política para `# noqa: silent` con motivo frente a `except: pass` real | Regla documentada; tests de ambos casos; sin falsos positivos en c3 | Bajo |
-| 6 | **R13** | P3 | CoVe con descomposición de claims | Piloto opt-in con verificador más barato y coste declarado | Benchmark offline de coste/calidad; nunca como defecto sin medir llamadas | Medio |
-| 7 | **R14** | P3 | Calibración de `credibility`/`confidence` | Brier y tabla de fiabilidad offline, o declararlas no calibradas | Informe reproducible; README/AGENTS no las presentan como probabilidad sin medición | Medio |
+| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 10 casos/5 criterios actuales a más criterios y trampas reales | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
+| 3 | **R5** | P2 | Alcance Java/JS | Decidir soporte real o límite explícito; hoy la cobertura es 10/29 y 12/29 | Decisión documentada; si se limita, el informe lo dice sin presentar el GLOBAL como comparable | Alto |
+| 4 | **R6** | P2 | Silencios deliberados de producción | Política para `# noqa: silent` con motivo frente a `except: pass` real | Regla documentada; tests de ambos casos; sin falsos positivos en c3 | Bajo |
+| 5 | **R13** | P3 | CoVe con descomposición de claims | Piloto opt-in con verificador más barato y coste declarado | Benchmark offline de coste/calidad; nunca como defecto sin medir llamadas | Medio |
+| 6 | **R14** | P3 | Calibración de `credibility`/`confidence` | Brier y tabla de fiabilidad offline, o declararlas no calibradas | Informe reproducible; README/AGENTS no las presentan como probabilidad sin medición | Medio |
 
-**Orden recomendado:** R3 → R4/R7 → decisiones R5/R6 → R13/R14.
+**Orden recomendado:** R3 → R4 → decisiones R5/R6 → R13/R14.
 
-- **R3, R4 y R7 no requieren decisión del programador**: se pueden ejecutar
-  cuando haya tiempo; R3 es la deuda P1 principal.
+- **R3 y R4 no requieren decisión del programador**: se pueden ejecutar cuando
+  haya tiempo; R3 es la deuda P1 principal.
 - **R5, R6 y R13 sí requieren decisión** de producto/alcance; no deben hacerse
   «por inercia».
 - **R14** puede cerrarse pronto declarando explícitamente que `confidence` no
   está calibrada, si no se va a medir Brier.
-- Las cerradas R1/R2/R8/R9/R10/R11/R12 no se reabren sin evidencia nueva.
+- Las cerradas R1/R2/R7/R8/R9/R10/R11/R12 no se reabren sin evidencia nueva.
 
 **No es deuda** (son límites declarados, no defectos pendientes): que
 `MockSearchAPI` no haga investigación real, los 429 de modelos gratuitos, que
@@ -357,9 +366,9 @@ así, y el registro se conserva en el informe de cierre del lote:
 
 | Tarea | Componente de thinker | Evidencia que aportó | Verificación humana/automática |
 |---|---|---|---|
-| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | ... | tests y campaña reproducible |
-| R4 | `evaluar_proyecto` y `tests/benchmarks` | ... | precisión/recall reproducibles |
-| R7 | `evaluar_proyecto`/`preflight` | ... | fixtures y suite |
+| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | piloto preflight: 495/949 muertos, 414 supervivientes, 40 sin tests; evaluador pendiente | campaña reproducible y triaje |
+| R4 | `evaluar_proyecto` y `tests/benchmarks` | 10 casos, 5 criterios, 5 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
+| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 862/862 |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se

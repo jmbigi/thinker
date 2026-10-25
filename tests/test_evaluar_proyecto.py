@@ -1625,5 +1625,61 @@ class TestCoberturaDeRamasDelEvaluador(unittest.TestCase):
         self.assertIn("python-dotenv", error.getvalue())
 
 
+class TestAsercionesDebiles(unittest.TestCase):
+    """R7: señal informativa separada de c5 (tests no-op)."""
+
+    def test_detecta_constantes_y_no_toca_c5(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": "def sumar(a, b):\n    return a + b\n",
+            "tests/test_weak.py": (
+                "import unittest\n\n\n"
+                "class TestWeak(unittest.TestCase):\n"
+                "    def test_assert_true(self):\n"
+                "        assert True\n\n"
+                "    def test_assert_true_method(self):\n"
+                "        self.assertTrue(True)\n\n"
+                "    def test_equal(self):\n"
+                "        self.assertEqual(1, 1)\n\n"
+                "    def test_falla(self):\n"
+                "        self.assertEqual(1, 2)\n\n"
+                "    def test_variable(self):\n"
+                "        valor = 1\n"
+                "        self.assertEqual(valor, 1)\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertTrue(informe["dimensiones"]["calidad"]
+                        ["criterios"]["c5_tests_con_aserciones"])
+        self.assertEqual(len(informe["aserciones_debiles"]), 3)
+        self.assertIn("ASERCIONES DÉBILES", "\n".join(informe_texto(informe)))
+
+    def test_no_marca_variables_helpers_ni_noop(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": ("def sumar(a, b):\n    return a + b\n\n"
+                        "def helper():\n    return 1\n"),
+            "tests/test_ok.py": (
+                "import unittest\n\n"
+                "from demo import helper, sumar\n\n\n"
+                "class TestOk(unittest.TestCase):\n"
+                "    def test_variable(self):\n"
+                "        valor = sumar(1, 2)\n"
+                "        self.assertEqual(valor, 3)\n\n"
+                "    def test_helper(self):\n"
+                "        self.assertEqual(helper(), 1)\n\n"
+                "    def test_property(self):\n"
+                "        valor = 1\n"
+                "        assert valor == 1\n\n"
+                "    def test_noop(self):\n"
+                "        pass\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertEqual(informe["aserciones_debiles"], [])
+        self.assertFalse(informe["dimensiones"]["calidad"]
+                         ["criterios"]["c5_tests_con_aserciones"])
+
+
 if __name__ == "__main__":
     unittest.main()

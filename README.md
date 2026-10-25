@@ -87,10 +87,11 @@ el ritmo de aparición del texto es presentación. El evaluador v2 añade perfil
 cobertura y criterios N/A: ver `docs/EVALUACIONES.md` para las cifras actuales.)*
 
 El informe `--json` es un contrato versionado: incluye `schema_version: 2` y
-los campos `cobertura`, `global_nota`, `no_verificado` y
+los campos `cobertura`, `global_nota`, `no_verificado`,
 `licencias_no_runtime` (dependencias de desarrollo/opcionales, informativas y
-fuera del score `h5`). Un consumidor debe comprobar `schema_version` antes de
-asumir el resto del esquema.
+fuera del score `h5`) y `aserciones_debiles` (señal informativa separada de
+c5). Un consumidor debe comprobar `schema_version` antes de asumir el resto del
+esquema.
 
 ### Verificar una lista de requisitos
 

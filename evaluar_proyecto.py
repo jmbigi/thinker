@@ -542,6 +542,92 @@ def tests_sin_aserciones(ruta: Path,
     return debiles, con_error
 
 
+def _constante_verdadera(nodo) -> bool:
+    """True si el nodo es una constante Python con valor verdadero."""
+    return isinstance(nodo, ast.Constant) and bool(nodo.value)
+
+
+def _comparacion_constante_verdadera(compare) -> bool:
+    """True si una comparación de constantes es una tautología que pasa."""
+    if len(compare.ops) != 1:
+        return False
+    try:
+        izquierda = ast.literal_eval(compare.left)
+        derecha = ast.literal_eval(compare.comparators[0])
+    except (ValueError, TypeError):
+        return False
+    op = compare.ops[0]
+    if isinstance(op, ast.Eq):
+        return izquierda == derecha
+    if isinstance(op, ast.NotEq):
+        return izquierda != derecha
+    if isinstance(op, ast.Lt):
+        return izquierda < derecha
+    if isinstance(op, ast.LtE):
+        return izquierda <= derecha
+    if isinstance(op, ast.Gt):
+        return izquierda > derecha
+    if isinstance(op, ast.GtE):
+        return izquierda >= derecha
+    return False
+
+
+def _llamada_aserion_debil(nodo) -> bool:
+    """True para ``assertTrue(True)``, ``assertEqual(1, 1)`` y similares."""
+    if not isinstance(nodo, ast.Call) or not nodo.args:
+        return False
+    funcion = nodo.func
+    nombre = funcion.attr if isinstance(funcion, ast.Attribute) \
+        else getattr(funcion, "id", "")
+    primero = nodo.args[0]
+    if nombre in ("assertTrue", "assertFalse") \
+            and isinstance(primero, ast.Constant):
+        return bool(primero.value) if nombre == "assertTrue" \
+            else not bool(primero.value)
+    if nombre == "assertEqual" and len(nodo.args) >= 2 \
+            and all(isinstance(arg, ast.Constant) for arg in nodo.args[:2]):
+        return nodo.args[0].value == nodo.args[1].value
+    if nombre == "assertIsNone" and isinstance(primero, ast.Constant):
+        return primero.value is None
+    if nombre == "assertIsNotNone" and isinstance(primero, ast.Constant):
+        return primero.value is not None
+    return False
+
+
+def _nodo_aserion_debil(nodo) -> bool:
+    if isinstance(nodo, ast.Assert):
+        if _constante_verdadera(nodo.test):
+            return True
+        return isinstance(nodo.test, ast.Compare) \
+            and _comparacion_constante_verdadera(nodo.test)
+    return _llamada_aserion_debil(nodo)
+
+
+def aserciones_debiles(ruta: Path,
+                       modulos_test: List[Path]) -> Tuple[List[str], List[str]]:
+    """Aserciones que no pueden fallar por construcción (R7).
+
+    Señal informativa, separada de c5 (que mide tests no-op). Es conservadora:
+    solo marca constantes verdaderas, comparaciones de constantes que pasan y
+    ``assertTrue/assertFalse/assertEqual`` con literales. No marca variables,
+    helpers ni property tests. Devuelve también los archivos con error de
+    sintaxis para declararlos.
+    """
+    marcas, con_error = [], []
+    for p in modulos_test:
+        try:
+            arbol = ast.parse(leer(p), filename=str(p))
+        except SyntaxError as exc:
+            con_error.append(f"{p.relative_to(ruta).as_posix()}:{exc.lineno or 0}")
+            continue
+        for nodo, _ in _funciones_test(arbol):
+            for hijo in ast.walk(nodo):
+                if _nodo_aserion_debil(hijo):
+                    marcas.append(f"{p.relative_to(ruta).as_posix()}:{hijo.lineno}")
+                    break
+    return marcas, con_error
+
+
 def _git(ruta: Path, *args: str) -> Optional[str]:
     """Ejecuta git SOLO con argumentos de fecha/recuento (nunca autores)."""
     try:
@@ -2551,6 +2637,13 @@ def evaluar(ruta: Path, con_red: bool = True,
         evaluar_inteligencia(ruta, perfil),
         evaluar_eficiencia(ruta, perfil),
     ]
+    marcas_debiles, _ = aserciones_debiles(perfil.ruta, perfil.tests_py)
+    if marcas_debiles:
+        calidad = next((d for d in dimensiones if d.nombre == "calidad"), None)
+        if calidad is not None:
+            calidad.notas.append(
+                f"aserciones débiles (informativas, no fallo): "
+                f"{len(marcas_debiles)}; c5 no mide la fuerza de la suite")
     puntuaciones = [d.puntuacion for d in dimensiones
                     if d.puntuacion is not None]
     global_ = round(sum(puntuaciones) / len(puntuaciones), 3) \
@@ -2606,6 +2699,7 @@ def evaluar(ruta: Path, con_red: bool = True,
         "cobertura": cobertura,
         "dependencias": perfil.deps,
         "licencias_no_runtime": licencias_extra,
+        "aserciones_debiles": marcas_debiles,
         "dimensiones": {d.nombre: d.a_dict() for d in dimensiones},
         "global": global_,
         "global_nota": "media de criterios aplicables: no es comparable entre "
@@ -2663,6 +2757,12 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
             licencia = item.get("licencia") or "no verificable"
             lineas.append(f"  - {item['nombre']} [{item['ambito']}] {licencia} "
                           f"({item['procedencia']})")
+    debiles = informe.get("aserciones_debiles", [])
+    if debiles:
+        lineas.append("")
+        lineas.append("== ASERCIONES DÉBILES (informativas; no cambian c5) ==")
+        for marca in debiles:
+            lineas.append(f"  - {marca}")
     if "requisitos" in informe:
         reqs = informe["requisitos"]
         lineas.append("")

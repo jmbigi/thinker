@@ -2478,3 +2478,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: el dogfooding se demuestra con trazas de decisiones, no con una
   ejecución final; si thinker alucina, se descarta y se registra, y la
   verificación empírica sigue decidiendo.
+
+## 2026-10-25 (ronda 25) — Aserciones débiles y benchmark (hallazgo 107)
+
+### Hallazgo 107: c5 no mide fuerza y un benchmark sin cobertura no es una validación global
+
+- **Origen**: R7 y R4 de `docs/RECOMENDACIONES-MEJORAS.md`. Diagnóstico con
+  `analyze_python_code` (thinker): 2811 líneas, 83 funciones, complejidad 398,
+  sin issues estáticos; baseline con `evaluar_proyecto` (1.000, 28/30).
+- **R7**: c5 detectaba no-ops pero `assert True` pasaba. Se añadió
+  `aserciones_debiles` (campo y sección de texto) con detección conservadora de
+  constantes verdaderas, comparaciones constantes que pasan y
+  `assertTrue/assertFalse/assertEqual` con literales. No cambia c5 y no marca
+  variables, helpers ni property tests.
+- **R4**: `tests/benchmarks/evaluador_precision.py` con 10 casos sintéticos
+  etiquetados sobre 5 criterios; TP/FP/FN, precision y recall por criterio y
+  global. Resultado **5 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 5 de 29
+  criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
+- **Evidencia**: suite **862/862**, ruff 0, cobertura evaluador 91% (145/1536),
+  preflight 91%; autoevaluación 1.000. El benchmark y sus métricas son
+  reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
+- **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
+  c5; y un benchmark con 5 criterios sirve como regresión, no como certificado
+  de precisión/recall global. La cobertura del benchmark debe declararse siempre
+  (R4 sigue parcial).

@@ -465,3 +465,15 @@ autoevaluación **1.000**, `[UNVERIFIED] 0`. Publicada como `0.1.9` en TestPyPI
 y PyPI el 2026-10-25; tag anotado `v0.1.9` (`14e2b7f`). Wheel SHA-256
 `88918e4bfa69e316222ff7730964723941e74ae27d75c2ece0486c2dac528270`; sdist
 `756d838ff11659c3a172a50b354c190edfbe1912747259a903febbcd046f8a81`.
+
+**Actualización 2026-10-25 (R7 y R4 — Hallazgo 107)**: R7 añade
+`aserciones_debiles` como señal informativa separada de c5 (constantes
+verdaderas, comparaciones constantes que pasan y `assertTrue/assertEqual` con
+literales), sin cambiar la puntuación; no marca variables, helpers ni property
+tests. R4 añade `tests/benchmarks/evaluador_precision.py`: 10 casos etiquetados
+sobre 5 criterios (h2, c3, c5, f3, h6), con TP/FP/FN, precision y recall por
+criterio y global; resultado actual **5 TP, 0 FP, 0 FN; 1,00/1,00**, con el
+límite declarado de 5/29 criterios y fixtures sintéticas. Cobertura:
+`evaluar_proyecto.py` **91%** (145/1536 sin ejecutar), preflight **91%**
+(35/385), total 83%. Suite **862/862** en Linux (Python 3.11.9), ruff 0,
+preflight 0, docs-check OK; autoevaluación **1.000**, `[UNVERIFIED] 0`.
