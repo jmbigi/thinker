@@ -461,4 +461,7 @@ ramas de error (requisitos, ámbitos, TOML inválido, manifiestos no Python,
 tuplas de excepciones y `OSError`) y de `licencias_no_runtime`, que informa
 dev/opcionales sin tocar `h5` y marca `unverified` sin red.
 Suite **858/858** en Linux (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
-autoevaluación **1.000**, `[UNVERIFIED] 0`. Release `0.1.9` en preparación.
+autoevaluación **1.000**, `[UNVERIFIED] 0`. Publicada como `0.1.9` en TestPyPI
+y PyPI el 2026-10-25; tag anotado `v0.1.9` (`14e2b7f`). Wheel SHA-256
+`88918e4bfa69e316222ff7730964723941e74ae27d75c2ece0486c2dac528270`; sdist
+`756d838ff11659c3a172a50b354c190edfbe1912747259a903febbcd046f8a81`.

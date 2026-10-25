@@ -2451,7 +2451,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Evidencia**: evaluador **91%** (130/1466 sin ejecutar), preflight **91%**
   (35/385), **91% combinado** (1686/1851); suite **858/858**, ruff 0,
   autoevaluación **1.000**. Dos tests de licencias no runtime: un extra no
-  libre no altera `h5` y sin red queda `unverified`.
+  libre no altera `h5` y sin red queda `unverified`. Publicada como `0.1.9`
+  en TestPyPI y PyPI el 2026-10-25; tag `v0.1.9` (`14e2b7f`); wheel
+  `88918e4bfa69e316222ff7730964723941e74ae27d75c2ece0486c2dac528270` y sdist
+  `756d838ff11659c3a172a50b354c190edfbe1912747259a903febbcd046f8a81`.
 - **Lección**: un objetivo de cobertura debe medirse con su denominador exacto
   (el 90% redondeado ocultaba un 89,9%); y una licencia fuera del score sigue
   siendo un riesgo que hay que hacer visible, separado del runtime.
