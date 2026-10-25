@@ -2495,8 +2495,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   etiquetados sobre 9 criterios; TP/FP/FN, precision y recall por criterio y
   global. Resultado **9 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 9 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
-- **Evidencia**: suite **876/876**, ruff 0, cobertura evaluador 91% (145/1571),
-  preflight 90%; autoevaluación 1.000. El benchmark y sus métricas son
+- **Evidencia**: suite **879/879**, ruff 0, cobertura evaluador 91% (145/1571),
+  preflight 91%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
   c5; y un benchmark con 9 criterios sirve como regresión, no como certificado
@@ -2518,13 +2518,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `also_copy = ["evidence.py", "scripts"]`, que copia dependencias sin mutarlas.
 - **Fallo 3**: `tempfile.mkdtemp` crea el destino y `shutil.copytree` fallaba
   con `FileExistsError`; se corrigió con `dirs_exist_ok=True`.
-- **Piloto preflight**: **949 mutantes, 495 muertos, 414 supervivientes, 40 sin
-  tests**, 0 timeouts/sospechosos. Tasa bruta 52,2% (495/949); excluyendo «sin
-  tests», 54,4% (495/909). **Sin triaje**, así que no es una tasa cerrada.
+- **Piloto preflight inicial**: 949 mutantes, 495 muertos, 414 supervivientes,
+  40 sin tests. Tras añadir 3 tests de helpers: **1005 mutantes, 557 muertos,
+  448 supervivientes, 0 sin tests**, 0 timeouts/sospechosos. Tasa bruta 55,4%
+  (557/1005). **Sin triaje de los 448**, así que no es una tasa cerrada.
 - **Estado del evaluador**: el arnés `scripts/mutacion.py` queda listo
   (`--objetivo evaluar`), pero la campaña completa no terminó; no se publica
   tasa del evaluador. R3 sigue **parcial**.
-- **Evidencia**: 3 tests del arnés, suite **876/876**, ruff 0, docs-check OK.
+- **Evidencia**: 3 tests del arnés, suite **879/879**, ruff 0, docs-check OK.
 - **Lección**: una campaña de mutación fuera de `source_paths` debe copiar sus
   dependencias sin mutarlas y verificar primero la línea base; los mutantes «sin
   tests» y los supervivientes son hallazgos, no ruido. Sin triaje no hay tasa
@@ -2542,7 +2543,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   protege la declaración; `tests/benchmarks/calibracion_confianza.py` añade un
   Brier **simulado** (0,1166 en 16 pares) que prueba el instrumento, no el
   modelo.
-- **Evidencia**: suite **876/876**, ruff 0, docs-check OK. **No hay Brier
+- **Evidencia**: suite **879/879**, ruff 0, docs-check OK. **No hay Brier
   real**; no se afirma calibración.
 - **Lección**: cuando no hay medición real, la opción honesta es declarar la
   limitación, etiquetar el simulador como simulado y evitar que el número se
@@ -2563,8 +2564,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   La descomposición de claims (C) sigue pendiente.
 - **R14-B**: Brier simulado 0,1166 con 16 pares; la declaración «no calibrada»
   sigue vigente. No se usa como evidencia de calibración real.
-- **Evidencia**: 10 tests nuevos, suite **876/876**, ruff 0, preflight 0,
-  docs-check OK; cobertura evaluador 91% (145/1571) y preflight 90% (39/401).
+- **Evidencia**: 10 tests nuevos, suite **879/879**, ruff 0, preflight 0,
+  docs-check OK; cobertura evaluador 91% (145/1571) y preflight 91% (35/401).
 - **Lección**: la honestidad del informe también se juega en los rótulos
   (comparable/no comparable) y en los warnings; una marca sin motivo o invisible
   es peor que un hallazgo.

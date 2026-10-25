@@ -15,7 +15,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 91% (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-25; decisión C] Medir mutación del evaluador y preflight | Piloto preflight: 495/949 muertos, 414 supervivientes sin triaje; evaluador pendiente | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-25; decisión C] Medir mutación del evaluador y preflight | Preflight: 557/1005 muertos, 448 supervivientes sin triaje, 0 sin tests; evaluador pendiente | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 18 casos/9 criterios con TP/FP/FN y 1.00/1.00; faltan 20 criterios y trampas reales | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -50,7 +50,7 @@ supervivientes sin triaje.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **876/876** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **879/879** en Linux 3.11.9 (2026-10-25) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -126,7 +126,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Evidencia:** en el cierre, `evaluar_proyecto.py` **91%** (130/1466 sin
   ejecutar), preflight **91%** (35/385), **91% combinado**. Tras R5/R6 el
   módulo crece a 1571 sentencias y sigue en **91%** (145/1571); suite
-  **876/876**, ruff 0. Comando: el de la sección 8.
+  **879/879**, ruff 0. Comando: el de la sección 8.
 - **Criterio de aceptación:** [x] ≥90% en cada archivo; [x] ≥90% combinado;
   [x] ramas de error cubiertas o declaradas; [x] suite en verde; [x] comando
   reproducible documentado.
@@ -150,10 +150,10 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   `python3 scripts/mutacion.py --objetivo preflight` (y `--objetivo evaluar`).
   El arnés copia sin `.env`/`.git`, usa `also_copy` para `evidence.py` y
   `scripts/` (dependencias no mutadas) y suma 3 tests.
-- **Resultado del piloto:** **949 mutantes**, **495 muertos**, **414
-  supervivientes**, **40 sin tests**, 0 timeouts, 0 sospechosos. Tasa bruta
-  52,2% (495/949); excluyendo «sin tests», 54,4% (495/909). **No hay triaje de
-  los 414 supervivientes**, así que no es una tasa cerrada.
+- **Resultado actual:** **1005 mutantes**, **557 muertos**, **448
+  supervivientes**, **0 sin tests**, 0 timeouts, 0 sospechosos. Tasa bruta
+  55,4% (557/1005). Los 3 tests de helpers eliminaron los 40 «sin tests»; **no
+  hay triaje de los 448 supervivientes**, así que no es una tasa cerrada.
 - **Límite:** el evaluador sigue pendiente; el piloto no mezcla su denominador
   con el 95,2% del núcleo. El resultado sugiere tests débiles en preflight, no
   un problema del motor de mutación.
@@ -196,7 +196,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   `cobertura.motivo_no_comparable`, `cobertura.nota_lenguajes` y rótulo
   **«GLOBAL NO COMPARABLE»** en el informe de texto. Un proyecto Java de prueba
   (8/29, 28%) queda marcado como no comparable.
-- **Evidencia:** 2 tests nuevos (`TestComparabilidadR5`), suite **876/876**,
+- **Evidencia:** 2 tests nuevos (`TestComparabilidadR5`), suite **879/879**,
   ruff 0, docs-check OK. JSON aditivo: no rompe `schema_version: 2`.
 - **Criterio de aceptación:** [x] no se presenta un global comparable con
   cobertura baja; [x] advertencia visible; [x] documentado y probado.
@@ -215,7 +215,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   la línea del `except`; c3 y preflight separan hallazgos de **advertencias**.
   Sin marca o con motivo vacío sigue fallando. Los warnings se muestran en
   texto y JSON; thinker no usa la marca.
-- **Evidencia:** 5 tests nuevos (3 de c3 y 2 de preflight), suite **876/876**,
+- **Evidencia:** 5 tests nuevos (3 de c3 y 2 de preflight), suite **879/879**,
   ruff 0, docs-check OK; preflight propio: 0 hallazgos, 0 warnings.
 - **Criterio de aceptación:** [x] política escrita; [x] tests de marca; [x]
   ningún silencio desaparece sin trazabilidad; [x] thinker estricto.
@@ -233,7 +233,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   con literales. No toca `c5` ni la puntuación; no marca variables, helpers ni
   property tests.
 - **Evidencia:** dos tests nuevos (detección y no falsos positivos); suite
-  **876/876**, ruff 0; el informe distingue no-op de débil. Limitación
+  **879/879**, ruff 0; el informe distingue no-op de débil. Limitación
   declarada: no detecta tautologías con variables ni `__eq__` personalizados.
 - **Criterio de aceptación:** [x] fixtures con `assert True`; [x] 0 falsos
   positivos en property tests/helpers; [x] no-op y débil separados; [x] no
@@ -333,7 +333,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   usa un generador y un verificador simulados con nombres distintos y mide el
   coste: **1 llamada al generador, 1 al verificador, 1 llamada extra**; la
   independencia se declara `proveedor-distinto`.
-- **Evidencia:** 1 test (`TestVerificadorBarato`), suite **876/876**, ruff 0.
+- **Evidencia:** 1 test (`TestVerificadorBarato`), suite **879/879**, ruff 0.
   Sin red: los LLM son simulados y se declara que no miden calidad real.
 - **Criterio de aceptación:** [x] verificador barato documentado y probado;
   [x] coste en llamadas declarado; [x] sin red por defecto; [ ] claim compuesto
@@ -359,7 +359,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   fiabilidad con **16 pares simulados**, resultado **0,1166**. No prueba
   calibración real; `tests/test_calibracion_confianza.py` prueba la fórmula y
   `tests/test_docs_calibracion.py` protege la declaración.
-- **Evidencia:** 3 tests (1 documental, 2 del benchmark), suite **876/876**,
+- **Evidencia:** 3 tests (1 documental, 2 del benchmark), suite **879/879**,
   ruff 0. **No hay Brier real**: no se afirma calibración ni se usa
   `confidence` como probabilidad.
 - **Criterio de aceptación:** [x] README/AGENTS declara que no está calibrada;
@@ -378,7 +378,7 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
-| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; medir el evaluador y atacar los 40 sin tests | Comando reproducible; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
+| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; medir el evaluador y triajar los 448 supervivientes | Comando reproducible; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
 | 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 18 casos/9 criterios actuales a más criterios y trampas reales | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
 | 3 | **R13** | P3 / B | CoVe con verificador barato (C pendiente) | Implementar descomposición de claims (C) con benchmark | Claim compuesto detectado; coste declarado | Medio |
 
@@ -403,9 +403,9 @@ así, y el registro se conserva en el informe de cierre del lote:
 
 | Tarea | Componente de thinker | Evidencia que aportó | Verificación humana/automática |
 |---|---|---|---|
-| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; piloto preflight 495/949 muertos, 414 supervivientes, 40 sin tests; evaluador pendiente | 3 tests del arnés; triaje pendiente |
+| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; preflight 557/1005 muertos, 448 supervivientes, 0 sin tests; evaluador pendiente | 3 tests del arnés + 3 tests de helpers; triaje pendiente |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 18 casos, 9 criterios, 9 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
-| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 876/876 |
+| R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 879/879 |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se

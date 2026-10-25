@@ -475,13 +475,13 @@ sobre 9 criterios (h1, h2, h3, h6, v2, c2, c3, c5, f3), con TP/FP/FN, precision 
 criterio y global; resultado actual **9 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 9/29 criterios y fixtures sintéticas. Cobertura:
 `evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **90%**
-(39/401), total 83%. Suite **876/876** en Linux (Python 3.11.9), ruff 0,
+(39/401), total 83%. Suite **879/879** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
-verificados). R3 queda **parcial**: piloto de preflight con **949 mutantes, 495
-muertos, 414 supervivientes y 40 sin tests**, sin triaje todavía; el evaluador
-no se midió y no se publica su tasa. El arnés `scripts/mutacion.py` (3 tests)
-deja el comando reproducible, pero R3 no se cierra hasta triajar los
-supervivientes y medir el evaluador. R5 añade `cobertura.comparable`,
+verificados). R3 queda **parcial**: preflight con **1005 mutantes, 557 muertos, 448
+supervivientes y 0 sin tests**, sin triaje todavía; el evaluador no se midió y
+no se publica su tasa. El arnés `scripts/mutacion.py` (3 tests) deja el comando
+reproducible, pero R3 no se cierra hasta triajar los 448 supervivientes y medir
+el evaluador. R5 añade `cobertura.comparable`,
 `motivo_no_comparable` y «GLOBAL NO COMPARABLE»; Java/JS queda como no
 comparable. R6 admite `# noqa: silent: motivo` como **warning** en c3 y
 preflight; sin marca sigue fallando. R13-B mide el verificador barato: 1 llamada

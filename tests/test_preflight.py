@@ -1,12 +1,15 @@
 """Tests de scripts/preflight.py: gates deterministas, fixtures y repo real."""
 
+import ast
 import io
 import json
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from scripts.preflight import archivos_python, ejecutar, main
+from scripts.preflight import (archivos_python, ejecutar, main,
+                               _nombre_excepcion, _lineas_import_opcional,
+                               _lineas_condicionales)
 import scripts.preflight as preflight_mod
 from tests.helpers import crear_proyecto
 
@@ -396,6 +399,41 @@ class TestSilenciosR6(unittest.TestCase):
         self.assertFalse(informe["ok"])
         self.assertEqual(
             len(self._gates(informe)["silencios"]["hallazgos"]), 1)
+
+
+class TestHelpersSinTestsR3(unittest.TestCase):
+    """Cubre los helpers que no tenían tests directos (R3-C)."""
+
+    def test_nombre_excepcion(self):
+        self.assertEqual(
+            _nombre_excepcion(ast.Name(id="ImportError")), "ImportError")
+        self.assertEqual(
+            _nombre_excepcion(ast.Tuple(
+                elts=[ast.Name(id="OSError"), ast.Name(id="ValueError")],
+                ctx=ast.Load())), "OSError,ValueError")
+        self.assertEqual(_nombre_excepcion(ast.Constant(value=1)), "")
+
+    def test_lineas_import_opcional(self):
+        arbol = ast.parse(
+            "try:\n"
+            "    import requests\n"
+            "except (ImportError, ModuleNotFoundError):\n"
+            "    pass\n"
+            "try:\n"
+            "    import seguro\n"
+            "except ValueError:\n"
+            "    pass\n")
+        self.assertEqual(_lineas_import_opcional(arbol), {2})
+
+    def test_lineas_condicionales(self):
+        arbol = ast.parse(
+            "if has_foo:\n"
+            "    import foo\n"
+            "if not has_bar:\n"
+            "    import bar\n"
+            "if has_baz:\n"
+            "    pass\n")
+        self.assertEqual(_lineas_condicionales(arbol), {2})
 
 
 if __name__ == "__main__":
