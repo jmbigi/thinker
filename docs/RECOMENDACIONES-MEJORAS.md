@@ -351,6 +351,20 @@ como deuda.
 la CI sea local, que macOS no se haya probado y que Windows no se haya
 re-ejecutado con la suite actual.
 
+**Regla 14 — dogfooding ≥90%:** todas las tareas de esta deuda se ejecutan con
+componentes de thinker en al menos el 90% de los casos. Cada tarea se registra
+así, y el registro se conserva en el informe de cierre del lote:
+
+| Tarea | Componente de thinker | Evidencia que aportó | Verificación humana/automática |
+|---|---|---|---|
+| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | ... | tests y campaña reproducible |
+| R4 | `evaluar_proyecto` y `tests/benchmarks` | ... | precisión/recall reproducibles |
+| R7 | `evaluar_proyecto`/`preflight` | ... | fixtures y suite |
+
+No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
+o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
+descarta y se anota; la verificación empírica sigue siendo obligatoria.
+
 ## 6. Qué NO hacer
 
 - **No** convertir el global en un ranking universal: la cobertura varía y el

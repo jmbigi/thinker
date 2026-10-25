@@ -2458,3 +2458,23 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: un objetivo de cobertura debe medirse con su denominador exacto
   (el 90% redondeado ocultaba un 89,9%); y una licencia fuera del score sigue
   siendo un riesgo que hay que hacer visible, separado del runtime.
+
+## 2026-10-25 (ronda 24) — Dogfooding medible (regla 14)
+
+### Hallazgo 106: usar thinker al final no es usarlo en la mejora
+
+- **Origen**: regla del programador del 2026-10-25: thinker debe usarse en al
+  menos el 90% de las tareas de mejora de thinker.
+- **Problema**: en R2/R10 thinker se usó como evaluador final y consultor, pero
+  no como diagnóstico/diseño de la mejora. Una ejecución decorativa al final
+  no demuestra dogfooding y no debe contar para el 90%.
+- **Solución**: regla 14 en `AGENTS.md`, con unidad de medida por **tarea**
+  (no por tiempo), registro de componente/evidencia/verificación, 100% en
+  lotes de menos de 10 salvo excepción declarada y exclusión explícita de
+  ejecuciones de trámite o de salidas no verificadas. La sección 5 de
+  `docs/RECOMENDACIONES-MEJORAS.md` incluye la tabla de registro.
+- **Evidencia**: regla 14 + ítem en el checklist pre-entrega; tabla de registro
+  en RECOMENDACIONES; sin cambios de código.
+- **Lección**: el dogfooding se demuestra con trazas de decisiones, no con una
+  ejecución final; si thinker alucina, se descarta y se registra, y la
+  verificación empírica sigue decidiendo.

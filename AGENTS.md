@@ -91,6 +91,23 @@ mejora de código (`code_design_improvement_tools.py`).
     falsos o estaban fuera de alcance; nunca se oculta un fallo real para
     mejorar el número. El conflicto «mejorar la nota» vs. «decir la verdad» se
     resuelve siempre a favor de la verdad (P0.1/P0.2/P1.12).
+14. **Dogfooding obligatorio: thinker en ≥90% de sus mejoras** (regla del
+    programador, 2026-10-25): al menos el **90% de las tareas de mejora de
+    thinker** deben usar un componente del propio proyecto y dejar evidencia
+    de que su salida influyó en la decisión. Cuentan `evaluar_proyecto.py`
+    (diagnóstico, autoevaluación, benchmark), `pensamiento_layer`/
+    `thinking_engine` (diseño y razonamiento), `code_design_improvement_tools`
+    (análisis), `deep_research_system` (investigación) y los gates
+    deterministas (`preflight`, `check_docs`, `audit_changes`,
+    `run_holdout`). **No cuenta** ejecutar una herramienta al final como
+    trámite ni aceptar su salida sin verificarla: si thinker alucina, se
+    descarta y se registra. La unidad de medida es la **tarea de mejora**, no
+    el tiempo; cada tarea se anota con componente usado, evidencia aportada y
+    verificación. En lotes de menos de 10 tareas se exige el 100% salvo
+    excepción declarada. Si no se puede usar (offline, sin key, herramienta no
+    aplicable), se declara la excepción y se compensa; no se simula el uso.
+    Esta regla no rebaja P0.1/P0.2 ni la verificación empírica: thinker
+    propone, los tests y la evidencia deciden.
 
 ## Entorno y verificación (comandos del proyecto)
 
@@ -450,6 +467,7 @@ mejora de código (`code_design_improvement_tools.py`).
 - [ ] ¿Ejecuté py_compile + tests offline y muestro la salida? (P1.1)
 - [ ] ¿Solo cambié lo necesario y reporté qué falta? (P1.2/P1.6)
 - [ ] ¿Este cambio corrige un defecto reproducible o solo mejora una nota? ¿La opinión que lo motiva está fundamentada? (regla 13)
+- [ ] ¿Usé thinker en ≥90% de las tareas de mejora y registré componente, evidencia y verificación? (regla 14)
 - [ ] ¿Sin fallbacks silenciosos ni errores tragados? (P1.19/P1.26)
 - [ ] ¿Lecciones documentadas en `docs/LECCIONES-APRENDIDAS.md`? (P1.20)
 - [ ] ¿Lo simulado está declarado como simulado? (regla propia 4)
