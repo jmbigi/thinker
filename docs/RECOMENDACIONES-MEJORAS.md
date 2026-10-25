@@ -319,18 +319,37 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Riesgo:** bajo; el riesgo es interpretar mal una muestra pequeña, que se
   declara como tal.
 
-## 5. Orden de trabajo y dependencias
+## 5. Deuda pendiente priorizada (2026-10-25)
 
-1. **R1** (lock) — desbloquea una autoevaluación 1.000 honesta.
-2. **R2** (cobertura) — asegura que R3 y R4 miden sobre código ejercitado.
-3. **R3** (mutación) — mide fuerza real; puede revelar tests débiles de R2.
-4. **R4** (benchmark completo) — amplía el corpus ya cerrado a TP/FP/FN.
-5. **R8, R11 y R12 (cerradas):** esquema JSON v2, gate documental y corpus
-   adversario ya están en el repositorio con tests.
-6. **R9 (cerrada):** `0.1.4` está publicada en TestPyPI y PyPI, con tag
-   `v0.1.4` y artefactos verificados; no requiere GitHub Release (regla 12).
-7. **R5, R6, R7, R10, R13 y R14** — decisiones de producto/alcance; no bloquean
-   R1–R4.
+**Abiertas:** R3, R4, R5, R6, R7, R13 y R14. **Cerradas:** R1, R2, R8, R9,
+R10, R11 y R12. Una recomendación abierta es deuda solo si tiene un criterio
+de aceptación medible; las limitaciones declaradas del README no se cuentan
+como deuda.
+
+| Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
+|---|---|---|---|---|---|---|
+| 1 | **R3** | **P1** | Mutación del evaluador y preflight | Campaña separada de `mutmut` sobre esos dos módulos, sin mezclar su denominador con el 95,2% del núcleo | Comando reproducible; línea base; 0 mutantes sin ejecutar; 0 supervivientes sin triaje; tasa con denominador y exclusiones | Medio-alto |
+| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador | Corpus etiquetado por criterio y cálculo de precisión/recall, no solo regresiones | Precisión y recall por criterio y global; N/A declarados; casos difíciles conservados | Medio |
+| 3 | **R7** | P2 | Calidad de aserciones | Señal separada de «aserción débil» para `assert True`/tautologías, sin tocar c5 | Fixtures con `assert True`, property tests y helpers; 0 falsos positivos; el informe distingue no-op de débil | Medio |
+| 4 | **R5** | P2 | Alcance Java/JS | Decidir soporte real o límite explícito; hoy la cobertura es 10/29 y 12/29 | Decisión documentada; si se limita, el informe lo dice sin presentar el GLOBAL como comparable | Alto |
+| 5 | **R6** | P2 | Silencios deliberados de producción | Política para `# noqa: silent` con motivo frente a `except: pass` real | Regla documentada; tests de ambos casos; sin falsos positivos en c3 | Bajo |
+| 6 | **R13** | P3 | CoVe con descomposición de claims | Piloto opt-in con verificador más barato y coste declarado | Benchmark offline de coste/calidad; nunca como defecto sin medir llamadas | Medio |
+| 7 | **R14** | P3 | Calibración de `credibility`/`confidence` | Brier y tabla de fiabilidad offline, o declararlas no calibradas | Informe reproducible; README/AGENTS no las presentan como probabilidad sin medición | Medio |
+
+**Orden recomendado:** R3 → R4/R7 → decisiones R5/R6 → R13/R14.
+
+- **R3, R4 y R7 no requieren decisión del programador**: se pueden ejecutar
+  cuando haya tiempo; R3 es la deuda P1 principal.
+- **R5, R6 y R13 sí requieren decisión** de producto/alcance; no deben hacerse
+  «por inercia».
+- **R14** puede cerrarse pronto declarando explícitamente que `confidence` no
+  está calibrada, si no se va a medir Brier.
+- Las cerradas R1/R2/R8/R9/R10/R11/R12 no se reabren sin evidencia nueva.
+
+**No es deuda** (son límites declarados, no defectos pendientes): que
+`MockSearchAPI` no haga investigación real, los 429 de modelos gratuitos, que
+la CI sea local, que macOS no se haya probado y que Windows no se haya
+re-ejecutado con la suite actual.
 
 ## 6. Qué NO hacer
 
@@ -355,15 +374,16 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
    declarar alcance ahora; invertir solo con demanda real.
 2. **R6:** ¿c3 estricto o marca `# noqa: silent` con motivo? Recomendación:
    estricto para thinker; la marca solo si un proyecto externo la necesita.
-3. **R9:** ventana de release 0.1.4 y si se publica en TestPyPI antes.
-4. **R13:** ¿se adopta el verificador barato y la descomposición de claims como
+3. **R13:** ¿se adopta el verificador barato y la descomposición de claims como
    piloto opt-in? Recomendación: sí, con benchmark offline y coste declarado;
    nunca como defecto sin medir el coste en llamadas.
-5. **R14:** ¿se mide la calibración de `credibility`/`confidence` o se declara
+4. **R14:** ¿se mide la calibración de `credibility`/`confidence` o se declara
    directamente no calibrada? Recomendación: medir con Brier offline y
    declararlo; no presentar confianza del modelo como probabilidad.
-6. **R1, R8, R11 y R12 (cerradas):** lock 3.37.0, esquema JSON v2, gate
-   documental y corpus adversario; el canario y la suite pasan.
+
+R3, R4 y R7 no requieren una decisión de producto: se pueden ejecutar cuando
+haya tiempo. R1, R2, R8, R9, R10, R11 y R12 están cerradas y no se reabren sin
+evidencia nueva.
 
 ## 8. Verificación reproducible
 
