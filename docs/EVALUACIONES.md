@@ -477,11 +477,12 @@ límite declarado de 14/29 criterios y fixtures sintéticas. Cobertura:
 `evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **94%**
 (26/425), total 83%. Suite **891/891** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
-verificados). R3 queda **parcial**: preflight con **1015 mutantes, 639 muertos, 376
-supervivientes y 0 sin tests**, sin triaje todavía; el evaluador no se midió y
-no se publica su tasa. El arnés `scripts/mutacion.py` (3 tests) deja el comando
-reproducible, pero R3 no se cierra hasta triajar los 370 supervivientes y medir
-el evaluador. R5 añade `cobertura.comparable`,
+verificados). R3 queda **parcial**: preflight **1015 mutantes, 645 muertos, 370
+supervivientes, 0 sin tests**; evaluador **5939 mutantes, 3034 muertos, 2901
+supervivientes, 0 sin tests y 4 timeouts** (tasa bruta 51,09%). Ninguno tiene
+triaje cerrado; los 4 timeouts no están clasificados. El arnés
+`scripts/mutacion.py` (3 tests) deja ambos comandos reproducibles, pero R3 no se
+cierra hasta triajar los supervivientes y resolver los timeouts. R5 añade `cobertura.comparable`,
 `motivo_no_comparable` y «GLOBAL NO COMPARABLE»; Java/JS queda como no
 comparable. R6 admite `# noqa: silent: motivo` como **warning** en c3 y
 preflight; sin marca sigue fallando. R13-B/C mide el verificador barato y la descomposición opt-in:

@@ -15,7 +15,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-25; decisión C] Medir mutación del evaluador y preflight | Preflight: 645/1015 muertos, 370 supervivientes sin triaje, 0 sin tests; evaluador pendiente | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-25; decisión C] Medir mutación del evaluador y preflight | Preflight: 645/1015, 370 sin triaje; evaluador: 3034/5939, 2901 sin triaje, 4 timeouts | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 33 casos/14 criterios con 5 trampas y 1.00/1.00; faltan 15 criterios | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -38,7 +38,7 @@ R1, R2, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 | **R6** | **C con warnings**: estricto para thinker; marca externa con motivo, reportada como warning | **Implementada y cerrada** | Hecho: warnings en c3/preflight |
 | **R13** | **B con vía a C**: verificador barato; descomposición después | **B y C implementadas; cerrada** | Hecho: descomposición opt-in |
 | **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=20); declaración vigente** | Ampliar muestra; no afirmar calibración general |
-| **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | Decidida, no implementada; R3 parcial | Medir evaluador y triajar 370 supervivientes |
+| **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | Decidida, no implementada; R3 parcial | Triajar 370 de preflight y 2901 del evaluador; resolver 4 timeouts |
 | **R4** | Sin decisión de producto; ampliar cobertura | En curso, parcial (28 casos/14 criterios) | Completar los 15 criterios y trampas reales |
 
 **No queda ninguna decisión de producto pendiente.** Lo que falta es ejecución. R14 ya tiene un piloto real n=6; ampliar la muestra
@@ -149,17 +149,22 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   `python3 scripts/mutacion.py --objetivo preflight` (y `--objetivo evaluar`).
   El arnés copia sin `.env`/`.git`, usa `also_copy` para `evidence.py` y
   `scripts/` (dependencias no mutadas) y suma 3 tests.
-- **Resultado actual:** **1015 mutantes**, **645 muertos**, **370
+- **Resultado preflight:** **1015 mutantes**, **645 muertos**, **370
   supervivientes**, **0 sin tests**, 0 timeouts, 0 sospechosos. Tasa bruta
   63,5% (645/1015). Los tests de helpers y de manifiestos eliminaron los 40
   «sin tests» y 72 supervivientes; **no hay triaje de los 370 restantes**, así
   que no es una tasa cerrada.
-- **Límite:** el evaluador sigue pendiente; el piloto no mezcla su denominador
-  con el 95,2% del núcleo. El resultado sugiere tests débiles en preflight, no
-  un problema del motor de mutación.
-- **Criterio de aceptación:** [ ] evaluador medido; [x] comando reproducible
-  empaquetado; [ ] 0 mutantes sin ejecutar; [ ] 0 supervivientes sin triaje;
-  [ ] tasa declarada con denominador y exclusiones.
+- **Resultado evaluador (2026-10-25):** **5939 mutantes**, **3034 muertos**,
+  **2901 supervivientes**, **0 sin tests**, **4 timeouts**, 0 sospechosos.
+  Tasa bruta **51,09%** (3034/5939), con denominador completo; los timeouts
+  cuentan como no muertos. **No hay triaje de los 2901**; la tasa no es
+  cerrada.
+- **Límite:** los dos denominadores no se mezclan con el 95,2% del núcleo ni
+  entre sí. El resultado sugiere tests débiles en ambos objetivos, no un fallo
+  del motor de mutación.
+- **Criterio de aceptación:** [x] evaluador medido; [x] comando reproducible
+  empaquetado; [ ] 0 mutantes sin ejecutar (4 timeouts); [ ] 0 supervivientes
+  sin triaje; [ ] tasa cerrada con triaje.
 - **Riesgo:** medio; el piloto ya muestra que el triaje será costoso.
 
 ### R4 — Benchmark de precisión/recall del evaluador — PARCIAL 2026-10-25
@@ -388,7 +393,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 
 | Tarea | Componente de thinker | Evidencia que aportó | Verificación humana/automática |
 |---|---|---|---|
-| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; preflight 645/1015 muertos, 370 supervivientes, 0 sin tests; evaluador pendiente | 3 tests del arnés + 3 de helpers + 6 de manifiestos; triaje pendiente |
+| R3 | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; preflight 645/1015, 370 supervivientes; evaluador 3034/5939, 2901 supervivientes, 4 timeouts | 3 tests del arnés + 3 de helpers + 6 de manifiestos; triaje pendiente |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 33 casos (5 trampas), 14 criterios, 14 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
 | R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 891/891 |
 

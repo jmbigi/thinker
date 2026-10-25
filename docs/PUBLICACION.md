@@ -81,8 +81,9 @@ Incluye R13-C (descomposición opt-in de claims compuestos), R4 con 33
 casos/14 criterios y 5 trampas, R14-C con piloto real n=20 (Brier 0,0540), el
 arreglo de `extras_require` en `setup.py` y 3 tests de casos límite de
 manifiestos. R3 sigue parcial: preflight 1015 mutantes, 645 muertos, 370
-supervivientes sin triaje; el evaluador no se midió. Suite 891/891, cobertura
-evaluador 91% y preflight 94%.
+supervivientes sin triaje. El evaluador se midió después de publicar: 5939
+mutantes, 3034 muertos, 2901 supervivientes y 4 timeouts (51,09%), sin triaje.
+Suite 891/891, cobertura evaluador 91% y preflight 94%.
 
 Artefactos: `thinker-research 0.1.11` (wheel y sdist), construidos desde el
 tag `v0.1.11`; `twine check` PASSED. Hashes SHA-256:

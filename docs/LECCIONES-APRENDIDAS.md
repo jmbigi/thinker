@@ -2599,8 +2599,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se declara heurística, no semántica.
 - **R3**: 6 tests de manifiestos y un arreglo real (`extras_require` contaba
   sus claves como dependencias). Preflight queda en **1015 mutantes, 645
-  muertos, 370 supervivientes, 0 sin tests**; cobertura 94% y suite 891/891.
-  Los 370 supervivientes siguen sin triaje; no se publica tasa cerrada.
+  muertos, 370 supervivientes, 0 sin tests**; el evaluador se midió después:
+  **5939 mutantes, 3034 muertos, 2901 supervivientes, 0 sin tests, 4 timeouts**
+  (tasa bruta 51,09%). Cobertura 94% y suite 891/891. Ninguno de los dos tiene
+  triaje cerrado; los 4 timeouts siguen sin clasificar.
 - **Lección**: una descomposición por conjunciones mejora el caso compuesto
   medido, pero puede partir mal una frase; el modo por defecto no se toca. En
   mutación, atacar los clusters con tests directos reduce el trabajo, pero no
@@ -2625,3 +2627,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: un Brier casi perfecto en casos triviales mide el instrumento,
   no la calidad probabilística del modelo. Declarar el tamaño y la dificultad
   de la muestra es parte del resultado.
+
+## 2026-10-25 (ronda 32) — Mutación del evaluador: 51,09%, sin triaje
+
+### Hallazgo 114: medir no es cerrar; 2901 supervivientes y 4 timeouts siguen abiertos
+
+- **Medición**: campaña completa del evaluador con `scripts/mutacion.py
+  --objetivo evaluar`: **5939 mutantes, 3034 muertos, 2901 supervivientes,
+  0 sin tests, 4 timeouts, 0 sospechosos**. Tasa bruta **51,09%**
+  (3034/5939); los timeouts cuentan como no muertos.
+- **Estado**: R3 **no se cierra**. Faltan el triaje de los 2901 supervivientes
+  del evaluador y de los 370 de preflight, además de clasificar los 4 timeouts.
+  No se mezclan denominadores: el 95,2% del núcleo, el 63,5% de preflight y el
+  51,09% del evaluador miden objetivos distintos.
+- **Lección**: una tasa baja no autoriza a cambiar tests o umbrales para
+  maquillarla; primero se triaja y se distingue mutante equivalente de test
+  ausente. La cifra es evidencia para dirigir tests, no una nota.
