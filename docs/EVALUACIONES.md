@@ -470,12 +470,12 @@ y PyPI el 2026-10-25; tag anotado `v0.1.9` (`14e2b7f`). Wheel SHA-256
 `aserciones_debiles` como señal informativa separada de c5 (constantes
 verdaderas, comparaciones constantes que pasan y `assertTrue/assertEqual` con
 literales), sin cambiar la puntuación; no marca variables, helpers ni property
-tests. R4 añade `tests/benchmarks/evaluador_precision.py`: 28 casos etiquetados
-sobre 14 criterios (h1, h2, h3, h6, v2, c1, c2, c3, c5, f2, f3, f4, v1, h7), con TP/FP/FN, precision y recall por
+tests. R4 añade `tests/benchmarks/evaluador_precision.py`: 33 casos etiquetados
+sobre 14 criterios, incluidos 5 casos trampa de falsos positivos (h1, h2, h3, h6, v2, c1, c2, c3, c5, f2, f3, f4, v1, h7), con TP/FP/FN, precision y recall por
 criterio y global; resultado actual **14 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 14/29 criterios y fixtures sintéticas. Cobertura:
 `evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **93%**
-(29/425), total 83%. Suite **886/886** en Linux (Python 3.11.9), ruff 0,
+(29/425), total 83%. Suite **888/888** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
 verificados). R3 queda **parcial**: preflight con **1015 mutantes, 639 muertos, 376
 supervivientes y 0 sin tests**, sin triaje todavía; el evaluador no se midió y
@@ -489,7 +489,8 @@ preflight; sin marca sigue fallando. R13-B/C mide el verificador barato y la des
 monolítico pasa y el descompuesto detecta la contradicción con 2 llamadas. R14 se cierra por
 **declaración**: README y AGENTS dicen que `credibility`/`confidence` no están
 calibradas y no se presentan como probabilidad; el Brier offline es **simulado**
-(0,1166 en 16 casos) y no prueba calibración real.
+(0,1166 en 16 casos) y el piloto real n=6 da **0,0017** (6/6, confianza media
+0,963), pero la muestra es fácil y diminuta: no prueba calibración general.
 
 Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
 `v0.1.10` (`551d693`). Wheel SHA-256

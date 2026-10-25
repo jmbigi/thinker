@@ -21,7 +21,7 @@ class TestEvaluadorPrecision(unittest.TestCase):
     def test_corpus_balanceado_y_sin_falsos(self):
         criterios = {caso["criterio"] for caso in CASOS}
         self.assertEqual(len(criterios), 14)
-        self.assertEqual(len(CASOS), 28)
+        self.assertEqual(len(CASOS), 33)
         for criterio in criterios:
             esperados = {caso["esperado"] for caso in CASOS
                          if caso["criterio"] == criterio}
@@ -29,7 +29,7 @@ class TestEvaluadorPrecision(unittest.TestCase):
 
         resultado = evaluar_corpus()
 
-        self.assertEqual(resultado["casos"], 28)
+        self.assertEqual(resultado["casos"], 33)
         self.assertEqual(resultado["criterios"], 14)
         self.assertEqual(resultado["global"]["tp"], 14)
         self.assertEqual(resultado["global"]["fp"], 0)

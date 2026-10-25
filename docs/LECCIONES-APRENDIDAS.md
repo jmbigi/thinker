@@ -2491,11 +2491,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   constantes verdaderas, comparaciones constantes que pasan y
   `assertTrue/assertFalse/assertEqual` con literales. No cambia c5 y no marca
   variables, helpers ni property tests.
-- **R4**: `tests/benchmarks/evaluador_precision.py` con 28 casos sintéticos
-  etiquetados sobre 14 criterios; TP/FP/FN, precision y recall por criterio y
+- **R4**: `tests/benchmarks/evaluador_precision.py` con 33 casos sintéticos
+  etiquetados sobre 14 criterios, incluidos 5 trampas; TP/FP/FN, precision y recall por criterio y
   global. Resultado **14 TP, 0 FP, 0 FN; 1,00/1,00**. Límite declarado: 14 de 29
   criterios y fixtures sintéticas; no es una campaña sobre proyectos reales.
-- **Evidencia**: suite **886/886**, ruff 0, cobertura evaluador 91% (145/1571),
+- **Evidencia**: suite **888/888**, ruff 0, cobertura evaluador 91% (145/1571),
   preflight 93%; autoevaluación 1.000. El benchmark y sus métricas son
   reproducibles con `python3 tests/benchmarks/evaluador_precision.py`.
 - **Lección**: una aserción que no puede fallar no aporta fuerza, aunque pase
@@ -2526,7 +2526,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Estado del evaluador**: el arnés `scripts/mutacion.py` queda listo
   (`--objetivo evaluar`), pero la campaña completa no terminó; no se publica
   tasa del evaluador. R3 sigue **parcial**.
-- **Evidencia**: 3 tests del arnés, suite **886/886**, ruff 0, docs-check OK.
+- **Evidencia**: 3 tests del arnés, suite **888/888**, ruff 0, docs-check OK.
 - **Lección**: una campaña de mutación fuera de `source_paths` debe copiar sus
   dependencias sin mutarlas y verificar primero la línea base; los mutantes «sin
   tests» y los supervivientes son hallazgos, no ruido. Sin triaje no hay tasa
@@ -2544,7 +2544,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   protege la declaración; `tests/benchmarks/calibracion_confianza.py` añade un
   Brier **simulado** (0,1166 en 16 pares) que prueba el instrumento, no el
   modelo.
-- **Evidencia**: suite **886/886**, ruff 0, docs-check OK. **No hay Brier
+- **Evidencia**: suite **888/888**, ruff 0, docs-check OK. **No hay Brier
   real**; no se afirma calibración.
 - **Lección**: cuando no hay medición real, la opción honesta es declarar la
   limitación, etiquetar el simulador como simulado y evitar que el número se
@@ -2565,7 +2565,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   La descomposición de claims (C) sigue pendiente.
 - **R14-B**: Brier simulado 0,1166 con 16 pares; la declaración «no calibrada»
   sigue vigente. No se usa como evidencia de calibración real.
-- **Evidencia**: 10 tests nuevos, suite **886/886**, ruff 0, preflight 0,
+- **Evidencia**: 10 tests nuevos, suite **888/888**, ruff 0, preflight 0,
   docs-check OK; cobertura evaluador 91% (145/1571) y preflight 93% (29/425).
 - **Lección**: la honestidad del informe también se juega en los rótulos
   (comparable/no comparable) y en los warnings; una marca sin motivo o invisible
@@ -2599,9 +2599,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se declara heurística, no semántica.
 - **R3**: 6 tests de manifiestos y un arreglo real (`extras_require` contaba
   sus claves como dependencias). Preflight queda en **1015 mutantes, 639
-  muertos, 376 supervivientes, 0 sin tests**; cobertura 93% y suite 886/886.
+  muertos, 376 supervivientes, 0 sin tests**; cobertura 93% y suite 888/888.
   Los 376 supervivientes siguen sin triaje; no se publica tasa cerrada.
 - **Lección**: una descomposición por conjunciones mejora el caso compuesto
   medido, pero puede partir mal una frase; el modo por defecto no se toca. En
   mutación, atacar los clusters con tests directos reduce el trabajo, pero no
   sustituye el triaje de los supervivientes.
+
+## 2026-10-25 (ronda 31) — Piloto real de Brier (R14-C)
+
+### Hallazgo 113: un Brier bajo en seis hechos fáciles no es calibración
+
+- **Acción**: `tests/benchmarks/calibracion_real.py` con 6 claims factuales,
+  fuentes y veredicto esperado; llamadas reales a OpenRouter
+  (`poolside/laguna-xs-2.1:free`).
+- **Resultado**: **6/6 aciertos, Brier 0,0017**, confianza media 0,963. Es un
+  piloto, no una calibración: la muestra es diminuta y los hechos son fáciles
+  (agua a 100 °C, Tierra no plana, París capital, oro sólido).
+- **Decisión**: la declaración «confidence no calibrada» sigue vigente. Para
+  afirmar calibración general haría falta una muestra representativa, con
+  intervalos y casos difíciles.
+- **Evidencia**: 2 tests puros del cálculo; la ejecución real es opt-in y no
+  forma parte de la suite offline.
+- **Lección**: un Brier casi perfecto en casos triviales mide el instrumento,
+  no la calidad probabilística del modelo. Declarar el tamaño y la dificultad
+  de la muestra es parte del resultado.

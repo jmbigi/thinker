@@ -310,6 +310,62 @@ CASOS = [
         },
     },
 
+    {
+        "nombre": "trampa_h6_import_en_docs",
+        "criterio": "h6_imports_declarados",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "README.md": "```python\nimport requests\n```\n",
+        },
+    },
+    {
+        "nombre": "trampa_h6_import_opcional",
+        "criterio": "h6_imports_declarados",
+        "esperado": False,
+        "archivos": {
+            "demo.py": ("try:\n"
+                        "    import requests\n"
+                        "except ImportError:\n"
+                        "    pass\n"),
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
+    {
+        "nombre": "trampa_c3_except_con_return",
+        "criterio": "c3_sin_silencios",
+        "esperado": False,
+        "archivos": {
+            "demo.py": ("def f():\n"
+                        "    try:\n"
+                        "        return 1\n"
+                        "    except Exception:\n"
+                        "        return 0\n"),
+        },
+    },
+    {
+        "nombre": "trampa_f3_todo_en_tests",
+        "criterio": "f3_sin_deuda_declarada",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "tests/test_x.py": "# TODO: esto es un test, no producción\n",
+        },
+    },
+    {
+        "nombre": "trampa_c5_helper_sin_assert",
+        "criterio": "c5_tests_con_aserciones",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "tests/test_x.py": ("import unittest\n"
+                                "from demo import f\n\n\n"
+                                "class T(unittest.TestCase):\n"
+                                "    def test_a(self):\n"
+                                "        f()\n"),
+        },
+    },
+
 ]
 
 
