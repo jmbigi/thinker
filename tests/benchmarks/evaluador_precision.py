@@ -3,8 +3,8 @@
 
 Casos sintéticos con un criterio objetivo y un resultado esperado (hallazgo
 presente/ausente). No sustituye una campaña sobre proyectos reales: mide que el
-detector no haya involucionado y hace explícita la cobertura (5 criterios, no
-los 29 del rubric).
+detector no haya involucionado y hace explícita la cobertura (14 de los 29
+criterios del rubric; los 15 restantes se declaran N/A en el informe).
 
 Uso:
     python3 tests/benchmarks/evaluador_precision.py [--json]

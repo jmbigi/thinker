@@ -2688,6 +2688,12 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   muchos son candidatos a equivalencia (defaults de `dict.get` que el helper
   ya trata, `encoding="UTF-8"` frente a `"utf-8"`), pero **no se declara
   equivalencia sin prueba**.
+- **Evaluador**: tras aislar los tests de `main` y el de
+  `test_sintesis_sin_python_dotenv`, la campaña 26c dio **5939 mutantes, 3040
+  muertos, 2899 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa
+  bruta **51,19%**. Los **4 timeouts quedaron en 0** y el triaje completo es
+  **2959/2959** (60 preflight + 2899 evaluador). La deuda del evaluador sigue
+  siendo de aserciones, no de tests colgados.
 - **Dogfooding (regla 14)**: `evaluar_proyecto.py . --sin-red` dio **1.000**
   (25/29 criterios, 86,2% de cobertura) sin hallazgos; el análisis de
   `code_design_improvement_tools` no reportó defectos, así que se reforzaron
@@ -2700,9 +2706,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se modifica: el perfil falla con `EROFS` y los plugins del documento externo
   devuelven 404 en npm; instalar código no verificado habría sido una falsa
   protección (P0.18).
-- **Evidencia**: suite **934/934**; ruff 0; preflight 0; docs-check OK;
+- **Evidencia**: suite **933/933**; ruff 0; preflight 0; docs-check OK;
   `docs/TRIAGE-R3.md` actualizado; JSON en `build/` (ignorados).
 - **Lección**: una aserción exacta del contrato encontró un defecto que 319
   mutantes no habían revelado. La mutación mide la fuerza de los tests, pero
-  los tests deben ser independientes del estado del repositorio para poder
-  medir.
+  los tests deben ser independientes del estado del repositorio y de la red
+  para poder medir; un test que cae en la ruta real convierte un mutante en
+  timeout y oculta el resultado.

@@ -231,6 +231,10 @@ Modos piloto opt-in (desactivados por defecto; ver Hallazgo 76 en
 
 ## Verificación
 
+Protocolo anti-alucinación y cadena de salvaguardas:
+[`docs/SALVAGUARDAS.md`](docs/SALVAGUARDAS.md). Un gate que no se ejecuta no
+protege: las afirmaciones sin salida se marcan como no verificadas.
+
 ```bash
 make check                                    # lint + preflight + docs-check + tests + secretos + ci + hook
 make lint                                     # ruff check .

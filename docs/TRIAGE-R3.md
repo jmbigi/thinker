@@ -1,4 +1,4 @@
-# Triaje R3 — 2961 supervivientes y 4 timeouts
+# Triaje R3 — 2959 supervivientes y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > ninguno se declara equivalente sin prueba. Última medición: 2026-10-26.
@@ -6,9 +6,10 @@
 ## Método
 
 1. Campaña persistente por objetivo:
-   `preflight` (**1016 mutantes**, lote 5) y `evaluar` (5939 mutantes).
-2. Copia de mutación conservada en `build/mut-run-2` (preflight) y
-   `build/mut-evaluar-final` (evaluador; ambos ignorados por git).
+   `preflight` (**1016 mutantes**, lote 5) y `evaluar` (**5939 mutantes**,
+   campaña 26c).
+2. Copias de mutación conservadas en `build/mut-run-2` (preflight) y
+   `build/mut-eval-2026-10-26c` (evaluador; ambas ignoradas por git).
 3. Cobertura de las pruebas seleccionadas por la propia campaña:
    preflight 392/425 líneas; evaluador 1366/1571.
 4. `scripts/triaje_mutantes.py` cruza cada superviviente con la función que lo
@@ -27,10 +28,10 @@
 | Objetivo | Supervivientes | Timeouts | Sin categoría | Equivalentes |
 |---|---:|---:|---:|---:|
 | Preflight | **60** | 0 | **0** | **0** |
-| Evaluador | **2901** | **4** | **0** | **0** |
-| **Total** | **2961** | **4** | **0** | **0** |
+| Evaluador | **2899** | **0** | **0** | **0** |
+| **Total** | **2959** | **0** | **0** | **0** |
 
-Los **2961** supervivientes son brechas de aserción: sus funciones se ejecutan,
+Los **2959** supervivientes son brechas de aserción: sus funciones se ejecutan,
 pero los tests no detectan el cambio. **No hay ningún caso sin cobertura** que
 pueda resolverse solo añadiendo un test de humo; hace falta aserción exacta.
 
@@ -61,7 +62,7 @@ defaults de `dict.get` que el helper ya trata, codificación UTF-8 con distinta
 grafía o ramas cuyo valor no cambia la salida. No se declaran equivalentes sin
 prueba semántica; por eso siguen contando como brechas.
 
-### Evaluador — 2901
+### Evaluador — 2899
 
 | Función | Casos |
 |---|---:|
@@ -78,26 +79,27 @@ prueba semántica; por eso siguen contando como brechas.
 | `main` | 84 |
 | `detectar_comando_tests` | 81 |
 
-Medición 2026-10-25: **5939 mutantes, 3034 muertos, 2901 supervivientes, 0 sin
-tests, 4 timeouts, 0 sospechosos**; tasa bruta **51,09%**. No se re-midió tras
-los tests nuevos de timeouts, así que estas cifras son las vigentes medidas y
-no una estimación.
+Campaña 2026-10-26c: **5939 mutantes, 3040 muertos, 2899 supervivientes, 0 sin
+tests, 0 timeouts, 0 sospechosos**; tasa bruta **51,19%** (antes 3034/5939,
+51,09%). El cambio respecto a la campaña anterior son los tests de timeouts y
+el aislamiento de `test_sintesis_sin_python_dotenv`; el resto de la deuda de
+aserciones del evaluador sigue igual.
 
-## Los 4 timeouts
+## Los 4 timeouts: resueltos y re-medidos
 
-Los cuatro se clasifican como **`timeout_no_equivalente`**: no son mutantes
-equivalentes; introducen efectos no acotados.
+Los cuatro se clasificaban como **`timeout_no_equivalente`**. En la campaña
+26c ya no aparece ninguno: **0 timeouts**.
 
-| Mutante | Cambio | Riesgo | Cobertura actual |
+| Mutante | Cambio | Cómo se acotó | Resultado 26c |
 |---|---|---|---|
-| `x_ejecutar_tests__mutmut_15` | `cwd=str(ruta)` → `cwd=None` | ejecuta la suite en el directorio equivocado; puede colgarse | test `test_cwd_es_el_proyecto_evaluado` (2026-10-25) |
-| `x_ejecutar_tests__mutmut_21` | elimina `cwd=str(ruta)` | mismo riesgo | mismo test |
-| `x_main__mutmut_137` | `a or b` → `a and b` | activa la ruta LLM/red solo en combinaciones no previstas | tests `test_sin_key_no_llega_a_evaluar` y `test_investigar_solo_tambien_exige_key` (2026-10-26) |
-| `x_main__mutmut_139` | `if not KEY` → `if KEY` | invierte la comprobación de clave; intenta red sin clave | mismos tests |
+| `x_ejecutar_tests__mutmut_15` | `cwd=str(ruta)` → `cwd=None` | test `test_cwd_es_el_proyecto_evaluado` (2026-10-25) | killed |
+| `x_ejecutar_tests__mutmut_21` | elimina `cwd=str(ruta)` | mismo test | killed |
+| `x_main__mutmut_137` | `a or b` → `a and b` | tests de `main` sin clave + mock de `evaluar`; aislamiento de `test_sintesis_sin_python_dotenv` | killed |
+| `x_main__mutmut_139` | `if not KEY` → `if KEY` | mismo conjunto | killed |
 
-Los tests nuevos usan mocks y fallan rápido, sin ejecuciones reales. **No se
-declaran acotados hasta re-medir la campaña del evaluador**; la cobertura
-estática no sustituye la medición.
+Los tests nuevos usan mocks y fallan rápido, sin ejecuciones reales. Un test
+que llamaba al evaluador real en la ruta de error era la causa de que la
+campaña se colgara; se aisló antes de la re-medición.
 
 ## Reproducción
 
@@ -114,16 +116,15 @@ python3 scripts/triaje_mutantes.py --destino <temporal> \
 ```
 
 Los JSON completos de este triaje están en `build/triaje-preflight-batch5.json`
-y `build/triaje-evaluar.json` (ignorados por git). Este documento conserva el
-resumen y la clasificación.
+y `build/triaje-evaluar-2026-10-26c.json` (ignorados por git). Este documento
+conserva el resumen y la clasificación.
 
 ## Conclusión
 
-- **Triaje de inventario:** completo, 2965/2965 casos con categoría
-  (2961 supervivientes + 4 timeouts).
+- **Triaje de inventario:** completo, 2959/2959 casos con categoría.
 - **Equivalentes demostrados:** 0. No se usa «equivalente» como cajón de sastre.
-- **Tasa:** 956/1016 (preflight) y 3034/5939 (evaluador); no cambia por
-  clasificar. Los 4 timeouts no son muertos.
-- **R3 no se cierra como tasa limpia:** quedan 2961 aserciones por reforzar y 4
-  timeouts por re-medir. El preflight pasó de 319 a 60 brechas; el evaluador
-  sigue siendo la deuda principal.
+- **Tasa:** 956/1016 (preflight) y 3040/5939 (evaluador); no cambia por
+  clasificar. Los 4 timeouts quedaron en 0.
+- **R3 no se cierra como tasa limpia:** quedan 2959 aserciones por reforzar.
+  El preflight pasó de 319 a 60 brechas; el evaluador sigue siendo la deuda
+  principal.

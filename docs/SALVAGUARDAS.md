@@ -25,11 +25,12 @@ afirmaciones sin salida se marcan como **no verificadas**, nunca como éxito
 | Alteración del holdout | `scripts/run_holdout.py` | hook / `make holdout` | hashes + tests |
 | Dependencias de archivos no versionados | `scripts/ci.sh` | `make ci` | copia limpia de HEAD en verde |
 | Deriva de la documentación | `scripts/check_docs.py` | hook / `make check` | cifras cuadradas |
-| Autoevaluación del proyecto | `evaluar_proyecto.py` | `make check` (offline) | informe JSON |
+| Autoevaluación del proyecto | `evaluar_proyecto.py` | `python3 evaluar_proyecto.py . --sin-red --json` | informe JSON (diagnóstico, no bloqueante) |
 
 `make check` encadena lint, preflight, docs-check, tests, secretos, CI y el
 hook completo. El hook es la última barrera antes de un commit; `--no-verify`
-es una excepción deliberada, no el flujo normal.
+es una excepción deliberada, no el flujo normal. La autoevaluación se ejecuta
+aparte porque es un diagnóstico de 6 dimensiones, no un gate binario.
 
 ## 3. Jerarquía de evidencia
 

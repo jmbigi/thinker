@@ -1123,23 +1123,13 @@ class TestEntornoLLMOptIn(unittest.TestCase):
                 self.assertEqual(os.environ.get("OPENROUTER_API_KEY"),
                                  "clave-de-prueba")
 
-    def test_sin_key_falla_antes_de_llamar_al_proveedor(self):
-        with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
-                patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}):
-            error = io.StringIO()
-            with contextlib.redirect_stderr(error):
-                codigo = main([".", "--sintesis-llm", "--sin-red"])
-
-        self.assertEqual(codigo, 2)
-        self.assertIn("OPENROUTER_API_KEY", error.getvalue())
-
-    def test_sin_key_no_llega_a_evaluar(self):
+    def test_sin_key_falla_antes_de_llamar_al_evaluador(self):
         with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
                 patch.object(evaluar_proyecto, "evaluar") as evaluar_mock, \
                 patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}):
             error = io.StringIO()
             with contextlib.redirect_stderr(error):
-                codigo = main([".", "--sin-red", "--sintesis-llm"])
+                codigo = main([".", "--sintesis-llm", "--sin-red"])
 
         self.assertEqual(codigo, 2)
         self.assertIn("OPENROUTER_API_KEY", error.getvalue())
@@ -1655,13 +1645,15 @@ class TestCoberturaDeRamasDelEvaluador(unittest.TestCase):
 
     def test_sintesis_sin_python_dotenv_devuelve_2(self):
         with patch.object(evaluar_proyecto, "cargar_entorno_llm",
-                          side_effect=ImportError):
+                          side_effect=ImportError), \
+                patch.object(evaluar_proyecto, "evaluar") as evaluar_mock:
             error = io.StringIO()
             with contextlib.redirect_stderr(error):
                 codigo = main([".", "--sintesis-llm", "--sin-red"])
 
         self.assertEqual(codigo, 2)
         self.assertIn("python-dotenv", error.getvalue())
+        evaluar_mock.assert_not_called()
 
 
 class TestAsercionesDebiles(unittest.TestCase):

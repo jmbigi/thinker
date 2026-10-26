@@ -501,21 +501,22 @@ Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
 `9571519215f336bd1b1b05e5f7a9f516f64500ebde57f2e16dbd5abdf7d26caa`; sdist
 `5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713902621f75`.
 
-**Actualización 2026-10-26 (R3 preflight — Hallazgo 116)**: el refuerzo de
-aserciones exactas del preflight bajó los supervivientes de **319 a 60**:
-**1016 mutantes, 956 muertos, 60 supervivientes, 0 sin tests, 0 timeouts,
+**Actualización 2026-10-26 (R3 preflight y evaluador — Hallazgo 116)**: el
+refuerzo de aserciones exactas del preflight bajó los supervivientes de **319 a
+60**: **1016 mutantes, 956 muertos, 60 supervivientes, 0 sin tests, 0 timeouts,
 0 sospechosos**; tasa bruta **94,09%** (antes 68,57% con 696/1015). El cambio
 incluye un defecto real: `_es_main` aceptaba `if __name__ != "__main__"` como
 guardia no runtime; ahora exige `ast.Eq` y hay regresión. Los 60 restantes son
 brechas de aserción (muchas candidatas a equivalencia por defaults o
-codificación, **sin declarar equivalencia sin prueba**). El evaluador sigue en
-**5939 mutantes, 3034 muertos, 2901 supervivientes, 4 timeouts** (campaña
-2026-10-25, sin re-medir); se añadieron 2 tests que acotan los timeouts de
-`main` y ya existía el de `cwd`. Triaje de inventario **2965/2965** (2961
-brechas de aserción + 4 timeouts no equivalentes). Suite **934/934** en Linux
-(Python 3.11.9), ruff 0, preflight 0, docs-check OK; autoevaluación **1.000**
-(sin red: 25/29, 2 no verificados). R3 sigue **parcial**: no se cierra con 60
-brechas ni con 4 timeouts sin re-medición.
+codificación, **sin declarar equivalencia sin prueba**). El evaluador se
+re-midió el 2026-10-26 tras aislar los tests de `main`: **5939 mutantes, 3040
+muertos, 2899 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa
+bruta **51,19%** (antes 51,09%). Los 4 timeouts quedaron en **0**. Triaje de
+inventario **2959/2959** (2959 brechas de aserción, 0 sin cobertura, 0
+equivalentes demostrados, 0 timeouts). Suite **933/933** en Linux (Python
+3.11.9), ruff 0, preflight 0, docs-check OK; autoevaluación **1.000** (sin red:
+25/29, 2 no verificados). R3 sigue **parcial**: no se cierra con 2959
+aserciones pendientes.
 
 También se añadieron `docs/SALVAGUARDAS.md` y `tests/test_guardrails.py` (2
 tests) para que la cadena de gates no desaparezca en silencio. DSH `dsh-tui`
