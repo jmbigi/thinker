@@ -612,6 +612,18 @@ class TestLecturaManifiestosR3(unittest.TestCase):
         self.assertEqual(
             _leer_requisitos(raiz / "no-existe.txt", set()), set())
 
+    def test_requirements_include_con_comentarios(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": (
+                "-r dev.txt  # incluir # extra\n"
+                "requests==2.31\n"),
+            "dev.txt": "flask==3.0\n",
+        })
+
+        self.assertEqual(
+            _leer_requisitos(raiz / "requirements.txt", set()),
+            {"requests", "flask"})
+
     def test_requirements_con_unicode_invalido(self):
         raiz = crear_proyecto(self, {})
         ruta = raiz / "requirements.txt"
@@ -872,6 +884,19 @@ class TestDuplicadosR3(unittest.TestCase):
 
         self.assertEqual(len(resultado.hallazgos), 1)
         self.assertIn("grande_b", resultado.hallazgos[0].mensaje)
+
+    def test_umbral_exacto_de_60_nodos(self):
+        def borde(nombre):
+            return _funcion_con_literal(nombre, 17).replace(
+                "    return datos\n", "    pass\n    return datos\n")
+
+        raiz = crear_proyecto(self, {"app.py": (
+            borde("borde_a") + "\n" + borde("borde_b"))})
+
+        resultado = revisar_duplicados(raiz, cargar_modulos(raiz)[0])
+
+        self.assertEqual(len(resultado.hallazgos), 1)
+        self.assertIn("borde_b", resultado.hallazgos[0].mensaje)
 
     def test_funciones_distintas_no_se_confunden(self):
         raiz = crear_proyecto(self, {"app.py": (

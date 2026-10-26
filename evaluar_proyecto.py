@@ -1873,10 +1873,13 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
     cargas_unicas = 0
     for p in perfil.codigo_py:
         contenido = leer(p)
+        lineas = contenido.splitlines()
         for m in re.finditer(r"^\s+import |^\s+from ", contenido, re.M):
             inicio = contenido[:m.start()].count("\n")
-            cabecera = "\n".join(contenido.splitlines()[:inicio])
-            if any(pesada in m.group() for pesada in PESADAS) and "def " in cabecera:
+            cabecera = "\n".join(lineas[:inicio])
+            linea = lineas[inicio] if inicio < len(lineas) else ""
+            if any(pesada in linea for pesada in PESADAS) \
+                    and "def " in cabecera:
                 texto_perezoso += 1
         cargas_unicas += len(re.findall(r"(create_model|cargar_modelo|_load_model)",
                                         contenido))
@@ -1884,6 +1887,11 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
     if perfil.pesadas:
         dim.criterios["e1_import_perezoso_de_pesadas"] = texto_perezoso > 0
         dim.notas.append(f"imports perezosos detectados: {texto_perezoso}")
+        if not texto_perezoso:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Dependencia pesada importada al cargar el módulo "
+                        "(no de forma perezosa)", "código de producción",
+                criterio="e1_import_perezoso_de_pesadas"))
     else:
         dim.no_aplicable("e1_import_perezoso_de_pesadas",
                          "sin dependencias pesadas declaradas")
@@ -1891,6 +1899,11 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
     if any(marca in perfil.pesadas for marca in MODELOS):
         dim.criterios["e2_carga_unica_de_modelos"] = cargas_unicas > 0
         dim.notas.append(f"llamadas de carga de modelo: {cargas_unicas}")
+        if not cargas_unicas:
+            dim.hallazgos.append(Hallazgo(
+                "media", "Sin señal de carga única/reutilizada de modelos "
+                        "(create_model/cargar_modelo/_load_model)",
+                "código de producción", criterio="e2_carga_unica_de_modelos"))
     else:
         dim.no_aplicable("e2_carga_unica_de_modelos",
                          "el proyecto usa API LLM, no carga modelos locales")

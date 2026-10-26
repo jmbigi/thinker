@@ -3,8 +3,8 @@
 
 Casos sintéticos con un criterio objetivo y un resultado esperado (hallazgo
 presente/ausente). No sustituye una campaña sobre proyectos reales: mide que el
-detector no haya involucionado y hace explícita la cobertura (16 de los 29
-criterios del rubric; los 13 restantes se declaran N/A en el informe).
+detector no haya involucionado y hace explícita la cobertura (26 de los 29
+criterios del rubric; los 3 restantes se declaran N/A en el informe).
 
 Uso:
     python3 tests/benchmarks/evaluador_precision.py [--json]
@@ -12,8 +12,11 @@ Uso:
 
 import argparse
 import json
+import os
+import subprocess
 import sys
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -415,24 +418,89 @@ CASOS = [
             "build.sh": "#!/bin/sh\npython3 -m unittest\n",
         },
     },
+    {
+        "nombre": "v3_sin_actividad_reciente",
+        "criterio": "v3_actividad_reciente",
+        "esperado": True,
+        "git": {"dias": 400},
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
+    {
+        "nombre": "v3_con_actividad_reciente",
+        "criterio": "v3_actividad_reciente",
+        "esperado": False,
+        "git": {"dias": 1},
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        },
+    },
 
 ]
 
 
+def _caso_llm(nombre, criterio, esperado, codigo, deps="openai==1.0\n",
+              docs=None):
+    """Fixture declarada como sintética: activa el perfil LLM sin llamar a nadie."""
+    archivos = {"app.py": codigo, "requirements.txt": deps}
+    if docs:
+        archivos["README.md"] = docs
+    return {"nombre": nombre, "criterio": criterio, "esperado": esperado,
+            "archivos": archivos}
+
+
+CASOS.extend([
+    _caso_llm("i1_cache_positiva", "i1_cachea_trabajo_repetido", False,
+              "from functools import lru_cache\n\n"
+              "@lru_cache\ndef f():\n    return 1\n"),
+    _caso_llm("i1_sin_cache", "i1_cachea_trabajo_repetido", True,
+              "def f():\n    return 1\n"),
+    _caso_llm("i2_timeout_positivo", "i2_timeouts_explicitos", False,
+              "def f(timeout=5):\n    return timeout\n"),
+    _caso_llm("i2_sin_timeout", "i2_timeouts_explicitos", True,
+              "def f():\n    return 1\n"),
+    _caso_llm("i3_reintentos_positivo", "i3_reintentos_con_limite", False,
+              "max_retries = 3\n"),
+    _caso_llm("i3_sin_reintentos", "i3_reintentos_con_limite", True,
+              "def f():\n    return 1\n"),
+    _caso_llm("i4_valida_positivo", "i4_valida_respuestas", False,
+              "import json\n\ndef f(x):\n    return json.loads(x)\n"),
+    _caso_llm("i4_sin_validacion", "i4_valida_respuestas", True,
+              "def f(x):\n    return x\n"),
+    _caso_llm("i5_simulado_positivo", "i5_declara_lo_simulado", False,
+              "# mock de prueba para tests\n"),
+    _caso_llm("i5_sin_declarar", "i5_declara_lo_simulado", True,
+              "def f():\n    return 1\n"),
+    _caso_llm("i6_metricas_positivo", "i6_metricas_propias", False,
+              "# benchmark local de latencia\n"),
+    _caso_llm("i6_sin_metricas", "i6_metricas_propias", True,
+              "def f():\n    return 1\n"),
+    _caso_llm("e1_import_perezoso_positivo", "e1_import_perezoso_de_pesadas",
+              False, "def cargar():\n    import pandas\n    return pandas\n",
+              deps="openai==1.0\npandas==2.0\n"),
+    _caso_llm("e1_import_en_cabecera", "e1_import_perezoso_de_pesadas", True,
+              "import pandas\n\n\ndef cargar():\n    return pandas\n",
+              deps="openai==1.0\npandas==2.0\n"),
+    _caso_llm("e2_carga_unica_positiva", "e2_carga_unica_de_modelos", False,
+              "def cargar():\n    return _load_model()\n",
+              deps="openai==1.0\ntorch==2.0\n"),
+    _caso_llm("e2_sin_carga", "e2_carga_unica_de_modelos", True,
+              "def cargar():\n    return 1\n",
+              deps="openai==1.0\ntorch==2.0\n"),
+    _caso_llm("e3_medicion_positiva", "e3_mediciones_documentadas", False,
+              "def f():\n    return 1\n", docs="Latencia medida: 1.5 s\n"),
+    _caso_llm("e3_sin_medicion", "e3_mediciones_documentadas", True,
+              "def f():\n    return 1\n", docs="Sin métricas.\n"),
+])
+
+
 CRITERIOS_FUERA_DE_BENCHMARK = {
     "f1_puntos_de_entrada": "requiere un punto de entrada real o perfil de aplicación",
-    "v3_actividad_reciente": "requiere historial git con fechas reales",
     "v4_dependencias_al_dia": "requiere consultar PyPI (red)",
     "h5_licencias_libres": "requiere consultar metadatos de licencias (red)",
-    "i1_cachea_trabajo_repetido": "requiere un proyecto con LLM declarado",
-    "i2_timeouts_explicitos": "requiere un proyecto con LLM declarado",
-    "i3_reintentos_con_limite": "requiere un proyecto con LLM declarado",
-    "i4_valida_respuestas": "requiere un proyecto con LLM declarado",
-    "i5_declara_lo_simulado": "requiere un proyecto con LLM declarado",
-    "i6_metricas_propias": "requiere un proyecto con LLM declarado",
-    "e1_import_perezoso_de_pesadas": "requiere un proyecto con LLM declarado",
-    "e2_carga_unica_de_modelos": "requiere un proyecto con LLM declarado",
-    "e3_mediciones_documentadas": "requiere un proyecto con LLM declarado y métricas",
 }
 
 
@@ -469,6 +537,24 @@ def _tiene_hallazgo(informe, criterio):
                for h in dimension["hallazgos"])
 
 
+def _crear_historial_git(raiz: Path, dias: int) -> None:
+    """Commit sintético con fecha relativa, para medir v3 sin depender del reloj."""
+    fecha = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
+    entorno = {
+        **os.environ,
+        "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
+        "GIT_AUTHOR_NAME": "Bench", "GIT_AUTHOR_EMAIL": "bench@example.invalid",
+        "GIT_COMMITTER_NAME": "Bench",
+        "GIT_COMMITTER_EMAIL": "bench@example.invalid",
+    }
+    subprocess.run(["git", "init", "-q"], cwd=raiz, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=raiz, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "inicio"], cwd=raiz, check=True,
+                   capture_output=True, env=entorno)
+
+
 def evaluar_corpus(casos=None):
     """Ejecuta los casos y devuelve métricas por criterio y globales."""
     casos = CASOS if casos is None else casos
@@ -480,6 +566,8 @@ def evaluar_corpus(casos=None):
                 ruta = raiz / nombre
                 ruta.parent.mkdir(parents=True, exist_ok=True)
                 ruta.write_text(contenido, encoding="utf-8")
+            if caso.get("git"):
+                _crear_historial_git(raiz, caso["git"]["dias"])
             informe = evaluar(raiz, con_red=False)
         predicho = _tiene_hallazgo(informe, caso["criterio"])
         resultados.append({

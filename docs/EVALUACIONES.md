@@ -501,28 +501,29 @@ Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
 `9571519215f336bd1b1b05e5f7a9f516f64500ebde57f2e16dbd5abdf7d26caa`; sdist
 `5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713902621f75`.
 
-**Actualización 2026-10-26 (R3 preflight y evaluador — Hallazgo 116)**: el
-refuerzo de aserciones exactas del preflight bajó los supervivientes de **319 a
-60**: **1016 mutantes, 956 muertos, 60 supervivientes, 0 sin tests, 0 timeouts,
-0 sospechosos**; tasa bruta **94,09%** (antes 68,57% con 696/1015). El cambio
+**Actualización 2026-10-26 (R3 preflight y evaluador — Hallazgos 116/120)**:
+el refuerzo de aserciones exactas del preflight bajó los supervivientes de
+**319 a 57**: **1016 mutantes, 959 muertos, 57 supervivientes, 0 sin tests, 0
+timeouts, 0 sospechosos**; tasa bruta **94,39%** (antes 68,57% con 696/1015).
+El triaje semántico (`docs/TRIAGE-EQUIVALENCIAS.md`) demuestra **48
+equivalencias** y deja **9 brechas reales**; la tasa no cambia. El cambio
 incluye un defecto real: `_es_main` aceptaba `if __name__ != "__main__"` como
-guardia no runtime; ahora exige `ast.Eq` y hay regresión. Los 60 restantes son
-brechas de aserción (muchas candidatas a equivalencia por defaults o
-codificación, **sin declarar equivalencia sin prueba**). El evaluador se
-re-midió el 2026-10-26 tras aislar los tests de `main`: **5939 mutantes, 3040
-muertos, 2899 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa
-bruta **51,19%** (antes 51,09%). Los 4 timeouts quedaron en **0**. Triaje de
-inventario **2959/2959** (2959 brechas de aserción, 0 sin cobertura, 0
-equivalentes demostrados, 0 timeouts). Suite **933/933** en Linux (Python
-3.11.9), ruff 0, preflight 0, docs-check OK; autoevaluación **1.000** (sin red:
-25/29, 2 no verificados). R3 sigue **parcial**: no se cierra con 2959
-aserciones pendientes.
+guardia no runtime; ahora exige `ast.Eq` y hay regresión. El evaluador se
+re-midió el 2026-10-26 tras el contrato de `informe_texto`, `detectar_comando_tests`
+y los tests de red: **5985 mutantes, 3544 muertos, 2441 supervivientes, 0 sin
+tests, 0 timeouts, 0 sospechosos**; tasa bruta **59,21%** (antes 51,19%).
+Triaje de inventario **2498/2498**: **2450 brechas** (9 preflight + 2441
+evaluador), **48 equivalencias demostradas** y **0 timeouts**. Suite **942/942** en Linux
+(Python 3.11.9), ruff 0, preflight 0, docs-check OK;
+autoevaluación **1.000** (sin red: 25/29, 2 no verificados). R3 sigue
+**parcial**: no se cierra con 2450 brechas pendientes.
 
-R4 subió de 33 casos/14 criterios a **37 casos/16 criterios** al añadir c4
-(proporción test/código) y h4 (runner declarado), ambos medibles offline:
-**16 TP, 0 FP, 0 FN; precision 1,00, recall 1,00**. Quedan **13 N/A** con
-motivo (f1, v3, v4, h5, i1-i6, e1-e3): exigen LLM declarado, red o historial
-git y no se simulan con fixtures.
+R4 subió de 33 casos/14 criterios a **57 casos/26 criterios**: c4, h4, v3
+(repo git temporal), i1-i6 y e1-e3, estos últimos con fixtures **sintéticas
+declaradas** y sin proveedor real. Resultado: **26 TP, 0 FP, 0 FN; precision
+1,00, recall 1,00**. El benchmark encontró dos defectos reales de e1/e2
+(import perezoso sin paquete y ausencia de hallazgo), corregidos. Quedan **3
+N/A** (f1, v4, h5) que exigen red/PyPI o un punto de entrada real.
 
 También se añadieron `docs/SALVAGUARDAS.md` y `tests/test_guardrails.py` (2
 tests) para que la cadena de gates no desaparezca en silencio. DSH `dsh-tui`

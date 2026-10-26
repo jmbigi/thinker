@@ -11,8 +11,8 @@ class TestEvaluadorPrecision(unittest.TestCase):
     def test_cobertura_de_29_criterios(self):
         cobertura = cobertura_de_criterios()
 
-        self.assertEqual(len(cobertura["medidos"]), 16)
-        self.assertEqual(len(cobertura["no_medidos"]), 13)
+        self.assertEqual(len(cobertura["medidos"]), 26)
+        self.assertEqual(len(cobertura["no_medidos"]), 3)
         self.assertEqual(cobertura["total_base"], 29)
         self.assertEqual(cobertura["solapados"], [])
 
@@ -29,8 +29,8 @@ class TestEvaluadorPrecision(unittest.TestCase):
 
     def test_corpus_balanceado_y_sin_falsos(self):
         criterios = {caso["criterio"] for caso in CASOS}
-        self.assertEqual(len(criterios), 16)
-        self.assertEqual(len(CASOS), 37)
+        self.assertEqual(len(criterios), 26)
+        self.assertEqual(len(CASOS), 57)
         for criterio in criterios:
             esperados = {caso["esperado"] for caso in CASOS
                          if caso["criterio"] == criterio}
@@ -38,9 +38,9 @@ class TestEvaluadorPrecision(unittest.TestCase):
 
         resultado = evaluar_corpus()
 
-        self.assertEqual(resultado["casos"], 37)
-        self.assertEqual(resultado["criterios"], 16)
-        self.assertEqual(resultado["global"]["tp"], 16)
+        self.assertEqual(resultado["casos"], 57)
+        self.assertEqual(resultado["criterios"], 26)
+        self.assertEqual(resultado["global"]["tp"], 26)
         self.assertEqual(resultado["global"]["fp"], 0)
         self.assertEqual(resultado["global"]["fn"], 0)
         self.assertEqual(resultado["global"]["precision"], 1.0)

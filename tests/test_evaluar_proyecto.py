@@ -1162,6 +1162,39 @@ class TestEjecutarTestsAcotado(unittest.TestCase):
         self.assertEqual(run.call_args.kwargs["cwd"], d)
 
 
+class TestSinRedNoTocaPyPI(unittest.TestCase):
+    """--sin-red y con_red=False no deben consultar PyPI (red)."""
+
+    def _proyecto(self):
+        return crear_proyecto(self, {
+            "app.py": "import requests\n\n\ndef f():\n    return requests\n",
+            "requirements.txt": "requests==2.31.0\n",
+        })
+
+    def test_evaluar_con_red_false_no_consulta(self):
+        raiz = self._proyecto()
+        with patch.object(evaluar_proyecto, "ultima_version_pypi",
+                          side_effect=AssertionError("red")), \
+                patch.object(evaluar_proyecto, "licencia_pypi",
+                             side_effect=AssertionError("red")):
+            informe = evaluar(raiz, con_red=False)
+
+        self.assertEqual(informe["schema_version"], 2)
+
+    def test_main_sin_red_no_consulta(self):
+        raiz = self._proyecto()
+        salida = io.StringIO()
+        with patch.object(evaluar_proyecto, "ultima_version_pypi",
+                          side_effect=AssertionError("red")), \
+                patch.object(evaluar_proyecto, "licencia_pypi",
+                             side_effect=AssertionError("red")):
+            with contextlib.redirect_stdout(salida):
+                codigo = main([str(raiz), "--sin-red", "--json"])
+
+        self.assertEqual(codigo, 0)
+        self.assertIn("schema_version", json.loads(salida.getvalue()))
+
+
 class TestAutoevaluacionDeThinker(unittest.TestCase):
     """thinker se evalúa a sí mismo (offline): 6 dimensiones y sin sorpresas."""
 
@@ -1778,6 +1811,235 @@ class TestSilenciosR6(unittest.TestCase):
 
         self.assertFalse(informe["dimensiones"]["calidad"]
                          ["criterios"]["c3_sin_silencios"])
+
+
+class TestInformeTextoContrato(unittest.TestCase):
+    """Contrato exacto del render: secciones, etiquetas, marcas y orden."""
+
+    def test_render_completo(self):
+        informe = {
+            "ruta": "/tmp/demo", "archivos_python": 2, "lineas_python": 20,
+            "cobertura": {
+                "criterios_evaluados": 5, "criterios_no_aplicables": 1,
+                "nivel": "alta", "lenguajes": {"Python": 2},
+                "comparable": False, "motivo_no_comparable": "cobertura 50%",
+                "nota_lenguajes": "Python: AST y criterios nativos",
+                "nota_no_aplicables": "1 N/A por perfil",
+                "ratio_evaluado": 0.5},
+            "dimensiones": {
+                "calidad": {
+                    "puntuacion": 0.5,
+                    "criterios": {"c1": True, "c2": False},
+                    "no_aplica": [{"criterio": "v4", "motivo": "sin red"}],
+                    "hallazgos": [{
+                        "tipo_evidencia": "verified-real",
+                        "severidad": "alta", "descripcion": "Silencio",
+                        "evidencia": "app.py:1"}],
+                    "notas": ["nota de calidad"]}},
+            "global": 0.75, "global_nota": "nota global",
+            "evidencia": {"verified-real": 2, "verified-synthetic": 0,
+                          "unverified": 0},
+            "licencias_no_runtime": [{
+                "nombre": "pytest", "ambito": "dev", "licencia": "MIT",
+                "procedencia": "real"}],
+            "aserciones_debiles": ["test_x.py:1 assert True"],
+            "requisitos": {
+                "archivo": "req.md", "total": 1,
+                "items": [{
+                    "veredicto": "CUBIERTO", "id": "R1", "titulo": "Login",
+                    "criterio": "sesión", "evidencia_observada": "app.py",
+                    "motivo": "existe", "avisos": ["aviso"]}],
+                "resumen": {"cumple": 0, "cubierto": 1, "no_cumple": 0,
+                            "no_verificable": 0},
+                "nota": "CUBIERTO no es CUMPLE"},
+            "sintesis_llm": {
+                "modelo": "m", "sin_respaldo": 1,
+                "propuestas": [{
+                    "dimension": "calidad", "propuesta": "P",
+                    "con_respaldo": False, "por_que": "pq",
+                    "evidencia": "ev", "como_verificar": "ver"}],
+                "preguntas_abiertas": ["¿Q?"]},
+            "investigacion": [
+                {"pregunta": "p1", "error": "sin red"},
+                {"pregunta": "p2", "sin_resultados": True,
+                 "fuentes": [{"titulo": "T", "url": "https://x.test"}]}],
+            "mejoras": [{
+                "prioridad": "alta", "dimension": "calidad",
+                "propuesta": "Mejorar", "sitios": 2, "esfuerzo": "bajo",
+                "metrica": "test"}],
+            "no_verificado": ["red"],
+        }
+
+        self.assertEqual(informe_texto(informe), [
+            "EVALUACIÓN DE PROYECTO (read-only): /tmp/demo",
+            "Python: 2 archivos / 20 líneas",
+            "Cobertura: 5 criterios evaluados, 1 N/A (nivel alta); "
+            "lenguajes: Python",
+            "",
+            "== CALIDAD — 0.50 ==",
+            "  [OK ] c1",
+            "  [NO ] c2",
+            "  [N/A] v4: sin red",
+            "  [VERIFIED-REAL] (alta) Silencio — app.py:1",
+            "  · nota de calidad",
+            "",
+            "GLOBAL NO COMPARABLE: 0.750 (cobertura alta, 50% de criterios)",
+            "Aviso: cobertura 50%",
+            "Lenguajes: Python: AST y criterios nativos",
+            "Nota: nota global",
+            "Evidencia: [VERIFIED-REAL] 2 | [VERIFIED-SYNTHETIC] 0 | "
+            "[UNVERIFIED] 0",
+            "",
+            "== LICENCIAS NO RUNTIME (informativas; no puntúan h5) ==",
+            "  - pytest [dev] MIT (real)",
+            "",
+            "== ASERCIONES DÉBILES (informativas; no cambian c5) ==",
+            "  - test_x.py:1 assert True",
+            "",
+            "== REQUISITOS (req.md) — 1 ==",
+            "  [CUBIERTO] R1 — Login",
+            "      criterio: sesión",
+            "      evidencia: app.py",
+            "      motivo: existe",
+            "      aviso: aviso",
+            "  Resumen: 0 CUMPLE | 1 CUBIERTO | 0 NO CUMPLE | "
+            "0 NO VERIFICABLE",
+            "  Nota: CUBIERTO no es CUMPLE",
+            "",
+            "Plan de mejora: 1 propuestas (1 alta); ordenadas por prioridad, "
+            "secuencia y esfuerzo.",
+            "== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==",
+            "  [ alta] calidad: Mejorar",
+            "          sitios: 2 | esfuerzo: bajo",
+            "          verificación: test",
+            "",
+            "== PROPUESTAS DEL MODELO (m) — juicio, no medición; sin respaldo "
+            "medido: 1 ==",
+            "  [calidad] P (SIN RESPALDO)",
+            "          por qué: pq",
+            "          evidencia citada: ev",
+            "          verificación: ver",
+            "  Preguntas abiertas (lo que el modelo declara NO saber): 1",
+            "    · ¿Q?",
+            "",
+            "== INVESTIGACIÓN DE LAS DUDAS (fuentes citadas, verificables) ==",
+            "  ? p1",
+            "    ERROR: sin red",
+            "  ? p2",
+            "    sin resultados (se declara, no se inventa)",
+            "    - T: https://x.test",
+            "",
+            "No aplicable: 1 N/A por perfil",
+            "No verificado: red",
+        ])
+
+    def test_render_minimo_usa_fallbacks(self):
+        informe = {
+            "ruta": "x", "archivos_python": 0, "lineas_python": 0,
+            "cobertura": {}, "dimensiones": {}, "global": None,
+            "global_nota": "", "evidencia": {}, "mejoras": [],
+            "no_verificado": [],
+        }
+
+        self.assertEqual(informe_texto(informe), [
+            "EVALUACIÓN DE PROYECTO (read-only): x",
+            "Python: 0 archivos / 0 líneas",
+            "Cobertura: ? criterios evaluados, ? N/A (nivel ?); "
+            "lenguajes: ninguno",
+            "",
+            "GLOBAL: N/A (cobertura ?, 0% de criterios)",
+            "Nota: ",
+            "Evidencia: [VERIFIED-REAL] 0 | [VERIFIED-SYNTHETIC] 0 | "
+            "[UNVERIFIED] 0",
+            "",
+            "Plan de mejora: nada que proponer (todos los criterios cumplen).",
+            "== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==",
+            "",
+            "No verificado: ",
+        ])
+
+
+class TestDetectarComandoTestsContrato(unittest.TestCase):
+    """Contrato exacto del runner declarado y de su origen."""
+
+    def _detectar(self, archivos, which=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            for nombre, contenido in archivos.items():
+                destino = ruta / nombre
+                destino.parent.mkdir(parents=True, exist_ok=True)
+                destino.write_text(contenido, encoding="utf-8")
+            with patch.object(
+                    evaluar_proyecto.shutil, "which",
+                    side_effect=which or (lambda nombre: (
+                        "/usr/bin/make" if nombre == "make" else None))):
+                return detectar_comando_tests(ruta)
+
+    def test_manifiestos_y_origenes_exactos(self):
+        interprete = evaluar_proyecto.sys.executable
+        casos = [
+            ({"Makefile": "# comandos\ntest:\n\tpython3 -m pytest\n"},
+             {"comando": ["make", "test"],
+              "origen": "Makefile (target test)"}),
+            ({"scripts/pruebas.sh": "python3 -m pytest -q\n"},
+             {"comando": [interprete, "-m", "pytest", "-q"],
+              "origen": "scripts/pruebas.sh"}),
+            ({"README.md": "```\npytest -q\n```\n"},
+             {"comando": ["pytest", "-q"], "origen": "README.md"}),
+            ({"AGENTS.md": "npm test\n"},
+             {"comando": ["npm", "test"], "origen": "AGENTS.md"}),
+            ({"README.rst": "mvn test\n"},
+             {"comando": ["mvn", "test"], "origen": "README.rst"}),
+            ({"package.json": '{"scripts": {"test": "node test.js"}}'},
+             {"comando": ["npm", "test"],
+              "origen": "package.json (scripts.test)"}),
+            ({"gradlew": "", "build.gradle": ""},
+             {"comando": ["./gradlew", "test"],
+              "origen": "gradlew + build.gradle"}),
+            ({"pom.xml": "<project/>"},
+             {"comando": ["mvn", "test"], "origen": "pom.xml"}),
+            ({"go.mod": "module demo"},
+             {"comando": ["go", "test", "./..."], "origen": "go.mod"}),
+            ({"Cargo.toml": "[package]\nname='demo'\n"},
+             {"comando": ["cargo", "test"], "origen": "Cargo.toml"}),
+            ({"tox.ini": "[tox]"},
+             {"comando": ["tox"], "origen": "tox.ini"}),
+            ({"noxfile.py": "x = 1\n"},
+             {"comando": ["nox"], "origen": "noxfile.py"}),
+            ({"tests/test_x.py": "x = 1\n"},
+             {"comando": [interprete, "-m", "unittest", "discover",
+                          "-s", "tests"],
+              "origen": "convención: existe tests/"}),
+        ]
+        for archivos, esperado in casos:
+            with self.subTest(archivos=archivos):
+                self.assertEqual(self._detectar(archivos), esperado)
+
+    def test_sin_runner_o_script_no_valido_devuelve_none(self):
+        casos = [
+            {"demo.py": "x = 1\n"},
+            {"package.json": '{"scripts": {"test": "no test specified"}}'},
+            {"package.json": '{"scripts": {"test": "No Test Specified"}}'},
+            {"package.json": '{"scripts": {"test": "echo hola"}}'},
+            {"package.json": '{"scripts": {"test": "ECHO hola"}}'},
+            {"package.json": "{}"},
+            {"package.json": "{roto"},
+        ]
+        for archivos in casos:
+            with self.subTest(archivos=archivos):
+                self.assertIsNone(self._detectar(archivos))
+
+    def test_makefile_sin_binario_make_cae_a_la_convencion(self):
+        interprete = evaluar_proyecto.sys.executable
+        resultado = self._detectar(
+            {"Makefile": "test:\n\tpython3 -m pytest\n",
+             "tests/test_x.py": "x = 1\n"},
+            which=lambda _nombre: None)
+
+        self.assertEqual(resultado, {
+            "comando": [interprete, "-m", "unittest", "discover", "-s",
+                        "tests"],
+            "origen": "convención: existe tests/"})
 
 
 if __name__ == "__main__":
