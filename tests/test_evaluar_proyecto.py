@@ -2474,5 +2474,214 @@ class TestEficienciaFuncionalidadesContrato(unittest.TestCase):
                       "proporción test/código: 0.00"]})
 
 
+class TestMasRamasDelEvaluador(unittest.TestCase):
+    """Silencios aceptados, h5/h6, vigencia con red y licencias PyPI."""
+
+    def test_calidad_silencio_aceptado_y_sintaxis(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/a.py": ("def f():\n    try:\n        return 1\n"
+                         "    except Exception:  # noqa: silent: motivo\n"
+                         "        pass\n"),
+            "pkg/b.py": "def f(:\n",
+            "tests/test_a.py": "def test_a():\n    assert 1\n",
+            "pyproject.toml": "[tool.ruff]\nline-length=100\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_calidad(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 1.0, "evaluado": True,
+            "criterios": {"c1_suite_de_tests": True,
+                          "c2_linter_configurado": True,
+                          "c3_sin_silencios": True,
+                          "c4_tests_sobre_codigo_30pct": True,
+                          "c5_tests_con_aserciones": True},
+            "no_aplica": [],
+            "hallazgos": [{
+                "severidad": "baja",
+                "descripcion": "Silencio aceptado (warning): motivo",
+                "evidencia": "pkg/a.py:4", "tipo_evidencia": "verified-real",
+                "criterio": "c3_sin_silencios"}],
+            "notas": [
+                "2 líneas de test / 6 de código",
+                "suite NO ejecutada (sin --ejecutar-tests): no verificado",
+                "linter: pyproject.toml",
+                "c3 sobre 3 archivos de producción; tests/scripts excluidos",
+                "silencios aceptados (warning): 1",
+                "código con error de sintaxis (no evaluable en c3): pkg/b.py:1",
+                "proporción test/código: 0.33",
+                "c5 sobre 1 archivos de test Python"]})
+
+    def test_calidad_suite_ejecutada_falla(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/a.py": "def f():\n    return 1\n",
+            "tests/test_a.py": "def test_a():\n    assert 1\n",
+            "pyproject.toml": "[tool.ruff]\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+        resultado = {"ejecutado": True, "ok": False, "codigo": 1,
+                     "resumen": "1 failed",
+                     "comando": ["python", "-m", "pytest"],
+                     "duracion_s": 1.2}
+
+        dimension = evaluar_proyecto.evaluar_calidad(
+            raiz, perfil, ejecutar=True, resultado_tests=resultado)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.833, "evaluado": True,
+            "criterios": {"c1_suite_de_tests": True, "c1b_suite_pasa": False,
+                          "c2_linter_configurado": True,
+                          "c3_sin_silencios": True,
+                          "c4_tests_sobre_codigo_30pct": True,
+                          "c5_tests_con_aserciones": True},
+            "no_aplica": [],
+            "hallazgos": [{
+                "severidad": "alta", "descripcion": "La suite NO pasa: 1 failed",
+                "evidencia": ["python", "-m", "pytest"],
+                "tipo_evidencia": "verified-real",
+                "criterio": "c1b_suite_pasa"}],
+            "notas": [
+                "2 líneas de test / 2 de código",
+                "suite: 1 failed (['python', '-m', 'pytest'], 1.2s)",
+                "linter: pyproject.toml",
+                "c3 sobre 2 archivos de producción; tests/scripts excluidos",
+                "proporción test/código: 1.00",
+                "c5 sobre 1 archivos de test Python"]})
+
+    def test_herramientas_import_sin_declarar(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": '[project]\nname="x"\nversion="0.1.0"\n',
+            "pkg/__init__.py": "", "pkg/app.py": "import requests\n",
+            "tests/test_a.py": "def test_a():\n    assert 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_herramientas(
+            raiz, perfil, con_red=False)
+
+        d = dimension.a_dict()
+        self.assertEqual(d["criterios"]["h6_imports_declarados"], False)
+        self.assertEqual(d["notas"][-1], "imports de terceros sin declarar: 1")
+        self.assertIn("pkg/app.py:1", [h["evidencia"] for h in d["hallazgos"]])
+        self.assertIn("Import de terceros sin declarar: import no declarado: "
+                      "requests", [h["descripcion"] for h in d["hallazgos"]])
+
+    def test_herramientas_h5_con_licencia_no_libre(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               'dependencies=["requests","flask"]\n'),
+            "LICENSE": "MIT\n", "pkg/__init__.py": "",
+            "pkg/app.py": "import requests\n",
+            "tests/test_a.py": "def test_a():\n    assert 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        def side(nombre):
+            if nombre == "requests":
+                return {"licencia": "MIT", "libre": True,
+                        "fuente": "license_expression", "error": ""}
+            return {"licencia": "propietaria", "libre": False,
+                    "fuente": "license", "error": ""}
+
+        with patch("evaluar_proyecto.licencia_pypi", side_effect=side):
+            dimension = evaluar_proyecto.evaluar_herramientas(
+                raiz, perfil, con_red=True)
+
+        d = dimension.a_dict()
+        self.assertEqual(d["criterios"]["h5_licencias_libres"], False)
+        self.assertIn("Dependencias sin licencia libre declarada: flask "
+                      "(propietaria)",
+                      [h["descripcion"] for h in d["hallazgos"]])
+        self.assertIn("licencias consultadas en PyPI: 2 (runtime; 0 de "
+                      "desarrollo/opcionales excluidas)", d["notas"])
+
+    def test_vigencia_con_red_marca_atrasada(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.0\n",
+            "requirements.lock": "requests==2.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        with patch("evaluar_proyecto.ultima_version_pypi",
+                   return_value={"version": "2.31.0", "error": ""}):
+            dimension = evaluar_proyecto.evaluar_vigencia(
+                raiz, perfil, con_red=True)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.667, "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": True,
+                          "v2_lockfile": True,
+                          "v4_dependencias_al_dia": False},
+            "no_aplica": [{"criterio": "v3_actividad_reciente",
+                           "motivo": "sin historial git: no se puede medir "
+                                     "actividad"}],
+            "hallazgos": [{
+                "severidad": "media",
+                "descripcion": "Dependencia atrasada: requests 2.0 -> 2.31.0",
+                "evidencia": "PyPI (pypi.org/pypi)",
+                "tipo_evidencia": "verified-real",
+                "criterio": "v4_dependencias_al_dia"}],
+            "notas": ["locks: requirements.lock",
+                      "sin git: actividad no evaluable"]})
+
+    def test_licencia_pypi_ramas(self):
+        class Respuesta(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        casos = [
+            ({"license_expression": "MIT"},
+             {"licencia": "MIT", "libre": True, "fuente": "license_expression",
+              "error": ""}),
+            ({"classifiers": ["License :: OSI Approved :: MIT License"]},
+             {"licencia": "MIT License", "libre": True,
+              "fuente": "classifier", "error": ""}),
+            ({"license": "Apache-2.0"},
+             {"licencia": "Apache-2.0", "libre": True, "fuente": "license",
+              "error": ""}),
+            ({"license": "unknown"},
+             {"licencia": "desconocida", "libre": None, "fuente": "",
+              "error": ""}),
+        ]
+        for info, esperado in casos:
+            with self.subTest(info=info):
+                cuerpo = json.dumps({"info": info}).encode()
+                with patch("evaluar_proyecto.urllib.request.urlopen",
+                           return_value=Respuesta(cuerpo)):
+                    self.assertEqual(
+                        evaluar_proyecto.licencia_pypi("x"), esperado)
+
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   side_effect=OSError("boom")):
+            self.assertEqual(
+                evaluar_proyecto.licencia_pypi("x"),
+                {"licencia": "desconocida", "libre": None, "fuente": "",
+                 "error": "OSError: boom"})
+
+    def test_licencias_no_runtime_sin_y_con_red(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               '[project.optional-dependencies]\n'
+                               'dev=["pytest>=8"]\n')})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+        base = {"nombre": "pytest", "ambito": "dev",
+                "origen": "pyproject.toml", "version": "8",
+                "operador": ">=", "licencia": None, "libre": None,
+                "fuente": "no consultada (--sin-red)",
+                "procedencia": "unverified"}
+
+        self.assertEqual(
+            evaluar_proyecto.licencias_no_runtime(perfil, False), [base])
+
+        with patch("evaluar_proyecto.licencia_pypi",
+                   return_value={"licencia": "MIT", "libre": True,
+                                 "fuente": "license_expression", "error": ""}):
+            con_red = evaluar_proyecto.licencias_no_runtime(perfil, True)
+        self.assertEqual(con_red, [{**base, "licencia": "MIT", "libre": True,
+                                    "fuente": "license_expression",
+                                    "procedencia": "real"}])
+
+
 if __name__ == "__main__":
     unittest.main()
