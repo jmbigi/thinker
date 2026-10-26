@@ -15,7 +15,7 @@ herramientas de análisis estático de código.
 
 | Módulo | Función |
 |---|---|
-| `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. Incluye informe opt-in **coarse-to-fine** (esquema + secciones, inspirado en NCM) con caída registrada a la pasada única. |
+| `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. Incluye informe opt-in **coarse-to-fine** (esquema + secciones, inspirado en NCM), validación de citas fuera de rango y caída registrada a la pasada única. |
 | `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles; Ollama y Mock no reintentan. |
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |

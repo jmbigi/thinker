@@ -22,6 +22,9 @@ from llm_providers import (DEFAULT_FREE_MODEL, KiloGatewayLLM,  # noqa: F401
                            LLMProvider, MockLLM, OllamaLLM, OpenAILLM,
                            OpenRouterLLM, TRANSIENT_STATUS, _chat_completion)
 
+# Citas del informe: [1], [12]... Se excluyen años como [2026] a propósito.
+_CITA_RE = re.compile(r"\[(\d{1,2})\]")
+
 
 class ResearchContext:
     """Context object holding research state, sources, and decisions."""
@@ -690,6 +693,7 @@ matching the sources retrieved. Be factual and acknowledge uncertainties."""
                 context, prompt, fuentes_txt, claims_txt)
         else:
             report = self.llm_provider.generate(prompt)
+            self._validar_citas(context, report, "Informe completo")
         context.conclusions = self._extract_conclusions(report)
         context.add_decision("report_generation", "generate",
                              f"Report generated with {len(context.conclusions)} conclusion sections")
@@ -728,18 +732,54 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
         context.add_decision("report_outline", "generate", motivo)
 
         partes = [f"# Research Report: {context.question}"]
+        generadas = 0
         for seccion in secciones:
-            contenido = self.llm_provider.generate(self._prompt_seccion(
-                seccion, context, fuentes_txt, claims_txt)).strip()
+            titulo = seccion["titulo"]
+            fallo = ""
+            try:
+                contenido = self.llm_provider.generate(self._prompt_seccion(
+                    seccion, context, fuentes_txt, claims_txt)).strip()
+            except Exception as exc:  # aislamiento por sección; se registra
+                contenido = ""
+                fallo = f"{type(exc).__name__}: {exc}"
             if not contenido:
                 contenido = "(No content generated for this section.)"
-                context.add_decision("report_section", "empty",
-                                     f"Section: {seccion['titulo']}")
+                decision = "error" if fallo else "empty"
+                razon = f"Section: {titulo}" + (f" ({fallo})" if fallo else "")
+                context.add_decision("report_section", decision, razon)
             else:
+                generadas += 1
                 context.add_decision("report_section", "generate",
-                                     f"Section: {seccion['titulo']}")
-            partes.append(f"## {seccion['titulo']}\n\n{contenido}")
+                                     f"Section: {titulo}")
+                if not self._validar_citas(
+                        context, contenido, f"Sección {titulo}"):
+                    context.add_decision(
+                        "report_section", "sin_citas", f"Section: {titulo}")
+            partes.append(f"## {titulo}\n\n{contenido}")
+        if generadas == 0:
+            context.add_decision(
+                "report_generation", "fallback_single_pass",
+                "Ninguna sección generó contenido; se usa la pasada única")
+            return self.llm_provider.generate(prompt_unica)
         return "\n\n".join(partes)
+
+    @staticmethod
+    def _validar_citas(context: ResearchContext, texto: str,
+                       alcance: str) -> List[int]:
+        """Comprueba que las citas [n] apunten a fuentes existentes.
+
+        No corrige el texto: registra `cita_fuera_de_rango` en el
+        `decision_log` para que el fallo sea visible (P0.2).
+        """
+        numeros = [int(n) for n in _CITA_RE.findall(texto)]
+        fuera = sorted({n for n in numeros
+                        if n < 1 or n > len(context.sources)})
+        if fuera:
+            context.add_decision(
+                "report_validation", "cita_fuera_de_rango",
+                f"{alcance}: {fuera} (fuentes disponibles: "
+                f"{len(context.sources)})")
+        return numeros
 
     @staticmethod
     def _normalizar_secciones(datos: Any) -> Tuple[List[Dict[str, Any]], int]:

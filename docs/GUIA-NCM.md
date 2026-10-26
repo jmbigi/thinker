@@ -524,9 +524,11 @@ fuentes y contexto.
   por sección. **No es NCM**: no usa VQ-VAE ni decodificación paralela; añade
   1+N llamadas y no se atribuye mejora de calidad sin medirla con el benchmark.
   Si el esquema no es JSON válido, cae a la pasada única y lo registra en
-  `decision_log` (nunca en silencio). Validado offline con 9 tests; el modelo,
-  sus checkpoints y su tokenizer no se adoptan porque exigirían PyTorch, pesos
-  y un backend nuevo (regla 13). Uso:
+  `decision_log` (nunca en silencio). Además, valida las citas `[n]` contra las
+  fuentes (`cita_fuera_de_rango`), registra las secciones sin citas y aísla el
+  fallo de una sección: el informe conserva un marcador explícito y sigue.
+  Validado offline con 16 tests; el modelo, sus checkpoints y su tokenizer no se
+  adoptan porque exigirían PyTorch, pesos y un backend nuevo (regla 13). Uso:
 
   ```python
   from deep_research_system import ResearchOrchestrator

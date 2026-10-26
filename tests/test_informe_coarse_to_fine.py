@@ -110,15 +110,17 @@ class TestInformeCoarseToFine(unittest.TestCase):
 
     def test_seccion_vacia_se_marca_sin_inventar_contenido(self):
         llm = StubLLM(responder_por_etapas(
-            '{"secciones": [{"titulo": "Uno"}]}', {"Uno": "   "}))
+            '{"secciones": [{"titulo": "Uno"}, {"titulo": "Dos"}]}',
+            {"Uno": "   ", "Dos": "Contenido [1]"}))
         ctx = contexto()
 
         informe = ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
 
-        self.assertIn("(No content generated for this section.)", informe)
+        self.assertIn("## Uno\n\n(No content generated for this section.)",
+                      informe)
         seccion = [d for d in ctx.decision_log
-                   if d["step"] == "report_section"][0]
-        self.assertEqual(seccion["decision"], "empty")
+                   if d["decision"] == "empty"][0]
+        self.assertEqual(seccion["step"], "report_section")
         self.assertEqual(seccion["rationale"], "Section: Uno")
 
     def test_filtra_claims_de_la_seccion_y_conserva_numeracion(self):
@@ -159,6 +161,115 @@ class TestInformeCoarseToFine(unittest.TestCase):
             with self.subTest(datos=datos):
                 with self.assertRaises(ValueError):
                     ReportGenerator._normalizar_secciones(datos)
+
+    def test_pasada_unica_registra_cita_fuera_de_rango(self):
+        llm = StubLLM(lambda p: "Dato [1] y [9]")
+        ctx = contexto()
+
+        ReportGenerator(llm).decide(ctx)
+
+        avisos = [d for d in ctx.decision_log
+                  if d["step"] == "report_validation"]
+        self.assertEqual(len(avisos), 1)
+        self.assertEqual(avisos[0]["decision"], "cita_fuera_de_rango")
+        self.assertIn("[9]", avisos[0]["rationale"])
+        self.assertIn("fuentes disponibles: 2", avisos[0]["rationale"])
+
+    def test_anio_entre_corchetes_no_se_confunde_con_cita(self):
+        llm = StubLLM(lambda p: "En [2026] ocurrió el hito")
+        ctx = contexto()
+
+        ReportGenerator(llm).decide(ctx)
+
+        self.assertEqual(
+            [d for d in ctx.decision_log
+             if d["step"] == "report_validation"], [])
+
+    def test_seccion_con_citas_validas_no_genera_avisos(self):
+        llm = StubLLM(responder_por_etapas(
+            '{"secciones": [{"titulo": "Uno"}]}',
+            {"Uno": "Contenido [1] y [2]"}))
+        ctx = contexto()
+
+        ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        self.assertEqual(
+            [d for d in ctx.decision_log
+             if d["step"] == "report_validation"], [])
+        self.assertEqual(
+            [d for d in ctx.decision_log
+             if d["decision"] == "sin_citas"], [])
+
+    def test_seccion_sin_citas_se_registra(self):
+        llm = StubLLM(responder_por_etapas(
+            '{"secciones": [{"titulo": "Uno"}]}',
+            {"Uno": "Contenido sin citas"}))
+        ctx = contexto()
+
+        ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        aviso = [d for d in ctx.decision_log
+                 if d["decision"] == "sin_citas"][0]
+        self.assertEqual(aviso["step"], "report_section")
+        self.assertEqual(aviso["rationale"], "Section: Uno")
+
+    def test_seccion_con_cita_fuera_de_rango_se_registra(self):
+        llm = StubLLM(responder_por_etapas(
+            '{"secciones": [{"titulo": "Uno"}]}',
+            {"Uno": "Contenido [7]"}))
+        ctx = contexto()
+
+        ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        aviso = [d for d in ctx.decision_log
+                 if d["step"] == "report_validation"][0]
+        self.assertEqual(aviso["decision"], "cita_fuera_de_rango")
+        self.assertIn("Sección Uno: [7]", aviso["rationale"])
+
+    def test_error_en_una_seccion_no_tumba_el_informe(self):
+        def responder(prompt):
+            if "Design the outline" in prompt:
+                return '{"secciones": [{"titulo": "Uno"}, {"titulo": "Dos"}]}'
+            if '"Uno"' in prompt:
+                return "Contenido uno [1]"
+            if '"Dos"' in prompt:
+                raise RuntimeError("fallo simulado")
+            raise AssertionError(f"prompt inesperado: {prompt[:80]}")
+
+        ctx = contexto()
+        informe = ReportGenerator(
+            StubLLM(responder), coarse_to_fine=True).decide(ctx)
+
+        self.assertIn("## Uno\n\nContenido uno [1]", informe)
+        self.assertIn("## Dos\n\n(No content generated for this section.)",
+                      informe)
+        error = [d for d in ctx.decision_log
+                 if d["decision"] == "error"][0]
+        self.assertEqual(error["step"], "report_section")
+        self.assertIn("RuntimeError: fallo simulado", error["rationale"])
+        self.assertEqual(ctx.decision_log[-1]["step"], "report_generation")
+
+    def test_todas_las_secciones_vacias_caen_a_pasada_unica(self):
+        def responder(prompt):
+            if "Design the outline" in prompt:
+                return '{"secciones": [{"titulo": "Uno"}]}'
+            if "Write the section" in prompt:
+                return "   "
+            return "informe único"
+
+        llm = StubLLM(responder)
+        ctx = contexto()
+
+        informe = ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        self.assertEqual(informe, "informe único")
+        self.assertEqual(len(llm.prompts), 3)
+        fallback = [d for d in ctx.decision_log
+                    if d["step"] == "report_generation"
+                    and d["decision"] == "fallback_single_pass"]
+        self.assertEqual(len(fallback), 1)
+        self.assertIn("Ninguna sección generó contenido",
+                      fallback[0]["rationale"])
 
     def test_orquestador_propaga_el_modo(self):
         apagado = ResearchOrchestrator(MockLLM(), MockSearchAPI())
