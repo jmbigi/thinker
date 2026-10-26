@@ -1,4 +1,4 @@
-# Triaje R3 — 2450 brechas, 48 equivalencias y 0 timeouts
+# Triaje R3 — 2441 brechas, 49 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -9,7 +9,7 @@
 1. Campaña persistente por objetivo:
    `preflight` (**1016 mutantes**, lote 6) y `evaluar` (**5985 mutantes**,
    batch r3c).
-2. Copias de mutación conservadas en `build/mut-preflight-triage-final` y
+2. Copias de mutación conservadas en `build/mut-preflight-cierre3` y
    `build/mut-eval-batch-r3c` (ambas ignoradas por git).
 3. Cobertura de las pruebas seleccionadas por la propia campaña:
    preflight 392/425 líneas; evaluador 1366/1571.
@@ -21,38 +21,37 @@
    - `sin_cobertura`: la función no se ejecuta. No apareció ninguna.
    - `timeout`: el mutante no termina; se clasifica aparte y no se cuenta como
      muerto.
-   - `equivalente`: **solo con prueba semántica** (48 en preflight; ver
+   - `equivalente`: **solo con prueba semántica** (49 en preflight; ver
      `docs/TRIAGE-EQUIVALENCIAS.md`). No se usa como cajón de sastre.
 
 ## Resultado
 
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
-| Preflight | **9** | **48** | 0 | **0** |
+| Preflight | **0** | **49** | 0 | **0** |
 | Evaluador | **2441** | 0 | **0** | **0** |
-| **Total** | **2450** | **48** | **0** | **0** |
+| **Total** | **2441** | **49** | **0** | **0** |
 
-Los **2450** casos de brecha son aserciones que faltan: sus funciones se
+Los **2441** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
-### Preflight — 57 (9 brechas + 48 equivalencias)
+### Preflight — 49 (0 brechas + 49 equivalencias)
 
-Campaña 2026-10-26: **1016 mutantes, 959 muertos, 57 supervivientes, 0 sin
-tests, 0 timeouts, 0 sospechosos**; tasa bruta **94,39%** (antes 696/1015,
+Campaña 2026-10-26: **1016 mutantes, 967 muertos, 49 supervivientes, 0 sin
+tests, 0 timeouts, 0 sospechosos**; tasa bruta **95,18%** (antes 696/1015,
 68,57%). El refuerzo de aserciones exactas (contrato del hallazgo, CLI, alias,
 umbrales de duplicados, manifiestos, `modulos_locales`, archivos ilegibles,
-umbral exacto de 60 nodos e include con comentarios) mató 263 mutantes más de
-los que ya caían; el total sube en 1 por el arreglo de `_es_main` (nuevo
-mutante de `ast.Eq`).
+umbral exacto de 60 nodos, include con comentarios, locale C en proceso y byte
+nulo) mató 271 mutantes más de los que ya caían; el total sube en 1 por el
+arreglo de `_es_main` (nuevo mutante de `ast.Eq`).
 
-El triaje semántico de `docs/TRIAGE-EQUIVALENCIAS.md` demuestra 48
-equivalencias y deja 9 brechas reales o no demostradas:
-
-- 5 `encoding=None` (dependen de la codificación regional).
-- `cargar_modulos` 60 (`exc.lineno or 1`; no demostrado).
-- 2 `continue`→`break` en `revisar_imports`.
-- `_leer_requisitos` 8 (`encoding=None`).
+Los 49 supervivientes son **equivalencias demostradas** en
+`docs/TRIAGE-EQUIVALENCIAS.md` (grupos 1-14); no hay brechas reales. Los
+mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
+(no en un subproceso, que no habría sido mapeado por la campaña),
+`cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
+`revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
 ### Evaluador — 2441
 
@@ -108,10 +107,12 @@ el resumen y la clasificación.
 
 ## Conclusión
 
-- **Triaje de inventario:** completo, 2498/2498 casos con categoría.
-- **Equivalentes demostrados:** 48, todos en preflight y con prueba.
-- **Tasas:** 959/1016 (preflight) y 3544/5985 (evaluador); no cambian por
+- **Triaje de inventario:** completo, 2490/2490 casos con categoría
+  (2441 brechas + 49 equivalencias).
+- **Equivalentes demostrados:** 49, todos en preflight y con prueba; no se
+  cuentan como muertos.
+- **Tasas:** 967/1016 (preflight) y 3544/5985 (evaluador); no cambian por
   clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **2450 brechas** por reforzar.
-  El preflight pasó de 319 a 9 brechas reales; el evaluador sigue siendo la
-  deuda principal.
+- **R3 no se cierra como tasa limpia:** quedan **2441 brechas**, todas del
+  evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
+  la deuda principal.

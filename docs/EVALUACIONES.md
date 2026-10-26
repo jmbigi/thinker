@@ -503,20 +503,20 @@ Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
 
 **Actualización 2026-10-26 (R3 preflight y evaluador — Hallazgos 116/120)**:
 el refuerzo de aserciones exactas del preflight bajó los supervivientes de
-**319 a 57**: **1016 mutantes, 959 muertos, 57 supervivientes, 0 sin tests, 0
-timeouts, 0 sospechosos**; tasa bruta **94,39%** (antes 68,57% con 696/1015).
-El triaje semántico (`docs/TRIAGE-EQUIVALENCIAS.md`) demuestra **48
-equivalencias** y deja **9 brechas reales**; la tasa no cambia. El cambio
+**319 a 49**: **1016 mutantes, 967 muertos, 49 supervivientes, 0 sin tests, 0
+timeouts, 0 sospechosos**; tasa bruta **95,18%** (antes 68,57% con 696/1015).
+El triaje semántico (`docs/TRIAGE-EQUIVALENCIAS.md`) demuestra **49
+equivalencias** y deja **0 brechas reales**; la tasa no cambia. El cambio
 incluye un defecto real: `_es_main` aceptaba `if __name__ != "__main__"` como
 guardia no runtime; ahora exige `ast.Eq` y hay regresión. El evaluador se
 re-midió el 2026-10-26 tras el contrato de `informe_texto`, `detectar_comando_tests`
 y los tests de red: **5985 mutantes, 3544 muertos, 2441 supervivientes, 0 sin
 tests, 0 timeouts, 0 sospechosos**; tasa bruta **59,21%** (antes 51,19%).
-Triaje de inventario **2498/2498**: **2450 brechas** (9 preflight + 2441
-evaluador), **48 equivalencias demostradas** y **0 timeouts**. Suite **942/942** en Linux
+Triaje de inventario **2490/2490**: **2441 brechas** (0 preflight + 2441
+evaluador), **49 equivalencias demostradas** y **0 timeouts**. Suite **945/945** en Linux
 (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
 autoevaluación **1.000** (sin red: 25/29, 2 no verificados). R3 sigue
-**parcial**: no se cierra con 2450 brechas pendientes.
+**parcial**: no se cierra con 2441 brechas pendientes.
 
 R4 subió de 33 casos/14 criterios a **57 casos/26 criterios**: c4, h4, v3
 (repo git temporal), i1-i6 y e1-e3, estos últimos con fixtures **sintéticas

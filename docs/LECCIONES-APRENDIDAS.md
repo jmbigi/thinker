@@ -2174,7 +2174,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   redundante `origen` en `_evaluar_independiente` (sus 8 mutantes eran
   equivalentes porque `fuentes_usadas` ya excluye el origen). Resultado final:
   **95,2% (3635/3819; 184 supervivientes, 0 timeouts, 0 sospechosos)**;
-  `deep_research_system` pasa de 90 a 57 supervivientes y el total baja en 13
+  `deep_research_system` pasa de 90 a 49 supervivientes y el total baja en 13
   mutantes por el código redundante eliminado.
 - **Modo `--requisitos` (2026-10-23)**: el estado del arte no ofrece un
   verificador general de requisitos naturales. Hay trazabilidad explícita
@@ -2689,7 +2689,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   ya trata, `encoding="UTF-8"` frente a `"utf-8"`), pero **no se declara
   equivalencia sin prueba**. Con dos tests más (umbral exacto de 60 nodos
   e include con comentarios) la campaña final quedó en **1016/959/57**
-  (94,39%), triaje 48 equivalencias + 9 brechas (Hallazgo 120).
+  (95,18%), triaje 49 equivalencias + 0 brechas (Hallazgo 120).
 - **Evaluador**: tras aislar los tests de `main` y el de
   `test_sintesis_sin_python_dotenv`, la campaña 26c dio **5939 mutantes, 3040
   muertos, 2899 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa
@@ -2708,7 +2708,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se modifica: el perfil falla con `EROFS` y los plugins del documento externo
   devuelven 404 en npm; instalar código no verificado habría sido una falsa
   protección (P0.18).
-- **Evidencia**: suite **942/942**; ruff 0; preflight 0; docs-check OK;
+- **Evidencia**: suite **945/945**; ruff 0; preflight 0; docs-check OK;
   `docs/TRIAGE-R3.md` actualizado; JSON en `build/` (ignorados).
 - **Lección**: una aserción exacta del contrato encontró un defecto que 319
   mutantes no habían revelado. La mutación mide la fuerza de los tests, pero
@@ -2731,7 +2731,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   LLM declarado, red o historial git. No se simulan con fixtures porque el
   benchmark mide el detector, no una maqueta del mundo real.
 - **Evidencia**: `tests/test_evaluador_precision.py` actualizado (16 medidos,
-  13 no medidos, 29 base, 37 casos, 16 TP); suite **942/942**; el benchmark
+  13 no medidos, 29 base, 37 casos, 16 TP); suite **945/945**; el benchmark
   `--json` da 1,00/1,00.
 - **Lección**: ampliar cobertura es legítimo cuando el criterio es medible
   offline; declarar N/A con motivo es mejor que inventar una fixture que
@@ -2771,30 +2771,31 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   **26 TP, 0 FP, 0 FN** en 57 casos.
 - **Evidencia**: `tests/benchmarks/evaluador_precision.py`,
   `tests/test_evaluador_precision.py` (26 medidos, 3 N/A, 57 casos, 26 TP);
-  suite **942/942**.
+  suite **945/945**.
 - **Lección**: un benchmark sintético bien construido no solo mide: puede
   encontrar defectos que los tests de integración no ven. La fixture debe
   declararse sintética y no llamar a proveedores reales.
 
 ## 2026-10-26 (ronda 38) — Triaje semántico del preflight
 
-### Hallazgo 120: 48 equivalencias demostradas no son 48 mutantes muertos
+### Hallazgo 120: 49 equivalencias demostradas no son 49 mutantes muertos
 
-- **Acción**: `docs/TRIAGE-EQUIVALENCIAS.md` clasifica los 57 supervivientes
-  del preflight: **48 equivalencias con prueba** (códec UTF-8, defaults que el
+- **Acción**: `docs/TRIAGE-EQUIVALENCIAS.md` clasifica los 49 supervivientes
+  del preflight: **49 equivalencias con prueba** (códec UTF-8, defaults que el
   helper ya trata, `configparser` case-insensitive, `ast.dump` falsy, severidad
   por defecto, `--allow` vacío, primer elemento de `split`, `filename` de
   `ast.parse`, línea de `ExceptHandler`, condición redundante de
-  `modulos_locales` y paquete hermano) y **9 brechas reales o no demostradas**
-  (5 `encoding=None`, `lineno or 1`, 2 `continue`→`break` y 1 `-r`).
-- **Límite**: la tasa **no cambia** (959/1016, 94,39%); los equivalentes no se
+  `modulos_locales` y paquete hermano). Las antiguas 9 brechas se cerraron:
+  6 `encoding=None` con locale C en proceso, `lineno or 1` con byte nulo y el
+  `continue`/`break` restante se demostró equivalente.
+- **Límite**: la tasa **no cambia** (967/1016, 95,18%); los equivalentes no se
   cuentan como muertos. Solo se declara equivalencia con una razón completa.
-- **Evidencia**: `docs/TRIAGE-EQUIVALENCIAS.md`; preflight 1016/959/57, 0
-  timeouts; suite **942/942**; dos tests nuevos (umbral exacto de 60 nodos e
-  include con comentarios) mataron 3 mutantes y bajaron de 60 a 57.
+- **Evidencia**: `docs/TRIAGE-EQUIVALENCIAS.md`; preflight 1016/967/49, 0
+  timeouts; suite **945/945**; tres tests nuevos (locale C, byte nulo e import
+  duplicado) mataron 8 mutantes y bajaron de 57 a 49.
 - **Lección**: reducir el ruido de una campaña de mutación no es subir la
-  nota. Un equivalente demostrado sigue siendo deuda documentada; las 9
-  brechas restantes se mantienen visibles.
+  nota. Un equivalente demostrado no es un mutante muerto; no quedan brechas
+  reales de preflight y las 49 equivalencias siguen visibles.
 
 ## 2026-10-26 (ronda 39) — Contrato del informe y del runner
 
@@ -2808,10 +2809,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   0 timeouts**, tasa **59,21%** (antes 51,19%). Se mataron 504 más y se
   eliminaron los 2 timeouts que quedaban; el total sube en 46 por los arreglos
   de e1/e2.
-- **Triaje**: **2498/2498** con categoría: 2450 brechas (9 preflight + 2441
-  evaluador), 48 equivalencias preflight y 0 timeouts.
+- **Triaje**: **2490/2490** con categoría: 2441 brechas (0 preflight + 2441
+  evaluador), 49 equivalencias preflight y 0 timeouts.
 - **Evidencia**: `docs/TRIAGE-R3.md`, `docs/TRIAGE-EQUIVALENCIAS.md`, suite
-  **942/942**, ruff 0, preflight 0, docs-check OK.
+  **945/945**, ruff 0, preflight 0, docs-check OK.
 - **Lección**: el contrato exacto de una función de salida es una fuente de
   aserciones de alto rendimiento; y un test que no aísla la red convierte un
   mutante en timeout, no en fallo. Aislar la red es parte de medir.
@@ -2824,11 +2825,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   N/A** declaradas (f1, v4, h5). El cierre es **por alcance**: los 3 criterios
   restantes exigen red/PyPI o un punto de entrada real y no se simulan. No se
   presenta como cobertura total ni como validación global.
-- **R3**: **no se cierra**. Quedan **2450 brechas** (9 preflight + 2441
-  evaluador) y las 48 equivalencias **no cuentan como muertos**; la tasa
-  (94,39% preflight, 59,21% evaluador) no cambia por el triaje.
+- **R3**: **no se cierra**. Quedan **2441 brechas** (0 preflight + 2441
+  evaluador) y las 49 equivalencias **no cuentan como muertos**; la tasa
+  (95,18% preflight, 59,21% evaluador) no cambia por el triaje.
 - **Evidencia**: `docs/RECOMENDACIONES-MEJORAS.md` §5/§7, `docs/TRIAGE-R3.md`,
-  suite **942/942**, `make ci` OK, autoevaluación 1.000.
+  suite **945/945**, `make ci` OK, autoevaluación 1.000.
 - **Lección**: cerrar una recomendación por alcance es legítimo si se declara
   qué queda fuera y por qué; no lo es convertir N/A en aciertos ni llamar
-  «cerrado» a R3 con 2450 aserciones pendientes.
+  «cerrado» a R3 con 2441 aserciones pendientes.

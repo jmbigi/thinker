@@ -1,7 +1,7 @@
-# Triaje semántico de preflight (R3) — 48 equivalentes, 9 brechas
+# Triaje semántico de preflight (R3) — 49 equivalentes, 0 brechas
 
 **Fecha:** 2026-10-26. **Base:** campaña de preflight `1016` mutantes,
-`959` muertos, `57` supervivientes, `0` timeouts. Este documento **no cambia la
+`967` muertos, `49` supervivientes, `0` timeouts. Este documento **no cambia la
 tasa**: los equivalentes no se cuentan como muertos. Solo evita llamar
 «brecha» a una mutación que produce exactamente el mismo resultado observable.
 
@@ -13,7 +13,7 @@ Las pruebas se apoyan en el código, la semántica de Python y tests ya
 existentes; no se declara equivalente ninguna mutación de la que no haya una
 razón completa. Las 9 restantes se dejan como brechas reales o no demostradas.
 
-## Grupos demostrados (48)
+## Grupos demostrados (49)
 
 ### 1. Codificación `"UTF-8"` frente a `"utf-8"` (7)
 
@@ -140,21 +140,32 @@ Mutantes: `revisar_imports` 28, 29.
 No se añaden módulos de directorios ignorados porque el archivo tampoco estaría
 en `modulos`.
 
-## Brechas reales o no demostradas (9)
+### 14. `continue` en el bucle de un `Import` opcional (1)
 
-| Función | Mutantes | Por qué no es equivalente |
-|---|---|---|
-| `dependencias_declaradas` | 49, 156, 209 | `encoding=None` usa la codificación regional; no es universal. |
-| `cargar_modulos` | 11 | igual: `encoding=None`. |
-| `cargar_modulos` | 60 | `exc.lineno or 1` difiere si `lineno` es 0/None; no demostrado. |
-| `revisar_silencios` | 7 | igual: `encoding=None`. |
-| `_leer_requisitos` | 8 | igual: `encoding=None`. |
-| `revisar_imports` | 56, 59 | `continue` → `break` en el bucle de imports; no se demostró equivalencia para todos los casos. |
+Mutante: `revisar_imports` 56 (`continue` → `break` cuando la línea está en
+`opcionales`).
+
+**Prueba:** para un `ast.Import`, todas las entradas de `importados` comparten
+`nodo.lineno`; si esa línea es opcional, ninguna entrada se procesa y `break` o
+`continue` terminan el bucle sin efectos. Para un `ast.ImportFrom` solo hay una
+entrada. El resultado observable es el mismo.
+
+## Sin brechas reales
+
+Los 6 mutantes de `encoding=None` se mataron con un test que cambia la locale a
+`C` **en proceso** (no en un subproceso): si `read_text` usa `None`, la lectura
+falla y el test falla. `cargar_modulos` 60 se mató con un archivo con byte nulo
+(`SyntaxError.lineno is None`, el informe debe decir línea 0); `revisar_imports`
+59 se mató con `import os` seguido de `import os, requests`.
+
+Los 49 supervivientes restantes están cubiertos por los grupos 1-14. No se
+declara una equivalencia sin prueba; el mutante 56 se añadió aquí tras
+comprobar que todas las entradas de un `Import` comparten línea.
 
 ## Consecuencia
 
-- **Brechas reales de preflight:** **9**.
-- **Equivalencias demostradas:** **48** (no cuentan como muertos).
-- **Tasa de mutación:** **959/1016 = 94,39%**; no cambia por este triaje.
-- Los 9 siguen siendo deuda; no se ocultan ni se convierten en «equivalente»
-  sin prueba.
+- **Brechas reales de preflight:** **0**.
+- **Equivalencias demostradas:** **49** (no cuentan como muertos).
+- **Tasa de mutación:** **967/1016 = 95,18%**; no cambia por este triaje.
+- No quedan brechas reales de preflight; las 49 equivalencias no se cuentan
+  como muertos y no inflan la tasa.

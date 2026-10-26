@@ -3,6 +3,7 @@
 import ast
 import io
 import json
+import locale
 import os
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -744,6 +745,18 @@ class TestCamposDelInformeR3(unittest.TestCase):
         self.assertEqual(sintaxis.severidad, "alta")
         self.assertTrue(sintaxis.mensaje.startswith("error de sintaxis: "))
 
+    def test_sintaxis_sin_linea_reporta_cero(self):
+        raiz = crear_proyecto(self, {"nulo.py": ""})
+        (raiz / "nulo.py").write_bytes(b"x = 1\n\x00\n")
+
+        modulos, resultado = cargar_modulos(raiz, [raiz / "nulo.py"])
+
+        self.assertEqual(modulos, {})
+        self.assertEqual(len(resultado.hallazgos), 1)
+        self.assertEqual(resultado.hallazgos[0].linea, 0)
+        self.assertTrue(resultado.hallazgos[0].mensaje.startswith(
+            "error de sintaxis: "))
+
     def test_dependencias_sigue_tras_manifiesto_invalido(self):
         raiz = crear_proyecto(self, {
             "pyproject.toml": "[project\n",
@@ -953,6 +966,16 @@ class TestImportsR3Extra(unittest.TestCase):
 
         self.assertEqual([(h.linea, h.mensaje) for h in resultado.hallazgos],
                          [(1, "import no declarado: requests")])
+
+    def test_import_duplicado_no_oculta_el_segundo(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "import os\nimport os, requests\n"})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos)
+
+        self.assertEqual([(h.linea, h.mensaje) for h in resultado.hallazgos],
+                         [(2, "import no declarado: requests")])
 
     def test_import_bajo_guardia_negativa_no_es_no_runtime(self):
         raiz = crear_proyecto(self, {
@@ -1220,6 +1243,57 @@ class TestMainR3(unittest.TestCase):
 
         self.assertEqual(codigo, 2)
         self.assertIn("no se pudo leer el proyecto", error.getvalue())
+
+
+class TestEncodingRegionalR3(unittest.TestCase):
+    """Las lecturas con utf-8 no deben depender de la locale regional."""
+
+    @unittest.skipIf(os.name == "nt", "la locale C no es ASCII en Windows")
+    def test_lecturas_no_dependen_de_la_locale(self):
+        req = crear_proyecto(self, {"requirements.txt": ""})
+        (req / "requirements.txt").write_bytes(
+            "# caf\u00e9\nrequests==2.0\n".encode("utf-8"))
+
+        mod = crear_proyecto(self, {"mod.py": ""})
+        (mod / "mod.py").write_bytes(
+            "# caf\u00e9\ndef f():\n    return 1\n".encode("utf-8"))
+
+        sil = crear_proyecto(self, {"sil.py": ""})
+        (sil / "sil.py").write_bytes(
+            ("try:\n    x = 1\nexcept Exception:  # caf\u00e9\n"
+             "    pass\n").encode("utf-8"))
+
+        anterior = locale.setlocale(locale.LC_CTYPE)
+        try:
+            locale.setlocale(locale.LC_CTYPE, "C")
+            self.assertEqual(
+                _leer_requisitos(req / "requirements.txt", set()),
+                {"requests"})
+            modulos, sintaxis = cargar_modulos(mod, [mod / "mod.py"])
+            self.assertIn(mod / "mod.py", modulos)
+            self.assertEqual(sintaxis.hallazgos, [])
+            arbol = ast.parse((sil / "sil.py").read_text(encoding="utf-8"))
+            self.assertEqual(
+                len(revisar_silencios(sil, {sil / "sil.py": arbol}).hallazgos),
+                1)
+            for nombre, contenido, esperado in (
+                    ("pyproject.toml",
+                     '[project]\nname = "x"\nversion = "0.1.0"\n'
+                     'description = "caf\u00e9"\n'
+                     'dependencies = ["requests"]\n', "requests"),
+                    ("setup.cfg",
+                     "# caf\u00e9\n[options]\ninstall_requires =\n"
+                     "    flask\n", "flask"),
+                    ("setup.py",
+                     '# caf\u00e9\nfrom setuptools import setup\n'
+                     'setup(install_requires=["flask"])\n', "flask")):
+                base = crear_proyecto(self, {})
+                (base / nombre).write_bytes(contenido.encode("utf-8"))
+                declaradas, hallazgos = dependencias_declaradas(base)
+                self.assertIn(esperado, declaradas, nombre)
+                self.assertEqual(hallazgos, [], nombre)
+        finally:
+            locale.setlocale(locale.LC_CTYPE, anterior)
 
 
 if __name__ == "__main__":
