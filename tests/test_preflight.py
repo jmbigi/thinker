@@ -9,6 +9,7 @@ from pathlib import Path
 
 from scripts.preflight import (archivos_python, cargar_modulos,
                                dependencias_declaradas, ejecutar, main,
+                               revisar_imports, revisar_silencios,
                                _nombre_excepcion,
                                _lineas_import_opcional, _lineas_condicionales,
                                _leer_requisitos, _nombres_de_lista,
@@ -629,6 +630,61 @@ class TestMainYModulosR3(unittest.TestCase):
 
         self.assertEqual(codigo, 0)
         self.assertTrue(json.loads(salida.getvalue())["ok"])
+
+
+class TestImportsYSilenciosR3(unittest.TestCase):
+    def test_imports_hermanos_opcionales_permitidos_y_duplicados(self):
+        raiz = crear_proyecto(self, {
+            "tools/principal.py": (
+                "import os\nimport helper\nimport extra\n"
+                "try:\n    import requests\nexcept ImportError:\n    pass\n"
+                "import os\n"),
+            "tools/helper.py": "x = 1\n",
+        })
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(
+            raiz, modulos, permitidos=["extra"], ignorar_opcionales=True)
+
+        self.assertEqual(resultado.hallazgos, [])
+
+    def test_import_no_declarado_se_reporta_una_vez(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": "import requests\nimport requests\n"})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos)
+
+        self.assertEqual(len(resultado.hallazgos), 1)
+        self.assertEqual(resultado.hallazgos[0].mensaje,
+                         "import no declarado: requests")
+        self.assertEqual(resultado.hallazgos[0].severidad, "alta")
+
+    def test_silencios_marca_valida_y_cuerpos_multiples(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": (
+                "def a():\n"
+                "    try:\n        return 1\n"
+                "    except Exception:  # noqa: silent: motivo\n"
+                "        pass\n"
+                "def b():\n"
+                "    try:\n        return 1\n"
+                "    except Exception:\n        pass\n        return 0\n"
+                "def c():\n"
+                "    for x in []:\n"
+                "        try:\n            pass\n"
+                "        except Exception:\n            continue\n"
+                "def d():\n"
+                "    try:\n        return 1\n"
+                "    except Exception:\n        ...\n")})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_silencios(raiz, modulos)
+
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertEqual(resultado.advertencias[0].severidad, "baja")
+        self.assertEqual(len(resultado.hallazgos), 2)
+        self.assertEqual({h.linea for h in resultado.hallazgos}, {16, 21})
 
 
 if __name__ == "__main__":
