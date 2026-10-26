@@ -190,6 +190,23 @@ sección se comprobaron con petición HTTP real a la fuente primaria el
   por defecto; ninguna decisión de producto se apoya en cifras de fabricante no
   verificadas.
 
+### 4.5. Referencia complementaria: NCM (2026-10-26)
+
+Se incorporó `docs/GUIA-NCM.md`, una guía verificada de las cuatro acepciones de
+**NCM** (Next-Concept Modeling, Neural Cognitive Maps, Neutrosophic Cognitive
+Maps y Nearest Class Mean), con repositorios, licencias, versiones y un anexo de
+comprobaciones (API de arXiv/GitHub, Crossref y PyPI).
+
+- **Aplicable hoy:** nada al pipeline; thinker no entrena tokenizers ni
+  clasificadores incrementales. La guía evita repetir búsquedas y citar rutas
+  que devuelven 404.
+- **Línea futura, no adoptada:** la generación coarse-to-fine de
+  `HazyResearch/ncm` exigiría un backend de inferencia nuevo y una campaña de
+  medición; no hay defecto reproducible que lo justifique (regla 13).
+- **Límite:** no se instaló ni ejecutó ninguna de las librerías; la guía verifica
+  existencia, licencia, versión y, en Avalanche/CapyMOA, la clase NCM en el
+  código fuente.
+
 ## 5. Límites y responsabilidad
 
 - Los papers validan en sus propios entornos y modelos; aquí **solo cuenta la

@@ -26,6 +26,7 @@ herramientas de análisis estático de código.
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
 | `docs/RECOMENDACIONES-MEJORAS.md` | Recomendaciones abiertas priorizadas, con evidencia, esfuerzo, riesgo y criterio de aceptación. |
 | `docs/REFERENCIAS-IA.md` | Teoría y práctica de IA (referencias verificadas contra arXiv y guías de ingeniería) con propuestas medidas por el benchmark. |
+| `docs/GUIA-NCM.md` | Las cuatro acepciones de NCM (Next-Concept Modeling, mapas cognitivos neuronales y neutrosóficos, Nearest Class Mean): repositorios, licencias y fuentes verificadas (anexo A). |
 | `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Incluye **verificación opt-in de requisitos** (`--requisitos`, ver `docs/REQUISITOS.md`). Informes: `docs/EVALUACIONES.md`. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
