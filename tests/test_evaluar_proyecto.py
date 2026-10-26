@@ -12,12 +12,13 @@ import os
 import tempfile
 import unittest
 import warnings
+from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import patch
 
 import evaluar_proyecto
-from evaluar_proyecto import (archivos_python, detectar_comando_tests, evaluar,
-                              informe_texto, main, parsear_requisitos)
+from evaluar_proyecto import (archivos_python, detectar_comando_tests, ejecutar_tests,
+                              evaluar, informe_texto, main, parsear_requisitos)
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -1131,6 +1132,20 @@ class TestEntornoLLMOptIn(unittest.TestCase):
 
         self.assertEqual(codigo, 2)
         self.assertIn("OPENROUTER_API_KEY", error.getvalue())
+
+
+class TestEjecutarTestsAcotado(unittest.TestCase):
+    def test_cwd_es_el_proyecto_evaluado(self):
+        with tempfile.TemporaryDirectory() as d, \
+                patch.object(evaluar_proyecto, "detectar_comando_tests",
+                             return_value={"comando": ["true"], "origen": "x"}), \
+                patch.object(evaluar_proyecto.subprocess, "run") as run:
+            run.return_value = SimpleNamespace(
+                returncode=0, stdout="Ran 1 test in 0.1s\nOK", stderr="")
+            resultado = ejecutar_tests(Path(d))
+
+        self.assertTrue(resultado["ejecutado"])
+        self.assertEqual(run.call_args.kwargs["cwd"], d)
 
 
 class TestAutoevaluacionDeThinker(unittest.TestCase):

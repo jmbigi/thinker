@@ -7,8 +7,9 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from scripts.preflight import (archivos_python, dependencias_declaradas,
-                               ejecutar, main, _nombre_excepcion,
+from scripts.preflight import (archivos_python, cargar_modulos,
+                               dependencias_declaradas, ejecutar, main,
+                               _nombre_excepcion,
                                _lineas_import_opcional, _lineas_condicionales,
                                _leer_requisitos, _nombres_de_lista,
                                _nombres_setup)
@@ -600,6 +601,34 @@ class TestLecturaManifiestosR3(unittest.TestCase):
         ruta.write_bytes(b"\xff\xfe\x00")
 
         self.assertEqual(_leer_requisitos(ruta, set()), set())
+
+
+class TestMainYModulosR3(unittest.TestCase):
+    def test_cargar_modulos_errores_y_archivos_explicitos(self):
+        raiz = crear_proyecto(self, {
+            "ok.py": "x = 1\n",
+            "mal.py": "def f(:\n",
+            "bin.py": "",
+        })
+        (raiz / "bin.py").write_bytes(b"\xff\xfe\x00")
+
+        modulos, resultado = cargar_modulos(
+            raiz, [raiz / "ok.py", raiz / "mal.py", raiz / "bin.py"])
+
+        self.assertEqual(set(modulos), {raiz / "ok.py"})
+        self.assertEqual(len(resultado.hallazgos), 2)
+        self.assertEqual({h.archivo for h in resultado.hallazgos},
+                         {"mal.py", "bin.py"})
+
+    def test_cli_allow_acepta_import_extra(self):
+        raiz = crear_proyecto(self, {"demo.py": "import extra\n"})
+        salida = io.StringIO()
+
+        with redirect_stdout(salida):
+            codigo = main(["--root", str(raiz), "--allow", "extra", "--json"])
+
+        self.assertEqual(codigo, 0)
+        self.assertTrue(json.loads(salida.getvalue())["ok"])
 
 
 if __name__ == "__main__":

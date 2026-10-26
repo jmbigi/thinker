@@ -1,4 +1,4 @@
-# Triaje R3 — 3252 supervivientes y 4 timeouts
+# Triaje R3 — 3238 supervivientes y 4 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > ninguno se declara equivalente sin prueba. Fecha: 2026-10-25.
@@ -26,21 +26,21 @@
 
 | Objetivo | Supervivientes | Timeouts | Sin categoría | Equivalentes |
 |---|---:|---:|---:|---:|
-| Preflight | **351** | 0 | **0** | **0** |
+| Preflight | **337** | 0 | **0** | **0** |
 | Evaluador | **2901** | **4** | **0** | **0** |
-| **Total** | **3252** | **4** | **0** | **0** |
+| **Total** | **3238** | **4** | **0** | **0** |
 
-Los **3252** supervivientes son brechas de aserción: sus funciones se ejecutan,
+Los **3238** supervivientes son brechas de aserción: sus funciones se ejecutan,
 pero los tests no detectan el cambio. **No hay ningún caso sin cobertura** que
 pueda resolverse solo añadiendo un test de humo; hace falta aserción exacta.
 
-### Preflight — 351
+### Preflight — 337
 
 | Función | Casos |
 |---|---:|
 | `dependencias_declaradas` | 68 |
-| `main` | 39 |
-| `cargar_modulos` | 37 |
+| `main` | 35 |
+| `cargar_modulos` | 27 |
 | `revisar_imports` | 29 |
 | `revisar_silencios` | 28 |
 | `modulos_locales` | 26 |
@@ -103,9 +103,9 @@ resumen y la clasificación.
 
 ## Conclusión
 
-- **Triaje de inventario:** completo, 3256/3256 casos con categoría.
+- **Triaje de inventario:** completo, 3242/3242 casos con categoría.
 - **Equivalentes demostrados:** 0. No se usa «equivalente» como cajón de sastre.
 - **Tasa:** 645/1015 (preflight) y 3034/5939 (evaluador); no cambia por
   clasificar. Los 4 timeouts no son muertos.
-- **R3 no se cierra como tasa limpia:** quedan 3252 aserciones por reforzar y 4
-  timeouts por acotar. El triaje convierte 3252 incógnitas en deuda accionable.
+- **R3 no se cierra como tasa limpia:** quedan 3238 aserciones por reforzar y 4
+  timeouts por acotar. El triaje convierte 3238 incógnitas en deuda accionable.

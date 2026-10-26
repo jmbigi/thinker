@@ -463,7 +463,7 @@ dev/opcionales sin tocar `h5` y marca `unverified` sin red.
 Suite **858/858** en Linux (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
 autoevaluación **1.000**, `[UNVERIFIED] 0`. Publicada como `0.1.9` en TestPyPI
 y PyPI el 2026-10-25; tag anotado `v0.1.9` (`14e2b7f`). Wheel SHA-256
-`88968e4bfa69e316222ff7730964723941e74ae27d75c2ece0486c2dac528270`; sdist
+`88998e4bfa69e316222ff7730964723941e74ae27d75c2ece0486c2dac528270`; sdist
 `756d838ff11659c3a172a50b354c190edfbe1912747259a903febbcd046f8a81`.
 
 **Actualización 2026-10-25 (R7 y R4 — Hallazgo 107)**: R7 añade
@@ -475,12 +475,12 @@ sobre 14 criterios, incluidos 5 casos trampa de falsos positivos (h1, h2, h3, h6
 criterio y global; resultado actual **14 TP, 0 FP, 0 FN; 1,00/1,00**, con el
 límite declarado de 14/29 criterios y fixtures sintéticas. Cobertura:
 `evaluar_proyecto.py` **91%** (145/1571 sin ejecutar), preflight **94%**
-(26/425), total 83%. Suite **896/896** en Linux (Python 3.11.9), ruff 0,
+(26/425), total 83%. Suite **899/899** en Linux (Python 3.11.9), ruff 0,
 preflight 0, docs-check OK; autoevaluación **1.000** (sin red: 25/29, 2 no
-verificados). R3 queda **parcial**: preflight **1015 mutantes, 664 muertos, 351
+verificados). R3 queda **parcial**: preflight **1015 mutantes, 678 muertos, 337
 supervivientes, 0 sin tests**; evaluador **5939 mutantes, 3034 muertos, 2901
 supervivientes, 0 sin tests y 4 timeouts** (tasa bruta 51,09%). Triaje de
-inventario **3256/3256**: 3252 brechas de aserción, 0 sin cobertura, 0
+inventario **3242/3242**: 3238 brechas de aserción, 0 sin cobertura, 0
 equivalentes demostrados y 4 timeouts no equivalentes (`docs/TRIAGE-R3.md`).
 La tasa sigue sin ser limpia. El arnés
 `scripts/mutacion.py` (3 tests) deja ambos comandos reproducibles, pero R3 no se
@@ -499,4 +499,4 @@ prueba calibración general.
 Publicada como **0.1.10** en TestPyPI y PyPI el 2026-10-25; tag anotado
 `v0.1.10` (`551d693`). Wheel SHA-256
 `9571519215f336bd1b1b05e5f7a9f516f64500ebde57f2e16dbd5abdf7d26caa`; sdist
-`5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713896621f75`.
+`5ab2ef2cf790342b46a14af8f9161c42a3ecb6f0c0d31153dd31713899621f75`.
