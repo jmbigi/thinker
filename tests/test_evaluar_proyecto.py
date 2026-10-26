@@ -2042,5 +2042,155 @@ class TestDetectarComandoTestsContrato(unittest.TestCase):
             "origen": "convención: existe tests/"})
 
 
+class TestDimensionesContrato(unittest.TestCase):
+    """Contrato exacto de herramientas/calidad: criterios, hallazgos y notas."""
+
+    def test_herramientas_proyecto_completo(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname = "demo"\nversion = "0.1.0"\n'
+                               'dependencies = ["requests"]\n'),
+            "LICENSE": "MIT\n",
+            "pkg/__init__.py": "",
+            "pkg/app.py": "import requests\n\n\ndef f():\n    return requests\n",
+            "tests/test_app.py": "def test_f():\n    assert 1 == 1\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_herramientas(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.667, "evaluado": True,
+            "criterios": {"h1_manifiesto": True, "h2_licencia": True,
+                          "h3_verificacion_automatizada": False,
+                          "h4_runner_de_tests_declarado": True,
+                          "h6_imports_declarados": True,
+                          "h7_decisiones_documentadas": False},
+            "no_aplica": [{"criterio": "h5_licencias_libres",
+                           "motivo": "licencias de dependencias OMITIDAS "
+                                     "(--sin-red)"}],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Sin CI ni script de verificación local",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "h3_verificacion_automatizada"},
+                {"severidad": "baja",
+                 "descripcion": "Sin registro de decisiones (ADR/decision_log/"
+                                "CHANGELOG): el porqué de las decisiones no es "
+                                "consultable",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "h7_decisiones_documentadas"}],
+            "notas": [
+                "manifiestos (1): pyproject.toml",
+                f"runner: {evaluar_proyecto.sys.executable} -m unittest "
+                "discover -s tests (convención: existe tests/)",
+                "licencias de dependencias OMITIDAS (--sin-red)",
+                "h6 sobre 2 archivos de producción "
+                "(tests/docs/scripts excluidos)"]})
+
+    def test_herramientas_sin_manifiesto_ni_licencia(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": "def f():\n    return 1\n",
+            "test_demo.py": "def test_f():\n    assert 1 == 1\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_herramientas(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.167, "evaluado": True,
+            "criterios": {"h1_manifiesto": False, "h2_licencia": False,
+                          "h3_verificacion_automatizada": False,
+                          "h4_runner_de_tests_declarado": False,
+                          "h6_imports_declarados": True,
+                          "h7_decisiones_documentadas": False},
+            "no_aplica": [{"criterio": "h5_licencias_libres",
+                           "motivo": "sin dependencias Python runtime"}],
+            "hallazgos": [
+                {"severidad": "alta",
+                 "descripcion": "Sin manifiesto de dependencias",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "h1_manifiesto"},
+                {"severidad": "alta",
+                 "descripcion": "Sin archivo de licencia: el uso/reutilización "
+                                "queda sin términos (P1.18)",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "h2_licencia"},
+                {"severidad": "media",
+                 "descripcion": "Sin CI ni script de verificación local",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "h3_verificacion_automatizada"},
+                {"severidad": "media",
+                 "descripcion": "Tests presentes pero sin comando de ejecución "
+                                "declarado",
+                 "evidencia": "manifiestos/README",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "h4_runner_de_tests_declarado"},
+                {"severidad": "baja",
+                 "descripcion": "Sin registro de decisiones (ADR/decision_log/"
+                                "CHANGELOG): el porqué de las decisiones no es "
+                                "consultable",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "h7_decisiones_documentadas"}],
+            "notas": ["h6 sobre 1 archivos de producción "
+                      "(tests/docs/scripts excluidos)"]})
+
+    def test_calidad_proyecto_con_silencio(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": ("def f():\n    try:\n        return 1\n"
+                        "    except Exception:\n        pass\n"),
+            "tests/test_demo.py": ("from demo import f\n\n"
+                                   "def test_f():\n    assert f() == 1\n"),
+            "pyproject.toml": "[tool.ruff]\nline-length = 100\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_calidad(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.8, "evaluado": True,
+            "criterios": {"c1_suite_de_tests": True,
+                          "c2_linter_configurado": True,
+                          "c3_sin_silencios": False,
+                          "c4_tests_sobre_codigo_30pct": True,
+                          "c5_tests_con_aserciones": True},
+            "no_aplica": [],
+            "hallazgos": [{
+                "severidad": "media",
+                "descripcion": "`except` con `pass`/`continue` en producción "
+                               "(P1.26)",
+                "evidencia": "demo.py:4", "tipo_evidencia": "verified-real",
+                "criterio": "c3_sin_silencios"}],
+            "notas": ["4 líneas de test / 5 de código",
+                      "suite NO ejecutada (sin --ejecutar-tests): no verificado",
+                      "linter: pyproject.toml",
+                      "c3 sobre 1 archivos de producción; tests/scripts excluidos",
+                      "silencios detectados: 1",
+                      "proporción test/código: 0.80",
+                      "c5 sobre 1 archivos de test Python"]})
+
+    def test_calidad_sin_codigo(self):
+        raiz = crear_proyecto(self, {"README.md": "# Demo\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_calidad(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": None, "evaluado": False, "criterios": {},
+            "no_aplica": [
+                {"criterio": "c1_suite_de_tests", "motivo": "sin código"},
+                {"criterio": "c2_linter_configurado", "motivo": "sin código"},
+                {"criterio": "c3_sin_silencios",
+                 "motivo": "sin código Python de producción"},
+                {"criterio": "c4_tests_sobre_codigo_30pct",
+                 "motivo": "sin código medible"},
+                {"criterio": "c5_tests_con_aserciones",
+                 "motivo": "sin archivos de test Python analizables"}],
+            "hallazgos": [],
+            "notas": ["0 líneas de test / 0 de código",
+                      "suite NO ejecutada (sin --ejecutar-tests): no verificado"]})
+
+
 if __name__ == "__main__":
     unittest.main()

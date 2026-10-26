@@ -259,16 +259,17 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 49 equivalencias
   demostradas y **0 brechas reales** (`docs/TRIAGE-EQUIVALENCIAS.md`)
   (319 antes; −270) y tasa bruta **95,18%**. **Evaluador 2026-10-26 (batch
-  r3c)**: **5985 mutantes, 3544 muertos, 2441 supervivientes, 0 sin tests, 0
-  timeouts**; tasa bruta **59,21%**. Triaje de inventario **2490/2490**: 2441
+  r3c)**: **5985 mutantes, 3678 muertos, 2307 supervivientes, 0 sin tests, 0
+  timeouts**; tasa bruta **61,45%**. Triaje de inventario **2356/2356**: 2307
   brechas (todas del evaluador), 49 equivalencias demostradas y 0 timeouts; detalle en `docs/TRIAGE-R3.md` y
   `docs/TRIAGE-EQUIVALENCIAS.md`. Los tests exactos de `informe_texto` y
   `detectar_comando_tests`, más los de `--sin-red` y `cwd`, mataron 504
-  mutantes más y eliminaron los 2 timeouts de la campaña anterior. Ningún
+  mutantes; el contrato de `evaluar_herramientas`/`evaluar_calidad` mató 134
+  más y se eliminaron los 2 timeouts de la campaña anterior. Ningún
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **945/945 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **949/949 en la suite
   Linux** (2026-10-26; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -286,7 +287,7 @@ mejora de código (`code_design_improvement_tools.py`).
   de manifiestos, exclusiones, imports hermanos y alias (27 en total). El
   refuerzo del 2026-10-26 sumó aserciones exactas de preflight, 2 tests del
   evaluador (`main` sin clave) y 2 de `tests/test_guardrails.py`; la suite
-  quedó en **945/945**. El auditor de cambios de
+  quedó en **949/949**. El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
