@@ -2815,3 +2815,20 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: el contrato exacto de una función de salida es una fuente de
   aserciones de alto rendimiento; y un test que no aísla la red convierte un
   mutante en timeout, no en fallo. Aislar la red es parte de medir.
+
+## 2026-10-26 (ronda 40) — Cierre por alcance, no por maquillaje
+
+### Hallazgo 122: R4 se cierra por alcance offline; R3 sigue abierta
+
+- **R4**: se cierra con **57 casos/26 criterios**, **26 TP/0 FP/0 FN** y **3
+  N/A** declaradas (f1, v4, h5). El cierre es **por alcance**: los 3 criterios
+  restantes exigen red/PyPI o un punto de entrada real y no se simulan. No se
+  presenta como cobertura total ni como validación global.
+- **R3**: **no se cierra**. Quedan **2450 brechas** (9 preflight + 2441
+  evaluador) y las 48 equivalencias **no cuentan como muertos**; la tasa
+  (94,39% preflight, 59,21% evaluador) no cambia por el triaje.
+- **Evidencia**: `docs/RECOMENDACIONES-MEJORAS.md` §5/§7, `docs/TRIAGE-R3.md`,
+  suite **942/942**, `make ci` OK, autoevaluación 1.000.
+- **Lección**: cerrar una recomendación por alcance es legítimo si se declara
+  qué queda fuera y por qué; no lo es convertir N/A en aciertos ni llamar
+  «cerrado» a R3 con 2450 aserciones pendientes.

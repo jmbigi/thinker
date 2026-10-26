@@ -523,7 +523,9 @@ R4 subió de 33 casos/14 criterios a **57 casos/26 criterios**: c4, h4, v3
 declaradas** y sin proveedor real. Resultado: **26 TP, 0 FP, 0 FN; precision
 1,00, recall 1,00**. El benchmark encontró dos defectos reales de e1/e2
 (import perezoso sin paquete y ausencia de hallazgo), corregidos. Quedan **3
-N/A** (f1, v4, h5) que exigen red/PyPI o un punto de entrada real.
+N/A** (f1, v4, h5) que exigen red/PyPI o un punto de entrada real. **R4 se
+cierra por alcance offline**: 26/29 medidos, sin presentarse como validación
+global ni como campaña real.
 
 También se añadieron `docs/SALVAGUARDAS.md` y `tests/test_guardrails.py` (2
 tests) para que la cadena de gates no desaparezca en silencio. DSH `dsh-tui`

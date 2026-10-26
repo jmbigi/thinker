@@ -18,7 +18,7 @@ pendiente.
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
 | **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 959/1016, 57 (48 equivalencias + 9 reales); evaluador: 3544/5985, 2441 brechas, 0 timeouts; triaje 2498/2498 | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
-| **Parcial** | R4. [Parcial 2026-10-26] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A por red/entrada real | Medio | Bajo |
+| **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
 | **Hecho** | R6. [Cerrada 2026-10-25, C con warnings] Política para silencios deliberados de producción | Marca externa con motivo; warnings en c3/preflight; 5 tests | Bajo | Político |
 | **Hecho** | R7. [Cerrada 2026-10-25] Medir calidad de aserciones, no solo tests no-op | `aserciones_debiles` informativo; c5 no cambia | Medio | Bajo |
@@ -28,9 +28,11 @@ pendiente.
 | **Hecho** | R14. [Cerrada 2026-10-25, por declaración; B+C piloto] Declarar `credibility`/`confidence` no calibradas | Brier simulado 0,1166; piloto real n=20 Brier 0,0540; sin calibración general | Medio | Bajo |
 
 **Estado de decisiones (2026-10-26):** R5-A, R6-C, R13-B/C y R14-B/C
-implementadas; R3-C en ejecución (preflight 57: 48 equivalencias + 9 reales; evaluador 2441; 0 timeouts).
-R4 sigue parcial; R3 es la deuda P1.
-R1, R2, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
+implementadas; R3-C en ejecución (preflight 57: 48 equivalencias + 9 reales;
+evaluador 2441; 0 timeouts). **R4 se cierra por alcance offline**: 26/29
+criterios medidos y 3 N/A declaradas, no una validación global. R3 es la deuda
+P1 y sigue abierta.
+R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 
 ### 1.1 Decisiones del programador (2026-10-25)
 
@@ -41,7 +43,7 @@ R1, R2, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 | **R13** | **B con vía a C**: verificador barato; descomposición después | **B y C implementadas; cerrada** | Hecho: descomposición opt-in |
 | **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=20); declaración vigente** | Ampliar muestra; no afirmar calibración general |
 | **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | En ejecución; preflight 57 (48 equivalencias + 9 reales), evaluador 2441, 0 timeouts | Reforzar 2450 aserciones; timeouts ya en 0 |
-| **R4** | Sin decisión de producto; ampliar cobertura | En curso, parcial (57 casos/26 criterios) | Completar los 3 N/A que exigen red/entrada real y trampas reales |
+| **R4** | Sin decisión de producto; ampliar cobertura | **Cerrada por alcance offline** (57 casos/26 criterios; 3 N/A) | Campaña real con red/PyPI queda opt-in y fuera de alcance |
 
 **No queda ninguna decisión de producto pendiente.** Lo que falta es ejecución. R14 ya tiene un piloto real n=20; ampliar la muestra
 no cambia su cierre por declaración. R3 no se cierra hasta que las 2450
@@ -67,7 +69,7 @@ re-medición.
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda principal que queda es la **mutación** de esos dos
-módulos (R3) y el benchmark de precisión/recall (R4); no la cobertura.
+módulos (R3); R4 se cerró por alcance offline (26/29; 3 N/A).
 
 ## 3. Lo que ya está cerrado (no reabrir sin nueva evidencia)
 
@@ -177,12 +179,12 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   timeouts (re-medido); [ ] tasa limpia (2450 aserciones pendientes).
 - **Riesgo:** medio; el triaje del evaluador sigue siendo la deuda principal.
 
-### R4 — Benchmark de precisión/recall del evaluador — PARCIAL 2026-10-26
+### R4 — Benchmark de precisión/recall del evaluador — CERRADA 2026-10-26 (alcance offline)
 
 - **Problema medido:** la auditoría de 7 repos y el control de 10 defectos fueron
   una campaña puntual. No hay un arnés que impida volver a introducir falsos
   positivos como los de h6 (853 en FastAPI) o h5 (12/12).
-- **Estado 2026-10-26:** **parcial**. `tests/benchmarks/evaluador_precision.py`
+- **Estado 2026-10-26:** **cerrada por alcance offline**. `tests/benchmarks/evaluador_precision.py`
   ejecuta **57 casos sintéticos etiquetados sobre 26 criterios** y declara **3
   N/A** con motivo (f1, v4, h5). Incluye h1, h2, h3, h6, v1, v2, c1-c5,
   f2-f4, h4, h7, v3 (repo git temporal con fecha relativa), i1-i6 y e1-e3,
@@ -200,11 +202,15 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   no debe presentarse como validación global del evaluador. Los 3 N/A
   restantes requieren red/PyPI (v4, h5) o un punto de entrada real (f1); no se
   simulan proveedores ni mediciones de fabricante.
-- **Acción pendiente:** conservar clones reales solo como campaña manual
-  opt-in y añadir trampas cuando aparezca un falso positivo reproducible.
+- **Cierre 2026-10-26:** se cierra **por alcance**, no por cobertura total:
+  26/29 criterios medidos y 3 N/A con motivo. No se presenta como validación
+  global ni como campaña sobre proyectos reales. La campaña real con red/PyPI
+  y la búsqueda de trampas nuevas quedan opt-in, fuera del alcance de esta
+  recomendación; si aparece un falso positivo reproducible, se añade caso.
 - **Criterio de aceptación:** [x] TP/FP/FN por criterio; [x] JSON reproducible;
-  [x] 0 FP en los casos etiquetados; [ ] cobertura completa de criterios;
-  [ ] trampas reales adicionales.
+  [x] 0 FP en los casos etiquetados; [x] cobertura offline 26/29 con 3 N/A
+  justificadas; [x] 5 trampas de FP; [—] campaña real/red: fuera de alcance,
+  opt-in y declarada.
 - **Riesgo:** bajo; el riesgo es sobreajustar el benchmark a los casos ya vistos.
 
 ### R5 — Decidir el alcance Java/JS — CERRADA 2026-10-25 (decisión A)
@@ -336,7 +342,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Acción ejecutada:** `tests/test_evaluador_corpus.py` fija 4 contratos
   offline: versión exacta Poetry sin paquete inventado, requirements sueltos
   que no cuentan como lock, prosa que no se convierte en runner y comando
-  declarado que sí se detecta. Complementa a R4 (benchmark completo pendiente).
+  declarado que sí se detecta. Complementa a R4 (26/29 medidos; 3 N/A declaradas).
 - **Criterio de aceptación:** [x] cada caso falla con el comportamiento
   anterior; [x] sin red ni escrituras fuera del temporal.
 - **Riesgo:** bajo.
@@ -377,21 +383,21 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 ## 5. Deuda pendiente priorizada (2026-10-25)
 
-**Abiertas:** R3-C (parcial) y R4 (parcial).
-**Cerradas:** R1, R2, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14. Una
+**Abierta:** R3-C (parcial).
+**Cerradas:** R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14. Una
 recomendación abierta es deuda solo si tiene un criterio de aceptación
 medible; las limitaciones declaradas del README no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
 | 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 2450 aserciones (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 2450 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
-| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | 57 casos/26 criterios; 3 N/A exigen red/entrada real | Precisión y recall por criterio; 0 FP en trampas; cobertura declarada | Medio |
 
-**Orden:** R3-C es la deuda P1; R4 sigue después. R5-A, R6-C, R13-B/C y
-R14-B/C están implementadas; R14-C es un piloto real n=20, no una calibración
-general.
+**Orden:** R3-C es la única deuda P1 abierta; R4 se cerró por alcance offline.
+R5-A, R6-C, R13-B/C y R14-B/C están implementadas; R14-C es un piloto real
+n=20, no una calibración general.
 
-- **R3 y R4 no requieren decisión de producto**: R3-C es P1; R4 se amplía.
+- **R3 no requiere decisión de producto**: R3-C es P1 y sigue abierta; no se
+  cierra con 2450 brechas.
 - **R5, R6 y R13 están cerradas**; no se reabren sin evidencia nueva.
 - **R14** cerrada por declaración; B (Brier simulado) y C (piloto real n=20)
   implementadas; ampliar la muestra sigue siendo trabajo futuro.
@@ -437,13 +443,13 @@ descarta y se anota; la verificación empírica sigue siendo obligatoria.
 ## 7. Estado de ejecución
 
 **Implementado:** R5-A (comparabilidad), R6-C (warnings), R13-B/C
-(verificador barato y descomposición) y R14-B/C (Brier simulado y piloto real
-n=20). **Pendiente de ejecución:**
+(verificador barato y descomposición), R14-B/C (Brier simulado y piloto real
+n=20) y R4 cerrada por alcance offline (57 casos/26 criterios; 3 N/A
+declaradas). **Pendiente de ejecución:**
 
 1. **R3-C:** preflight 57 brechas (959/1016; 94,39%; 48 equivalencias + 9
    reales) y evaluador 2441 brechas (3544/5985; 59,21%), con **0 timeouts** y
    triaje 2498/2498. Queda reforzar 2450 aserciones; no cerrar hasta 0 brechas.
-2. **R4:** 57 casos/26 criterios; los 3 N/A restantes requieren red/PyPI o un punto de entrada real. No se simulan.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
