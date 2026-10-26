@@ -3,16 +3,21 @@
 import ast
 import io
 import json
+import os
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from scripts.preflight import (archivos_python, cargar_modulos,
-                               dependencias_declaradas, ejecutar, main,
+                               dependencias_declaradas, ejecutar, imprimir,
+                               main, modulos_locales, revisar_duplicados,
                                revisar_imports, revisar_silencios,
-                               _nombre_excepcion,
-                               _lineas_import_opcional, _lineas_condicionales,
-                               _leer_requisitos, _nombres_de_lista,
+                               revisar_tareas, _alias_asyncio, _es_main,
+                               _es_type_checking, _lineas_import_opcional,
+                               _lineas_condicionales, _lineas_no_runtime,
+                               _leer_requisitos, _nombre_excepcion,
+                               _nombre_tarea, _nombres_de_lista,
                                _nombres_setup)
 import scripts.preflight as preflight_mod
 from tests.helpers import crear_proyecto
@@ -48,6 +53,16 @@ DUPLICADO_SUSTANCIAL = (
 )
 
 
+def _funcion_con_literal(nombre, claves, asignacion=True):
+    """Función con un literal grande para probar los umbrales del gate."""
+    literal = "{" + ", ".join(f"'k{i}': x" for i in range(claves)) + "}"
+    if asignacion:
+        return (f"def {nombre}(x):\n"
+                f"    datos = {literal}\n"
+                "    return datos\n")
+    return f"def {nombre}(x):\n    return {literal}\n"
+
+
 class TestPreflight(unittest.TestCase):
     def _gates(self, informe):
         return {gate["nombre"]: gate for gate in informe["gates"]}
@@ -62,6 +77,7 @@ class TestPreflight(unittest.TestCase):
         informe = ejecutar(raiz)
 
         self.assertTrue(informe["ok"])
+        self.assertEqual(informe["root"], str(raiz))
         self.assertEqual(informe["evidencia"], "verified-real")
         self.assertEqual(informe["total_hallazgos"], 0)
         self.assertTrue(all(gate["ok"] for gate in informe["gates"]))
@@ -685,6 +701,500 @@ class TestImportsYSilenciosR3(unittest.TestCase):
         self.assertEqual(resultado.advertencias[0].severidad, "baja")
         self.assertEqual(len(resultado.hallazgos), 2)
         self.assertEqual({h.linea for h in resultado.hallazgos}, {16, 21})
+
+
+class TestCamposDelInformeR3(unittest.TestCase):
+    """R3: el contrato del hallazgo incluye gate, archivo, línea y severidad."""
+
+    def test_cargar_modulos_campos_y_linea_de_sintaxis(self):
+        raiz = crear_proyecto(self, {
+            "tarde.py": "x = 1\ny = 2\ndef f(:\n",
+            "bin.py": "",
+        })
+        (raiz / "bin.py").write_bytes(b"\xff\xfe")
+
+        modulos, resultado = cargar_modulos(
+            raiz, [raiz / "tarde.py", raiz / "bin.py"])
+
+        self.assertEqual(modulos, {})
+        por_archivo = {h.archivo: h for h in resultado.hallazgos}
+        self.assertEqual(set(por_archivo), {"bin.py", "tarde.py"})
+        binario = por_archivo["bin.py"]
+        self.assertEqual(binario.gate, "sintaxis")
+        self.assertEqual(binario.linea, 0)
+        self.assertEqual(binario.severidad, "alta")
+        self.assertEqual(binario.tipo_evidencia.value, "verified-real")
+        self.assertTrue(binario.mensaje.startswith(
+            "no se pudo leer: UnicodeDecodeError:"))
+        sintaxis = por_archivo["tarde.py"]
+        self.assertEqual(sintaxis.gate, "sintaxis")
+        self.assertEqual(sintaxis.linea, 3)
+        self.assertEqual(sintaxis.severidad, "alta")
+        self.assertTrue(sintaxis.mensaje.startswith("error de sintaxis: "))
+
+    def test_dependencias_sigue_tras_manifiesto_invalido(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": "[project\n",
+            "setup.cfg": "[options\n",
+            "requirements.txt": "requests==2\n",
+            "setup.py": "setup(install_requires=['flask'])\n",
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(declaradas, {"requests", "flask"})
+        por_archivo = {h.archivo: h for h in hallazgos}
+        self.assertEqual(set(por_archivo), {"pyproject.toml", "setup.cfg"})
+        for archivo, prefijo in (("pyproject.toml", "TOML inválido"),
+                                 ("setup.cfg", "setup.cfg inválido")):
+            hallazgo = por_archivo[archivo]
+            self.assertEqual(hallazgo.gate, "imports")
+            self.assertEqual(hallazgo.linea, 0)
+            self.assertEqual(hallazgo.severidad, "alta")
+            self.assertEqual(hallazgo.tipo_evidencia.value, "verified-real")
+            self.assertTrue(hallazgo.mensaje.startswith(prefijo),
+                            hallazgo.mensaje)
+
+    def test_solo_requirements_txt_o_in_cuenta(self):
+        raiz = crear_proyecto(self, {
+            "requirements/notas.md": "flask==3\n",
+            "requirements.txt": "requests==2\n",
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {"requests"})
+
+    def test_setup_py_reconoce_tests_require(self):
+        raiz = crear_proyecto(self, {
+            "setup.py": ("setup(description='x', install_requires=['a'], "
+                         "tests_require=['pytest'], "
+                         "extras_require={'x': ['b']})\n"),
+        })
+
+        self.assertEqual(
+            dependencias_declaradas(raiz), ({"a", "pytest", "b"}, []))
+
+    def test_pdm_con_lista_no_rompe(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                '[project]\nname = "x"\nversion = "0.1.0"\n'
+                '[tool.pdm]\ndev-dependencies = ["ruff"]\n'),
+        })
+
+        self.assertEqual(dependencias_declaradas(raiz), (set(), []))
+
+    @unittest.skipIf(
+        os.name == "nt" or getattr(os, "geteuid", lambda: 1)() == 0,
+        "chmod no deniega la lectura en Windows ni como root")
+    def test_setup_py_ilegible_reporta_campos(self):
+        raiz = crear_proyecto(self, {
+            "setup.py": "setup()\n",
+            "requirements.txt": "requests\n",
+            "zz/requirements/dev.txt": "flask\n",
+        })
+        ruta = raiz / "setup.py"
+        ruta.chmod(0)
+        try:
+            declaradas, hallazgos = dependencias_declaradas(raiz)
+        finally:
+            ruta.chmod(0o600)
+
+        self.assertEqual(declaradas, {"requests", "flask"})
+        self.assertEqual(len(hallazgos), 1)
+        hallazgo = hallazgos[0]
+        self.assertEqual(hallazgo.gate, "imports")
+        self.assertEqual(hallazgo.archivo, "setup.py")
+        self.assertEqual(hallazgo.linea, 0)
+        self.assertEqual(hallazgo.severidad, "alta")
+        self.assertTrue(hallazgo.mensaje.startswith(
+            "setup.py ilegible, no se pueden verificar dependencias: "))
+
+    def test_silencios_campos_y_marca_en_ultima_linea(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("try:\n"
+                       "    x = 1\n"
+                       "except Exception:  pass  # noqa: silent: abc")})
+        resultado = revisar_silencios(raiz, cargar_modulos(raiz)[0])
+
+        self.assertEqual(resultado.hallazgos, [])
+        self.assertEqual([a.a_dict() for a in resultado.advertencias], [{
+            "gate": "silencios", "archivo": "app.py", "linea": 3,
+            "mensaje": "silencio aceptado (warning): abc",
+            "severidad": "baja", "tipo_evidencia": "verified-real"}])
+
+        raiz2 = crear_proyecto(self, {
+            "app.py": ("try:\n"
+                       "    x = 1\n"
+                       "except ValueError:\n"
+                       "    pass\n")})
+        resultado2 = revisar_silencios(raiz2, cargar_modulos(raiz2)[0])
+
+        self.assertEqual([h.a_dict() for h in resultado2.hallazgos], [{
+            "gate": "silencios", "archivo": "app.py", "linea": 3,
+            "mensaje": "except con pass/continue/... (P1.26)",
+            "severidad": "alta", "tipo_evidencia": "verified-real"}])
+
+    @unittest.skipIf(
+        os.name == "nt" or getattr(os, "geteuid", lambda: 1)() == 0,
+        "chmod no deniega la lectura en Windows ni como root")
+    def test_silencios_con_archivo_ilegible_no_rompe(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("try:\n"
+                       "    x = 1\n"
+                       "except Exception:\n"
+                       "    pass\n")})
+        modulos, _ = cargar_modulos(raiz)
+        ruta = raiz / "app.py"
+        ruta.chmod(0)
+        try:
+            resultado = revisar_silencios(raiz, modulos)
+        finally:
+            ruta.chmod(0o600)
+
+        self.assertEqual(len(resultado.hallazgos), 1)
+
+
+class TestDuplicadosR3(unittest.TestCase):
+    """R3: umbrales del gate de duplicados y mensaje exacto."""
+
+    def test_limites_de_cuerpo_y_nodos(self):
+        raiz = crear_proyecto(self, {"app.py": (
+            _funcion_con_literal("grande_a", 30) + "\n"
+            + _funcion_con_literal("grande_b", 30) + "\n"
+            + _funcion_con_literal("medio_a", 16) + "\n"
+            + _funcion_con_literal("medio_b", 16) + "\n"
+            + _funcion_con_literal("uno_a", 20, asignacion=False) + "\n"
+            + _funcion_con_literal("uno_b", 20, asignacion=False))})
+
+        resultado = revisar_duplicados(raiz, cargar_modulos(raiz)[0])
+
+        self.assertEqual(len(resultado.hallazgos), 1)
+        self.assertIn("grande_b", resultado.hallazgos[0].mensaje)
+
+    def test_funciones_distintas_no_se_confunden(self):
+        raiz = crear_proyecto(self, {"app.py": (
+            _funcion_con_literal("grande_a", 30) + "\n"
+            + _funcion_con_literal("grande_c", 31))})
+
+        resultado = revisar_duplicados(raiz, cargar_modulos(raiz)[0])
+
+        self.assertEqual(resultado.hallazgos, [])
+
+    def test_duplicado_tras_trivial_y_mensaje_exacto(self):
+        raiz = crear_proyecto(self, {"app.py": (
+            "def trivial():\n"
+            "    return 1\n"
+            "\n" + DUPLICADO_SUSTANCIAL)})
+
+        resultado = revisar_duplicados(raiz, cargar_modulos(raiz)[0])
+
+        self.assertEqual([h.a_dict() for h in resultado.hallazgos], [{
+            "gate": "duplicados", "archivo": "app.py", "linea": 16,
+            "mensaje": "cuerpo idéntico a app.py:4 (suma_a);"
+                       " actual: suma_b",
+            "severidad": "media", "tipo_evidencia": "verified-real"}])
+
+
+class TestImportsR3Extra(unittest.TestCase):
+    """R3: opcionales por defecto, imports múltiples y relativos."""
+
+    def test_opcional_por_defecto_no_se_ignora(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("try:\n"
+                       "    import requests\n"
+                       "except ImportError:\n"
+                       "    pass\n")})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos)
+
+        self.assertEqual([h.linea for h in resultado.hallazgos], [2])
+
+    def test_import_multiple_punteado_y_relativo(self):
+        raiz = crear_proyecto(self, {
+            "paquete/__init__.py": "",
+            "paquete/mod.py": "x = 1\n",
+            "sub/__init__.py": "",
+            "app.py": ("import os, requests\n"
+                       "import paquete.mod as pm\n"
+                       "from paquete.mod import x\n"
+                       "from .mod import y\n"
+                       "import sub\n")})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos)
+
+        self.assertEqual([(h.linea, h.mensaje) for h in resultado.hallazgos],
+                         [(1, "import no declarado: requests")])
+
+    def test_import_bajo_guardia_negativa_no_es_no_runtime(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("if __name__ != '__main__':\n"
+                       "    import requests\n")})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos)
+
+        self.assertEqual([(h.linea, h.mensaje) for h in resultado.hallazgos],
+                         [(2, "import no declarado: requests")])
+
+    def test_type_checking_y_opcionales_a_la_vez(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("from typing import TYPE_CHECKING\n"
+                       "if TYPE_CHECKING:\n"
+                       "    import sphinx\n"
+                       "try:\n"
+                       "    import requests\n"
+                       "except ImportError:\n"
+                       "    pass\n")})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos, ignorar_opcionales=True)
+
+        self.assertEqual(resultado.hallazgos, [])
+
+    def test_hallazgo_campos_exactos(self):
+        raiz = crear_proyecto(self, {"app.py": "\nimport requests\n"})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_imports(raiz, modulos)
+
+        self.assertEqual([h.a_dict() for h in resultado.hallazgos], [{
+            "gate": "imports", "archivo": "app.py", "linea": 2,
+            "mensaje": "import no declarado: requests",
+            "severidad": "alta", "tipo_evidencia": "verified-real"}])
+
+
+class TestTareasR3(unittest.TestCase):
+    """R3: alias de asyncio y detección de tareas sin referencia."""
+
+    def test_alias_asyncio_y_funciones(self):
+        arbol = ast.parse(
+            "import asyncio\n"
+            "import asyncio as aio\n"
+            "from asyncio import create_task as ct, ensure_future\n"
+            "from .asyncio import create_task as rel\n")
+
+        self.assertEqual(_alias_asyncio(arbol), (
+            {"asyncio", "aio"},
+            {"ct": "create_task", "ensure_future": "ensure_future"}))
+
+    def test_nombre_tarea_desenvuelve_atributos(self):
+        alias_modulo = {"asyncio", "aio"}
+        alias_funcion = {"ct": "create_task"}
+
+        def nombre(codigo):
+            return _nombre_tarea(
+                ast.parse(codigo).body[0].value.func,
+                alias_modulo, alias_funcion)
+
+        self.assertEqual(nombre("ct(t)"), "asyncio.create_task")
+        self.assertEqual(nombre("aio.ensure_future(t)"),
+                         "asyncio.ensure_future")
+        self.assertEqual(nombre("asyncio.tasks.create_task(t)"),
+                         "asyncio.create_task")
+        self.assertIsNone(nombre("otro.create_task(t)"))
+        self.assertIsNone(nombre("otro(t)"))
+
+    def test_tareas_detecta_alias_y_evita_falsos_positivos(self):
+        raiz = crear_proyecto(self, {
+            "app.py": ("import asyncio as aio\n"
+                       "from asyncio import ensure_future as ef\n"
+                       "aio.create_task(t())\n"
+                       "asyncio.tasks.ensure_future(t())\n"
+                       "ef(t())\n"
+                       "otro.create_task(t())\n")})
+        modulos, _ = cargar_modulos(raiz)
+
+        resultado = revisar_tareas(raiz, modulos)
+
+        self.assertEqual([h.linea for h in resultado.hallazgos], [3, 4, 5])
+        self.assertEqual([h.mensaje for h in resultado.hallazgos], [
+            "asyncio.create_task sin referencia: el event loop puede "
+            "recolectar la tarea (P1.34)",
+            "asyncio.ensure_future sin referencia: el event loop puede "
+            "recolectar la tarea (P1.34)",
+            "asyncio.ensure_future sin referencia: el event loop puede "
+            "recolectar la tarea (P1.34)"])
+        self.assertEqual(resultado.hallazgos[0].a_dict(), {
+            "gate": "tareas", "archivo": "app.py", "linea": 3,
+            "mensaje": "asyncio.create_task sin referencia: el event loop "
+                       "puede recolectar la tarea (P1.34)",
+            "severidad": "media", "tipo_evidencia": "verified-real"})
+
+
+class TestAstFlagsR3(unittest.TestCase):
+    """R3: detección de __main__, TYPE_CHECKING y líneas no runtime."""
+
+    def test_es_main_variantes(self):
+        def es_main(codigo):
+            return _es_main(ast.parse(codigo).body[0].test)
+
+        self.assertTrue(es_main("if __name__ == '__main__':\n    pass\n"))
+        self.assertFalse(es_main("if __name__ != '__main__':\n    pass\n"))
+        self.assertFalse(es_main("if __name__ == 'otro':\n    pass\n"))
+        self.assertFalse(es_main("if otro == '__main__':\n    pass\n"))
+        self.assertFalse(es_main("if 1 == '__main__':\n    pass\n"))
+        self.assertFalse(es_main("if __name__ == foo:\n    pass\n"))
+        self.assertFalse(es_main("if __name__ == '__main__' == x:\n    pass\n"))
+        self.assertFalse(_es_main(ast.Name(id="__name__")))
+
+    def test_es_type_checking_variantes(self):
+        def es_type_checking(codigo):
+            return _es_type_checking(ast.parse(codigo).body[0].test)
+
+        self.assertTrue(es_type_checking("if TYPE_CHECKING:\n    pass\n"))
+        self.assertTrue(es_type_checking("if typing.TYPE_CHECKING:\n    pass\n"))
+        self.assertFalse(es_type_checking("if OTHER:\n    pass\n"))
+        self.assertFalse(es_type_checking("if typing.OTHER:\n    pass\n"))
+        self.assertFalse(_es_type_checking(ast.Constant(value=True)))
+
+    def test_lineas_no_runtime_exactas(self):
+        arbol = ast.parse(
+            "import os\n"
+            "if cond:\n"
+            "    import django\n"
+            "if TYPE_CHECKING:\n"
+            "    import requests\n"
+            "if __name__ == '__main__':\n"
+            "    import flask\n")
+
+        self.assertEqual(_lineas_no_runtime(arbol), {5, 7})
+
+    def test_import_opcional_modulenotfound_y_break(self):
+        arbol = ast.parse(
+            "try:\n    x = 1\nexcept ValueError:\n    pass\n"
+            "try:\n    import requests\nexcept ModuleNotFoundError:\n"
+            "    pass\n"
+            "try:\n    import flask\n"
+            "except (OSError, ModuleNotFoundError):\n    pass\n")
+
+        self.assertEqual(_lineas_import_opcional(arbol), {6, 10})
+
+
+class TestModulosLocalesR3(unittest.TestCase):
+    """R3: layout plano, src/, lib/, mayúsculas y directorios ignorados."""
+
+    def test_conjunto_exacto_de_modulos_locales(self):
+        raiz = crear_proyecto(self, {
+            "raiz.py": "x = 1\n",
+            "paquete/__init__.py": "",
+            "paquete/mod.py": "x = 1\n",
+            "solo/__init__.py": "",
+            "src/pkg/__init__.py": "",
+            "src/plano.py": "x = 1\n",
+            "src/sininit/mod.py": "x = 1\n",
+            "lib/util.py": "x = 1\n",
+            "lib/otro/__init__.py": "",
+            "lib/otro/mod.py": "x = 1\n",
+            "tools/helper.py": "x = 1\n",
+            "mayus.PY": "x = 1\n",
+            ".venv/__init__.py": "",
+            ".venv/oculto/__init__.py": "",
+        })
+
+        self.assertEqual(modulos_locales(raiz), {
+            "lib", "otro", "paquete", "pkg", "plano", "raiz", "sininit",
+            "solo", "src", "tools", "util"})
+
+
+class TestImprimirR3(unittest.TestCase):
+    """R3: el render de texto conserva estados, marcas y veredicto."""
+
+    def test_render_exacto(self):
+        informe = {
+            "root": "/tmp/x", "archivos_python": 3,
+            "evidencia": "verified-real", "total_hallazgos": 1,
+            "total_advertencias": 1, "ok": False,
+            "gates": [
+                {"nombre": "sintaxis", "ok": True, "hallazgos": []},
+                {"nombre": "silencios", "ok": False,
+                 "hallazgos": [{
+                     "gate": "silencios", "archivo": "a.py", "linea": 2,
+                     "mensaje": "except con pass/continue/... (P1.26)",
+                     "severidad": "alta",
+                     "tipo_evidencia": "verified-real"}],
+                 "advertencias": [{
+                     "gate": "silencios", "archivo": "b.py", "linea": 5,
+                     "mensaje": "silencio aceptado (warning): motivo",
+                     "severidad": "baja",
+                     "tipo_evidencia": "verified-real"}]},
+            ]}
+        salida = io.StringIO()
+
+        with redirect_stdout(salida):
+            imprimir(informe)
+
+        self.assertEqual(salida.getvalue().splitlines(), [
+            "PREFLIGHT (offline, read-only): /tmp/x",
+            "Python: 3 archivos | evidencia: [VERIFIED-REAL] observación "
+            "estática, sin ejecutar el código",
+            "  [OK] sintaxis: 0 hallazgos, 0 warnings",
+            "  [FAIL] silencios: 1 hallazgos, 1 warnings",
+            "    [VERIFIED-REAL] a.py:2 except con pass/continue/... (P1.26)",
+            "    [VERIFIED-REAL] WARNING b.py:5 silencio aceptado "
+            "(warning): motivo",
+            "PREFLIGHT: FAIL (1 hallazgos, 1 warnings)"])
+
+
+class TestMainR3(unittest.TestCase):
+    """R3: superficie del CLI y raíz por defecto."""
+
+    def test_help_documenta_opciones(self):
+        salida = io.StringIO()
+
+        with mock.patch.dict(os.environ, {"COLUMNS": "200"}):
+            with redirect_stdout(salida), self.assertRaises(
+                    SystemExit) as contexto:
+                main(["--help"])
+
+        self.assertEqual(contexto.exception.code, 0)
+        texto = salida.getvalue()
+        self.assertNotIn("XX", texto)
+        self.assertIn("Preflight determinista y offline del código Python.",
+                      texto.splitlines())
+        for fragmento in (
+                "Preflight determinista y offline del código Python.",
+                "--root ROOT",
+                "directorio raíz a revisar (defecto: raíz de este proyecto)",
+                "salida JSON para máquinas",
+                "--allow MODULO",
+                "módulo de importación permitido sin declarar (repetible)",
+                "--ignorar DIRECTORIO",
+                "directorio a excluir del análisis (repetible)"):
+            self.assertIn(fragmento, texto)
+
+    def test_root_por_defecto_es_el_repositorio(self):
+        salida = io.StringIO()
+        informe = {
+            "root": str(preflight_mod.REPO_ROOT), "archivos_python": 0,
+            "evidencia": "verified-real", "gates": [], "total_hallazgos": 0,
+            "total_advertencias": 0, "ok": True,
+        }
+
+        with mock.patch.object(preflight_mod, "ejecutar",
+                               return_value=informe) as ejecutar_mock:
+            with redirect_stdout(salida):
+                codigo = main(["--json"])
+
+        self.assertEqual(codigo, 0)
+        self.assertEqual(ejecutar_mock.call_args.args[0],
+                         preflight_mod.REPO_ROOT)
+        self.assertEqual(json.loads(salida.getvalue())["root"],
+                         str(preflight_mod.REPO_ROOT))
+
+    def test_error_de_lectura_devuelve_dos(self):
+        error = io.StringIO()
+
+        with mock.patch.object(preflight_mod, "ejecutar",
+                               side_effect=OSError("boom")):
+            with redirect_stderr(error):
+                codigo = main(["--json"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("no se pudo leer el proyecto", error.getvalue())
 
 
 if __name__ == "__main__":

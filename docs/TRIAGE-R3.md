@@ -1,14 +1,14 @@
-# Triaje R3 — 3220 supervivientes y 4 timeouts
+# Triaje R3 — 2961 supervivientes y 4 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
-> ninguno se declara equivalente sin prueba. Fecha: 2026-10-25.
+> ninguno se declara equivalente sin prueba. Última medición: 2026-10-26.
 
 ## Método
 
 1. Campaña persistente por objetivo:
-   `preflight` (1015 mutantes) y `evaluar` (5939 mutantes).
-2. Copia de mutación conservada en `build/mut-preflight-final` y
-   `build/mut-evaluar-final` (no versionadas).
+   `preflight` (**1016 mutantes**, lote 5) y `evaluar` (5939 mutantes).
+2. Copia de mutación conservada en `build/mut-run-2` (preflight) y
+   `build/mut-evaluar-final` (evaluador; ambos ignorados por git).
 3. Cobertura de las pruebas seleccionadas por la propia campaña:
    preflight 392/425 líneas; evaluador 1366/1571.
 4. `scripts/triaje_mutantes.py` cruza cada superviviente con la función que lo
@@ -26,30 +26,40 @@
 
 | Objetivo | Supervivientes | Timeouts | Sin categoría | Equivalentes |
 |---|---:|---:|---:|---:|
-| Preflight | **319** | 0 | **0** | **0** |
+| Preflight | **60** | 0 | **0** | **0** |
 | Evaluador | **2901** | **4** | **0** | **0** |
-| **Total** | **3220** | **4** | **0** | **0** |
+| **Total** | **2961** | **4** | **0** | **0** |
 
-Los **3220** supervivientes son brechas de aserción: sus funciones se ejecutan,
+Los **2961** supervivientes son brechas de aserción: sus funciones se ejecutan,
 pero los tests no detectan el cambio. **No hay ningún caso sin cobertura** que
 pueda resolverse solo añadiendo un test de humo; hace falta aserción exacta.
 
-### Preflight — 319
+### Preflight — 60
+
+Campaña 2026-10-26: **1016 mutantes, 956 muertos, 60 supervivientes, 0 sin
+tests, 0 timeouts, 0 sospechosos**; tasa bruta **94,09%** (antes 696/1015,
+68,57%). El refuerzo de aserciones exactas (contrato del hallazgo, CLI, alias,
+umbrales de duplicados, manifiestos, `modulos_locales` y archivos ilegibles)
+mató 260 mutantes más de los que ya caían; el total sube en 1 por el arreglo
+de `_es_main` (nuevo mutante de `ast.Eq`).
 
 | Función | Casos |
 |---|---:|
-| `dependencias_declaradas` | 68 |
-| `main` | 35 |
-| `cargar_modulos` | 27 |
-| `revisar_imports` | 19 |
-| `revisar_silencios` | 24 |
-| `modulos_locales` | 26 |
-| `revisar_duplicados` | 21 |
-| `_alias_asyncio` | 21 |
-| `imprimir` | 20 |
-| `_es_main` | 13 |
-| `revisar_tareas` | 12 |
-| `_nombre_requisito` | 7 |
+| `dependencias_declaradas` | 23 |
+| `revisar_duplicados` | 7 |
+| `_leer_requisitos` | 6 |
+| `cargar_modulos` | 5 |
+| `revisar_silencios` | 5 |
+| `_nombre_requisito` | 4 |
+| `revisar_imports` | 4 |
+| `modulos_locales` | 3 |
+| `main` | 2 |
+| `revisar_tareas` | 1 |
+
+Lectura: la mayoría de los 60 restantes son **candidatos a equivalencia** por
+defaults de `dict.get` que el helper ya trata, codificación UTF-8 con distinta
+grafía o ramas cuyo valor no cambia la salida. No se declaran equivalentes sin
+prueba semántica; por eso siguen contando como brechas.
 
 ### Evaluador — 2901
 
@@ -68,20 +78,26 @@ pueda resolverse solo añadiendo un test de humo; hace falta aserción exacta.
 | `main` | 84 |
 | `detectar_comando_tests` | 81 |
 
+Medición 2026-10-25: **5939 mutantes, 3034 muertos, 2901 supervivientes, 0 sin
+tests, 4 timeouts, 0 sospechosos**; tasa bruta **51,09%**. No se re-midió tras
+los tests nuevos de timeouts, así que estas cifras son las vigentes medidas y
+no una estimación.
+
 ## Los 4 timeouts
 
 Los cuatro se clasifican como **`timeout_no_equivalente`**: no son mutantes
 equivalentes; introducen efectos no acotados.
 
-| Mutante | Cambio | Riesgo |
-|---|---|---|
-| `x_ejecutar_tests__mutmut_15` | `cwd=str(ruta)` → `cwd=None` | ejecuta la suite en el directorio equivocado; puede colgarse |
-| `x_ejecutar_tests__mutmut_21` | elimina `cwd=str(ruta)` | mismo riesgo |
-| `x_main__mutmut_137` | `a or b` → `a and b` | activa la ruta LLM/red solo en combinaciones no previstas |
-| `x_main__mutmut_139` | `if not KEY` → `if KEY` | invierte la comprobación de clave; intenta red sin clave |
+| Mutante | Cambio | Riesgo | Cobertura actual |
+|---|---|---|---|
+| `x_ejecutar_tests__mutmut_15` | `cwd=str(ruta)` → `cwd=None` | ejecuta la suite en el directorio equivocado; puede colgarse | test `test_cwd_es_el_proyecto_evaluado` (2026-10-25) |
+| `x_ejecutar_tests__mutmut_21` | elimina `cwd=str(ruta)` | mismo riesgo | mismo test |
+| `x_main__mutmut_137` | `a or b` → `a and b` | activa la ruta LLM/red solo en combinaciones no previstas | tests `test_sin_key_no_llega_a_evaluar` y `test_investigar_solo_tambien_exige_key` (2026-10-26) |
+| `x_main__mutmut_139` | `if not KEY` → `if KEY` | invierte la comprobación de clave; intenta red sin clave | mismos tests |
 
-No se matan con la suite actual. Necesitan tests con **mocks y timeouts
-acotados**, no ejecuciones reales.
+Los tests nuevos usan mocks y fallan rápido, sin ejecuciones reales. **No se
+declaran acotados hasta re-medir la campaña del evaluador**; la cobertura
+estática no sustituye la medición.
 
 ## Reproducción
 
@@ -97,15 +113,17 @@ python3 scripts/triaje_mutantes.py --destino <temporal> \
   --cobertura /ruta/coverage.json --salida /ruta/triaje.json
 ```
 
-Los JSON completos de este triaje están en `build/triaje-preflight.json` y
-`build/triaje-evaluar.json` (ignorados por git). Este documento conserva el
+Los JSON completos de este triaje están en `build/triaje-preflight-batch5.json`
+y `build/triaje-evaluar.json` (ignorados por git). Este documento conserva el
 resumen y la clasificación.
 
 ## Conclusión
 
-- **Triaje de inventario:** completo, 3224/3224 casos con categoría.
+- **Triaje de inventario:** completo, 2965/2965 casos con categoría
+  (2961 supervivientes + 4 timeouts).
 - **Equivalentes demostrados:** 0. No se usa «equivalente» como cajón de sastre.
-- **Tasa:** 645/1015 (preflight) y 3034/5939 (evaluador); no cambia por
+- **Tasa:** 956/1016 (preflight) y 3034/5939 (evaluador); no cambia por
   clasificar. Los 4 timeouts no son muertos.
-- **R3 no se cierra como tasa limpia:** quedan 3220 aserciones por reforzar y 4
-  timeouts por acotar. El triaje convierte 3220 incógnitas en deuda accionable.
+- **R3 no se cierra como tasa limpia:** quedan 2961 aserciones por reforzar y 4
+  timeouts por re-medir. El preflight pasó de 319 a 60 brechas; el evaluador
+  sigue siendo la deuda principal.

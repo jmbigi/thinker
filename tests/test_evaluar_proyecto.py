@@ -1133,6 +1133,30 @@ class TestEntornoLLMOptIn(unittest.TestCase):
         self.assertEqual(codigo, 2)
         self.assertIn("OPENROUTER_API_KEY", error.getvalue())
 
+    def test_sin_key_no_llega_a_evaluar(self):
+        with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
+                patch.object(evaluar_proyecto, "evaluar") as evaluar_mock, \
+                patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}):
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                codigo = main([".", "--sin-red", "--sintesis-llm"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("OPENROUTER_API_KEY", error.getvalue())
+        evaluar_mock.assert_not_called()
+
+    def test_investigar_solo_tambien_exige_key(self):
+        with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
+                patch.object(evaluar_proyecto, "evaluar") as evaluar_mock, \
+                patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}):
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                codigo = main([".", "--sin-red", "--investigar"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("OPENROUTER_API_KEY", error.getvalue())
+        evaluar_mock.assert_not_called()
+
 
 class TestEjecutarTestsAcotado(unittest.TestCase):
     def test_cwd_es_el_proyecto_evaluado(self):

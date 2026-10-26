@@ -2663,3 +2663,46 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   necesitan mocks y límites, no ejecuciones reales.
 - **Evidencia**: `docs/TRIAGE-R3.md`; suite 893/893; JSON completos en
   `build/` (ignorados por git).
+
+## 2026-10-26 (ronda 34) — Aserciones exactas del preflight (R3)
+
+### Hallazgo 116: `!=` no es la guardia de `__main__`; un test que escanea el repo rompe la mutación
+
+- **Defecto real**: `_es_main` aceptaba `if __name__ != "__main__"` como
+  guardia no runtime porque solo miraba el nombre y el literal, no el operador.
+  Los imports bajo esa guardia **sí se ejecutan al importar** y podían quedar
+  sin revisar. El test de variantes falló primero (`True is not false`); se
+  corrigió exigiendo `ast.Eq`, con regresión de gate incluida.
+- **Fallo de la campaña**: un test nuevo ejecutaba `main(["--json"])` contra el
+  repositorio real para comprobar la raíz por defecto. En el sandbox de mutmut
+  el árbol contiene `mutants/` y la línea base falló; `mutmut` devolvió
+  **0 resultados** en dos intentos. Se sustituyó por un mock de `ejecutar` que
+  verifica la ruta recibida y no depende del estado del repo. Lección: los
+  tests incluidos en la selección de mutación deben ser aislados y
+  deterministas; un test de integración del repo real no pertenece a esa
+  selección.
+- **Medición**: preflight **1016 mutantes, 956 muertos, 60 supervivientes,
+  0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta **94,09%**. Los
+  supervivientes bajan de **319 a 60** (−259). El total sube de 1015 a 1016
+  por el mutante nuevo de `ast.Eq`. Los 60 restantes son brechas de aserción;
+  muchos son candidatos a equivalencia (defaults de `dict.get` que el helper
+  ya trata, `encoding="UTF-8"` frente a `"utf-8"`), pero **no se declara
+  equivalencia sin prueba**.
+- **Dogfooding (regla 14)**: `evaluar_proyecto.py . --sin-red` dio **1.000**
+  (25/29 criterios, 86,2% de cobertura) sin hallazgos; el análisis de
+  `code_design_improvement_tools` no reportó defectos, así que se reforzaron
+  aserciones en vez de refactorizar. El triaje de `mutacion`/`triaje_mutantes`
+  dirigió los clústeres y `preflight` validó cada cambio. El uso de thinker
+  influyó en las tres decisiones (alcance, prioridad y defecto).
+- **Salvaguardas**: se añadió `tests/test_guardrails.py` (2 tests) para que la
+  cadena del hook y de `make check` no pierda gates en silencio, y
+  `docs/SALVAGUARDAS.md` con el protocolo anti-alucinación. DSH `dsh-tui` no
+  se modifica: el perfil falla con `EROFS` y los plugins del documento externo
+  devuelven 404 en npm; instalar código no verificado habría sido una falsa
+  protección (P0.18).
+- **Evidencia**: suite **934/934**; ruff 0; preflight 0; docs-check OK;
+  `docs/TRIAGE-R3.md` actualizado; JSON en `build/` (ignorados).
+- **Lección**: una aserción exacta del contrato encontró un defecto que 319
+  mutantes no habían revelado. La mutación mide la fuerza de los tests, pero
+  los tests deben ser independientes del estado del repositorio para poder
+  medir.

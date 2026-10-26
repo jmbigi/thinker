@@ -255,17 +255,19 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97). Cobertura del evaluador **91%** (145/1571 sin
   ejecutar) y de preflight **94%** (26/425), **91% combinado**, medidas el
-  2026-10-25. **R3 2026-10-25**: preflight **1015 mutantes, 696 muertos, 319
-  supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 319 brechas de
-  aserción. **Evaluador 2026-10-25**: **5939 mutantes, 3034 muertos, 2901
-  supervivientes, 0 sin tests, 4 timeouts**; tasa bruta **51,09%**. Triaje de
-  inventario **3224/3224** (3220 brechas de aserción, 0 sin cobertura, 0
-  equivalentes demostrados, 4 timeouts no equivalentes); detalle en
-  `docs/TRIAGE-R3.md`. Ningún denominador se mezcla con el 95,2% del núcleo.
+  2026-10-25. **R3 2026-10-26**: preflight **1016 mutantes, 956 muertos, 60
+  supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 60 brechas de
+  aserción (319 antes; −259) y tasa bruta **94,09%**. **Evaluador 2026-10-25**:
+  **5939 mutantes, 3034 muertos, 2901 supervivientes, 0 sin tests, 4
+  timeouts**; tasa bruta **51,09%**. Triaje de inventario **2965/2965** (2961
+  brechas de aserción, 0 sin cobertura, 0 equivalentes demostrados, 4 timeouts
+  no equivalentes); detalle en `docs/TRIAGE-R3.md`. Dos tests nuevos acotan
+  los timeouts de `_ejecutar_tests` y `main`, pendientes de re-medición del
+  evaluador. Ningún denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **902/902 en la suite
-  Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
+- Plataformas verificadas: Linux con Python **3.11.9**: **934/934 en la suite
+  Linux** (2026-10-26; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
@@ -279,7 +281,10 @@ mejora de código (`code_design_improvement_tools.py`).
   (2026-10-23) y a 95 con los 12 tests del 2026-10-24 (carga de `.env`,
   N/A vs no verificado, ramas de parseo, alias pywin32/PIL/docx/pptx,
   exclusiones configurables e imports hermanos); el preflight añadió 7 tests
-  de manifiestos, exclusiones, imports hermanos y alias (27 en total). El auditor de cambios de
+  de manifiestos, exclusiones, imports hermanos y alias (27 en total). El
+  refuerzo del 2026-10-26 sumó aserciones exactas de preflight, 2 tests del
+  evaluador (`main` sin clave) y 2 de `tests/test_guardrails.py`; la suite
+  quedó en **934/934**. El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

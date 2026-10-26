@@ -452,7 +452,8 @@ def _es_main(nodo: Any) -> bool:
     if not isinstance(nodo, ast.Compare) or len(nodo.ops) != 1 \
             or not isinstance(nodo.left, ast.Name) or nodo.left.id != "__name__":
         return False
-    return isinstance(nodo.comparators[0], ast.Constant) \
+    return isinstance(nodo.ops[0], ast.Eq) \
+        and isinstance(nodo.comparators[0], ast.Constant) \
         and nodo.comparators[0].value == "__main__"
 
 
