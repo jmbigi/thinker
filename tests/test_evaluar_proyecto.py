@@ -2192,5 +2192,122 @@ class TestDimensionesContrato(unittest.TestCase):
                       "suite NO ejecutada (sin --ejecutar-tests): no verificado"]})
 
 
+class TestDependenciasPyprojectContrato(unittest.TestCase):
+    """Contrato exacto de ámbitos y versiones del parser de pyproject."""
+
+    def test_pep621_poetry_pdm_y_grupos(self):
+        texto = (
+            '[project]\nname = "demo"\nversion = "0.1.0"\n'
+            'dependencies = ["requests>=2", "flask==3.0"]\n'
+            '[project.optional-dependencies]\n'
+            'dev = ["pytest>=8"]\ntest = ["coverage"]\n'
+            'docs = ["sphinx"]\nruntime = ["uvicorn"]\notros = ["x"]\n'
+            '[dependency-groups]\n'
+            'dev = ["black"]\ntest = ["mypy"]\ndocs = ["mkdocs"]\n'
+            '[tool.poetry.dependencies]\n'
+            'python = "^3.11"\ndjango = "^4.2"\n'
+            'numpy = {version = "1.26"}\n'
+            '[tool.poetry.group.dev.dependencies]\nruff = "^0.1"\n'
+            '[tool.poetry.group.test.dependencies]\ntox = "^4"\n')
+
+        deps = evaluar_proyecto._dependencias_pyproject(texto)
+
+        self.assertEqual([
+            (d["nombre"], d["ambito"], d["operador"], d["version"],
+             d["fijada"], d["origen"], d["ecosistema"]) for d in deps], [
+            ("requests", "runtime", ">=", "2", False, "pyproject.toml", "python"),
+            ("flask", "runtime", "==", "3.0", True, "pyproject.toml", "python"),
+            ("pytest", "dev", ">=", "8", False, "pyproject.toml", "python"),
+            ("coverage", "test", "", "", False, "pyproject.toml", "python"),
+            ("sphinx", "docs", "", "", False, "pyproject.toml", "python"),
+            ("uvicorn", "runtime", "", "", False, "pyproject.toml", "python"),
+            ("x", "opcional", "", "", False, "pyproject.toml", "python"),
+            ("black", "dev", "", "", False, "pyproject.toml", "python"),
+            ("mypy", "test", "", "", False, "pyproject.toml", "python"),
+            ("mkdocs", "docs", "", "", False, "pyproject.toml", "python"),
+            ("django", "runtime", "", "", False, "pyproject.toml", "python"),
+            ("numpy", "runtime", "==", "1.26", True, "pyproject.toml", "python"),
+            ("ruff", "dev", "", "", False, "pyproject.toml", "python"),
+            ("tox", "test", "", "", False, "pyproject.toml", "python")])
+
+
+class TestVigenciaContrato(unittest.TestCase):
+    """Contrato exacto de vigencia: criterios, N/A, notas y hallazgos."""
+
+    def test_sin_dependencias(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": None, "evaluado": False, "criterios": {},
+            "no_aplica": [
+                {"criterio": "v1_dependencias_fijadas",
+                 "motivo": "sin dependencias Python runtime"},
+                {"criterio": "v2_lockfile",
+                 "motivo": "sin dependencias runtime detectadas"},
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "sin dependencias Python runtime que comparar"}],
+            "hallazgos": [], "notas": ["sin git: actividad no evaluable"]})
+
+    def test_fijadas_con_lock(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.31.0\n",
+            "requirements.lock": "requests==2.31.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 1.0, "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": True,
+                          "v2_lockfile": True},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "comparación PyPI omitida (--sin-red): no verificada"}],
+            "hallazgos": [],
+            "notas": ["locks: requirements.lock",
+                      "sin git: actividad no evaluable",
+                      "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
+
+    def test_sin_fijar_ni_lock(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests>=2.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.0, "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": False,
+                          "v2_lockfile": False},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "comparación PyPI omitida (--sin-red): no verificada"}],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Dependencias Python sin fijar: requests",
+                 "evidencia": "manifiestos Python",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "v1_dependencias_fijadas"},
+                {"severidad": "media",
+                 "descripcion": "Sin lockfile para: python "
+                                "(instalación no reproducible)",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "v2_lockfile"}],
+            "notas": ["locks: ninguno", "sin git: actividad no evaluable",
+                      "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
+
+
 if __name__ == "__main__":
     unittest.main()
