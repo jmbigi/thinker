@@ -510,25 +510,41 @@ se validaron las cifras del paper de NCM en este equipo.
 
 ## Anexo B. Encaje en thinker
 
-Este documento **no es una dependencia** de thinker ni se ejecuta en su pipeline.
-Se incorpora como referencia verificada para trabajo futuro, con el mismo criterio
-que `docs/REFERENCIAS-IA.md`: una idea solo se adopta si resuelve un defecto
-reproducible o un requisito explícito y se mide con el benchmark propio.
+Este documento **no es una dependencia** de thinker. Se incorpora como
+referencia verificada para trabajo futuro, con el mismo criterio que
+`docs/REFERENCIAS-IA.md`: una idea solo se adopta si resuelve un defecto
+reproducible o un requisito explícito y se mide con el benchmark propio. La
+única parte que se ejecuta es el modo opt-in descrito abajo; el resto son
+fuentes y contexto.
 
-- **Next-Concept Modeling:** conceptualmente afín a la generación por etapas del
-  informe, pero thinker orquesta APIs de proveedores y no entrena tokenizers ni
-  transformers. Adoptarlo exigiría un backend de inferencia nuevo, dependencias
-  pesadas y una campaña de medición; hoy no hay defecto reproducible que lo
-  justifique (regla 13). Queda como línea de experimentación, no como cambio.
+- **Next-Concept Modeling:** se incorporó su **principio** coarse-to-fine como
+  modo opt-in `informe_coarse_to_fine` en `ReportGenerator` y
+  `ResearchOrchestrator`: un esquema (1 llamada) y después una llamada por
+  sección (máximo 5), con las mismas fuentes numeradas y los claims filtrados
+  por sección. **No es NCM**: no usa VQ-VAE ni decodificación paralela; añade
+  1+N llamadas y no se atribuye mejora de calidad sin medirla con el benchmark.
+  Si el esquema no es JSON válido, cae a la pasada única y lo registra en
+  `decision_log` (nunca en silencio). Validado offline con 9 tests; el modelo,
+  sus checkpoints y su tokenizer no se adoptan porque exigirían PyTorch, pesos
+  y un backend nuevo (regla 13). Uso:
+
+  ```python
+  from deep_research_system import ResearchOrchestrator
+
+  orquestador = ResearchOrchestrator(
+      llm, search, informe_coarse_to_fine=True)
+  informe, contexto = orquestador.research("...")
+  ```
 - **Nearest Class Mean (Avalanche/CapyMOA):** thinker no hace clasificación
   incremental ni entrena clasificadores; no aplica.
 - **Neural/Neutrosophic Cognitive Maps:** no hay solapamiento con el pipeline de
   investigación profunda; no aplica.
-- **Qué sí se integra:** la guía en `docs/GUIA-NCM.md`, su enlace desde el índice
-  de documentación del `README.md` y desde `docs/REFERENCIAS-IA.md`, y la lista
-  de fuentes verificadas del anexo A. Eso evita que una futura tarea de
-  investigación repita búsquedas y, sobre todo, que cite como válidas rutas que
-  hoy devuelven 404.
+- **Qué sí se integra:** el modo `informe_coarse_to_fine` (opt-in, sin
+  dependencias nuevas) y la guía en `docs/GUIA-NCM.md`, enlazada desde el índice
+  del `README.md` y desde `docs/REFERENCIAS-IA.md`, con la lista de fuentes
+  verificadas del anexo A. Eso evita que una futura tarea de investigación
+  repita búsquedas y, sobre todo, que cite como válidas rutas que hoy devuelven
+  404.
 
 ---
 

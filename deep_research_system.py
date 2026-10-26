@@ -610,10 +610,18 @@ Return ONLY JSON (no markdown fences, no extra text):
 
 
 class ReportGenerator(DecisionEngine):
-    """Generates the final research report with citations and structure."""
+    """Generates the final research report with citations and structure.
 
-    def __init__(self, llm_provider):
+    `coarse_to_fine=True` activa un modo opt-in de dos etapas: primero un
+    esquema (secciones) y después cada sección. Se inspira en el principio
+    coarse-to-fine de Next-Concept Modeling (arXiv:2610.14162), **no** en su
+    tokenizer ni en su decodificación paralela: aquí el LLM sigue siendo el
+    generador y el número de llamadas aumenta (1 esquema + N secciones).
+    """
+
+    def __init__(self, llm_provider, coarse_to_fine: bool = False):
         self.llm_provider = llm_provider
+        self.coarse_to_fine = coarse_to_fine
 
     def decide(self, context: ResearchContext) -> str:
         supported_claims = [c for c in context.claims if any(
@@ -677,11 +685,114 @@ Evidence evaluations: {len(context.evaluations)}
 Generate the full report in markdown format with proper citations [1], [2] etc.
 matching the sources retrieved. Be factual and acknowledge uncertainties."""
 
-        report = self.llm_provider.generate(prompt)
+        if self.coarse_to_fine:
+            report = self._generar_coarse_to_fine(
+                context, prompt, fuentes_txt, claims_txt)
+        else:
+            report = self.llm_provider.generate(prompt)
         context.conclusions = self._extract_conclusions(report)
         context.add_decision("report_generation", "generate",
                              f"Report generated with {len(context.conclusions)} conclusion sections")
         return report
+
+    def _generar_coarse_to_fine(self, context: ResearchContext,
+                                prompt_unica: str, fuentes_txt: str,
+                                claims_txt: str) -> str:
+        """Esquema primero, secciones después; si el esquema falla, pasada única."""
+        subpreguntas = "\n".join(f"- {s}" for s in context.subquestions)
+        prompt_esquema = f"""Design the outline for a research report answering: {context.question}
+
+Sub-questions:
+{subpreguntas or "(not specified)"}
+
+Evaluated claims:
+{claims_txt}
+Return ONLY valid JSON with this shape:
+{{"secciones": [{{"titulo": "...", "subpregunta": "...", "claims": ["..."]}}]}}
+Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON."""
+
+        try:
+            datos = _parse_json_response(
+                self.llm_provider.generate(prompt_esquema))
+            secciones, total = self._normalizar_secciones(datos)
+        except ValueError as exc:
+            context.add_decision(
+                "report_outline", "fallback_single_pass",
+                f"Esquema inválido ({type(exc).__name__}: {exc}); "
+                "se usa la pasada única")
+            return self.llm_provider.generate(prompt_unica)
+
+        motivo = f"Outline with {len(secciones)} sections"
+        if len(secciones) < total:
+            motivo += f" (truncated from {total})"
+        context.add_decision("report_outline", "generate", motivo)
+
+        partes = [f"# Research Report: {context.question}"]
+        for seccion in secciones:
+            contenido = self.llm_provider.generate(self._prompt_seccion(
+                seccion, context, fuentes_txt, claims_txt)).strip()
+            if not contenido:
+                contenido = "(No content generated for this section.)"
+                context.add_decision("report_section", "empty",
+                                     f"Section: {seccion['titulo']}")
+            else:
+                context.add_decision("report_section", "generate",
+                                     f"Section: {seccion['titulo']}")
+            partes.append(f"## {seccion['titulo']}\n\n{contenido}")
+        return "\n\n".join(partes)
+
+    @staticmethod
+    def _normalizar_secciones(datos: Any) -> Tuple[List[Dict[str, Any]], int]:
+        """Valida el esquema y limita a 5 secciones; eleva ValueError si no sirve."""
+        if not isinstance(datos, dict):
+            raise ValueError("el esquema no es un objeto JSON")
+        secciones = datos.get("secciones")
+        if not isinstance(secciones, list) or not secciones:
+            raise ValueError("'secciones' debe ser una lista no vacía")
+
+        normalizadas = []
+        for seccion in secciones[:5]:
+            if not isinstance(seccion, dict):
+                raise ValueError("cada sección debe ser un objeto")
+            titulo = seccion.get("titulo")
+            if not isinstance(titulo, str) or not titulo.strip():
+                raise ValueError("cada sección necesita un 'titulo' no vacío")
+            claims = seccion.get("claims") or []
+            if not isinstance(claims, list):
+                raise ValueError("'claims' debe ser una lista")
+            normalizadas.append({
+                "titulo": titulo.strip(),
+                "subpregunta": str(seccion.get("subpregunta") or "").strip(),
+                "claims": [str(c).strip() for c in claims if str(c).strip()],
+            })
+        return normalizadas, len(secciones)
+
+    def _prompt_seccion(self, seccion: Dict[str, Any],
+                        context: ResearchContext, fuentes_txt: str,
+                        claims_txt: str) -> str:
+        """Prompt de una sección; filtra claims si el esquema los declara."""
+        seleccion = claims_txt
+        if seccion["claims"]:
+            lineas = [linea for linea in claims_txt.splitlines()
+                      if any(c.lower() in linea.lower()
+                             for c in seccion["claims"])]
+            if lineas:
+                seleccion = "\n".join(lineas)
+        foco = seccion["subpregunta"] or "(not specified)"
+        return f"""Write the section "{seccion['titulo']}" of a research report for: {context.question}
+
+Sub-question: {foco}
+
+Use ONLY the retrieved sources and evaluated claims below as evidence. Cite
+sources as [n] matching their numbers. If the evidence is insufficient for a
+statement, say so instead of inventing it.
+
+Retrieved sources:
+{fuentes_txt}
+Relevant evaluated claims:
+{seleccion}
+
+Return only the section body in markdown, without repeating the section title."""
 
     def _extract_conclusions(self, report: str) -> List[Dict[str, Any]]:
         sections = re.split(r'\n#+\s*', report)
@@ -699,7 +810,8 @@ class ResearchOrchestrator:
                  verificacion_independiente: bool = False, llm_rapido=None,
                  llm_verificador=None, muestras_consenso: int = 1,
                  evaluador_relevancia: bool = False,
-                 umbral_relevancia: float = 0.5):
+                 umbral_relevancia: float = 0.5,
+                 informe_coarse_to_fine: bool = False):
         """Monta el pipeline.
 
         `llm_rapido` (enrutado por tarea): si se pasa, descompone y extrae con
@@ -712,6 +824,9 @@ class ResearchOrchestrator:
         como `mismo-proveedor` (independencia degradada, nunca silenciosa).
         `muestras_consenso` (>1): repite la evaluación de cada claim para
         detectar veredictos divergentes (ver `EvidenceEvaluator`).
+        `informe_coarse_to_fine=True`: genera el informe en dos etapas (esquema
+        y secciones), con una llamada extra por sección; si el esquema no es
+        válido, cae a la pasada única y lo registra en `decision_log`.
         """
         self.llm = llm_provider
         self.llm_rapido = llm_rapido or llm_provider
@@ -726,7 +841,8 @@ class ResearchOrchestrator:
             llm_provider, verificacion_independiente=verificacion_independiente,
             llm_verificador=llm_verificador,
             muestras_consenso=muestras_consenso)
-        self.generator = ReportGenerator(llm_provider)
+        self.generator = ReportGenerator(
+            llm_provider, coarse_to_fine=informe_coarse_to_fine)
 
     def research(self, question: str) -> Tuple[str, ResearchContext]:
         """Execute the full research pipeline."""

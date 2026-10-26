@@ -197,12 +197,14 @@ Se incorporó `docs/GUIA-NCM.md`, una guía verificada de las cuatro acepciones 
 Maps y Nearest Class Mean), con repositorios, licencias, versiones y un anexo de
 comprobaciones (API de arXiv/GitHub, Crossref y PyPI).
 
-- **Aplicable hoy:** nada al pipeline; thinker no entrena tokenizers ni
-  clasificadores incrementales. La guía evita repetir búsquedas y citar rutas
-  que devuelven 404.
-- **Línea futura, no adoptada:** la generación coarse-to-fine de
-  `HazyResearch/ncm` exigiría un backend de inferencia nuevo y una campaña de
-  medición; no hay defecto reproducible que lo justifique (regla 13).
+- **Aplicable hoy:** el **principio** coarse-to-fine se incorporó como modo
+  opt-in `informe_coarse_to_fine` en `ReportGenerator`/`ResearchOrchestrator`:
+  esquema y secciones, con fuentes numeradas y claims filtrados. No es NCM (no
+  usa VQ-VAE ni decodificación paralela), añade 1+N llamadas y no se atribuye
+  mejora de calidad sin medirla.
+- **No adoptado:** el modelo, sus checkpoints y su tokenizer exigirían PyTorch,
+  pesos y un backend nuevo; no hay defecto reproducible que lo justifique
+  (regla 13). thinker no entrena clasificadores incrementales.
 - **Límite:** no se instaló ni ejecutó ninguna de las librerías; la guía verifica
   existencia, licencia, versión y, en Avalanche/CapyMOA, la clase NCM en el
   código fuente.

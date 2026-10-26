@@ -2859,5 +2859,53 @@ class TestParsersDependenciasYLinter(unittest.TestCase):
                          (False, ""))
 
 
+class TestPuntosDeEntradaYMain(unittest.TestCase):
+    """Detección de entrypoints y contrato de la CLI."""
+
+    def test_puntos_de_entrada_python_java_go_y_manifiestos(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "", "pkg/__main__.py": "print('x')\n",
+            "app.py": ("def main():\n    pass\n"
+                       "if __name__ == '__main__':\n    main()\n"),
+            "Main.java": "class Main { public static void main(String[] a) {} }\n",
+            "main.go": "package main\nfunc main() {}\n",
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               '[project.scripts]\nx="x:main"\n'),
+            "package.json": '{"bin":{"x":"cli.js"},"main":"index.js"}\n'})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        self.assertEqual(evaluar_proyecto._tiene_punto_entrada(raiz, perfil), [
+            "Main.java", "app.py", "main.go", "package.json (bin/main)",
+            "pkg/__main__.py", "pyproject.toml ([project.scripts])"])
+
+    def test_sin_puntos_de_entrada(self):
+        raiz = crear_proyecto(self, {"lib.py": "def f():\n    return 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        self.assertEqual(evaluar_proyecto._tiene_punto_entrada(raiz, perfil), [])
+
+    def test_main_json_llama_evaluar_y_serializa(self):
+        salida = io.StringIO()
+        with patch("evaluar_proyecto.evaluar",
+                   return_value={"b": 2, "a": 1}) as evaluar_mock:
+            with contextlib.redirect_stdout(salida):
+                codigo = main(["proyecto", "--json", "--sin-red"])
+
+        self.assertEqual(codigo, 0)
+        self.assertEqual(json.loads(salida.getvalue()), {"b": 2, "a": 1})
+        evaluar_mock.assert_called_once()
+        self.assertFalse(evaluar_mock.call_args.kwargs["con_red"])
+        self.assertEqual(evaluar_mock.call_args.args[0],
+                         Path("proyecto").resolve())
+
+    def test_main_requisitos_inexistentes(self):
+        error = io.StringIO()
+        with contextlib.redirect_stderr(error):
+            codigo = main(["proyecto", "--requisitos", "/no/existe.md"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("no existe el archivo de requisitos", error.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
