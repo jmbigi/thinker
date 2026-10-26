@@ -2735,3 +2735,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   offline; declarar N/A con motivo es mejor que inventar una fixture que
   active una ruta LLM/red inexistente. La cobertura del benchmark sube, pero
   el límite (16/29) sigue visible.
+
+## 2026-10-26 (ronda 36) — CI robusta ante un `TMPDIR` inválido
+
+### Hallazgo 118: un `TMPDIR` heredado no debe romper la CI
+
+- **Problema**: en esta sesión, `make ci` falló con
+  `mktemp: failed to create directory ... /tmp/user/1000` porque el entorno
+  traía un `TMPDIR` que no existe. No era un fallo del código ni de Git; era
+  un supuesto no declarado del script.
+- **Solución**: `scripts/ci.sh` comprueba `${TMPDIR:-/tmp}`; si no es un
+  directorio, avisa y usa `/tmp`; si `mktemp` falla igualmente, reintenta con
+  `TMPDIR=/tmp`. El fallback se declara en stderr, no es silencioso.
+- **Evidencia**: `TMPDIR=/tmp/user/1000 bash scripts/ci.sh` imprime
+  `[ci] TMPDIR no existe (/tmp/user/1000); usando /tmp` y termina
+  `[ci] OK: la copia limpia de HEAD verifica entera`; `bash -n` OK.
+- **Lección**: los gates deben declarar y acotar sus supuestos de entorno. Un
+  fallback silencioso sería peor; aquí se avisa y se conserva el resultado
+  verificable.

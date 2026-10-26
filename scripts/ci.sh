@@ -5,7 +5,18 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
-destino=$(mktemp -d)
+
+# Un TMPDIR heredado y no escribible no debe romper la CI: se declara y se cae
+# a /tmp, que es el temporal estándar del sistema.
+if [ ! -d "${TMPDIR:-/tmp}" ]; then
+    echo "[ci] TMPDIR no existe (${TMPDIR:-}); usando /tmp" >&2
+    TMPDIR=/tmp
+    export TMPDIR
+fi
+if ! destino=$(mktemp -d); then
+    echo "[ci] mktemp falló; reintentando con TMPDIR=/tmp" >&2
+    destino=$(TMPDIR=/tmp mktemp -d)
+fi
 trap 'rm -rf "$destino"' EXIT
 
 echo "[ci] exportando HEAD a copia limpia: $destino"
