@@ -2766,5 +2766,98 @@ class TestParserEjecutarEInteligencia(unittest.TestCase):
         self.assertFalse(ejecutar.call_args.kwargs["shell"])
 
 
+class TestParsersDependenciasYLinter(unittest.TestCase):
+    """Contrato exacto de setup.cfg, package.json, agregador y linter."""
+
+    def test_setup_cfg_completo(self):
+        raiz = crear_proyecto(self, {"setup.cfg": (
+            "[options]\ninstall_requires =\n    requests>=2\n"
+            "    flask==3.0\ntests_require =\n    pytest>=8\n"
+            "[options.extras_require]\ndocs =\n    sphinx\n"
+            "test =\n    coverage\notros =\n    rich\n")})
+
+        deps = evaluar_proyecto._dependencias_setup_cfg(
+            raiz / "setup.cfg", raiz)
+
+        self.assertEqual([
+            (d["nombre"], d["ambito"], d["operador"], d["version"],
+             d["fijada"], d["origen"], d["ecosistema"]) for d in deps], [
+            ("requests", "runtime", ">=", "2", False, "setup.cfg", "python"),
+            ("flask", "runtime", "==", "3.0", True, "setup.cfg", "python"),
+            ("pytest", "dev", ">=", "8", False, "setup.cfg", "python"),
+            ("sphinx", "docs", "", "", False, "setup.cfg", "python"),
+            ("coverage", "test", "", "", False, "setup.cfg", "python"),
+            ("rich", "opcional", "", "", False, "setup.cfg", "python")])
+
+    def test_package_json_completo(self):
+        raiz = crear_proyecto(self, {"package.json": (
+            '{"dependencies":{"react":"^18.2.0","left-pad":"1.3.0"},'
+            '"devDependencies":{"typescript":"~5.0"},'
+            '"peerDependencies":{"react-dom":">=18"}}')})
+
+        deps = evaluar_proyecto._dependencias_package_json(
+            raiz / "package.json", raiz)
+
+        self.assertEqual([
+            (d["nombre"], d["ambito"], d["operador"], d["version"],
+             d["fijada"], d["origen"], d["ecosistema"]) for d in deps], [
+            ("react", "runtime", "^", "18.2.0", False, "package.json", "npm"),
+            ("left-pad", "runtime", "", "1.3.0", True, "package.json", "npm"),
+            ("typescript", "dev", "~", "5.0", False, "package.json", "npm"),
+            ("react-dom", "opcional", ">=", "18", False, "package.json",
+             "npm")])
+
+    def test_agregador_dependencias(self):
+        raiz = crear_proyecto(self, {
+            "setup.cfg": ("[options]\ninstall_requires =\n    requests>=2\n"
+                          "    flask==3.0\ntests_require =\n    pytest>=8\n"
+                          "[options.extras_require]\ndocs =\n    sphinx\n"
+                          "test =\n    coverage\notros =\n    rich\n"),
+            "package.json": ('{"dependencies":{"react":"^18.2.0",'
+                             '"left-pad":"1.3.0"},'
+                             '"devDependencies":{"typescript":"~5.0"},'
+                             '"peerDependencies":{"react-dom":">=18"}}'),
+            "requirements.txt": "requests>=2\n",
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               '[tool.ruff]\n')})
+
+        deps = evaluar_proyecto._dependencias(raiz)
+
+        self.assertEqual([
+            (d["nombre"], d["ambito"], d["operador"], d["version"],
+             d["fijada"], d["origen"], d["ecosistema"]) for d in deps], [
+            ("react", "runtime", "^", "18.2.0", False, "package.json", "npm"),
+            ("left-pad", "runtime", "", "1.3.0", True, "package.json", "npm"),
+            ("typescript", "dev", "~", "5.0", False, "package.json", "npm"),
+            ("react-dom", "opcional", ">=", "18", False, "package.json",
+             "npm"),
+            ("requests", "runtime", ">=", "2", False, "requirements.txt",
+             "python"),
+            ("flask", "runtime", "==", "3.0", True, "setup.cfg", "python"),
+            ("pytest", "dev", ">=", "8", False, "setup.cfg", "python"),
+            ("sphinx", "docs", "", "", False, "setup.cfg", "python"),
+            ("coverage", "test", "", "", False, "setup.cfg", "python"),
+            ("rich", "opcional", "", "", False, "setup.cfg", "python")])
+
+    def test_linter_configurado_por_archivo(self):
+        casos = {
+            "pyproject.toml": "[tool.ruff]\n",
+            "setup.cfg": "[flake8]\nmax-line-length=100\n",
+            ".ruff.toml": "line-length = 100\n",
+            ".eslintrc.json": '{"extends": "eslint:recommended"}\n',
+        }
+        for nombre, contenido in casos.items():
+            with self.subTest(nombre=nombre):
+                raiz = crear_proyecto(self, {nombre: contenido})
+                perfil = evaluar_proyecto.analizar_perfil(raiz)
+                self.assertEqual(evaluar_proyecto._linter_configurado(perfil),
+                                 (True, nombre))
+
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+        self.assertEqual(evaluar_proyecto._linter_configurado(perfil),
+                         (False, ""))
+
+
 if __name__ == "__main__":
     unittest.main()

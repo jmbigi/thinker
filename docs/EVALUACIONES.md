@@ -510,16 +510,16 @@ equivalencias** y deja **0 brechas reales**; la tasa no cambia. El cambio
 incluye un defecto real: `_es_main` aceptaba `if __name__ != "__main__"` como
 guardia no runtime; ahora exige `ast.Eq` y hay regresión. El evaluador se
 re-midió el 2026-10-26 tras el contrato de `informe_texto`, `detectar_comando_tests`
-y los tests de red: **5985 mutantes, 4217 muertos, 1768 supervivientes, 0 sin
-tests, 0 timeouts, 0 sospechosos**; tasa bruta **70,46%** (antes 51,19%).
+y los tests de red: **5985 mutantes, 4329 muertos, 1656 supervivientes, 0 sin
+tests, 0 timeouts, 0 sospechosos**; tasa bruta **72,33%** (antes 51,19%).
 Los contratos de dimensiones, vigencia/parser, eficiencia/funcionalidades y
-ramas/licencias y parser/runner mataron 134, 144, 142, 176 y 77 mutantes
-más, respectivamente.
-Triaje de inventario **1817/1817**: **1768 brechas** (0 preflight + 1768
-evaluador), **49 equivalencias demostradas** y **0 timeouts**. Suite **970/970** en Linux
+ramas/licencias, parser/runner y parsers/linter mataron 134, 144, 142, 176,
+77 y 112 mutantes más, respectivamente.
+Triaje de inventario **1705/1705**: **1656 brechas** (0 preflight + 1656
+evaluador), **49 equivalencias demostradas** y **0 timeouts**. Suite **974/974** en Linux
 (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
 autoevaluación **1.000** (sin red: 25/29, 2 no verificados). R3 sigue
-**parcial**: no se cierra con 1768 brechas pendientes.
+**parcial**: no se cierra con 1656 brechas pendientes.
 
 R4 subió de 33 casos/14 criterios a **57 casos/26 criterios**: c4, h4, v3
 (repo git temporal), i1-i6 y e1-e3, estos últimos con fixtures **sintéticas
