@@ -3,10 +3,19 @@
 import unittest
 
 from tests.benchmarks.evaluador_precision import (CASOS, calcular_metricas,
+                                                  cobertura_de_criterios,
                                                   evaluar_corpus)
 
 
 class TestEvaluadorPrecision(unittest.TestCase):
+    def test_cobertura_de_29_criterios(self):
+        cobertura = cobertura_de_criterios()
+
+        self.assertEqual(len(cobertura["medidos"]), 14)
+        self.assertEqual(len(cobertura["no_medidos"]), 15)
+        self.assertEqual(cobertura["total_base"], 29)
+        self.assertEqual(cobertura["solapados"], [])
+
     def test_calcular_metricas_tp_fp_fn(self):
         metrica = calcular_metricas(
             [True, True, False, False],

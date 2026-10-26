@@ -255,16 +255,16 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 timeouts, 0 sospechosos; re-medición 2026-10-23 tras el
   triaje del Hallazgo 97). Cobertura del evaluador **91%** (145/1571 sin
   ejecutar) y de preflight **94%** (26/425), **91% combinado**, medidas el
-  2026-10-25. **R3 2026-10-25**: preflight **1015 mutantes, 645 muertos, 370
-  supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 370 brechas de
+  2026-10-25. **R3 2026-10-25**: preflight **1015 mutantes, 664 muertos, 351
+  supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 351 brechas de
   aserción. **Evaluador 2026-10-25**: **5939 mutantes, 3034 muertos, 2901
   supervivientes, 0 sin tests, 4 timeouts**; tasa bruta **51,09%**. Triaje de
-  inventario **3275/3275** (3271 brechas de aserción, 0 sin cobertura, 0
+  inventario **3256/3256** (3252 brechas de aserción, 0 sin cobertura, 0
   equivalentes demostrados, 4 timeouts no equivalentes); detalle en
   `docs/TRIAGE-R3.md`. Ningún denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **893/893 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **896/896 en la suite
   Linux** (2026-10-25; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

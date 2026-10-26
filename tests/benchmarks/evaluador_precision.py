@@ -369,6 +369,38 @@ CASOS = [
 ]
 
 
+CRITERIOS_FUERA_DE_BENCHMARK = {
+    "f1_puntos_de_entrada": "requiere un punto de entrada real o perfil de aplicación",
+    "c4_tests_sobre_codigo_30pct": "requiere un proyecto con proporción de tests medible",
+    "v3_actividad_reciente": "requiere historial git con fechas reales",
+    "v4_dependencias_al_dia": "requiere consultar PyPI (red)",
+    "h4_runner_de_tests_declarado": "solo se activa con tests detectados",
+    "h5_licencias_libres": "requiere consultar metadatos de licencias (red)",
+    "i1_cachea_trabajo_repetido": "requiere un proyecto con LLM declarado",
+    "i2_timeouts_explicitos": "requiere un proyecto con LLM declarado",
+    "i3_reintentos_con_limite": "requiere un proyecto con LLM declarado",
+    "i4_valida_respuestas": "requiere un proyecto con LLM declarado",
+    "i5_declara_lo_simulado": "requiere un proyecto con LLM declarado",
+    "i6_metricas_propias": "requiere un proyecto con LLM declarado",
+    "e1_import_perezoso_de_pesadas": "requiere un proyecto con LLM declarado",
+    "e2_carga_unica_de_modelos": "requiere un proyecto con LLM declarado",
+    "e3_mediciones_documentadas": "requiere un proyecto con LLM declarado y métricas",
+}
+
+
+def cobertura_de_criterios(casos=None):
+    """Devuelve medidos, N/A y el total base de 29 criterios."""
+    casos = CASOS if casos is None else casos
+    medidos = sorted({c["criterio"] for c in casos})
+    no_medidos = sorted(CRITERIOS_FUERA_DE_BENCHMARK)
+    return {
+        "medidos": medidos,
+        "no_medidos": no_medidos,
+        "total_base": len(medidos) + len(no_medidos),
+        "solapados": sorted(set(medidos) & set(no_medidos)),
+    }
+
+
 def calcular_metricas(esperados, predichos):
     """TP/FP/FN y precision/recall; ``None`` si no hay denominador."""
     tp = sum(1 for esperado, predicho in zip(esperados, predichos)

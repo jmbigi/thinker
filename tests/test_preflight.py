@@ -523,6 +523,52 @@ class TestDependenciasDeclaradasR3(unittest.TestCase):
         self.assertEqual(len(hallazgos), 1)
         self.assertIn("setup.cfg inválido", hallazgos[0].mensaje)
 
+    def test_ramas_de_manifiestos_y_normalizacion(self):
+        raiz = crear_proyecto(self, {
+            "requirements/base.in": (
+                "-e git+https://example.invalid/pkg.git#egg=Editable_Pkg\n"
+                "Foo_Bar>=1\n"
+                "-c constraints.txt\n"),
+            "requirements/constraints.txt": "ignorada==1\n",
+            "pyproject.toml": (
+                '[project]\nname = "d"\nversion = "0.1.0"\n'
+                'optional-dependencies = { dev = ["Pytest>=8", "no-valido"] }\n'
+                '[dependency-groups]\n'
+                'test = ["coverage[toml]"]\n'
+                '[tool.poetry.dependencies]\npython = "^3.11"\n'
+                'requests = "^2"\n'
+                '[tool.poetry.dev-dependencies]\nblack = "^24"\n'
+                '[tool.poetry.group.docs.dependencies]\nsphinx = "^7"\n'
+                '[tool.pdm.dev-dependencies]\nlint = ["ruff"]\n'),
+            "setup.cfg": (
+                "[options]\ninstall_requires =\n    flask>=3\n"
+                "[options.extras_require]\n"
+                "dev =\n    mypy\n"),
+            "setup.py": (
+                "from setuptools import setup\n"
+                "setup(install_requires=DESCONOCIDO, "
+                "extras_require={'x': ['pytest']})\n"),
+            "node_modules/requirements.txt": "no-debe-entrar==1\n",
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {
+            "ignorada", "foo-bar", "pytest", "no-valido", "coverage",
+            "requests", "black", "sphinx", "ruff", "flask", "mypy"})
+
+    def test_setup_py_con_sintaxis_invalida_no_rompe(self):
+        raiz = crear_proyecto(self, {
+            "setup.py": "setup(install_requires=[\n",
+            "requirements/in.txt": "requests\n",
+        })
+
+        declaradas, hallazgos = dependencias_declaradas(raiz)
+
+        self.assertEqual(hallazgos, [])
+        self.assertEqual(declaradas, {"requests"})
+
 
 class TestLecturaManifiestosR3(unittest.TestCase):
     """Triaje R3: casos límite de lectura de manifiestos."""
