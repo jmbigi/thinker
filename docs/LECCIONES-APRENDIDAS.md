@@ -2713,3 +2713,25 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   los tests deben ser independientes del estado del repositorio y de la red
   para poder medir; un test que cae en la ruta real convierte un mutante en
   timeout y oculta el resultado.
+
+## 2026-10-26 (ronda 35) — R4: ampliar el benchmark sin simular lo que no se puede medir
+
+### Hallazgo 117: c4 y h4 sí son medibles offline; los 13 N/A restantes no se inventan
+
+- **Acción**: `tests/benchmarks/evaluador_precision.py` pasa de 33 casos/14
+  criterios a **37 casos/16 criterios**. Se añadieron c4 (proporción
+  test/código ≥0,30) y h4 (runner de tests declarado) con un caso positivo y
+  otro negativo cada uno; h4 se activa con `test_app.py` en la raíz porque un
+  directorio `tests/` hace que el evaluador detecte la convención
+  `python3 -m unittest discover` y no habría hallazgo.
+- **Resultado**: **16 TP, 0 FP, 0 FN; precision 1,00, recall 1,00** en los 37
+  casos. Quedan **13 N/A** con motivo (f1, v3, v4, h5, i1-i6, e1-e3): exigen
+  LLM declarado, red o historial git. No se simulan con fixtures porque el
+  benchmark mide el detector, no una maqueta del mundo real.
+- **Evidencia**: `tests/test_evaluador_precision.py` actualizado (16 medidos,
+  13 no medidos, 29 base, 37 casos, 16 TP); suite **933/933**; el benchmark
+  `--json` da 1,00/1,00.
+- **Lección**: ampliar cobertura es legítimo cuando el criterio es medible
+  offline; declarar N/A con motivo es mejor que inventar una fixture que
+  active una ruta LLM/red inexistente. La cobertura del benchmark sube, pero
+  el límite (16/29) sigue visible.

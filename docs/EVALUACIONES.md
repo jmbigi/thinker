@@ -518,6 +518,12 @@ equivalentes demostrados, 0 timeouts). Suite **933/933** en Linux (Python
 25/29, 2 no verificados). R3 sigue **parcial**: no se cierra con 2959
 aserciones pendientes.
 
+R4 subió de 33 casos/14 criterios a **37 casos/16 criterios** al añadir c4
+(proporción test/código) y h4 (runner declarado), ambos medibles offline:
+**16 TP, 0 FP, 0 FN; precision 1,00, recall 1,00**. Quedan **13 N/A** con
+motivo (f1, v3, v4, h5, i1-i6, e1-e3): exigen LLM declarado, red o historial
+git y no se simulan con fixtures.
+
 También se añadieron `docs/SALVAGUARDAS.md` y `tests/test_guardrails.py` (2
 tests) para que la cadena de gates no desaparezca en silencio. DSH `dsh-tui`
 no se modifica: `dsh plugin --profile dsh-tui list` falla con `EROFS` (perfil

@@ -3,8 +3,8 @@
 
 Casos sintéticos con un criterio objetivo y un resultado esperado (hallazgo
 presente/ausente). No sustituye una campaña sobre proyectos reales: mide que el
-detector no haya involucionado y hace explícita la cobertura (14 de los 29
-criterios del rubric; los 15 restantes se declaran N/A en el informe).
+detector no haya involucionado y hace explícita la cobertura (16 de los 29
+criterios del rubric; los 13 restantes se declaran N/A en el informe).
 
 Uso:
     python3 tests/benchmarks/evaluador_precision.py [--json]
@@ -365,16 +365,64 @@ CASOS = [
                                 "        f()\n"),
         },
     },
+    {
+        "nombre": "c4_pocos_tests_para_el_codigo",
+        "criterio": "c4_tests_sobre_codigo_30pct",
+        "esperado": True,
+        "archivos": {
+            "demo.py": ("def f():\n"
+                        "    return 1\n\n"
+                        "def g():\n"
+                        "    return 2\n\n"
+                        "def h():\n"
+                        "    return 3\n\n"
+                        "def i():\n"
+                        "    return 4\n"),
+            "tests/test_x.py": "x = 1\n",
+        },
+    },
+    {
+        "nombre": "c4_suficientes_tests",
+        "criterio": "c4_tests_sobre_codigo_30pct",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "tests/test_x.py": ("import unittest\n"
+                                "from demo import f\n\n\n"
+                                "class T(unittest.TestCase):\n"
+                                "    def test_a(self):\n"
+                                "        self.assertEqual(f(), 1)\n"),
+        },
+    },
+    {
+        "nombre": "h4_tests_sin_runner",
+        "criterio": "h4_runner_de_tests_declarado",
+        "esperado": True,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "test_app.py": ("def test_a():\n"
+                            "    assert 1 == 1\n"),
+        },
+    },
+    {
+        "nombre": "h4_con_build_sh",
+        "criterio": "h4_runner_de_tests_declarado",
+        "esperado": False,
+        "archivos": {
+            "demo.py": "def f():\n    return 1\n",
+            "test_app.py": ("def test_a():\n"
+                            "    assert 1 == 1\n"),
+            "build.sh": "#!/bin/sh\npython3 -m unittest\n",
+        },
+    },
 
 ]
 
 
 CRITERIOS_FUERA_DE_BENCHMARK = {
     "f1_puntos_de_entrada": "requiere un punto de entrada real o perfil de aplicación",
-    "c4_tests_sobre_codigo_30pct": "requiere un proyecto con proporción de tests medible",
     "v3_actividad_reciente": "requiere historial git con fechas reales",
     "v4_dependencias_al_dia": "requiere consultar PyPI (red)",
-    "h4_runner_de_tests_declarado": "solo se activa con tests detectados",
     "h5_licencias_libres": "requiere consultar metadatos de licencias (red)",
     "i1_cachea_trabajo_repetido": "requiere un proyecto con LLM declarado",
     "i2_timeouts_explicitos": "requiere un proyecto con LLM declarado",

@@ -18,7 +18,7 @@ pendiente.
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
 | **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 956/1016, 60 brechas; evaluador: 3040/5939, 2899 brechas, 0 timeouts; triaje 2959/2959 | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
-| **Parcial** | R4. [Parcial 2026-10-25] Benchmark de precisión/recall del evaluador | 33 casos/14 criterios con 5 trampas y 1.00/1.00; faltan 15 criterios | Medio | Bajo |
+| **Parcial** | R4. [Parcial 2026-10-26] Benchmark de precisión/recall del evaluador | 37 casos/16 criterios con 5 trampas y 1,00/1,00; 13 N/A por LLM/red/git | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
 | **Hecho** | R6. [Cerrada 2026-10-25, C con warnings] Política para silencios deliberados de producción | Marca externa con motivo; warnings en c3/preflight; 5 tests | Bajo | Político |
 | **Hecho** | R7. [Cerrada 2026-10-25] Medir calidad de aserciones, no solo tests no-op | `aserciones_debiles` informativo; c5 no cambia | Medio | Bajo |
@@ -41,7 +41,7 @@ R1, R2, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 | **R13** | **B con vía a C**: verificador barato; descomposición después | **B y C implementadas; cerrada** | Hecho: descomposición opt-in |
 | **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=20); declaración vigente** | Ampliar muestra; no afirmar calibración general |
 | **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | En ejecución; preflight 60 brechas, evaluador 2899, 0 timeouts | Reforzar 2959 aserciones (60+2899); timeouts ya en 0 |
-| **R4** | Sin decisión de producto; ampliar cobertura | En curso, parcial (28 casos/14 criterios) | Completar los 15 criterios y trampas reales |
+| **R4** | Sin decisión de producto; ampliar cobertura | En curso, parcial (37 casos/16 criterios) | Completar los 13 N/A que exigen LLM/red/git y trampas reales |
 
 **No queda ninguna decisión de producto pendiente.** Lo que falta es ejecución. R14 ya tiene un piloto real n=20; ampliar la muestra
 no cambia su cierre por declaración. R3 no se cierra hasta que las 2959
@@ -173,26 +173,29 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   timeouts (re-medido); [ ] tasa limpia (2959 aserciones pendientes).
 - **Riesgo:** medio; el triaje del evaluador sigue siendo la deuda principal.
 
-### R4 — Benchmark de precisión/recall del evaluador — PARCIAL 2026-10-25
+### R4 — Benchmark de precisión/recall del evaluador — PARCIAL 2026-10-26
 
 - **Problema medido:** la auditoría de 7 repos y el control de 10 defectos fueron
   una campaña puntual. No hay un arnés que impida volver a introducir falsos
   positivos como los de h6 (853 en FastAPI) o h5 (12/12).
-- **Estado 2026-10-25:** **parcial**. `tests/benchmarks/evaluador_precision.py`
-  ejecuta 33 casos sintéticos etiquetados sobre 14 criterios y declara **15 N/A** con motivo (f1, c4, v3, v4, h4, h5, i1-i6, e1-e3), (h1, h2, h3, h6,
-  v2, c1, c2, c3, c5, f2, f3, f4, v1 y h7), incluidos **5 casos trampa** de
-  falsos positivos (imports en docs, import opcional, except con return, TODO
-  en tests y helper sin assert). Calcula TP/FP/FN, precision y recall por
-  criterio y global, y admite `--json`. Resultado actual: **14 TP, 0 FP,
-  0 FN; precision 1.00, recall 1.00** en esos 33 casos. `tests/test_evaluador_precision.py` fija métricas y
+- **Estado 2026-10-26:** **parcial**. `tests/benchmarks/evaluador_precision.py`
+  ejecuta 37 casos sintéticos etiquetados sobre 16 criterios y declara **13
+  N/A** con motivo (f1, v3, v4, h5, i1-i6, e1-e3), además de h1, h2, h3, h6,
+  v2, c1, c2, c3, c4, c5, f2, f3, f4, v1, h4 y h7, incluidos **5 casos trampa**
+  de falsos positivos (imports en docs, import opcional, except con return,
+  TODO en tests y helper sin assert). La ampliación del 2026-10-26 añadió c4
+  (proporción test/código) y h4 (runner declarado), ambos medibles offline.
+  Calcula TP/FP/FN, precision y recall por criterio y global, y admite
+  `--json`. Resultado actual: **16 TP, 0 FP, 0 FN; precision 1.00, recall
+  1.00** en esos 37 casos. `tests/test_evaluador_precision.py` fija métricas y
   balance del corpus.
-- **Límite declarado:** cubre **14 de los 29 criterios posibles** y son fixtures
+- **Límite declarado:** cubre **16 de los 29 criterios posibles** y son fixtures
   sintéticas; no es una campaña sobre proyectos reales. El benchmark no debe
-  presentarse como validación global del evaluador.
-- **Acción pendiente:** ampliar a más criterios y trampas (imports en docs,
-  tests anidados, helpers, `license_expression`, imports opcionales, proyectos
-  multilingües y locks), y conservar clones reales solo como campaña manual
-  opt-in.
+  presentarse como validación global del evaluador. Los 13 N/A restantes
+  requieren LLM declarado, red, historial git o un proyecto real; no se
+  inventan fixtures que simulen esas condiciones.
+- **Acción pendiente:** conservar clones reales solo como campaña manual
+  opt-in y añadir trampas cuando aparezca un falso positivo reproducible.
 - **Criterio de aceptación:** [x] TP/FP/FN por criterio; [x] JSON reproducible;
   [x] 0 FP en los casos etiquetados; [ ] cobertura completa de criterios;
   [ ] trampas reales adicionales.
@@ -376,7 +379,7 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
 | 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 2959 aserciones (los 4 timeouts ya están en 0) | Comando reproducible; 0 mutantes sin categoría; 2959 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
-| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | Ampliar los 33 casos/14 criterios actuales a más criterios | Precisión y recall por criterio; 0 FP en trampas; cobertura completa declarada | Medio |
+| 2 | **R4** | P2 | Benchmark TP/FP/FN del evaluador (parcial) | 37 casos/16 criterios; los 13 N/A exigen LLM/red/git | Precisión y recall por criterio; 0 FP en trampas; cobertura declarada | Medio |
 
 **Orden:** R3-C es la deuda P1; R4 sigue después. R5-A, R6-C, R13-B/C y
 R14-B/C están implementadas; R14-C es un piloto real n=20, no una calibración
@@ -401,7 +404,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 |---|---|---|---|
 | R3 (2026-10-25) | `evaluar_proyecto`/`preflight`/`mutmut` | `scripts/mutacion.py`; preflight 696/1015, 319 brechas; evaluador 3034/5939, 2901 brechas + 4 timeouts; triaje 3224/3224 | 3 tests del arnés + 3 de helpers + 6 de manifiestos; triaje de inventario completo |
 | R3 (2026-10-26) | `preflight`, `mutacion`/`triaje_mutantes`, `evaluar_proyecto` y `code_design_improvement_tools` | preflight 956/1016, 60 brechas; evaluador 3040/5939, 2899 brechas, 0 timeouts; autoevaluación offline 1.000 (25/29, 86,2% cobertura) sin hallazgos; el análisis estático no reportó defectos → se reforzaron aserciones, no se refactorizó; el triaje dirigió los clusters y detectó `_es_main` | 31 tests nuevos en la suite (preflight, evaluador y salvaguardas), 2 campañas re-medidas, triaje 2959/2959, 0 timeouts; suite 933/933 |
-| R4 | `evaluar_proyecto` y `tests/benchmarks` | 33 casos (5 trampas), 14 criterios, 14 TP/0 FP/0 FN, 1,00/1,00 | `test_evaluador_precision` |
+| R4 | `evaluar_proyecto` y `tests/benchmarks` | 37 casos (5 trampas), 16 criterios, 16 TP/0 FP/0 FN, 1,00/1,00; c4 y h4 añadidos | `test_evaluador_precision` |
 | R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 902/902 (cierre); 933/933 actual |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
@@ -434,7 +437,7 @@ n=20). **Pendiente de ejecución:**
 1. **R3-C:** preflight 60 brechas (956/1016; 94,09%) y evaluador 2899 brechas
    (3040/5939; 51,19%), con **0 timeouts** y triaje 2959/2959. Queda reforzar
    2959 aserciones; no cerrar hasta 0 brechas.
-2. **R4:** ampliar de 33 casos/14 criterios a los 29 criterios.
+2. **R4:** 37 casos/16 criterios; los 13 N/A restantes requieren LLM, red o historial git. No se simulan.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
