@@ -2601,8 +2601,9 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   sus claves como dependencias). Preflight queda en **1015 mutantes, 645
   muertos, 370 supervivientes, 0 sin tests**; el evaluador se midió después:
   **5939 mutantes, 3034 muertos, 2901 supervivientes, 0 sin tests, 4 timeouts**
-  (tasa bruta 51,09%). Cobertura 94% y suite 891/891. Ninguno de los dos tiene
-  triaje cerrado; los 4 timeouts siguen sin clasificar.
+  (tasa bruta 51,09%). Cobertura 94% y suite 893/893. Triaje de inventario
+  3275/3275: 3271 brechas de aserción, 0 equivalentes, 4 timeouts no
+  equivalentes; ver Hallazgo 115.
 - **Lección**: una descomposición por conjunciones mejora el caso compuesto
   medido, pero puede partir mal una frase; el modo por defecto no se toca. En
   mutación, atacar los clusters con tests directos reduce el trabajo, pero no
@@ -2628,9 +2629,9 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   no la calidad probabilística del modelo. Declarar el tamaño y la dificultad
   de la muestra es parte del resultado.
 
-## 2026-10-25 (ronda 32) — Mutación del evaluador: 51,09%, sin triaje
+## 2026-10-25 (ronda 32) — Mutación del evaluador: 51,09%
 
-### Hallazgo 114: medir no es cerrar; 2901 supervivientes y 4 timeouts siguen abiertos
+### Hallazgo 114: medir no es cerrar; 2901 brechas y 4 timeouts siguen abiertos
 
 - **Medición**: campaña completa del evaluador con `scripts/mutacion.py
   --objetivo evaluar`: **5939 mutantes, 3034 muertos, 2901 supervivientes,
@@ -2643,3 +2644,22 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: una tasa baja no autoriza a cambiar tests o umbrales para
   maquillarla; primero se triaja y se distingue mutante equivalente de test
   ausente. La cifra es evidencia para dirigir tests, no una nota.
+
+## 2026-10-25 (ronda 33) — Triaje de inventario R3
+
+### Hallazgo 115: 3271 brechas de aserción no son 3271 equivalentes
+
+- **Acción**: `scripts/triaje_mutantes.py` cruzó cada superviviente con la
+  función que lo contiene y con la cobertura de las pruebas de la campaña.
+  Resultado: **3275/3275** casos con categoría; **3271 brechas de aserción**
+  (370 preflight + 2901 evaluador), **0 sin cobertura**, **0 equivalentes
+  demostrados** y **4 timeouts no equivalentes**.
+- **Interpretación**: las funciones sí se ejecutan, pero los tests no detectan
+  las mutaciones. No es un problema de «faltan tests de humo»; es de
+  aserciones exactas. Declarar equivalentes sin prueba habría maquillado la
+  tasa, y no se hizo.
+- **Timeouts**: `cwd=None`, eliminación de `cwd`, `or`→`and` en `main` e
+  inversión de la comprobación de clave. Ninguno es equivalente; los cuatro
+  necesitan mocks y límites, no ejecuciones reales.
+- **Evidencia**: `docs/TRIAGE-R3.md`; suite 893/893; JSON completos en
+  `build/` (ignorados por git).
