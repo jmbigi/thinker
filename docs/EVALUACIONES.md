@@ -516,7 +516,7 @@ Los contratos de dimensiones, vigencia/parser, eficiencia/funcionalidades y
 ramas/licencias, parser/runner y parsers/linter mataron 134, 144, 142, 176,
 77 y 112 mutantes más, respectivamente.
 Triaje de inventario **1681/1681**: **1632 brechas** (0 preflight + 1632
-evaluador), **49 equivalencias demostradas** y **0 timeouts**. Suite **994/994** en Linux
+evaluador), **49 equivalencias demostradas** y **0 timeouts**. Suite **995/995** en Linux
 (Python 3.11.9), ruff 0, preflight 0, docs-check OK;
 autoevaluación **1.000** (sin red: 25/29, 2 no verificados). R3 sigue
 **parcial**: no se cierra con 1632 brechas pendientes.

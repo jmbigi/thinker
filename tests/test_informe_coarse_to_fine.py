@@ -156,11 +156,31 @@ class TestInformeCoarseToFine(unittest.TestCase):
             [], {"secciones": []}, {"secciones": ["x"]},
             {"secciones": [{}]}, {"secciones": [{"titulo": "  "}]},
             {"secciones": [{"titulo": "T", "claims": "c1"}]},
+            {"secciones": [{"titulo": "T", "claims": [1]}]},
+            {"secciones": [{"titulo": "T\nX"}]},
+            {"secciones": [{"titulo": "T"}, {"titulo": " t "}]},
         ]
         for datos in invalidos:
             with self.subTest(datos=datos):
                 with self.assertRaises(ValueError):
                     ReportGenerator._normalizar_secciones(datos)
+
+    def test_claims_del_esquema_inexistentes_se_registran(self):
+        llm = StubLLM(responder_por_etapas(
+            '{"secciones": [{"titulo": "Uno", "claims": ["fantasma"]}]}',
+            {"Uno": "Contenido [1]"}))
+        ctx = contexto()
+
+        informe = ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        aviso = [d for d in ctx.decision_log
+                 if d["decision"] == "claims_no_encontrados"][0]
+        self.assertEqual(aviso["step"], "report_section")
+        self.assertIn("fantasma", aviso["rationale"])
+        # No se oculta evidencia: al no encontrar el claim, se usan todos.
+        self.assertIn("- [supported] c1", llm.prompts[1])
+        self.assertIn("- [not_addressed] c2", llm.prompts[1])
+        self.assertIn("## Uno", informe)
 
     def test_pasada_unica_registra_cita_fuera_de_rango(self):
         llm = StubLLM(lambda p: "Dato [1] y [9]")

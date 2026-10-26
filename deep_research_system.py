@@ -735,6 +735,12 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
         generadas = 0
         for seccion in secciones:
             titulo = seccion["titulo"]
+            no_encontrados = [c for c in seccion["claims"]
+                              if c.lower() not in claims_txt.lower()]
+            if no_encontrados:
+                context.add_decision(
+                    "report_section", "claims_no_encontrados",
+                    f"Section: {titulo} ({', '.join(no_encontrados)})")
             fallo = ""
             try:
                 contenido = self.llm_provider.generate(self._prompt_seccion(
@@ -797,13 +803,21 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
             titulo = seccion.get("titulo")
             if not isinstance(titulo, str) or not titulo.strip():
                 raise ValueError("cada sección necesita un 'titulo' no vacío")
+            titulo = titulo.strip()
+            if "\n" in titulo or "\r" in titulo:
+                raise ValueError("el 'titulo' no puede contener saltos de línea")
+            if any(titulo.casefold() == previa["titulo"].casefold()
+                   for previa in normalizadas):
+                raise ValueError(f"título de sección duplicado: {titulo!r}")
             claims = seccion.get("claims") or []
             if not isinstance(claims, list):
                 raise ValueError("'claims' debe ser una lista")
+            if not all(isinstance(c, str) for c in claims):
+                raise ValueError("'claims' debe contener solo textos")
             normalizadas.append({
-                "titulo": titulo.strip(),
+                "titulo": titulo,
                 "subpregunta": str(seccion.get("subpregunta") or "").strip(),
-                "claims": [str(c).strip() for c in claims if str(c).strip()],
+                "claims": [c.strip() for c in claims if c.strip()],
             })
         return normalizadas, len(secciones)
 
