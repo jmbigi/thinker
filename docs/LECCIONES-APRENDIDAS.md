@@ -2708,7 +2708,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se modifica: el perfil falla con `EROFS` y los plugins del documento externo
   devuelven 404 en npm; instalar código no verificado habría sido una falsa
   protección (P0.18).
-- **Evidencia**: suite **953/953**; ruff 0; preflight 0; docs-check OK;
+- **Evidencia**: suite **959/959**; ruff 0; preflight 0; docs-check OK;
   `docs/TRIAGE-R3.md` actualizado; JSON en `build/` (ignorados).
 - **Lección**: una aserción exacta del contrato encontró un defecto que 319
   mutantes no habían revelado. La mutación mide la fuerza de los tests, pero
@@ -2731,7 +2731,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   LLM declarado, red o historial git. No se simulan con fixtures porque el
   benchmark mide el detector, no una maqueta del mundo real.
 - **Evidencia**: `tests/test_evaluador_precision.py` actualizado (16 medidos,
-  13 no medidos, 29 base, 37 casos, 16 TP); suite **953/953**; el benchmark
+  13 no medidos, 29 base, 37 casos, 16 TP); suite **959/959**; el benchmark
   `--json` da 1,00/1,00.
 - **Lección**: ampliar cobertura es legítimo cuando el criterio es medible
   offline; declarar N/A con motivo es mejor que inventar una fixture que
@@ -2771,7 +2771,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   **26 TP, 0 FP, 0 FN** en 57 casos.
 - **Evidencia**: `tests/benchmarks/evaluador_precision.py`,
   `tests/test_evaluador_precision.py` (26 medidos, 3 N/A, 57 casos, 26 TP);
-  suite **953/953**.
+  suite **959/959**.
 - **Lección**: un benchmark sintético bien construido no solo mide: puede
   encontrar defectos que los tests de integración no ven. La fixture debe
   declararse sintética y no llamar a proveedores reales.
@@ -2791,7 +2791,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Límite**: la tasa **no cambia** (967/1016, 95,18%); los equivalentes no se
   cuentan como muertos. Solo se declara equivalencia con una razón completa.
 - **Evidencia**: `docs/TRIAGE-EQUIVALENCIAS.md`; preflight 1016/967/49, 0
-  timeouts; suite **953/953**; tres tests nuevos (locale C, byte nulo e import
+  timeouts; suite **959/959**; tres tests nuevos (locale C, byte nulo e import
   duplicado) mataron 8 mutantes y bajaron de 57 a 49.
 - **Lección**: reducir el ruido de una campaña de mutación no es subir la
   nota. Un equivalente demostrado no es un mutante muerto; no quedan brechas
@@ -2805,14 +2805,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mínima) y `detectar_comando_tests` (make, scripts, README/AGENTS/RST,
   package.json, gradle, maven, go, cargo, tox, nox, convención y negativos),
   más `TestSinRedNoTocaPyPI` para `con_red=False` y `--sin-red`.
-- **Resultado**: evaluador **5985 mutantes, 3822 muertos, 2163 supervivientes,
-  0 timeouts**, tasa **63,86%** (antes 51,19%). El contrato de informe/runner
+- **Resultado**: evaluador **5985 mutantes, 3964 muertos, 2021 supervivientes,
+  0 timeouts**, tasa **66,23%** (antes 51,19%). El contrato de informe/runner
   mató 504; el de `evaluar_herramientas`/`evaluar_calidad` mató 134 y el de vigencia/parser 144 más; se
   eliminaron los 2 timeouts que quedaban.
-- **Triaje**: **2212/2212** con categoría: 2163 brechas (0 preflight + 2163
+- **Triaje**: **2070/2070** con categoría: 2021 brechas (0 preflight + 2021
   evaluador), 49 equivalencias preflight y 0 timeouts.
 - **Evidencia**: `docs/TRIAGE-R3.md`, `docs/TRIAGE-EQUIVALENCIAS.md`, suite
-  **953/953**, ruff 0, preflight 0, docs-check OK.
+  **959/959**, ruff 0, preflight 0, docs-check OK.
 - **Lección**: el contrato exacto de una función de salida es una fuente de
   aserciones de alto rendimiento; y un test que no aísla la red convierte un
   mutante en timeout, no en fallo. Aislar la red es parte de medir.
@@ -2822,13 +2822,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Acción**: añadir contrato exacto de `_dependencias_pyproject` (PEP 621,
   optional-dependencies, PEP 735 y Poetry/PDM) y de `evaluar_vigencia`
   (sin deps, fijadas+lock, sin fijar ni lock), con `--sin-red`.
-- **Resultado**: evaluador **3822/5985** (63,86%), **2163** supervivientes, 0
+- **Resultado**: evaluador **3964/5985** (66,23%), **2021** supervivientes, 0
   timeouts; `_dependencias_pyproject` 120→48 y `evaluar_vigencia` 167→106.
-- **Evidencia**: campaña `build/mut-eval-vigencia`; triaje 2212/2212; suite
-  **953/953**; 0 timeouts.
+- **Evidencia**: campaña `build/mut-eval-vigencia`; triaje 2070/2070; suite
+  **959/959**; 0 timeouts.
 - **Lección**: un parser con ramas de formato (PEP 621/735/Poetry/PDM) se
   protege mejor con una lista exacta de tuplas que con varios tests de
   presencia; el contrato de la dimensión cubre los textos de N/A y notas.
+
+
+### Hallazgo 124: 142 mutantes más con ramas N/A y bibliotecas
+
+- **Acción**: contrato de `evaluar_eficiencia` sin LLM, de
+  `evaluar_funcionalidades` (sin código, biblioteca con deuda, CLI con un test)
+  y ramas de herramientas (CI/CHANGELOG) y calidad (sin suite ni linter).
+- **Resultado**: evaluador **3964/5985** (66,23%), **2021** supervivientes,
+  0 timeouts; funcionalidades 103→43, calidad 147→112, herramientas 118→96,
+  eficiencia 109→93.
+- **Evidencia**: campaña `build/mut-eval-eficiencia`; triaje 2070/2070; suite
+  **959/959**.
+- **Lección**: las ramas N/A y los proyectos tipo biblioteca concentran
+  mutaciones de textos y claves; un `a_dict()` exacto las cubre sin red.
 
 
 ## 2026-10-26 (ronda 40) — Cierre por alcance, no por maquillaje
@@ -2839,11 +2853,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   N/A** declaradas (f1, v4, h5). El cierre es **por alcance**: los 3 criterios
   restantes exigen red/PyPI o un punto de entrada real y no se simulan. No se
   presenta como cobertura total ni como validación global.
-- **R3**: **no se cierra**. Quedan **2163 brechas** (0 preflight + 2163
+- **R3**: **no se cierra**. Quedan **2021 brechas** (0 preflight + 2021
   evaluador) y las 49 equivalencias **no cuentan como muertos**; la tasa
-  (95,18% preflight, 63,86% evaluador) no cambia por el triaje.
+  (95,18% preflight, 66,23% evaluador) no cambia por el triaje.
 - **Evidencia**: `docs/RECOMENDACIONES-MEJORAS.md` §5/§7, `docs/TRIAGE-R3.md`,
-  suite **953/953**, `make ci` OK, autoevaluación 1.000.
+  suite **959/959**, `make ci` OK, autoevaluación 1.000.
 - **Lección**: cerrar una recomendación por alcance es legítimo si se declara
   qué queda fuera y por qué; no lo es convertir N/A en aciertos ni llamar
-  «cerrado» a R3 con 2163 aserciones pendientes.
+  «cerrado» a R3 con 2021 aserciones pendientes.

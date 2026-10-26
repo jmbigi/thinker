@@ -2309,5 +2309,170 @@ class TestVigenciaContrato(unittest.TestCase):
                       "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
 
 
+class TestEficienciaFuncionalidadesContrato(unittest.TestCase):
+    """Contrato exacto de las dimensiones eficiencia y funcionalidades."""
+
+    def test_eficiencia_sin_llm(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_eficiencia(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": None, "evaluado": False, "criterios": {},
+            "no_aplica": [
+                {"criterio": "e1_import_perezoso_de_pesadas",
+                 "motivo": "el proyecto no declara un LLM en dependencias "
+                           "runtime"},
+                {"criterio": "e2_carga_unica_de_modelos",
+                 "motivo": "el proyecto no declara un LLM en dependencias "
+                           "runtime"},
+                {"criterio": "e3_mediciones_documentadas",
+                 "motivo": "el proyecto no declara un LLM en dependencias "
+                           "runtime"}],
+            "hallazgos": [],
+            "notas": ["dimensión N/A: señales específicas de sistemas LLM"]})
+
+    def test_funcionalidades_sin_codigo(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": None, "evaluado": False, "criterios": {},
+            "no_aplica": [
+                {"criterio": "f1_puntos_de_entrada",
+                 "motivo": "sin archivos de código"},
+                {"criterio": "f2_readme_vs_realidad",
+                 "motivo": "sin código Python: no hay referencias .py que "
+                           "contrastar"},
+                {"criterio": "f3_sin_deuda_declarada",
+                 "motivo": "sin código Python analizable"},
+                {"criterio": "f4_tests_de_varios_modulos",
+                 "motivo": "sin código"}],
+            "hallazgos": [], "notas": []})
+
+    def test_funcionalidades_biblioteca_con_deuda(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/mod.py": "def f():\n    # TODO: x\n    return 1\n",
+            "tests/test_a.py": "def test_a():\n    assert 1\n",
+            "tests/test_b.py": "def test_b():\n    assert 2\n",
+            "README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.667, "evaluado": True,
+            "criterios": {"f2_readme_vs_realidad": True,
+                          "f3_sin_deuda_declarada": False,
+                          "f4_tests_de_varios_modulos": True},
+            "no_aplica": [{"criterio": "f1_puntos_de_entrada",
+                           "motivo": "sin CLI/entrypoint declarado "
+                                     "(proyecto tipo biblioteca)"}],
+            "hallazgos": [{
+                "severidad": "baja",
+                "descripcion": "1 marcas TODO/FIXME/XXX en código de producción",
+                "evidencia": "pkg/mod.py:2", "tipo_evidencia": "verified-real",
+                "criterio": "f3_sin_deuda_declarada"}],
+            "notas": ["2 archivos de test (.py)"]})
+
+    def test_funcionalidades_cli_un_test(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               '[project.scripts]\nx="x:main"\n'),
+            "x.py": "def main():\n    return 0\n",
+            "tests/test_x.py": "def test_x():\n    assert 1\n",
+            "README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.75, "evaluado": True,
+            "criterios": {"f1_puntos_de_entrada": True,
+                          "f2_readme_vs_realidad": True,
+                          "f3_sin_deuda_declarada": True,
+                          "f4_tests_de_varios_modulos": False},
+            "no_aplica": [],
+            "hallazgos": [{
+                "severidad": "baja",
+                "descripcion": "Solo 1 archivo(s) de test: la cobertura por "
+                               "módulos no se puede distribuir",
+                "evidencia": "código del proyecto",
+                "tipo_evidencia": "verified-real",
+                "criterio": "f4_tests_de_varios_modulos"}],
+            "notas": ["1 puntos de entrada: pyproject.toml ([project.scripts])",
+                      "1 archivos de test (.py)"]})
+
+    def test_herramientas_ci_y_changelog(self):
+        raiz = crear_proyecto(self, {
+            "LICENSE": "MIT\n", "Makefile": "test:\n\tpython -m unittest\n",
+            "CHANGELOG.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_herramientas(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.667, "evaluado": True,
+            "criterios": {"h1_manifiesto": False, "h2_licencia": True,
+                          "h7_decisiones_documentadas": True},
+            "no_aplica": [
+                {"criterio": "h3_verificacion_automatizada",
+                 "motivo": "sin código"},
+                {"criterio": "h4_runner_de_tests_declarado",
+                 "motivo": "sin tests detectados"},
+                {"criterio": "h5_licencias_libres",
+                 "motivo": "sin dependencias Python runtime"},
+                {"criterio": "h6_imports_declarados",
+                 "motivo": "sin código Python de producción"}],
+            "hallazgos": [{
+                "severidad": "alta",
+                "descripcion": "Sin manifiesto de dependencias",
+                "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                "criterio": "h1_manifiesto"}],
+            "notas": ["registro de decisiones: CHANGELOG.md"]})
+
+    def test_calidad_sin_suite_ni_linter(self):
+        raiz = crear_proyecto(self, {"demo.py": "def f():\n    return 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_calidad(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.25, "evaluado": True,
+            "criterios": {"c1_suite_de_tests": False,
+                          "c2_linter_configurado": False,
+                          "c3_sin_silencios": True,
+                          "c4_tests_sobre_codigo_30pct": False},
+            "no_aplica": [{"criterio": "c5_tests_con_aserciones",
+                           "motivo": "sin archivos de test Python analizables"}],
+            "hallazgos": [
+                {"severidad": "alta",
+                 "descripcion": "Sin suite de tests: los cambios no tienen "
+                                "red de seguridad",
+                 "evidencia": "código del proyecto",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "c1_suite_de_tests"},
+                {"severidad": "media",
+                 "descripcion": "Sin linter configurado (ruff/flake8/pylint, "
+                                "eslint, checkstyle/spotless)",
+                 "evidencia": "manifiestos/raíz",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "c2_linter_configurado"},
+                {"severidad": "media",
+                 "descripcion": "Proporción test/código 0.00 < 0.30",
+                 "evidencia": "código y tests",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "c4_tests_sobre_codigo_30pct"}],
+            "notas": ["0 líneas de test / 2 de código",
+                      "suite NO ejecutada (sin --ejecutar-tests): no verificado",
+                      "c3 sobre 1 archivos de producción; tests/scripts excluidos",
+                      "proporción test/código: 0.00"]})
+
+
 if __name__ == "__main__":
     unittest.main()
