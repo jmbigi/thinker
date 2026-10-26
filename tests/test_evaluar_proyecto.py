@@ -2683,5 +2683,88 @@ class TestMasRamasDelEvaluador(unittest.TestCase):
                                     "procedencia": "real"}])
 
 
+class TestParserEjecutarEInteligencia(unittest.TestCase):
+    """Contrato de requisitos, runner de tests y dimensión inteligencia."""
+
+    def test_parsear_requisitos_completo(self):
+        raiz = crear_proyecto(self, {"requisitos.md": (
+            "## R1: Login\n- Enunciado: El usuario inicia sesión.\n"
+            "  Con correo y clave.\n- Criterio: La sesión dura 1 hora.\n"
+            "- Verificación: test\n- Evidencia: tests/test_login.py\n"
+            "- Tags: auth, login\n- Notas: revisar con seguridad\n"
+            "- Campo raro: x\n\n"
+            "## R2: Logout\n- Enunciado: El usuario cierra sesión.\n"
+            "- Criterio de aceptación: La sesión se invalida.\n"
+            "- Verificación: manual\n")})
+
+        requisitos = parsear_requisitos(raiz / "requisitos.md")
+
+        self.assertEqual([vars(r) for r in requisitos], [
+            {"id": "R1", "titulo": "Login",
+             "enunciado": "El usuario inicia sesión. Con correo y clave.",
+             "criterio": "La sesión dura 1 hora.",
+             "origen": "requisitos.md:1", "verificacion": "test",
+             "evidencia": "tests/test_login.py",
+             "tags": ["auth", "login"],
+             "avisos": ["línea 8: revisar con seguridad",
+                        "línea 9: campo no reconocido: Campo raro"]},
+            {"id": "R2", "titulo": "Logout",
+             "enunciado": "El usuario cierra sesión.",
+             "criterio": "La sesión se invalida.",
+             "origen": "requisitos.md:11", "verificacion": "manual",
+             "evidencia": "", "tags": [], "avisos": []}])
+
+    def test_inteligencia_sin_llm(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_inteligencia(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": None, "evaluado": False, "criterios": {},
+            "no_aplica": [
+                {"criterio": f"i{n}_{nombre}",
+                 "motivo": "el proyecto no declara un LLM en dependencias "
+                           "runtime"}
+                for n, nombre in enumerate((
+                    "cachea_trabajo_repetido", "timeouts_explicitos",
+                    "reintentos_con_limite", "valida_respuestas",
+                    "declara_lo_simulado", "metricas_propias"), 1)],
+            "hallazgos": [],
+            "notas": ["dimensión N/A: señales específicas de sistemas LLM"]})
+
+    def test_ejecutar_tests_sin_runner(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+
+        with patch("evaluar_proyecto.detectar_comando_tests",
+                   return_value=None):
+            self.assertEqual(
+                evaluar_proyecto.ejecutar_tests(raiz),
+                {"ejecutado": False,
+                 "motivo": "no se encontró un comando de tests declarado"})
+
+    def test_ejecutar_tests_con_runner(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        proceso = SimpleNamespace(
+            returncode=0, stdout="Ran 5 tests in 0.1s\n\nOK\n", stderr="")
+
+        with patch("evaluar_proyecto.detectar_comando_tests",
+                   return_value={"comando": ["python", "-m", "unittest"],
+                                 "origen": "convención"}), \
+                patch("evaluar_proyecto.subprocess.run",
+                      return_value=proceso) as ejecutar, \
+                patch("evaluar_proyecto.time.monotonic",
+                      side_effect=[100.0, 101.2]):
+            resultado = evaluar_proyecto.ejecutar_tests(raiz)
+
+        self.assertEqual(resultado, {
+            "ejecutado": True, "comando": "python -m unittest",
+            "origen": "convención", "codigo": 0, "ok": True, "tests": 5,
+            "resumen": "OK", "duracion_s": 1.2})
+        self.assertEqual(ejecutar.call_args.args[0],
+                         ["python", "-m", "unittest"])
+        self.assertFalse(ejecutar.call_args.kwargs["shell"])
+
+
 if __name__ == "__main__":
     unittest.main()
