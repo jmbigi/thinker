@@ -1464,7 +1464,7 @@ def _es_lock_python(archivo: Path) -> bool:
 
 
 def evaluar_vigencia(ruta: Path, perfil: Perfil,
-                     con_red: bool = True) -> Dimension:
+                     con_red: bool) -> Dimension:
     dim = Dimension("vigencia")
     deps_python = perfil.deps_runtime_python
     deps_npm = [d for d in perfil.deps if d.get("ecosistema") == "npm"]
