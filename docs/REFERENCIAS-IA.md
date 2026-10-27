@@ -204,8 +204,8 @@ comprobaciones (API de arXiv/GitHub, Crossref y PyPI).
   secciones sin citas, rechaza títulos duplicados o con saltos de línea y
   claims no textuales, y registra los claims del esquema que no existen en
   la evidencia. Valida también las citas de la pasada única de fallback, no
-  solo las de las secciones, y aísla el fallo de una sección sin tumbar el
-  informe. No
+  solo las de las secciones, elimina el título que el modelo repite al inicio
+  del cuerpo y aísla el fallo de una sección sin tumbar el informe. No
   es NCM (no usa VQ-VAE ni decodificación paralela), añade 1+N llamadas y no se
   atribuye mejora de calidad sin medirla.
 - **No adoptado:** el modelo, sus checkpoints y su tokenizer exigirían PyTorch,

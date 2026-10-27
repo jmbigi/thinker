@@ -748,6 +748,8 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
             except Exception as exc:  # aislamiento por sección; se registra
                 contenido = ""
                 fallo = f"{type(exc).__name__}: {exc}"
+            contenido = self._sin_encabezado_repetido(
+                context, contenido, titulo)
             if not contenido:
                 contenido = "(No content generated for this section.)"
                 decision = "error" if fallo else "empty"
@@ -768,6 +770,30 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
                 "Ninguna sección generó contenido; se usa la pasada única")
             return self._pasada_unica_validada(context, prompt_unica)
         return "\n\n".join(partes)
+
+    @staticmethod
+    def _sin_encabezado_repetido(context: ResearchContext, contenido: str,
+                                 titulo: str) -> str:
+        """Quita el título que el modelo repite al inicio del cuerpo.
+
+        El prompt pide no repetirlo, pero los modelos lo hacen. Se elimina solo
+        si coincide exactamente con el título de la sección; el resto de
+        encabezados se conserva. La corrección queda en `decision_log`.
+        """
+        lineas = contenido.splitlines()
+        for indice, linea in enumerate(lineas):
+            if not linea.strip():
+                continue
+            encabezado = re.match(r"^#{1,6}\s+(.+?)\s*$", linea)
+            if encabezado and encabezado.group(1).strip().casefold() == \
+                    titulo.casefold():
+                del lineas[indice]
+                context.add_decision(
+                    "report_section", "titulo_repetido",
+                    f"Section: {titulo}")
+                return "\n".join(lineas).lstrip("\n")
+            break
+        return contenido
 
     def _pasada_unica_validada(self, context: ResearchContext,
                                prompt: str) -> str:

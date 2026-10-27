@@ -269,6 +269,21 @@ class TestInformeCoarseToFine(unittest.TestCase):
         self.assertIn("RuntimeError: fallo simulado", error["rationale"])
         self.assertEqual(ctx.decision_log[-1]["step"], "report_generation")
 
+    def test_encabezado_repetido_por_el_modelo_se_elimina(self):
+        llm = StubLLM(responder_por_etapas(
+            '{"secciones": [{"titulo": "Uno"}]}',
+            {"Uno": "## Uno\n\nContenido [1]"}))
+        ctx = contexto()
+
+        informe = ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        self.assertEqual(informe.count("## Uno"), 1)
+        self.assertIn("## Uno\n\nContenido [1]", informe)
+        aviso = [d for d in ctx.decision_log
+                 if d["decision"] == "titulo_repetido"][0]
+        self.assertEqual(aviso["step"], "report_section")
+        self.assertEqual(aviso["rationale"], "Section: Uno")
+
     def test_fallback_por_esquema_invalido_valida_citas(self):
         def responder(prompt):
             if "Design the outline" in prompt:
