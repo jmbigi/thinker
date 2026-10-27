@@ -259,8 +259,8 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes, 0 sin tests**, 0 timeouts/sospechosos; 49 equivalencias
   demostradas y **0 brechas reales** (`docs/TRIAGE-EQUIVALENCIAS.md`)
   (319 antes; −270) y tasa bruta **95,18%**. **Evaluador 2026-10-26 (batch
-  r3c)**: **5984 mutantes, 4593 muertos, 1391 supervivientes, 0 sin tests, 0
-  timeouts**; tasa bruta **76,75%**. Triaje de inventario **1440/1440**: 1391
+  r3c)**: **5984 mutantes, 4665 muertos, 1319 supervivientes, 0 sin tests, 0
+  timeouts**; tasa bruta **77,96%**. Triaje de inventario **1368/1368**: 1319
   brechas (todas del evaluador), 49 equivalencias demostradas y 0 timeouts; detalle en `docs/TRIAGE-R3.md` y
   `docs/TRIAGE-EQUIVALENCIAS.md`. Los tests exactos de `informe_texto` y
   `detectar_comando_tests`, más los de `--sin-red` y `cwd`, mataron 504
@@ -268,12 +268,12 @@ mejora de código (`code_design_improvement_tools.py`).
   más; el de `evaluar_vigencia`/`_dependencias_pyproject` mató 144 y el de
   eficiencia/funcionalidades 142; el de ramas y licencias PyPI, 176; el de
   parser/runner/inteligencia, 77; el de parsers/linter, 112; el de
-  main/síntesis/eficiencia, 115; el de ámbito/verificación/cobertura, 66 más;
-  se eliminaron los 2 timeouts de la campaña anterior. Ningún
+  main/síntesis/eficiencia, 115; el de ámbito/verificación/cobertura, 66; el de digesto/calidad/h5, 72 más; se
+  eliminaron los 2 timeouts de la campaña anterior. Ningún
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1015/1015 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1018/1018 en la suite
   Linux** (2026-10-26; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -291,7 +291,7 @@ mejora de código (`code_design_improvement_tools.py`).
   de manifiestos, exclusiones, imports hermanos y alias (27 en total). El
   refuerzo del 2026-10-26 sumó aserciones exactas de preflight, 2 tests del
   evaluador (`main` sin clave) y 2 de `tests/test_guardrails.py`; la suite
-  quedó en **1015/1015**. El auditor de cambios de
+  quedó en **1018/1018**. El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

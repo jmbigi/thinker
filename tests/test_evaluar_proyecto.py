@@ -3315,5 +3315,77 @@ class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
             "resumen": "FAILED (failures=1)", "duracion_s": 0.0})
 
 
+class TestDigestoCalidadErrorYH5(unittest.TestCase):
+    """Contrato del digesto, errores de suite y h5 no verificable."""
+
+    def test_digesto_minimo_exacto(self):
+        informe = {
+            "ruta": "/p", "archivos_python": 2, "lineas_python": 10,
+            "cobertura": {"criterios_evaluados": 3,
+                          "criterios_no_aplicables": 1, "nivel": "media"},
+            "dimensiones": {"calidad": {
+                "puntuacion": 0.5,
+                "criterios": {"c1": True, "c2": False},
+                "hallazgos": [{"tipo_evidencia": "verified-real",
+                               "severidad": "alta",
+                               "descripcion": "x" * 120,
+                               "evidencia": "a.py:1"}],
+                "notas": ["n1"]}},
+        }
+
+        self.assertEqual(evaluar_proyecto._digesto(informe), "\n".join([
+            "ruta: /p", "python: 2 archivos / 10 líneas",
+            "cobertura: 3 criterios evaluados, 1 N/A (nivel media)",
+            "- calidad: 0.50 | fallos: ['c2']",
+            "    [VERIFIED-REAL] (alta) " + "x" * 110 + " — a.py:1",
+            "    · n1"]))
+
+    def test_calidad_error_ejecutado_y_sin_ejecutar(self):
+        raiz = crear_proyecto(self, {"app.py": "def f():\n    return 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        con_error = evaluar_proyecto.evaluar_calidad(
+            raiz, perfil, ejecutar=True,
+            resultado_tests={"ejecutado": True, "error": "boom",
+                             "detalle": "x", "comando": "cmd"})
+        self.assertEqual(
+            con_error.a_dict()["notas"][1], "suite NO ejecutada: boom: x (cmd)")
+        self.assertEqual(con_error.a_dict()["no_aplica"][0],
+                         {"criterio": "c1b_suite_pasa",
+                          "motivo": "runner no disponible"})
+
+        sin_runner = evaluar_proyecto.evaluar_calidad(
+            raiz, perfil, ejecutar=True,
+            resultado_tests={"ejecutado": False, "motivo": "sin runner",
+                             "comando": "cmd"})
+        self.assertEqual(
+            sin_runner.a_dict()["notas"][1],
+            "suite NO ejecutada: sin runner (cmd)")
+
+    def test_herramientas_h5_no_verificable(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               'dependencies=["requests"]\n'),
+            "LICENSE": "MIT\n", "pkg/__init__.py": "",
+            "pkg/app.py": "def f():\n    return 1\n",
+            "tests/test_a.py": "def test_a():\n    assert 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        with patch("evaluar_proyecto.licencia_pypi",
+                   return_value={"licencia": "desconocida", "libre": None,
+                                 "fuente": "", "error": "OSError: x"}):
+            dimension = evaluar_proyecto.evaluar_herramientas(
+                raiz, perfil, con_red=True)
+
+        datos = dimension.a_dict()
+        self.assertFalse(datos["criterios"]["h5_licencias_libres"])
+        self.assertEqual(datos["hallazgos"][1], {
+            "severidad": "baja",
+            "descripcion": "Licencia no verificable en PyPI: requests "
+                           "(OSError: x)",
+            "evidencia": "PyPI", "tipo_evidencia": "unverified",
+            "criterio": "h5_licencias_libres"})
+
+
 if __name__ == "__main__":
     unittest.main()

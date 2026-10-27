@@ -1,4 +1,4 @@
-# Triaje R3 — 1391 brechas, 49 equivalencias y 0 timeouts
+# Triaje R3 — 1319 brechas, 49 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -29,10 +29,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **1391** | 0 | **0** | **0** |
-| **Total** | **1391** | **49** | **0** | **0** |
+| Evaluador | **1319** | 0 | **0** | **0** |
+| **Total** | **1319** | **49** | **0** | **0** |
 
-Los **1391** casos de brecha son aserciones que faltan: sus funciones se
+Los **1319** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -53,12 +53,12 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 `cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
 `revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
-### Evaluador — 1391
+### Evaluador — 1319
 
 | Función | Casos |
 |---|---:|
-| `evaluar_herramientas` | 91 |
-| `evaluar_calidad` | 76 |
+| `evaluar_herramientas` | 70 |
+| `evaluar_calidad` | 47 |
 | `evaluar_vigencia` | 82 |
 | `_dependencias_pyproject` | 48 |
 | `evaluar_eficiencia` | 27 |
@@ -70,17 +70,17 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 | `_verificar_test` | 16 |
 | `_ambito_requirements` | 33 |
 
-Campaña 2026-10-26 (batch ambito-verificar-cobertura): **5984 mutantes, 4593 muertos,
-1391 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
-**76,75%** (antes 51,19%). El contrato exacto de `informe_texto` y
+Campaña 2026-10-26 (batch digesto-calidad-h5): **5984 mutantes, 4665 muertos,
+1319 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
+**77,96%** (antes 51,19%). El contrato exacto de `informe_texto` y
 `detectar_comando_tests`, los tests de `--sin-red` y el aislamiento de `main`
 mataron 504 mutantes; el contrato de `evaluar_herramientas`/`evaluar_calidad`
 mató 134; el de `evaluar_vigencia`/`_dependencias_pyproject`, 144; el de
 `evaluar_eficiencia`/`evaluar_funcionalidades` y ramas nuevas, 142; el de
 silencios/h5/h6/vigencia con red y licencias PyPI, 176; el de parser de
 requisitos/runner/inteligencia, 77; el de setup.cfg/package.json/agregador/
-linter, 112; el de main/síntesis/eficiencia, 115; el de ámbito/verificación/cobertura,
-66 más. La campaña mantiene 0 timeouts.
+linter, 112; el de main/síntesis/eficiencia, 115; el de ámbito/verificación/cobertura, 66; el de digesto/errores de calidad/h5,
+72 más. La campaña mantiene 0 timeouts.
 
 ## Los 4 timeouts: resueltos y re-medidos
 
@@ -117,12 +117,12 @@ el resumen y la clasificación.
 
 ## Conclusión
 
-- **Triaje de inventario:** completo, 1440/1440 casos con categoría
-  (1391 brechas + 49 equivalencias).
+- **Triaje de inventario:** completo, 1368/1368 casos con categoría
+  (1319 brechas + 49 equivalencias).
 - **Equivalentes demostrados:** 49, todos en preflight y con prueba; no se
   cuentan como muertos.
-- **Tasas:** 967/1016 (preflight) y 4593/5984 (evaluador); no cambian por
+- **Tasas:** 967/1016 (preflight) y 4665/5984 (evaluador); no cambian por
   clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **1391 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **1319 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
