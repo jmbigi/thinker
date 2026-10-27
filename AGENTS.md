@@ -272,7 +272,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **995/995 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **997/997 en la suite
   Linux** (2026-10-26; openai 3.35.1 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -290,7 +290,7 @@ mejora de código (`code_design_improvement_tools.py`).
   de manifiestos, exclusiones, imports hermanos y alias (27 en total). El
   refuerzo del 2026-10-26 sumó aserciones exactas de preflight, 2 tests del
   evaluador (`main` sin clave) y 2 de `tests/test_guardrails.py`; la suite
-  quedó en **995/995**. El auditor de cambios de
+  quedó en **997/997**. El auditor de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

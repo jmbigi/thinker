@@ -269,6 +269,41 @@ class TestInformeCoarseToFine(unittest.TestCase):
         self.assertIn("RuntimeError: fallo simulado", error["rationale"])
         self.assertEqual(ctx.decision_log[-1]["step"], "report_generation")
 
+    def test_fallback_por_esquema_invalido_valida_citas(self):
+        def responder(prompt):
+            if "Design the outline" in prompt:
+                return "esto no es JSON"
+            return "Dato [9]"
+
+        ctx = contexto()
+        informe = ReportGenerator(
+            StubLLM(responder), coarse_to_fine=True).decide(ctx)
+
+        self.assertEqual(informe, "Dato [9]")
+        aviso = [d for d in ctx.decision_log
+                 if d["step"] == "report_validation"][0]
+        self.assertEqual(aviso["decision"], "cita_fuera_de_rango")
+        self.assertIn("Informe completo (fallback)", aviso["rationale"])
+        self.assertIn("[9]", aviso["rationale"])
+
+    def test_fallback_por_secciones_vacias_valida_citas(self):
+        def responder(prompt):
+            if "Design the outline" in prompt:
+                return '{"secciones": [{"titulo": "Uno"}]}'
+            if "Write the section" in prompt:
+                return "   "
+            return "Dato [9]"
+
+        ctx = contexto()
+        informe = ReportGenerator(
+            StubLLM(responder), coarse_to_fine=True).decide(ctx)
+
+        self.assertEqual(informe, "Dato [9]")
+        aviso = [d for d in ctx.decision_log
+                 if d["step"] == "report_validation"][0]
+        self.assertEqual(aviso["decision"], "cita_fuera_de_rango")
+        self.assertIn("Informe completo (fallback)", aviso["rationale"])
+
     def test_todas_las_secciones_vacias_caen_a_pasada_unica(self):
         def responder(prompt):
             if "Design the outline" in prompt:

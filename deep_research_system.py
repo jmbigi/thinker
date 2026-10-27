@@ -724,7 +724,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
                 "report_outline", "fallback_single_pass",
                 f"Esquema inválido ({type(exc).__name__}: {exc}); "
                 "se usa la pasada única")
-            return self.llm_provider.generate(prompt_unica)
+            return self._pasada_unica_validada(context, prompt_unica)
 
         motivo = f"Outline with {len(secciones)} sections"
         if len(secciones) < total:
@@ -766,8 +766,15 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
             context.add_decision(
                 "report_generation", "fallback_single_pass",
                 "Ninguna sección generó contenido; se usa la pasada única")
-            return self.llm_provider.generate(prompt_unica)
+            return self._pasada_unica_validada(context, prompt_unica)
         return "\n\n".join(partes)
+
+    def _pasada_unica_validada(self, context: ResearchContext,
+                               prompt: str) -> str:
+        """Fallback de una sola pasada, con la misma validación de citas."""
+        informe = self.llm_provider.generate(prompt)
+        self._validar_citas(context, informe, "Informe completo (fallback)")
+        return informe
 
     @staticmethod
     def _validar_citas(context: ResearchContext, texto: str,

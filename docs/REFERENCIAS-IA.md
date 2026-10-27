@@ -203,7 +203,9 @@ comprobaciones (API de arXiv/GitHub, Crossref y PyPI).
   citas `[n]` contra las fuentes (marca `cita_fuera_de_rango`), registra
   secciones sin citas, rechaza títulos duplicados o con saltos de línea y
   claims no textuales, y registra los claims del esquema que no existen en
-  la evidencia. Aísla el fallo de una sección sin tumbar el informe. No
+  la evidencia. Valida también las citas de la pasada única de fallback, no
+  solo las de las secciones, y aísla el fallo de una sección sin tumbar el
+  informe. No
   es NCM (no usa VQ-VAE ni decodificación paralela), añade 1+N llamadas y no se
   atribuye mejora de calidad sin medirla.
 - **No adoptado:** el modelo, sus checkpoints y su tokenizer exigirían PyTorch,
