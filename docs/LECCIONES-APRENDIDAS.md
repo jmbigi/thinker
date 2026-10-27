@@ -2708,7 +2708,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se modifica: el perfil falla con `EROFS` y los plugins del documento externo
   devuelven 404 en npm; instalar código no verificado habría sido una falsa
   protección (P0.18).
-- **Evidencia**: suite **1006/1006**; ruff 0; preflight 0; docs-check OK;
+- **Evidencia**: suite **1009/1009**; ruff 0; preflight 0; docs-check OK;
   `docs/TRIAGE-R3.md` actualizado; JSON en `build/` (ignorados).
 - **Lección**: una aserción exacta del contrato encontró un defecto que 319
   mutantes no habían revelado. La mutación mide la fuerza de los tests, pero
@@ -2731,7 +2731,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   LLM declarado, red o historial git. No se simulan con fixtures porque el
   benchmark mide el detector, no una maqueta del mundo real.
 - **Evidencia**: `tests/test_evaluador_precision.py` actualizado (16 medidos,
-  13 no medidos, 29 base, 37 casos, 16 TP); suite **1006/1006**; el benchmark
+  13 no medidos, 29 base, 37 casos, 16 TP); suite **1009/1009**; el benchmark
   `--json` da 1,00/1,00.
 - **Lección**: ampliar cobertura es legítimo cuando el criterio es medible
   offline; declarar N/A con motivo es mejor que inventar una fixture que
@@ -2771,7 +2771,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   **26 TP, 0 FP, 0 FN** en 57 casos.
 - **Evidencia**: `tests/benchmarks/evaluador_precision.py`,
   `tests/test_evaluador_precision.py` (26 medidos, 3 N/A, 57 casos, 26 TP);
-  suite **1006/1006**.
+  suite **1009/1009**.
 - **Lección**: un benchmark sintético bien construido no solo mide: puede
   encontrar defectos que los tests de integración no ven. La fixture debe
   declararse sintética y no llamar a proveedores reales.
@@ -2791,7 +2791,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Límite**: la tasa **no cambia** (967/1016, 95,18%); los equivalentes no se
   cuentan como muertos. Solo se declara equivalencia con una razón completa.
 - **Evidencia**: `docs/TRIAGE-EQUIVALENCIAS.md`; preflight 1016/967/49, 0
-  timeouts; suite **1006/1006**; tres tests nuevos (locale C, byte nulo e import
+  timeouts; suite **1009/1009**; tres tests nuevos (locale C, byte nulo e import
   duplicado) mataron 8 mutantes y bajaron de 57 a 49.
 - **Lección**: reducir el ruido de una campaña de mutación no es subir la
   nota. Un equivalente demostrado no es un mutante muerto; no quedan brechas
@@ -2805,14 +2805,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mínima) y `detectar_comando_tests` (make, scripts, README/AGENTS/RST,
   package.json, gradle, maven, go, cargo, tox, nox, convención y negativos),
   más `TestSinRedNoTocaPyPI` para `con_red=False` y `--sin-red`.
-- **Resultado**: evaluador **5984 mutantes, 4467 muertos, 1517 supervivientes,
-  0 timeouts**, tasa **74,65%** (antes 51,19%). El contrato de informe/runner
+- **Resultado**: evaluador **5984 mutantes, 4533 muertos, 1451 supervivientes,
+  0 timeouts**, tasa **75,75%** (antes 51,19%). El contrato de informe/runner
   mató 504; el de `evaluar_herramientas`/`evaluar_calidad` mató 134 y el de vigencia/parser 144 más; se
   eliminaron los 2 timeouts que quedaban.
-- **Triaje**: **1566/1566** con categoría: 1517 brechas (0 preflight + 1517
+- **Triaje**: **1500/1500** con categoría: 1451 brechas (0 preflight + 1451
   evaluador), 49 equivalencias preflight y 0 timeouts.
 - **Evidencia**: `docs/TRIAGE-R3.md`, `docs/TRIAGE-EQUIVALENCIAS.md`, suite
-  **1006/1006**, ruff 0, preflight 0, docs-check OK.
+  **1009/1009**, ruff 0, preflight 0, docs-check OK.
 - **Lección**: el contrato exacto de una función de salida es una fuente de
   aserciones de alto rendimiento; y un test que no aísla la red convierte un
   mutante en timeout, no en fallo. Aislar la red es parte de medir.
@@ -2822,10 +2822,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Acción**: añadir contrato exacto de `_dependencias_pyproject` (PEP 621,
   optional-dependencies, PEP 735 y Poetry/PDM) y de `evaluar_vigencia`
   (sin deps, fijadas+lock, sin fijar ni lock), con `--sin-red`.
-- **Resultado**: evaluador **4467/5984** (74,65%), **1517** supervivientes, 0
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes, 0
   timeouts; `_dependencias_pyproject` 120→48 y `evaluar_vigencia` 167→106.
-- **Evidencia**: campaña `build/mut-eval-vigencia`; triaje 1566/1566; suite
-  **1006/1006**; 0 timeouts.
+- **Evidencia**: campaña `build/mut-eval-vigencia`; triaje 1500/1500; suite
+  **1009/1009**; 0 timeouts.
 - **Lección**: un parser con ramas de formato (PEP 621/735/Poetry/PDM) se
   protege mejor con una lista exacta de tuplas que con varios tests de
   presencia; el contrato de la dimensión cubre los textos de N/A y notas.
@@ -2836,11 +2836,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Acción**: contrato de `evaluar_eficiencia` sin LLM, de
   `evaluar_funcionalidades` (sin código, biblioteca con deuda, CLI con un test)
   y ramas de herramientas (CI/CHANGELOG) y calidad (sin suite ni linter).
-- **Resultado**: evaluador **4467/5984** (74,65%), **1517** supervivientes,
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes,
   0 timeouts; funcionalidades 103→43, calidad 147→112, herramientas 118→96,
   eficiencia 109→93.
-- **Evidencia**: campaña `build/mut-eval-eficiencia`; triaje 1566/1566; suite
-  **1006/1006**.
+- **Evidencia**: campaña `build/mut-eval-eficiencia`; triaje 1500/1500; suite
+  **1009/1009**.
 - **Lección**: las ramas N/A y los proyectos tipo biblioteca concentran
   mutaciones de textos y claves; un `a_dict()` exacto las cubre sin red.
 
@@ -2850,11 +2850,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Acción**: contrato de silencio aceptado + error de sintaxis, suite ejecutada
   que falla, h5 con licencia no libre, h6 con import sin declarar, vigencia con
   red, y `licencia_pypi`/`licencias_no_runtime` con respuestas PyPI simuladas.
-- **Resultado**: evaluador **4467/5984** (74,65%), **1517** supervivientes, 0
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes, 0
   timeouts; `licencia_pypi` 88→19, `licencias_no_runtime` 79→37, calidad
   112→76, vigencia 106→83.
-- **Evidencia**: campaña `build/mut-eval-ramas`; triaje 1566/1566; suite
-  **1006/1006**.
+- **Evidencia**: campaña `build/mut-eval-ramas`; triaje 1500/1500; suite
+  **1009/1009**.
 - **Lección**: los mocks de `urlopen`/`licencia_pypi` son suficientes para
   matar ramas de red sin salir a Internet; simular la respuesta no simula el
   resultado, que se compara exacto.
@@ -2865,10 +2865,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Acción**: contrato completo de `parsear_requisitos` (campos, avisos,
   multilínea, tags), de `evaluar_inteligencia` sin LLM y de `ejecutar_tests`
   con `subprocess.run` y `time.monotonic` simulados.
-- **Resultado**: evaluador **4467/5984** (74,65%), **1517** supervivientes;
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes;
   `ejecutar_tests` 68→37, `parsear_requisitos` 59→35 e inteligencia 52→30.
-- **Evidencia**: campaña `build/mut-eval-parser-runner`; triaje 1566/1566;
-  suite **1006/1006**; 0 timeouts.
+- **Evidencia**: campaña `build/mut-eval-parser-runner`; triaje 1500/1500;
+  suite **1009/1009**; 0 timeouts.
 - **Lección**: el runner se puede probar sin ejecutar nada real; el mock debe
   fijar también `monotonic` para que la duración sea determinista.
 
@@ -2879,10 +2879,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `_dependencias_package_json` (runtime/dev/peer), `_dependencias` (dedupe y
   prioridad de ámbito) y `_linter_configurado` (pyproject, setup.cfg, .ruff.toml,
   .eslintrc).
-- **Resultado**: evaluador **4467/5984** (74,65%), **1517** supervivientes;
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes;
   setup.cfg 53→2, package.json 46→9, linter 41→28, agregador 66→57.
-- **Evidencia**: campaña `build/mut-eval-parsers-linter`; triaje 1566/1566;
-  suite **1006/1006**; 0 timeouts.
+- **Evidencia**: campaña `build/mut-eval-parsers-linter`; triaje 1500/1500;
+  suite **1009/1009**; 0 timeouts.
 - **Lección**: el agregador se prueba con los mismos fixtures que los parsers;
   así se cubren también el dedupe y la prioridad runtime.
 
@@ -2895,8 +2895,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Solución**: `evaluar_vigencia` exige ahora `con_red` sin valor por defecto.
   El mutante falla con `TypeError` de inmediato; ningún test puede activar la
   red por accidente.
-- **Resultado**: campaña repetida **5984 mutantes, 4467 muertos, 1517
-  supervivientes, 0 timeouts**; 74,65%. Suite **1006/1006**.
+- **Resultado**: campaña repetida **5984 mutantes, 4533 muertos, 1451
+  supervivientes, 0 timeouts**; 75,75%. Suite **1009/1009**.
 - **Lección**: un default que habilita red es una trampa de test y de campaña;
   las funciones que consultan PyPI deben exigir el flag explícito.
 
@@ -2913,7 +2913,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `claims_no_encontrados` y se conservan todos los claims: no se oculta
   evidencia.
 - **Evidencia**: `tests/test_informe_coarse_to_fine.py` (17 tests); suite
-  **1006/1006**; ruff 0; preflight 0; docs-check OK.
+  **1009/1009**; ruff 0; preflight 0; docs-check OK.
 - **Lección**: una caída silenciosa a "todos los claims" es segura para no
   perder evidencia, pero debe quedar registrada para que el esquema no finja
   una precisión que no tiene.
@@ -2926,7 +2926,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `_validar_citas`; un `[9]` con 2 fuentes quedaba sin aviso.
 - **Solución**: `_pasada_unica_validada` genera el fallback y valida sus citas
   con alcance "Informe completo (fallback)" antes de devolverlo.
-- **Evidencia**: 19 tests NCM; suite **1006/1006**; ruff 0; preflight 0;
+- **Evidencia**: 19 tests NCM; suite **1009/1009**; ruff 0; preflight 0;
   docs-check OK. Los dos fallbacks (esquema inválido y todas las secciones
   vacías) registran `cita_fuera_de_rango`.
 - **Lección**: una ruta de fallback es una ruta de salida normal; si la salida
@@ -2941,7 +2941,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   coincide exactamente con el título de la sección (casefold); deja el resto de
   encabezados y registra `titulo_repetido` en `decision_log`. Si al quitarlo el
   cuerpo queda vacío, sigue el camino `empty` ya probado.
-- **Evidencia**: 20 tests NCM; suite **1006/1006**; ruff 0; preflight 0;
+- **Evidencia**: 20 tests NCM; suite **1009/1009**; ruff 0; preflight 0;
   docs-check OK.
 - **Lección**: una instrucción al modelo no es una garantía de formato; el
   generador debe corregir el caso previsible y dejar traza, no confiar.
@@ -2954,12 +2954,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   (campos, respaldo, modelo, preguntas) y de las ramas de `main` (`--sintesis-llm`
   + `--modelo`, `--investigar`, `--ejecutar-tests`, `--requisitos`, texto y
   ausencia de dotenv).
-- **Resultado**: evaluador **4467/5984** (74,65%), **1517** supervivientes, 0
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes, 0
   timeouts; eficiencia 93→27, síntesis 65→29, main 78→65.
 - **Evidencia**: campaña `build/mut-eval-main-sintesis-eficiencia`; triaje
-  1566/1566; suite **1006/1006**.
+  1500/1500; suite **1009/1009**.
 - **Lección**: `main` no se cubre solo con el caso feliz; las ramas opt-in
   (LLM, requisitos, ejecutar tests) concentran la deuda restante.
+
+
+### Hallazgo 133: 66 mutantes con ámbito, _verificar_test y cobertura
+
+- **Acción**: contrato de `_ambito_requirements` por ruta y nombre; las 10
+  ramas de `_verificar_test` (sin evidencia, fuera, no archivo, sin test,
+  no Python, test inexistente, sin ejecutar, runner ausente, suite roja y
+  verde); y la cobertura exacta de un proyecto sin código.
+- **Resultado**: evaluador **4533/5984** (75,75%), **1451** supervivientes;
+  `_verificar_test` 49→16, `_ambito_requirements` 39→33, `evaluar` 102→75.
+- **Evidencia**: campaña `build/mut-eval-ambito-verificar-cobertura`; triaje
+  1500/1500; suite **1009/1009**; 0 timeouts.
+- **Lección**: las ramas de verificación se prueban mejor con una tabla de
+  tuplas exactas que con un caso feliz; la cobertura agregada también es
+  contrato.
 
 
 ## 2026-10-26 (ronda 40) — Cierre por alcance, no por maquillaje
@@ -2970,11 +2985,11 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   N/A** declaradas (f1, v4, h5). El cierre es **por alcance**: los 3 criterios
   restantes exigen red/PyPI o un punto de entrada real y no se simulan. No se
   presenta como cobertura total ni como validación global.
-- **R3**: **no se cierra**. Quedan **1517 brechas** (0 preflight + 1517
+- **R3**: **no se cierra**. Quedan **1451 brechas** (0 preflight + 1451
   evaluador) y las 49 equivalencias **no cuentan como muertos**; la tasa
-  (95,18% preflight, 74,65% evaluador) no cambia por el triaje.
+  (95,18% preflight, 75,75% evaluador) no cambia por el triaje.
 - **Evidencia**: `docs/RECOMENDACIONES-MEJORAS.md` §5/§7, `docs/TRIAGE-R3.md`,
-  suite **1006/1006**, `make ci` OK, autoevaluación 1.000.
+  suite **1009/1009**, `make ci` OK, autoevaluación 1.000.
 - **Lección**: cerrar una recomendación por alcance es legítimo si se declara
   qué queda fuera y por qué; no lo es convertir N/A en aciertos ni llamar
-  «cerrado» a R3 con 1517 aserciones pendientes.
+  «cerrado» a R3 con 1451 aserciones pendientes.

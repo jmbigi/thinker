@@ -3080,5 +3080,110 @@ class TestMainRamas(unittest.TestCase):
         evaluar_mock.assert_not_called()
 
 
+class TestAmbitoVerificarYCobertura(unittest.TestCase):
+    """Ámbito de requirements, contrato de _verificar_test y cobertura."""
+
+    def test_ambito_requirements_por_ruta_y_nombre(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2\n",
+            "requirements-dev.txt": "pytest\n",
+            "requirements-docs.txt": "sphinx\n",
+            "docs/requirements.txt": "sphinx\n",
+            "tests/requirements.txt": "pytest\n",
+            "prod.txt": "requests==2\n",
+            "sub/requirements.txt": "x\n",
+        })
+        esperado = {
+            "requirements.txt": "runtime",
+            "requirements-dev.txt": "dev",
+            "requirements-docs.txt": "docs",
+            "docs/requirements.txt": "docs",
+            "tests/requirements.txt": "test",
+            "prod.txt": "runtime",
+            "sub/requirements.txt": "dev",
+        }
+        for nombre, ambito in esperado.items():
+            with self.subTest(nombre=nombre):
+                self.assertEqual(
+                    evaluar_proyecto._ambito_requirements(
+                        raiz / nombre, raiz), ambito)
+
+    def test_verificar_test_ramas(self):
+        raiz = crear_proyecto(self, {
+            "tests/test_x.py": "def test_x():\n    assert True\n",
+            "tests/test_x.txt": "no es python\n",
+            "tests/test_otro.py": "def test_otro():\n    assert True\n",
+        })
+        req = SimpleNamespace
+        verificar = evaluar_proyecto._verificar_test
+        sin = evaluar_proyecto.EvidenceKind.UNVERIFIED
+        real = evaluar_proyecto.EvidenceKind.VERIFIED_REAL
+
+        self.assertEqual(
+            verificar(raiz, req(evidencia=""), None),
+            ("NO VERIFICABLE", "método 'test' sin evidencia declarada", "",
+             sin))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="../fuera.py::test_x"), None),
+            ("NO VERIFICABLE",
+             "evidencia fuera del proyecto o no resoluble",
+             "../fuera.py::test_x", sin))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/no_existe.py::test_x"), None),
+            ("NO CUMPLE", "la evidencia declarada no es un archivo",
+             "tests/no_existe.py", real))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py"), None),
+            ("CUBIERTO", "archivo de test declarado, sin test concreto",
+             "tests/test_x.py", real))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.txt::test_x"), None),
+            ("CUBIERTO",
+             "test declarado en lenguaje no Python: no validado "
+             "estáticamente", "tests/test_x.txt", real))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_otro.py::test_x"), None),
+            ("NO CUMPLE", "el test 'test_x' no existe en el archivo",
+             "tests/test_otro.py", real))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"), None),
+            ("CUBIERTO", "test declarado; suite no ejecutada "
+                         "(--ejecutar-tests)", "tests/test_x.py", real))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
+                     {"ejecutado": False, "motivo": "sin runner"}),
+            ("CUBIERTO", "test declarado; sin runner", "tests/test_x.py", sin))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
+                     {"ejecutado": True, "ok": False}),
+            ("NO CUMPLE", "la suite falló; el test declarado no pasa",
+             "tests/test_x.py", real))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
+                     {"ejecutado": True, "ok": True}),
+            ("CUMPLE", "suite completa verde (test declarado, no aislado)",
+             "tests/test_x.py", real))
+
+    def test_cobertura_exacta_de_proyecto_sin_codigo(self):
+        raiz = crear_proyecto(self, {"requirements.txt": "requests==2\n"})
+
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertEqual(informe["cobertura"], {
+            "criterios_evaluados": 5,
+            "criterios_no_aplicables": 24,
+            "ratio_evaluado": 0.172,
+            "nivel": "baja",
+            "comparable": False,
+            "motivo_no_comparable": "cobertura 17% < 80%",
+            "nota_lenguajes": "Python: AST y criterios nativos",
+            "dimensiones_evaluadas": ["vigencia", "herramientas"],
+            "dimensiones_no_aplicables": ["funcionalidades", "calidad",
+                                          "inteligencia", "eficiencia"],
+            "lenguajes": {},
+            "nota_no_aplicables": "24 criterios declarados N/A por el perfil: "
+                                  "no se cuentan como fallos (ver cobertura)"})
+
+
 if __name__ == "__main__":
     unittest.main()
