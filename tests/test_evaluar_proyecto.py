@@ -2907,5 +2907,178 @@ class TestPuntosDeEntradaYMain(unittest.TestCase):
         self.assertIn("no existe el archivo de requisitos", error.getvalue())
 
 
+class TestEficienciaLLMContrato(unittest.TestCase):
+    """Contrato exacto de eficiencia en un proyecto que declara LLM."""
+
+    def test_eficiencia_llm_con_import_perezoso_y_mediciones(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               'dependencies=["openai","torch"]\n'),
+            "app.py": ("def f():\n    import torch\n    return torch\n\n"
+                       "modelo = create_model()\n"),
+            "README.md": "Tiempo 1.2 s y RAM 300 MB\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_eficiencia(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 1.0, "evaluado": True,
+            "criterios": {"e1_import_perezoso_de_pesadas": True,
+                          "e2_carga_unica_de_modelos": True,
+                          "e3_mediciones_documentadas": True},
+            "no_aplica": [], "hallazgos": [],
+            "notas": ["imports perezosos detectados: 1",
+                      "llamadas de carga de modelo: 1",
+                      "sin medición en vivo: no se ejecuta código del proyecto "
+                      "evaluado (P0.8)"]})
+
+    def test_eficiencia_llm_sin_perezoso_ni_mediciones(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               'dependencies=["torch"]\n'),
+            "app.py": "import torch\n",
+            "README.md": "# x\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_eficiencia(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.0, "evaluado": True,
+            "criterios": {"e1_import_perezoso_de_pesadas": False,
+                          "e2_carga_unica_de_modelos": False,
+                          "e3_mediciones_documentadas": False},
+            "no_aplica": [],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Dependencia pesada importada al cargar el "
+                                "módulo (no de forma perezosa)",
+                 "evidencia": "código de producción",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "e1_import_perezoso_de_pesadas"},
+                {"severidad": "media",
+                 "descripcion": "Sin señal de carga única/reutilizada de "
+                                "modelos (create_model/cargar_modelo/"
+                                "_load_model)",
+                 "evidencia": "código de producción",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "e2_carga_unica_de_modelos"},
+                {"severidad": "baja",
+                 "descripcion": "Sin mediciones reales (tiempo/RAM) en la "
+                                "documentación (*.md/*.rst) del repositorio",
+                 "evidencia": "*.md|*.rst del repositorio",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "e3_mediciones_documentadas"}],
+            "notas": ["imports perezosos detectados: 0",
+                      "llamadas de carga de modelo: 0",
+                      "sin medición en vivo: no se ejecuta código del proyecto "
+                      "evaluado (P0.8)"]})
+
+
+class TestSintesisContrato(unittest.TestCase):
+    """Contrato exacto de la síntesis LLM y de su control anti-invención."""
+
+    def _fixture(self):
+        return crear_proyecto(self, {
+            "app.py": "import requests\n",
+            "requirements.txt": "requests==2.31.0\n"})
+
+    def test_sintesis_campos_respaldo_y_modelo(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        respuesta = ('{"propuestas": [{"dimension": "calidad", '
+                     '"propuesta": "unificar", "por_que": "x", '
+                     '"evidencia": "requirements.txt", "como_verificar": "y"}, '
+                     '{"dimension": "vigencia", "propuesta": "fijar", '
+                     '"por_que": "z", "evidencia": "", "como_verificar": "w"}], '
+                     '"preguntas_abiertas": [123, "¿y esto?"]}')
+        informe = evaluar(self._fixture(), con_red=False)
+
+        sintesis = sintetizar_con_llm(informe, StubLLM(lambda p: respuesta))
+
+        self.assertEqual(sintesis, {
+            "modelo": "?",
+            "propuestas": [
+                {"dimension": "calidad", "propuesta": "unificar",
+                 "por_que": "x", "evidencia": "requirements.txt",
+                 "como_verificar": "y", "con_respaldo": True},
+                {"dimension": "vigencia", "propuesta": "fijar",
+                 "por_que": "z", "evidencia": "", "como_verificar": "w",
+                 "con_respaldo": False}],
+            "preguntas_abiertas": ["123", "¿y esto?"],
+            "sin_respaldo": 1})
+
+    def test_sintesis_propuestas_no_lista_es_error(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        with self.assertRaisesRegex(ValueError, "propuestas"):
+            sintetizar_con_llm(
+                evaluar(self._fixture(), con_red=False),
+                StubLLM(lambda p: '{"propuestas": "x"}'))
+
+
+class TestMainRamas(unittest.TestCase):
+    """Ramas de main que no estaban cubiertas: LLM, tests, requisitos y texto."""
+
+    def test_main_sintesis_llm_y_modelo(self):
+        with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
+                patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
+                patch("llm_providers.OpenRouterLLM") as clase_llm, \
+                patch.object(evaluar_proyecto, "evaluar",
+                             return_value={"x": 1}) as evaluar_mock:
+            codigo = main([".", "--sintesis-llm", "--modelo", "m", "--json"])
+
+        self.assertEqual(codigo, 0)
+        clase_llm.assert_called_once_with(model="m")
+        self.assertIs(evaluar_mock.call_args.kwargs["llm"],
+                      clase_llm.return_value)
+        self.assertFalse(evaluar_mock.call_args.kwargs["investigar"])
+
+    def test_main_investigar_y_ejecutar_tests(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".md") as archivo:
+            archivo.write("## R1: x\n- Enunciado: y\n- Criterio: z\n")
+            archivo.flush()
+            with patch.object(evaluar_proyecto, "cargar_entorno_llm"), \
+                    patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
+                    patch("llm_providers.OpenRouterLLM"), \
+                    patch.object(evaluar_proyecto, "evaluar",
+                                 return_value={"x": 1}) as evaluar_mock:
+                codigo = main([".", "--investigar", "--ejecutar-tests",
+                               "--requisitos", archivo.name, "--json"])
+
+        self.assertEqual(codigo, 0)
+        self.assertTrue(evaluar_mock.call_args.kwargs["investigar"])
+        self.assertTrue(evaluar_mock.call_args.kwargs["ejecutar_tests_flag"])
+        self.assertEqual(evaluar_mock.call_args.kwargs["requisitos_path"],
+                         Path(archivo.name).resolve())
+
+    def test_main_texto_imprime_informe_texto(self):
+        salida = io.StringIO()
+        with patch.object(evaluar_proyecto, "evaluar",
+                          return_value={"x": 1}), \
+                patch.object(evaluar_proyecto, "informe_texto",
+                             return_value=["linea1", "linea2"]):
+            with contextlib.redirect_stdout(salida):
+                codigo = main([".", "--sin-red"])
+
+        self.assertEqual(codigo, 0)
+        self.assertEqual(salida.getvalue(), "linea1\nlinea2\n")
+
+    def test_main_sin_dotenv_devuelve_dos(self):
+        error = io.StringIO()
+        with patch.object(evaluar_proyecto, "cargar_entorno_llm",
+                          side_effect=ImportError), \
+                patch.object(evaluar_proyecto, "evaluar") as evaluar_mock:
+            with contextlib.redirect_stderr(error):
+                codigo = main([".", "--sintesis-llm"])
+
+        self.assertEqual(codigo, 2)
+        self.assertIn("python-dotenv", error.getvalue())
+        evaluar_mock.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
