@@ -3185,5 +3185,135 @@ class TestAmbitoVerificarYCobertura(unittest.TestCase):
                                   "no se cuentan como fallos (ver cobertura)"})
 
 
+class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
+    """Contrato de locks, dedupe, funcionalidades y errores del runner."""
+
+    def test_versiones_lock_en_todos_los_formatos(self):
+        raiz = crear_proyecto(self, {
+            "uv.lock": ('[[package]]\nname="a"\nversion="1.0"\n'
+                        '[[package]]\nname="self"\nversion="9"\n'
+                        'source={editable=true}\n'
+                        '[[package]]\nname="b"\nversion="2.0"\n'),
+            "Pipfile.lock": ('{"default":{"foo":{"version":"==3.1"}},'
+                             '"develop":{"bar":{"version":"==4.2"}}}'),
+            "package-lock.json": ('{"packages":{'
+                                  '"node_modules/react":{"version":"18.2.0"},'
+                                  '"node_modules/a/node_modules/react-dom":'
+                                  '{"version":"18.0.0"}}}'),
+            "poetry.lock": '[[package]]\nname="poetry-pkg"\nversion="5.0"\n',
+            "pdm.lock": '[[package]]\nname="pdm-pkg"\nversion="6.0"\n',
+            "custom.lock": "x==7.0\n",
+        })
+
+        self.assertEqual(evaluar_proyecto._versiones_lock(raiz), {
+            "a": "1.0", "b": "2.0", "bar": "4.2", "foo": "3.1",
+            "pdm-pkg": "6.0", "poetry-pkg": "5.0", "react": "18.2.0",
+            "react-dom": "18.0.0", "x": "7.0"})
+
+    def test_dependencias_dedupe_y_prioridad(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               'dependencies=["requests>=2","flask"]\n'
+                               '[project.optional-dependencies]\n'
+                               'dev=["requests==2.31"]\n'),
+            "requirements.txt": "requests==2.31.0\n",
+            "package.json": ('{"dependencies":{"requests":"^1.0",'
+                             '"react":"18.2.0"}}'),
+        })
+
+        deps = evaluar_proyecto._dependencias(raiz)
+
+        self.assertEqual([
+            (d["nombre"], d["ecosistema"], d["ambito"], d["version"],
+             d["fijada"], d["origen"]) for d in deps], [
+            ("requests", "npm", "runtime", "1.0", False, "package.json"),
+            ("react", "npm", "runtime", "18.2.0", True, "package.json"),
+            ("requests", "python", "runtime", "2.31.0", True,
+             "requirements.txt"),
+            ("flask", "python", "runtime", "", False, "pyproject.toml")])
+
+    def test_funcionalidades_sin_readme_todo_real_y_sin_tests(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "pkg/mod.py": ("def f():\n"
+                           "    # TODO REAL: regla de dominio\n"
+                           "    # TODO: deuda\n"
+                           "    return 1\n"),
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.0, "evaluado": True,
+            "criterios": {"f2_readme_vs_realidad": False,
+                          "f3_sin_deuda_declarada": False,
+                          "f4_tests_de_varios_modulos": False},
+            "no_aplica": [{"criterio": "f1_puntos_de_entrada",
+                           "motivo": "sin CLI/entrypoint declarado "
+                                     "(proyecto tipo biblioteca)"}],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Sin README.md/.rst/.txt",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "f2_readme_vs_realidad"},
+                {"severidad": "baja",
+                 "descripcion": "1 marcas TODO/FIXME/XXX en código de "
+                                "producción",
+                 "evidencia": "pkg/mod.py:3", "tipo_evidencia": "verified-real",
+                 "criterio": "f3_sin_deuda_declarada"},
+                {"severidad": "baja",
+                 "descripcion": "Solo 0 archivo(s) de test: la cobertura por "
+                                "módulos no se puede distribuir",
+                 "evidencia": "código del proyecto",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "f4_tests_de_varios_modulos"}],
+            "notas": ["0 archivos de test (sin tests)"]})
+
+    def test_ejecutar_tests_oserror(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        with patch("evaluar_proyecto.detectar_comando_tests",
+                   return_value={"comando": ["python", "-m", "unittest"],
+                                 "origen": "x"}), \
+                patch("evaluar_proyecto.subprocess.run",
+                      side_effect=OSError("boom")):
+            self.assertEqual(
+                evaluar_proyecto.ejecutar_tests(raiz),
+                {"ejecutado": True, "comando": "python -m unittest",
+                 "origen": "x", "error": "OSError", "detalle": "boom"})
+
+    def test_ejecutar_tests_timeout(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        expirado = evaluar_proyecto.subprocess.TimeoutExpired("x", 1)
+        with patch("evaluar_proyecto.detectar_comando_tests",
+                   return_value={"comando": ["x"], "origen": "y"}), \
+                patch("evaluar_proyecto.subprocess.run",
+                      side_effect=expirado):
+            resultado = evaluar_proyecto.ejecutar_tests(raiz)
+
+        self.assertTrue(resultado["ejecutado"])
+        self.assertEqual(resultado["error"], "TimeoutExpired")
+        self.assertEqual(resultado["comando"], "x")
+
+    def test_ejecutar_tests_suite_roja_y_sin_ran(self):
+        raiz = crear_proyecto(self, {"README.md": "# x\n"})
+        proceso = SimpleNamespace(
+            returncode=1, stdout="FAILED (failures=1)\n", stderr="")
+
+        with patch("evaluar_proyecto.detectar_comando_tests",
+                   return_value={"comando": ["python", "-m", "unittest"],
+                                 "origen": "x"}), \
+                patch("evaluar_proyecto.subprocess.run",
+                      return_value=proceso), \
+                patch("evaluar_proyecto.time.monotonic",
+                      side_effect=[10.0, 10.0]):
+            resultado = evaluar_proyecto.ejecutar_tests(raiz)
+
+        self.assertEqual(resultado, {
+            "ejecutado": True, "comando": "python -m unittest",
+            "origen": "x", "codigo": 1, "ok": False, "tests": None,
+            "resumen": "FAILED (failures=1)", "duracion_s": 0.0})
+
+
 if __name__ == "__main__":
     unittest.main()
