@@ -39,15 +39,24 @@ lleva tope oculto.
 |---|---|---|
 | Funcionalidades | 1.00 | — |
 | Calidad | 1.00 | — (suite `make test` OK, 1,0 s) |
-| Vigencia | 0.75 | `v4_dependencias_al_dia` |
+| Vigencia | 1.00 | `v4_dependencias_al_dia` (lock en 3.37.0) |
 | Herramientas | 1.00 | — (licencias de sus 4 dependencias, libres) |
 | Inteligencia | 1.00 | — |
 | Eficiencia | 1.00 | — |
-| **Global** | **0.958** | |
+| **Global** | **1.000** | |
 
-`no_verificado`: **vacío**. Único hallazgo: `requests 2.33.0 → 2.34.2` y
-`python-dotenv 1.2.2 → 1.2.4` (rutina). `openai` ya no computa: se migró a un
-rango `>=1.0,<4` verificado en 1.109.1, 2.54.0 y 3.33.0.
+**Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
+`h5`). Suite **1018/1018** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
+aseveraciones exactas y triaje de mutación completado.
+
+**Sin red**: 1.000 (25/29; 4 N/A: `v4`, `h5`, `e1`, `e2`). Suite **750/750** en
+Windows 11 (Python 3.12.7/3.14.3) y **778/778** en Linux (3.11/3.12, 2026-10-23);
+ruff 0, preflight 0, docs-check OK.
+
+`no_verificado`: **vacío** (2026-10-25). Migración de `openai` a rango
+`>=1.0,<4` completada (lock en 3.37.0); `v4_dependencias_al_dia` al día con
+hashes `requirements.lock`. No hay hallazgos pendientes de verificación.
 
 **Actualización 2026-10-17** (tras corregir 6 bugs ALTA —Hallazgo 71— y aplicar
 ese pendiente): autoevaluación **GLOBAL 1.000** (Vigencia 1.00, `v4` incluido),

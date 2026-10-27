@@ -235,8 +235,11 @@ class OpenRouterLLM(OpenAILLM):
             except Exception as exc:
                 last_error = exc
                 status = getattr(exc, "status_code", None)
-                # Fallback también en 429 tras agotar reintentos (rate limit del modelo gratis)
-                # y en errores no transitorios (403, 404, 401, etc.)
+                # Backoff exponential para 429 (rate limit del free tier)
+                # antes de probar siguiente modelo o reintentar
+                print(f"[OpenRouterLLM] Rate limit 429, esperando 2s antes de reintentar...", file=sys.stderr)
+                time.sleep(2)
+                # Fallback también en errores no transitorios (403, 404, 401, etc.)
                 if status and (status == 429 or status not in TRANSIENT_STATUS):
                     print(f"[OpenRouterLLM] Modelo {modelo} falló con {status}, probando siguiente...", file=sys.stderr)
                     continue  # Probar siguiente modelo

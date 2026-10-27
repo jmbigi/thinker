@@ -16,8 +16,9 @@ Requiere: OPENROUTER_API_KEY en .env. Sobreescribir modelo: OPENROUTER_MODEL.
 """
 
 import os
-import re
+import time
 import sys
+import re
 
 from dotenv import load_dotenv
 
