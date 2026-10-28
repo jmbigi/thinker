@@ -55,9 +55,11 @@ mejora de código (`code_design_improvement_tools.py`).
 9. **Secretos**: `.env` existe en este repo y contiene una API key real.
    Nunca leerlo, imprimirlo, copiarlo ni comitearlo. Los scripts leen keys
    solo vía `os.environ`/`dotenv`, sin escribir fragmentos de key en archivos.
-   `scripts/scan-secrets.sh` (en el hook) escanea credenciales y datos
-   personales en archivos versionados; `.env.example` es seguro (valores
-   vacíos o `...`). Ante un hallazgo: reportar y proponer variable de entorno.
+   `scripts/scan_secrets.py` (portable; el hook lo invoca vía
+   `scripts/scan-secrets.sh`) escanea credenciales y datos personales en
+   archivos versionados **y nuevos sin ignorar**; `.env.example` es seguro
+   (valores vacíos o `...`). Ante un hallazgo: reportar y proponer variable de
+   entorno.
 10. **Mínima calidad de modelos** (regla del programador, 2026-10-16): no se
     prueba ni se fija como defecto un modelo que tarde SIEMPRE más de 1 minuto
     en responder `"Helo"` —no es práctico ni realista—. Verificable con
@@ -177,7 +179,11 @@ mejora de código (`code_design_improvement_tools.py`).
   (`license_expression`), parsers de pyproject/PEP 735/setup.cfg/requirements
   anidados/package.json y comparación con versiones resueltas por lock; c5 solo
   marca tests no-op y c3 excluye tests e imports opcionales. El informe JSON es
-  un contrato versionado (`schema_version: 2`). Autoevaluación v2
+  un contrato versionado (`schema_version: 2`) con esquema público en
+  `docs/schema-v2.json` (validado en tests). `--ejecutar-tests` ejecuta solo el
+  comando que el proyecto declara, con `shell=False`, timeout y, en POSIX,
+  límite de CPU del subproceso (`timeout + 60 s`; sin límite de memoria por
+  defecto para no romper suites legítimas). Autoevaluación v2
   (2026-10-21): con red **0.958** (único fallo real: `openai 3.35.1 → 3.36.0`
   en el lock; resuelto el 2026-10-22 con el lock en 3.37.0: **1.000**) y sin
   red **1.000**; informes de ejemplo en
@@ -299,7 +305,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1057/1057 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1098/1098 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -322,7 +328,12 @@ mejora de código (`code_design_improvement_tools.py`).
   `evaluar`; Hallazgos 138-140); la suite quedó en **1045/1045**. El lote de
   mejoras externas del 2026-10-28 (banner simulado en demos, rutas de plugins
   resueltas al paquete, `make verify-install`, `make doctor`; Hallazgo 141)
-  dejó la suite en **1057/1057**. El auditor
+  dejó la suite en **1057/1057**. El lote de quick wins del 2026-10-28
+  (tests de contrato de proveedores y fallos de recuperación, pruebas
+  adversarias de seguridad, escáner de secretos portable, límites de CPU en
+  `--ejecutar-tests`, esquema JSON `docs/schema-v2.json`, higiene OSS y CI
+  espejo en GitHub Actions; Hallazgo 142) dejó la suite en **1098/1098**. El
+  auditor
   de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
@@ -351,8 +362,16 @@ mejora de código (`code_design_improvement_tools.py`).
   declaran explícitos en `[tool.setuptools]`: el flat-layout con varios
   módulos raíz rompe el auto-descubrimiento. Verificado end-to-end: venv
   limpio, llamadas desde otro directorio (Hallazgo 82).
-- CI local (sin nube): `make ci` / `bash scripts/ci.sh` — exporta HEAD a una
+- CI local de referencia: `make ci` / `bash scripts/ci.sh` — exporta HEAD a una
   copia limpia y verifica allí (detecta dependencias de archivos no versionados).
+  La CI pública de GitHub Actions (`.github/workflows/ci.yml`, badge en el
+  README) es un **espejo** de los mismos gates en 3 SO × Python 3.11/3.12; la
+  referencia sigue siendo local y no se usa la CLI `gh` (regla 12).
+- Informe JSON del evaluador: contrato público en `docs/schema-v2.json`
+  (validado por `tests/test_schema_informe.py` con un validador mínimo sin
+  dependencias nuevas).
+- Higiene OSS: `SECURITY.md` (reporte privado de vulnerabilidades),
+  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` y plantillas en `.github/`.
 - Antes de entregar: todo lo anterior en verde + checklist pre-entrega.
 
 ## Arquitectura de módulos

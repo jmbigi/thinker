@@ -1,0 +1,43 @@
+name: Propuesta de mejora
+description: Una idea con un problema medido detrás (regla 13 de AGENTS.md)
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este proyecto pide que toda mejora responda a un **defecto
+        reproducible**, a un **requisito explícito** o a una **decisión
+        declarada**. "Mejorar la nota" no es una motivación válida.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema o defecto medido
+      description: ¿Qué está mal y cómo se reproduce? Cita cifras si las hay.
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+      description: El cambio mínimo que resuelve el problema.
+    validations:
+      required: true
+  - type: textarea
+    id: verificación
+    attributes:
+      label: Cómo se verificará
+      description: Test, comando o medición que demuestra la mejora (criterio de aceptación medible).
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Opcional. Por qué esta y no otra.
+  - type: input
+    id: dogfooding
+    attributes:
+      label: Dogfooding (regla 14)
+      description: ¿Qué componente de thinker usarías para diseñar/verificar el cambio?
+      placeholder: "evaluar_proyecto / preflight / triaje_mutantes / ..."

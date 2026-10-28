@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jmbigi/thinker/docs/schema-v2.json",
+  "title": "Informe de evaluar_proyecto (schema_version 2)",
+  "description": "Contrato público del informe JSON de thinker-research. Las claves de primer nivel son exactas: additionalProperties=false. Los campos opcionales aparecen solo con sus modos opt-in (--requisitos, --sintesis-llm, --sintesis-llm --investigar).",
+  "type": "object",
+  "required": [
+    "schema_version", "ruta", "archivos_python", "lineas_python", "perfil",
+    "cobertura", "dependencias", "licencias_no_runtime", "aserciones_debiles",
+    "dimensiones", "global", "global_nota", "no_verificado", "evidencia",
+    "mejoras"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 2},
+    "ruta": {"type": "string", "minLength": 1},
+    "archivos_python": {"type": "integer", "minimum": 0},
+    "lineas_python": {"type": "integer", "minimum": 0},
+    "perfil": {"type": "object"},
+    "cobertura": {
+      "type": "object",
+      "required": [
+        "criterios_evaluados", "criterios_no_aplicables", "ratio_evaluado",
+        "nivel", "comparable", "motivo_no_comparable", "nota_lenguajes",
+        "dimensiones_evaluadas", "dimensiones_no_aplicables", "lenguajes",
+        "nota_no_aplicables"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "criterios_evaluados": {"type": "integer", "minimum": 0},
+        "criterios_no_aplicables": {"type": "integer", "minimum": 0},
+        "ratio_evaluado": {"type": "number", "minimum": 0, "maximum": 1},
+        "nivel": {"enum": ["alta", "media", "baja"]},
+        "comparable": {"type": "boolean"},
+        "motivo_no_comparable": {"type": "string"},
+        "nota_lenguajes": {"type": "string"},
+        "dimensiones_evaluadas": {"type": "array", "items": {"type": "string"}},
+        "dimensiones_no_aplicables": {"type": "array", "items": {"type": "string"}},
+        "lenguajes": {"type": "object"},
+        "nota_no_aplicables": {"type": "string"}
+      }
+    },
+    "dependencias": {"type": "array"},
+    "licencias_no_runtime": {"type": "array"},
+    "aserciones_debiles": {"type": "array"},
+    "dimensiones": {
+      "type": "object",
+      "required": [
+        "funcionalidades", "calidad", "vigencia", "herramientas",
+        "inteligencia", "eficiencia"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "funcionalidades": {"$ref": "#/$defs/dimension"},
+        "calidad": {"$ref": "#/$defs/dimension"},
+        "vigencia": {"$ref": "#/$defs/dimension"},
+        "herramientas": {"$ref": "#/$defs/dimension"},
+        "inteligencia": {"$ref": "#/$defs/dimension"},
+        "eficiencia": {"$ref": "#/$defs/dimension"}
+      }
+    },
+    "global": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "global_nota": {"type": "string"},
+    "no_verificado": {"type": "array", "items": {"type": "string"}},
+    "evidencia": {
+      "type": "object",
+      "required": ["verified-real", "verified-synthetic", "unverified"],
+      "properties": {
+        "verified-real": {"type": "integer", "minimum": 0},
+        "verified-synthetic": {"type": "integer", "minimum": 0},
+        "unverified": {"type": "integer", "minimum": 0}
+      }
+    },
+    "mejoras": {"type": "array"},
+    "requisitos": {"type": "object"},
+    "sintesis_llm": {"type": "object"},
+    "investigacion": {"type": "array"}
+  },
+  "$defs": {
+    "dimension": {
+      "type": "object",
+      "required": ["puntuacion", "evaluado", "criterios", "no_aplica",
+                   "hallazgos", "notas"],
+      "additionalProperties": false,
+      "properties": {
+        "puntuacion": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "evaluado": {"type": "boolean"},
+        "criterios": {"type": "object", "additionalProperties": {"type": "boolean"}},
+        "no_aplica": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["criterio", "motivo"],
+            "properties": {
+              "criterio": {"type": "string"},
+              "motivo": {"type": "string"}
+            }
+          }
+        },
+        "hallazgos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["severidad", "descripcion", "evidencia",
+                         "tipo_evidencia", "criterio"],
+            "properties": {
+              "severidad": {"enum": ["alta", "media", "baja"]},
+              "descripcion": {"type": "string"},
+              "evidencia": {"type": "string"},
+              "tipo_evidencia": {"enum": ["verified-real", "verified-synthetic", "unverified"]},
+              "criterio": {"type": "string"}
+            }
+          }
+        },
+        "notas": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

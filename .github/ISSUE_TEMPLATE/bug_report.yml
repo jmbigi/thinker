@@ -1,0 +1,68 @@
+name: Informe de error
+description: Algo no funciona como debería (no incluyas claves ni datos personales)
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por el reporte. **No incluyas claves de API, tokens ni datos
+        personales**: el escáner del proyecto los detecta y el reporte se
+        rechazará. Para vulnerabilidades usa `SECURITY.md`, no un issue público.
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción
+      description: ¿Qué ocurre y qué esperabas que ocurriera?
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducir
+      description: Comandos exactos, con valores ficticios si hay claves.
+      placeholder: |
+        1. python3 evaluar_proyecto.py RUTA --sin-red
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: salida
+    attributes:
+      label: Salida real (recortada)
+      description: Pega solo la parte relevante. Sin secretos.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Versión de thinker-research
+      description: Salida de `pip show thinker-research | head -2`.
+      placeholder: "0.1.13"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Versión de Python y sistema operativo
+      placeholder: "3.11.9 en Linux / 3.12.7 en Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: modo
+    attributes:
+      label: Modo de ejecución
+      options:
+        - Offline (MockLLM / MockSearchAPI)
+        - Proveedor real (OpenRouter, OpenAI, Kilo, DeepSeek u Ollama)
+        - No aplica
+    validations:
+      required: true
+  - type: checkboxes
+    id: comprobaciones
+    attributes:
+      label: Comprobaciones previas
+      options:
+        - label: Ejecuté `make doctor` (o `python3 scripts/doctor.py`) y adjunto su salida si es relevante.
+          required: false
+        - label: Confirmo que no incluyo claves ni datos personales en este reporte.
+          required: true

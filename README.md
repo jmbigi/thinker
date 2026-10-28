@@ -1,5 +1,11 @@
 # thinker
 
+[![CI](https://github.com/jmbigi/thinker/actions/workflows/ci.yml/badge.svg)](https://github.com/jmbigi/thinker/actions/workflows/ci.yml)
+
+> La CI pública (GitHub Actions) es un **espejo** de los mismos gates; la CI de
+> referencia es local: `make check` / `bash scripts/ci.sh`. El flujo del
+> repositorio no usa la CLI `gh` ni GitHub Releases (regla 12).
+
 Sistema de investigación profunda con LLM: descompone una pregunta, recupera
 fuentes reales, extrae afirmaciones, evalúa la evidencia y redacta un informe
 trazable. Incluye una capa de **pensamiento estructurado** en pasos validados y
@@ -283,13 +289,18 @@ auditor de cambios y el holdout antes de cada commit.
   configurados, no de heurísticas locales.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
-- No hay integración continua en la nube (la verificación es local, por diseño).
+- No hay CI en la nube como **dependencia**: la verificación de referencia es
+  local, por diseño (`make check` / `bash scripts/ci.sh`). Hay un workflow
+  espejo en GitHub Actions (badge arriba) para que terceros comprueben los
+  mismos gates sin clonar; no usa `gh` ni publica releases.
 - `credibility` y `confidence` **no están calibradas**: son estimaciones del
   modelo, no probabilidades. Hay un Brier simulado y un piloto real n=20
   (Brier 0,054, muestra pequeña y fácil); ninguno prueba calibración general,
   así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
-  750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
+  750/750; última verificación Windows 2026-10-22); macOS no se ha probado
+  localmente (el workflow espejo incluye macOS; hasta su primera ejecución en
+  verde sigue sin verificación).
   Los scripts `bash`/`make` se verificaron en Linux; en Windows se ejecutaron
   los comandos Python equivalentes.
 - La suite mata el **95,2%** de los mutantes de `mutmut` (3635/3819; 184

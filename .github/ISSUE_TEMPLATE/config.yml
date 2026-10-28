@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reportar una vulnerabilidad (privado)
+    url: https://github.com/jmbigi/thinker/security/advisories/new
+    about: No abras un issue público con detalles explotables. Ver SECURITY.md.
+  - name: Documentación y estado del proyecto
+    url: https://github.com/jmbigi/thinker/tree/main/docs
+    about: Evaluaciones, triaje de mutación, lecciones aprendidas y guía de publicación.

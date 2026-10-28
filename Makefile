@@ -44,7 +44,7 @@ holdout:
 	python3 scripts/run_holdout.py
 
 secrets:
-	bash scripts/scan-secrets.sh
+	python3 scripts/scan_secrets.py
 
 lock:
 	# --upgrade es deliberado: cada regeneración sube TODAS las dependencias a

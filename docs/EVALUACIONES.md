@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1029/1029** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1098/1098** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -548,7 +548,7 @@ de solo lectura) y los plugins citados por el documento externo devuelven
 
 **Actualización 2026-10-28** (lock `openai` 3.40.0 + lote dirigido R3):
 autoevaluación **con red 1.000** (v4 OK tras el bump; 0 hallazgos) y **sin
-red 1.000**. Suite **1057/1057** en Linux (Python 3.11.9, openai 3.40.0 en el
+red 1.000**. Suite **1098/1098** en Linux (Python 3.11.9, openai 3.40.0 en el
 entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
 supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
 los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
@@ -579,4 +579,21 @@ respecto al paquete (antes CWD: con otro directorio se descubrían 0 plugins en
 silencio y ahora 6, con aviso si no existe ningún directorio),
 `make verify-install` (wheel + venv temporal + 17 comprobaciones offline) y
 `make doctor` (autodiagnóstico offline con presencia de claves, nunca sus
-valores). Suite **1057/1057**. R3 sigue **parcial** (1131 brechas).
+valores). Quinto lote (mismo día, quick wins restantes): 17 tests de contrato
+de proveedores LLM y fallos de recuperación (JSON inválido/truncado, respuesta
+vacía), 4 pruebas adversarias (claves del entorno nunca en el informe, prompt
+injection tratada como dato, config YAML malformada declarada), 2 tests de
+límite de CPU en `--ejecutar-tests`, 4 del escáner de secretos portable
+(`scripts/scan_secrets.py`, ahora también escanea archivos nuevos sin ignorar)
+y 7 del esquema público `docs/schema-v2.json` (validador mínimo sin
+dependencias nuevas). Además: higiene OSS (`SECURITY.md`, `CONTRIBUTING.md`,
+`CODE_OF_CONDUCT.md`, plantillas de issue/PR y PR template) y CI espejo en
+GitHub Actions (3 SO × Python 3.11/3.12) con badge en el README; la CI local
+sigue siendo la referencia (regla 12: sin `gh` ni releases). Suite
+**1098/1098**. R3 sigue **parcial** (1131 brechas). La re-medición r3c5 quedó
+**descartada**: reportó 355 supervivientes, pero la prueba directa mostró que
+un mutante que declaraba «killed» (`con_red=True→False` en
+`evaluar_herramientas`) **sobrevive** a la suite de la campaña — un artefacto
+de mutmut que no se maquilla (P0.1). La cifra oficial vigente es la de r3c4
+(4846/5984; 1131 brechas) hasta que la re-medición r3c6 (en curso) se
+verifique con muestra directa.

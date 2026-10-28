@@ -880,22 +880,52 @@ def _linter_configurado(perfil: Perfil) -> Tuple[bool, str]:
     return False, ""
 
 
-def ejecutar_tests(ruta: Path, timeout: int = 900) -> Dict[str, Any]:
+def _preexec_limites(cpu_segundos: Optional[int]):
+    """Devuelve un preexec_fn POSIX que acota la CPU del proceso evaluado.
+
+    En Windows devuelve None (no hay `resource`; el `timeout` de subprocess
+    sigue acotando el tiempo total). Declarado en `ejecutar_tests`.
+    """
+    if os.name != "posix":
+        return None
+    try:
+        import resource
+    except ImportError:  # pragma: no cover - POSIX sin resource no existe
+        return None
+
+    def _aplicar():
+        if cpu_segundos is not None:
+            resource.setrlimit(resource.RLIMIT_CPU,
+                               (cpu_segundos, cpu_segundos))
+
+    return _aplicar
+
+
+def ejecutar_tests(ruta: Path, timeout: int = 900,
+                   limite_cpu_s: Optional[int] = None) -> Dict[str, Any]:
     """Ejecuta el comando de tests declarado (opt-in explícito, P0.8).
 
     Es lo ÚNICO que ejecuta código del proyecto evaluado y solo se hace con
-    `--ejecutar-tests`. Sin shell (`shell=False`), con timeout y salida capturada.
+    `--ejecutar-tests`. Sin shell (`shell=False`), con timeout y salida
+    capturada. En POSIX se añade además un límite de CPU al subproceso
+    (`limite_cpu_s`, por defecto `timeout + 60`): el timeout acota el tiempo
+    de pared, pero un proceso que ignore la señal de terminación sigue
+    consumiendo CPU hasta el kill. No hay límite de memoria por defecto:
+    `RLIMIT_AS` rompería suites legítimas que mapean bibliotecas grandes.
     """
     deteccion = detectar_comando_tests(ruta)
     if deteccion is None:
         return {"ejecutado": False,
                 "motivo": "no se encontró un comando de tests declarado"}
+    if limite_cpu_s is None:
+        limite_cpu_s = timeout + 60
 
     inicio = time.monotonic()
     try:
         proceso = subprocess.run(deteccion["comando"], cwd=str(ruta),
                                  capture_output=True, text=True, timeout=timeout,
-                                 shell=False)
+                                 shell=False,
+                                 preexec_fn=_preexec_limites(limite_cpu_s))
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"ejecutado": True, "comando": " ".join(deteccion["comando"]),
                 "origen": deteccion["origen"], "error": type(exc).__name__,

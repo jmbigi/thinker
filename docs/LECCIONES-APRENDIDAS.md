@@ -3235,3 +3235,73 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mismo mecanismo que hizo necesario empaquetar `scripts/` con el evaluador.
 - **Evidencia**: suite **1057/1057** (1045 + 12 nuevos), ruff 0, preflight 0,
   docs-check OK, `make doctor` exit 0, `make verify-install` 17/17.
+
+### Hallazgo 142: quick wins restantes — contrato de proveedores, fallos, adversarios, esquema y CI espejo
+
+- **Contexto**: tras el triaje del Hallazgo 141 quedaron quick wins pendientes
+  de las listas externas. Se implementaron los viables y se documentan los
+  rechazos técnicos (siguen sin hacerse: mover `scripts/` —rompería el
+  contrato público `scripts.preflight`—, mypy estricto en todo el proyecto —no
+  es un quick win y añade herramienta— y el benchmark factual de 100
+  preguntas —proyecto de días sobre la infraestructura ya existente de
+  `tests/benchmarks/`).
+- **Tests nuevos (34 en total)**:
+  - `tests/test_proveedores_contrato.py` (9): interfaz común
+    (`generate`/`model`), error no transitorio = 1 intento y transitorio agota
+    `max_retries` y eleva el último en OpenAI/DeepSeek/Kilo, Ollama sin
+    reintentos y `response` ausente → cadena vacía, MockLLM determinista y sin
+    entorno.
+  - `tests/test_fallos_recuperacion.py` (8): síntesis con texto sin JSON,
+    respuesta vacía, JSON no-objeto, `propuestas` no-lista → `ValueError`; y
+    parseo del verificador: truncado y vacío elevan, markdown y texto
+    alrededor se extraen.
+  - `tests/test_seguridad_adversaria.py` (4): canarios de claves en el entorno
+    no aparecen en el informe ni en el contexto; `formulate_query` neutraliza
+    símbolos e instrucciones; snippet malicioso tratado como dato; YAML de
+    plugins inválido declarado en stderr sin romper.
+  - `tests/test_ejecutar_tests_limites.py` (2, POSIX): el `RLIMIT_CPU` del
+    subproceso de `--ejecutar-tests` es `limite_cpu_s` (42) o `timeout + 60`
+    (90) — verificado leyendo el límite dentro del subproceso.
+  - `tests/test_scan_secrets.py` (4): árbol limpio, clave canaria, ruta
+    personal y placeholders; los canarios se construyen en runtime para que el
+    propio test no dispare el escáner del repo (auto-referencia).
+  - `tests/test_schema_informe.py` (7): el informe real cumple
+    `docs/schema-v2.json`; claves ausentes, `schema_version` distinta, enums
+    inválidos y claves extra fallan (validador mínimo propio, sin
+    dependencias nuevas).
+- **Código**: `scripts/scan_secrets.py` (portable, escanea versionados **y
+  nuevos sin ignorar**, el `.sh` pasa a wrapper), límite de CPU en
+  `ejecutar_tests` (POSIX; Windows mantiene el timeout), `docs/schema-v2.json`
+  (contrato público del informe), `scripts/informe_calidad.py` (consolida los
+  gates en `docs/informe-calidad.json` con estados PASS/FAIL/NOT_RUN y
+  commit/entorno) y `tests/benchmarks/rendimiento.py` (latencia y llamadas
+  LLM/búsqueda en 3 escenarios con Mock; declara que no mide calidad ni
+  tokens).
+- **Artefacto de campaña (P0.1)**: la re-medición r3c5 reportó 355
+  supervivientes (94,08%) frente a 1138 de r3c4. La prueba directa lo
+  desmintió: un mutante que la campaña declaraba «killed»
+  (`con_red=True→False` en `evaluar_herramientas`) **sobrevive** a la suite de
+  la campaña, y los IDs de mutmut cambian de una campaña a otra (mi primera
+  comparación por ID era inválida: el mismo `mutmut_1` era un mutante
+  distinto). r3c5 se **descarta** como medición oficial; r3c6 se re-ejecuta y
+  se valida con una muestra de diffs «killed» aplicados a mano. Lección: una
+  campaña de mutación no se acepta sin verificar que sus muertos mueren de
+  verdad; el ID de mutmut no es estable entre campañas — se compara por diff,
+  nunca por nombre.
+- **Higiene OSS y CI**: `SECURITY.md` (reporte privado vía GitHub Security
+  Advisories, plazos realistas, riesgos declarados de `--ejecutar-tests`),
+  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1, CC BY
+  4.0), plantillas de issue/PR y `.github/workflows/ci.yml` (3 SO × Python
+  3.11/3.12, lock con hashes, ruff pin 0.15.14 verificado, sin `make` y sin
+  `gh`); badge en el README. La CI local sigue siendo la referencia.
+- **Incidente de proceso**: los 5 subagentes de apoyo fallaron por límite de
+  cuota del proveedor (429); el trabajo se hizo en el agente principal. Se
+  declara para que la evidencia de tiempos no se malinterprete.
+- **Verificación**: suite **1091/1091** (1057 + 34), ruff 0, preflight 0,
+  docs-check OK, escáner del repo limpio, `make verify-install` 17/17.
+  Re-medición de mutación r3c5 en curso por el cambio en `evaluar_proyecto.py`.
+- **Lección**: los canarios de los tests de seguridad deben construirse en
+  runtime (concatenación) o el propio test se convierte en hallazgo del
+  escáner; y un límite de recursos solo es verificable si el subproceso lo
+  reporta (leer `getrlimit` dentro del subproceso), no por inspección del
+  código.

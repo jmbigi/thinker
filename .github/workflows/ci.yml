@@ -1,0 +1,73 @@
+# CI pública (espejo). La CI de referencia del proyecto es local: `make check`
+# / `bash scripts/ci.sh` (ver AGENTS.md). Este workflow repite los mismos
+# gates deterministas en la nube para que cualquiera pueda comprobarlos sin
+# clonar. No usa la CLI `gh` ni publica releases (regla 12).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.os }} · Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # audit-changes necesita la base del PR
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Instalar dependencias del lock (con hashes)
+        run: python -m pip install --require-hashes -r requirements.lock
+
+      - name: Instalar ruff (dev; no está en el lock)
+        # Pin verificado en el entorno de referencia del proyecto (2026-10-28).
+        run: python -m pip install ruff==0.15.14
+
+      - name: ruff
+        run: ruff check .
+
+      - name: preflight (gates deterministas)
+        run: python scripts/preflight.py
+
+      - name: docs-check (cifras de estado)
+        run: python scripts/check_docs.py
+
+      - name: doctor (autodiagnóstico offline)
+        run: python scripts/doctor.py
+
+      - name: suite completa (offline, sin claves)
+        run: python -m unittest discover -s tests
+
+      - name: holdout (hashes + tests)
+        run: python scripts/run_holdout.py
+
+      - name: instalación limpia del paquete (wheel + venv)
+        run: python scripts/verificar_instalacion.py
+
+      - name: escaneo de secretos
+        shell: bash  # Git Bash en Windows; el script es bash puro
+        run: bash scripts/scan-secrets.sh
+
+      - name: auditoría de cambios (solo PR)
+        if: github.event_name == 'pull_request'
+        run: python scripts/audit_changes.py --base origin/main
