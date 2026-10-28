@@ -192,3 +192,68 @@ los tests de contrato exacto añadidos el 2026-10-28 (Hallazgo 139).
 cuentan como muertos; pasan de «brecha» a «equivalencia demostrada». Tras el
 lote: evaluador 1221 brechas + 2 equivalencias; total R3: 1221 brechas +
 51 equivalencias.
+
+### E2. `ruta` no se usa en `evaluar_inteligencia` (1)
+
+Mutante: `evaluar` 46 — `evaluar_inteligencia(ruta, perfil)` muta a
+`evaluar_inteligencia(None, perfil)`.
+
+**Prueba:** el cuerpo de `evaluar_inteligencia` (líneas 1823-1858 de
+`evaluar_proyecto.py`) no referencia `ruta` en ninguna línea: todos los
+criterios se calculan desde `perfil` (`perfil.es_llm`, `perfil.codigo_py`).
+Pasar `None` es inobservable para cualquier entrada. Verificado aplicando el
+mutante al fuente: `TestEvaluarContrato` sigue en verde.
+
+### E3. `next(...)` sin default al buscar la dimensión `calidad` (1)
+
+Mutante: `evaluar` 62 — `next((d for d in dimensiones if d.nombre ==
+"calidad"), None)` muta a `next(...)` sin default.
+
+**Prueba:** `dimensiones` es una lista literal construida dos líneas antes en
+la propia función `evaluar`, y uno de sus elementos es siempre
+`evaluar_calidad(...)` (cuyo `nombre` es `"calidad"` por construcción de
+`Dimension`). El generador siempre produce un elemento, así que el default
+`None` nunca se usa: con o sin él el resultado es idéntico y nunca se eleva
+`StopIteration`.
+
+### E4. Rama `else 0.0` del ratio de cobertura es inalcanzable (1)
+
+Mutante: `evaluar` 134 — `ratio = round(...) if total_criterios else 0.0`
+muta el `0.0` a `1.0`.
+
+**Prueba:** la rama `else` solo se ejecuta con `total_criterios == 0`, es
+decir, cero criterios evaluados y cero N/A en las seis dimensiones. Pero
+`evaluar_herramientas` asigna `h1_manifiesto`, `h2_licencia` y
+`h7_decisiones_documentadas` **incondicionalmente** (sin guarda de perfil), así
+que `evaluados >= 3` para cualquier proyecto. Verificado empíricamente: un
+directorio vacío y uno con solo un README dan `evaluados = 3` (los tres
+criterios de herramientas). `total_criterios` nunca es 0 y la rama está
+muerta.
+
+### E5. `"py"` nunca es un lenguaje del perfil (2)
+
+Mutantes: `evaluar` 141 y 142 — el segundo elemento de la tupla
+`("python", "py")` del filtro `leng.lower() not in (...)` muta a `"XXpyXX"` y
+a `"PY"`.
+
+**Prueba:** `perfil.lenguajes` se construye en `analizar_perfil` exclusivamente
+con los **valores** de `EXTENSIONES` (`".py" → "Python"`, `".java" → "Java"`,
+etc.); ninguno es `"py"`. Además `leng.lower()` siempre produce minúsculas, así
+que `"PY"` tampoco puede casar. La pertenencia al segundo elemento de la tupla
+es inobservable para cualquier proyecto real. Verificado aplicando ambos
+mutantes: `TestEvaluarContrato` (que incluye un proyecto Python + JavaScript +
+Java) sigue en verde.
+
+**Consecuencia del segundo lote del evaluador (2026-10-28, clúster
+`evaluar`):** 75 supervivientes triados → **70 mutantes muertos** con 16 tests
+nuevos de contrato exacto en `TestEvaluarContrato` (firma por defecto con red,
+mensaje de `ValueError`, nota de aserciones débiles solo en calidad, global con
+redondeo a 3 decimales, `no_verificado` exacto con y sin código, notas de
+lenguajes con dos no-Python, cobertura completa 29/29, niveles en los bordes
+observables 0.500 y 0.800 —alcanzables con `--ejecutar-tests`, que añade
+`c1b_suite_pasa` y sube el total a 30—, claves y valores del informe, e
+investigación opt-in con `StubLLM`/`StubSearch` y `investigar_preguntas`
+patcheada) y **5 equivalencias demostradas** (E2-E5). Verificación estilo
+mutmut aplicando los 75 diffs uno a uno: 70/70 muertos y los 5 equivalentes
+siguiendo en verde. Contabilidad del evaluador: 1221 − 75 = **1146 brechas** +
+**7 equivalencias** (E1 + E2-E5).

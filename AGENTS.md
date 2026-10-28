@@ -271,7 +271,11 @@ mejora de código (`code_design_improvement_tools.py`).
   r3c3)**: **5984 mutantes, 4764 muertos, 1220 supervivientes, 0 sin tests, 0
   timeouts**; tasa bruta **79,61%**; `evaluar_vigencia` pasa de 82 a 2
   supervivientes, ambos equivalencias demostradas (`docs/TRIAGE-EQUIVALENCIAS.md`,
-  Hallazgo 139); triaje 1220/1220. Los tests exactos de `informe_texto` y
+  Hallazgo 139); triaje 1220/1220. **Re-medición 2026-10-28 (batch
+  r3c4)**: **5984 mutantes, 4846 muertos, 1138 supervivientes, 0 sin tests, 0
+  timeouts**; tasa bruta **80,98%**; `evaluar` pasa de 75 a 5 supervivientes,
+  los 5 equivalencias demostradas (E2-E5 en `docs/TRIAGE-EQUIVALENCIAS.md`,
+  Hallazgo 140); triaje 1138/1138 (**1131 brechas + 7 equivalencias**). Los tests exactos de `informe_texto` y
   `detectar_comando_tests`, más los de `--sin-red` y `cwd`, mataron 504
   mutantes; el contrato de `evaluar_herramientas`/`evaluar_calidad` mató 134
   más; el de `evaluar_vigencia`/`_dependencias_pyproject` mató 144 y el de
@@ -282,7 +286,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1029/1029 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1045/1045 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -300,7 +304,10 @@ mejora de código (`code_design_improvement_tools.py`).
   de manifiestos, exclusiones, imports hermanos y alias (27 en total). El
   refuerzo del 2026-10-26 sumó aserciones exactas de preflight, 2 tests del
   evaluador (`main` sin clave) y 2 de `tests/test_guardrails.py`; la suite
-  quedó en **1018/1018**. El auditor de cambios de
+  quedó en **1018/1018**. Los lotes R3 del 2026-10-28 añadieron tests de
+  contrato exacto del evaluador (`_verificar_test`, `evaluar_vigencia` y
+  `evaluar`; Hallazgos 138-140); la suite quedó en **1045/1045**. El auditor
+  de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

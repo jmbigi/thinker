@@ -3137,3 +3137,53 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   expectativa propio (`'?'` con comillas cuando el código no las pone) se
   detectó ejecutando el test antes que los mutantes: primero verde sobre el
   código correcto, siempre.
+
+### Hallazgo 140: contrato exacto de `evaluar` — 70 mutantes muertos y 5 equivalencias demostradas
+
+- **Acción (R3, tercer lote del 2026-10-28)**: 16 tests nuevos en
+  `TestEvaluarContrato` (`tests/test_evaluar_proyecto.py`) cubriendo la firma
+  (por defecto `con_red=True` —se aserta que PyPI se consulta con mocks— e
+  `investigar=False` aunque haya preguntas abiertas), el mensaje exacto de
+  `ValueError`, la nota de aserciones débiles solo en `calidad`, el `global`
+  como media redondeada a 3 decimales (fixture completa con puntuaciones
+  `[0.75, 0.8, 1.0, 0.857, 1.0, 0.667]` → `0.846`, con 4º decimal no nulo para
+  matar el mutante de `round(..., 4)`), `no_verificado` exacto con y sin
+  código, notas de lenguajes con dos lenguajes no-Python (un solo lenguaje no
+  mata los mutantes del separador `", ".join`: con un elemento el separador es
+  inobservable), cobertura completa 29/29 (fixture con LLM + pesadas + git +
+  red simulada), claves y valores del informe, e investigación opt-in con
+  `StubLLM`/`StubSearch` y `evaluar_proyecto.investigar_preguntas` patcheada
+  (sin red).
+- **Falsa equivalencia evitada (P0.1)**: los mutantes de borde `>= 0.8` /
+  `>= 0.5` (144, 165, 169) parecían equivalentes porque con total=29 el ratio
+  redondeado nunca es 0.800 ni 0.500 (23/29=0.793, 24/29=0.828). La
+  comprobación empírica previa a documentar la equivalencia reveló que con
+  `--ejecutar-tests` calidad añade `c1b_suite_pasa` y el total sube a **30**:
+  24/30 = 0.800 y 15/30 = 0.500 son alcanzables. Se mataron con dos tests de
+  borde que ejecutan la suite del fixture (comando por convención
+  `python -m unittest discover -s tests`, portable, sin `make`). Lección:
+  ninguna equivalencia se declara sin intentar antes construir el contraejemplo.
+- **Equivalencias demostradas (E2-E5 en `docs/TRIAGE-EQUIVALENCIAS.md`)**:
+  `ruta` no se usa en `evaluar_inteligencia` (46); `next` sin default con la
+  dimensión `calidad` siempre presente en la lista literal (62); rama
+  `else 0.0` del ratio inalcanzable porque herramientas siempre evalúa
+  h1/h2/h7 (134); `"py"` nunca es un lenguaje del perfil (141, 142).
+- **Verificación estilo mutmut**: 75 diffs aplicados uno a uno desde
+  `build/triaje-eval-r3c3.json` → la clase debe fallar → restauración.
+  Resultado: **70/75 muertos** y los 5 equivalentes en verde, sin desviaciones.
+  El mutante 87 (`if not con_red:`) necesitó ancla extendida con la línea
+  siguiente: la línea sola aparece también en `evaluar_vigencia`.
+- **Re-medición oficial (batch r3c4)**: **5984 mutantes, 4846 muertos, 1138
+  supervivientes, 0 timeouts, 0 sospechosos, 0 sin tests**; tasa bruta
+  **80,98%** (antes 79,61%). `evaluar`: 75 → 5 (las equivalencias E2-E5). Los
+  12 muertos extra sobre los 70 previstos son mutantes de funciones auxiliares
+  que los tests nuevos también ejercen. Supervivientes: **1131 brechas + 7
+  equivalencias**. Campaña en `build/mut-eval-r3c4`, triaje 1138/1138 en
+  `build/triaje-eval-r3c4.json`.
+- **Evidencia**: suite **1045/1045** (1029 + 16 nuevos), ruff 0, preflight 0,
+  docs-check OK.
+- **Lección**: los mutantes de mensajes largos mueren asertando la lista
+  `no_verificado` **completa y en orden**, no con `assertIn` suelto; los del
+  bloque de investigación mueren con un doble que registra argumentos
+  (`llamadas.append((preguntas, search_api))`) más aserciones de identidad
+  (`assertIs`) y de tipo (`assertIsInstance(..., WikipediaSearchAPI)`).

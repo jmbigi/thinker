@@ -19,7 +19,8 @@ from unittest.mock import patch
 import evaluar_proyecto
 from evaluar_proyecto import (archivos_python, detectar_comando_tests, ejecutar_tests,
                               evaluar, informe_texto, main, parsear_requisitos)
-from tests.helpers import crear_historial_git, crear_proyecto
+from tests.helpers import (StubLLM, StubSearch, crear_historial_git,
+                           crear_proyecto)
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
 
@@ -3706,6 +3707,349 @@ class TestDigestoCalidadErrorYH5(unittest.TestCase):
                            "(OSError: x)",
             "evidencia": "PyPI", "tipo_evidencia": "unverified",
             "criterio": "h5_licencias_libres"})
+
+
+class TestEvaluarContrato(unittest.TestCase):
+    """Contrato exacto de evaluar(): firma, claves del informe, cobertura,
+    no_verificado, nota de aserciones débiles, lenguajes no Python e
+    investigación opt-in."""
+
+    def _fixture_minima(self):
+        return crear_proyecto(self, {"app.py": "x = 1\n"})
+
+    def _fixture_completa(self):
+        """Proyecto con los 29 criterios evaluados y ninguno N/A."""
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": (
+                "[project]\n"
+                'name = "demo"\n'
+                'version = "1.0.0"\n'
+                'license = "MIT"\n'
+                'dependencies = ["openai==1.0.0", "torch==2.0.0"]\n'
+                "[project.scripts]\n"
+                'demo = "app:main"\n'),
+            "requirements.lock": "openai==1.0.0 \\\n    --hash=sha256:abc\n"
+                                 "torch==2.0.0 \\\n    --hash=sha256:def\n",
+            "README.md": "# Demo\n\nDocumenta `app.py`.\n",
+            "LICENSE": "MIT License\n\nCopyright (c) 2026\n",
+            "AGENTS.md": "# Decisiones\n\nDecidido: caché local.\n",
+            "app.py": (
+                "import json\n"
+                "from functools import lru_cache\n\n\n"
+                "@lru_cache\n"
+                "def create_model():\n"
+                "    import torch\n"
+                "    return torch\n\n\n"
+                "def main():\n"
+                "    # mock simulado; metric de benchmark con timeout=5 "
+                "y max_retries\n"
+                "    try:\n"
+                "        return json.loads('{}')\n"
+                "    except json.JSONDecodeError:\n"
+                "        return {}\n\n\n"
+                "if __name__ == '__main__':\n"
+                "    main()\n"),
+            "tests/test_app.py": (
+                "import unittest\n\n"
+                "from app import main\n\n\n"
+                "class TestApp(unittest.TestCase):\n"
+                "    def test_main(self):\n"
+                "        self.assertEqual(main(), {})\n"),
+            ".github/workflows/ci.yml": "name: ci\n",
+            "Makefile": "test:\n\tpython3 -m unittest\n",
+        })
+        crear_historial_git(raiz, 0)
+        return raiz
+
+    def _mocks_pypi(self):
+        versiones = {"openai": "1.0.0", "torch": "2.0.0"}
+        return (
+            patch("evaluar_proyecto.ultima_version_pypi",
+                  side_effect=lambda nombre: {"version": versiones.get(nombre),
+                                              "error": None}),
+            patch("evaluar_proyecto.licencia_pypi",
+                  side_effect=lambda nombre: {"licencia": "MIT", "libre": True,
+                                              "fuente": "PyPI", "error": None}),
+        )
+
+    def test_por_defecto_consulta_versiones_en_red(self):
+        # La firma es con_red=True: sin argumento, v4 consulta PyPI.
+        raiz = crear_proyecto(self, {"requirements.txt": "requests==2.31.0\n"})
+        m_ver, m_lic = self._mocks_pypi()
+        with m_ver as mock_ver, m_lic:
+            evaluar(raiz)
+        self.assertTrue(mock_ver.called)
+
+    def test_ruta_inexistente_mensaje_con_la_ruta(self):
+        with self.assertRaises(ValueError) as ctx:
+            evaluar(Path("/ruta/que/no/existe"), con_red=False)
+        self.assertIn("No es un directorio", str(ctx.exception))
+        self.assertIn("/ruta/que/no/existe", str(ctx.exception))
+
+    def test_nota_de_aserciones_debiles_solo_en_calidad(self):
+        raiz = crear_proyecto(self, {
+            "demo.py": "def sumar(a, b):\n    return a + b\n",
+            "tests/test_weak.py": (
+                "import unittest\n\n\n"
+                "class TestWeak(unittest.TestCase):\n"
+                "    def test_assert_true(self):\n"
+                "        assert True\n\n"
+                "    def test_assert_true_method(self):\n"
+                "        self.assertTrue(True)\n\n"
+                "    def test_equal(self):\n"
+                "        self.assertEqual(1, 1)\n"),
+        })
+
+        informe = evaluar(raiz, con_red=False)
+
+        self.assertEqual(len(informe["aserciones_debiles"]), 3)
+        self.assertIn("aserciones débiles (informativas, no fallo): 3; "
+                      "c5 no mide la fuerza de la suite",
+                      informe["dimensiones"]["calidad"]["notas"])
+        for nombre, datos in informe["dimensiones"].items():
+            if nombre != "calidad":
+                self.assertFalse(any("aserciones débiles" in nota
+                                     for nota in datos["notas"]), nombre)
+
+    def test_global_es_la_media_redondeada_a_3_decimales(self):
+        raiz = self._fixture_completa()
+        m_ver, m_lic = self._mocks_pypi()
+        with m_ver, m_lic:
+            informe = evaluar(raiz, con_red=True)
+        puntuaciones = [d["puntuacion"] for d in informe["dimensiones"].values()
+                        if d["puntuacion"] is not None]
+        self.assertEqual(puntuaciones, [0.75, 0.8, 1.0, 0.857, 1.0, 0.667])
+        esperado = round(sum(puntuaciones) / len(puntuaciones), 3)
+        self.assertEqual(esperado, 0.846)   # 4º decimal distinto de 0
+        self.assertEqual(informe["global"], esperado)
+        self.assertIsInstance(informe["global"], float)
+
+    def test_no_verificado_exacto_con_codigo(self):
+        informe = evaluar(self._fixture_minima(), con_red=False)
+        self.assertEqual(informe["no_verificado"], [
+            "la suite de tests NO se ejecuta (usa --ejecutar-tests para "
+            "verificarla; P0.8: ejecutar código ajeno es opt-in)",
+            "versiones y licencias de dependencias no consultadas (--sin-red)"])
+
+    def test_no_verificado_exacto_sin_codigo(self):
+        raiz = crear_proyecto(self, {"README.md": "solo docs\n"})
+        informe = evaluar(raiz, con_red=False)
+        self.assertEqual(informe["no_verificado"], [
+            "la suite de tests NO se ejecuta (usa --ejecutar-tests para "
+            "verificarla; P0.8: ejecutar código ajeno es opt-in)",
+            "versiones y licencias de dependencias no consultadas (--sin-red)",
+            "sin archivos de código detectados: cobertura vacía"])
+
+    def test_lenguajes_mixtos_notas_exactas(self):
+        raiz = crear_proyecto(self, {"app.py": "x = 1\n",
+                                     "front.js": "console.log(1)\n",
+                                     "Demo.java": "class Demo {}\n"})
+        cobertura = evaluar(raiz, con_red=False)["cobertura"]
+        self.assertEqual(cobertura["lenguajes"],
+                         {"Java": 1, "JavaScript": 1, "Python": 1})
+        self.assertEqual(cobertura["nota_lenguajes"],
+                         "Python: AST y criterios nativos; Java, JavaScript: "
+                         "sin AST ni paridad, solo señales genéricas")
+        self.assertEqual(cobertura["motivo_no_comparable"],
+                         "cobertura 41% < 80%; Java, JavaScript solo recibe "
+                         "señales genéricas")
+
+    def test_ratio_exactamente_05_es_nivel_media(self):
+        # Con la suite ejecutada (opt-in) el total sube a 30 y 15/30 = 0.500:
+        # el borde `>= 0.5` es observable y debe dar "media".
+        raiz = crear_proyecto(self, {
+            "app.py": "x = 1\n",
+            "tests/test_a.py": "def test_a():\n    assert True\n",
+        })
+        cobertura = evaluar(raiz, con_red=False,
+                            ejecutar_tests_flag=True)["cobertura"]
+        self.assertEqual(cobertura["ratio_evaluado"], 0.5)
+        self.assertEqual(cobertura["nivel"], "media")
+        self.assertFalse(cobertura["comparable"])
+        self.assertEqual(cobertura["motivo_no_comparable"],
+                         "cobertura 50% < 80%")
+
+    def test_ratio_exactamente_08_es_comparable_y_alta(self):
+        # 24/30 = 0.800: el borde `>= 0.8` es observable y debe dar
+        # comparable + "alta".
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ("[project]\n"
+                               'name = "demo"\n'
+                               'version = "1.0.0"\n'
+                               'dependencies = ["openai==1.0.0"]\n'),
+            "requirements.lock": "openai==1.0.0 \\\n    --hash=sha256:abc\n",
+            "README.md": "# Demo\n\nDocumenta `app.py`.\n",
+            "LICENSE": "MIT License\n\nCopyright (c) 2026\n",
+            "app.py": (
+                "import json\n"
+                "from functools import lru_cache\n\n\n"
+                "@lru_cache\n"
+                "def pedir(prompt):\n"
+                "    # mock simulado; metric de benchmark con timeout=5 "
+                "y max_retries\n"
+                "    try:\n"
+                "        return json.loads('{}')\n"
+                "    except json.JSONDecodeError:\n"
+                "        return {}\n"),
+            "tests/test_app.py": (
+                "import unittest\n\n"
+                "from app import pedir\n\n\n"
+                "class TestApp(unittest.TestCase):\n"
+                "    def test_pedir(self):\n"
+                "        self.assertEqual(pedir('x'), {})\n"),
+            ".github/workflows/ci.yml": "name: ci\n",
+        })
+        cobertura = evaluar(raiz, con_red=False,
+                            ejecutar_tests_flag=True)["cobertura"]
+        self.assertEqual(cobertura["ratio_evaluado"], 0.8)
+        self.assertEqual(cobertura["nivel"], "alta")
+        self.assertTrue(cobertura["comparable"])
+        self.assertEqual(cobertura["motivo_no_comparable"], "")
+
+    def test_cobertura_completa_sin_no_aplicables(self):
+        raiz = self._fixture_completa()
+        m_ver, m_lic = self._mocks_pypi()
+        with m_ver, m_lic:
+            cobertura = evaluar(raiz, con_red=True)["cobertura"]
+        self.assertEqual(cobertura["criterios_evaluados"], 29)
+        self.assertEqual(cobertura["criterios_no_aplicables"], 0)
+        self.assertEqual(cobertura["ratio_evaluado"], 1.0)
+        self.assertEqual(cobertura["nivel"], "alta")
+        self.assertTrue(cobertura["comparable"])
+        self.assertEqual(cobertura["motivo_no_comparable"], "")
+        self.assertEqual(cobertura["nota_no_aplicables"], "")
+        self.assertEqual(cobertura["dimensiones_no_aplicables"], [])
+        self.assertEqual(cobertura["dimensiones_evaluadas"],
+                         ["funcionalidades", "calidad", "vigencia",
+                          "herramientas", "inteligencia", "eficiencia"])
+
+    def test_nivel_media_en_cobertura_intermedia(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ("[project]\n"
+                               'name = "demo"\n'
+                               'version = "1.0.0"\n'
+                               'dependencies = ["openai==1.0.0"]\n'),
+            "requirements.lock": "openai==1.0.0 \\\n    --hash=sha256:abc\n",
+            "README.md": "# Demo\n\nDocumenta `app.py`.\n",
+            "LICENSE": "MIT License\n\nCopyright (c) 2026\n",
+            "app.py": (
+                "import json\n"
+                "from functools import lru_cache\n\n\n"
+                "@lru_cache\n"
+                "def pedir(prompt):\n"
+                "    # mock simulado; metric de benchmark con timeout=5 "
+                "y max_retries\n"
+                "    try:\n"
+                "        return json.loads('{}')\n"
+                "    except json.JSONDecodeError:\n"
+                "        return {}\n"),
+            "tests/test_app.py": (
+                "import unittest\n\n"
+                "from app import pedir\n\n\n"
+                "class TestApp(unittest.TestCase):\n"
+                "    def test_pedir(self):\n"
+                "        self.assertEqual(pedir('x'), {})\n"),
+            ".github/workflows/ci.yml": "name: ci\n",
+            "Makefile": "test:\n\tpython3 -m unittest\n",
+        })
+        cobertura = evaluar(raiz, con_red=False)["cobertura"]
+        self.assertEqual(cobertura["ratio_evaluado"], 0.793)
+        self.assertEqual(cobertura["nivel"], "media")
+        self.assertFalse(cobertura["comparable"])
+        self.assertEqual(cobertura["motivo_no_comparable"],
+                         "cobertura 79% < 80%")
+
+    def test_claves_y_valores_del_informe(self):
+        raiz = self._fixture_minima()
+        informe = evaluar(raiz, con_red=False)
+        self.assertEqual(set(informe), {
+            "schema_version", "ruta", "archivos_python", "lineas_python",
+            "perfil", "cobertura", "dependencias", "licencias_no_runtime",
+            "aserciones_debiles", "dimensiones", "global", "global_nota",
+            "no_verificado", "evidencia", "mejoras"})
+        self.assertEqual(informe["schema_version"],
+                         evaluar_proyecto.SCHEMA_VERSION)
+        self.assertEqual(informe["ruta"], str(raiz))
+        self.assertEqual(informe["archivos_python"], 1)
+        self.assertEqual(informe["lineas_python"], 1)
+        self.assertEqual(informe["dependencias"], [])
+        self.assertEqual(informe["licencias_no_runtime"], [])
+        self.assertEqual(informe["aserciones_debiles"], [])
+        self.assertEqual(informe["global_nota"],
+                         "media de criterios aplicables: no es comparable "
+                         "entre proyectos con coberturas distintas; revisar "
+                         "`cobertura`")
+        self.assertEqual(set(informe["cobertura"]), {
+            "criterios_evaluados", "criterios_no_aplicables", "ratio_evaluado",
+            "nivel", "comparable", "motivo_no_comparable", "nota_lenguajes",
+            "dimensiones_evaluadas", "dimensiones_no_aplicables", "lenguajes",
+            "nota_no_aplicables"})
+
+    def test_investigacion_contenido_exacto(self):
+        llm = StubLLM(lambda p: '{"propuestas": [], "preguntas_abiertas": '
+                                '["¿Pregunta uno?"]}')
+        busqueda = StubSearch([{"title": "Título",
+                                "url": "https://ejemplo.invalid"}])
+
+        informe = evaluar(self._fixture_minima(), con_red=False, llm=llm,
+                          investigar=True, search_api=busqueda)
+
+        self.assertEqual(informe["investigacion"], [
+            {"pregunta": "¿Pregunta uno?",
+             "fuentes": [{"titulo": "Título", "url": "https://ejemplo.invalid"}],
+             "sin_resultados": False}])
+        self.assertEqual(len(busqueda.queries), 1)
+
+    def test_no_investiga_sin_opt_in_aunque_haya_preguntas(self):
+        # investigar=False por defecto: las preguntas abiertas no disparan
+        # búsqueda alguna.
+        llm = StubLLM(lambda p: '{"propuestas": [], "preguntas_abiertas": '
+                                '["¿Pregunta uno?"]}')
+        informe = evaluar(self._fixture_minima(), con_red=False, llm=llm,
+                          search_api=StubSearch([]))
+        self.assertIn("sintesis_llm", informe)
+        self.assertNotIn("investigacion", informe)
+
+    def test_investigar_sin_search_api_usa_wikipedia(self):
+        from web_search import WikipediaSearchAPI
+        llamadas = []
+
+        def falsa_investigacion(preguntas, search_api):
+            llamadas.append((preguntas, search_api))
+            return [{"pregunta": p, "fuentes": [], "sin_resultados": True}
+                    for p in preguntas]
+
+        llm = StubLLM(lambda p: '{"propuestas": [], "preguntas_abiertas": '
+                                '["¿Pregunta uno?"]}')
+        with patch("evaluar_proyecto.investigar_preguntas",
+                   side_effect=falsa_investigacion):
+            informe = evaluar(self._fixture_minima(), con_red=False, llm=llm,
+                              investigar=True)
+
+        self.assertEqual(len(llamadas), 1)
+        self.assertEqual(llamadas[0][0], ["¿Pregunta uno?"])
+        self.assertIsInstance(llamadas[0][1], WikipediaSearchAPI)
+        self.assertEqual(informe["investigacion"], [
+            {"pregunta": "¿Pregunta uno?", "fuentes": [],
+             "sin_resultados": True}])
+
+    def test_investigar_respeta_la_search_api_pasada(self):
+        llamadas = []
+
+        def falsa_investigacion(preguntas, search_api):
+            llamadas.append((preguntas, search_api))
+            return []
+
+        llm = StubLLM(lambda p: '{"propuestas": [], "preguntas_abiertas": '
+                                '["¿Pregunta uno?"]}')
+        busqueda = StubSearch([])
+        with patch("evaluar_proyecto.investigar_preguntas",
+                   side_effect=falsa_investigacion):
+            evaluar(self._fixture_minima(), con_red=False, llm=llm,
+                    investigar=True, search_api=busqueda)
+
+        self.assertEqual(len(llamadas), 1)
+        self.assertIs(llamadas[0][1], busqueda)
 
 
 if __name__ == "__main__":

@@ -548,7 +548,7 @@ de solo lectura) y los plugins citados por el documento externo devuelven
 
 **Actualización 2026-10-28** (lock `openai` 3.40.0 + lote dirigido R3):
 autoevaluación **con red 1.000** (v4 OK tras el bump; 0 hallazgos) y **sin
-red 1.000**. Suite **1029/1029** en Linux (Python 3.11.9, openai 3.40.0 en el
+red 1.000**. Suite **1045/1045** en Linux (Python 3.11.9, openai 3.40.0 en el
 entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
 supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
 los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
@@ -562,5 +562,15 @@ matan** en verificación estilo mutmut y 2 equivalencias demostradas
 (`docs/TRIAGE-EQUIVALENCIAS.md`). La re-medición oficial (batch r3c3) lo
 confirma: **5984 mutantes, 4764 muertos, 1220 supervivientes** (1218 brechas +
 2 equivalencias), 0 timeouts, tasa bruta **79,61%**; `evaluar_vigencia`
-82 → 2 (ambas equivalencias). Suite **1029/1029**. R3 sigue **parcial**
-(1218 brechas).
+82 → 2 (ambas equivalencias). Tercer lote R3 (mismo día): 16 tests de contrato
+exacto de `evaluar` (firma por defecto, `ValueError` con la ruta, nota de
+aserciones débiles solo en calidad, `global` con redondeo a 3 decimales,
+`no_verificado` exacto, lenguajes no-Python con separador observable, bordes de
+cobertura 0.500 y 0.800 alcanzables con `--ejecutar-tests` —total 30—, claves
+del informe e investigación opt-in con dobles); **70/75 mutantes mueren** en
+verificación estilo mutmut y 5 equivalencias demostradas (E2-E5 en
+`docs/TRIAGE-EQUIVALENCIAS.md`). La re-medición oficial (batch r3c4) lo
+confirma: **5984 mutantes, 4846 muertos, 1138 supervivientes** (1131 brechas +
+7 equivalencias), 0 timeouts, tasa bruta **80,98%**; `evaluar` 75 → 5 (las
+equivalencias). Suite **1045/1045**. R3 sigue **parcial**
+(1131 brechas).
