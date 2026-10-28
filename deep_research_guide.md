@@ -1,5 +1,11 @@
 # Herramientas de código abierto para investigación profunda con LLM: guía actualizada a octubre de 2026
 
+> **Documento externo de referencia**, independiente del estado del proyecto:
+> describe el ecosistema (frameworks, papers y herramientas de terceros), no
+> las capacidades verificadas de `thinker`. El estado del proyecto está en
+> `README.md`, `docs/EVALUACIONES.md` y `docs/TRIAGE-R3.md`. Las cifras y
+> enlaces de esta guía se comprobaron en las fechas que cita y pueden cambiar.
+
 ## 1. Introducción
 
 La investigación profunda asistida por modelos de lenguaje (LLM) ha evolucionado más allá de los sistemas que simplemente responden preguntas a partir de una búsqueda web. Los frameworks actuales pueden descomponer problemas complejos, ejecutar búsquedas iterativas, leer documentos, contrastar evidencias, identificar contradicciones y producir informes estructurados con referencias a sus fuentes.

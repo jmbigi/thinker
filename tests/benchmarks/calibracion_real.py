@@ -135,6 +135,32 @@ def calcular_brier(confianzas, aciertos):
                for c, a in zip(confianzas, aciertos)) / len(confianzas)
 
 
+def brier_con_intervalo(confianzas, aciertos, muestras=2000, semilla=0):
+    """Brier + IC bootstrap 95% (percentiles), determinista para una semilla.
+
+    Con n=20 el intervalo será ancho: es la forma honesta de mostrar que un
+    Brier bajo en una muestra pequeña no prueba calibración general. Devuelve
+    None sin pares.
+    """
+    import random
+
+    pares = list(zip(confianzas, aciertos))
+    if not pares:
+        return None
+    brier = calcular_brier(confianzas, aciertos)
+    azar = random.Random(semilla)
+    remuestras = []
+    for _ in range(muestras):
+        elegidos = [pares[azar.randrange(len(pares))] for _ in pares]
+        remuestras.append(calcular_brier([c for c, _ in elegidos],
+                                         [a for _, a in elegidos]))
+    remuestras.sort()
+    inferior = remuestras[int(0.025 * (muestras - 1))]
+    superior = remuestras[int(0.975 * (muestras - 1))]
+    return {"brier": round(brier, 4), "n": len(pares),
+            "ic95": [round(inferior, 4), round(superior, 4)]}
+
+
 def tabla_fiabilidad(confianzas, aciertos):
     tramos = ((0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0))
     filas = []
@@ -182,6 +208,7 @@ def ejecutar():
     return {
         "n": len(CASOS),
         "brier": round(calcular_brier(confianzas, aciertos), 4),
+        "intervalo": brier_con_intervalo(confianzas, aciertos),
         "tabla_fiabilidad": tabla_fiabilidad(confianzas, aciertos),
         "calibrada": False,
         "modelo": getattr(llm, "model", "?"),

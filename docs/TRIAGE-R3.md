@@ -148,3 +148,12 @@ documento conserva el resumen y la clasificación.
 - **R3 no se cierra como tasa limpia:** quedan **1131 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
+- **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/
+  r3c6):** ninguna cifra de campaña se publica sin una **muestra directa
+  verificada**: 5-10 diffs declarados «killed» se aplican a mano al fuente, se
+  ejecuta la suite de la campaña y deben **fallar**. Si alguno sobrevive, la
+  campaña se descarta y se investiga el entorno (mutmut 3.6.0 + pytest 9.0.2
+  quedó bajo sospecha el 2026-10-28: dos campañas consecutivas reportaron los
+  mismos 5644 «killed» y la prueba directa sobre cuatro diffs mostró que
+  sobreviven). La cifra oficial vigente es la de r3c4 hasta que una campaña
+  pase esta verificación.

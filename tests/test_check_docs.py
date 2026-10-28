@@ -56,6 +56,19 @@ class TestCheckDocs(unittest.TestCase):
         self.assertTrue(any("EVALUACIONES.md declara 4 tests y hay 3" in p
                             for p in problemas), problemas)
 
+    def test_cifra_de_la_seccion_de_estado_tambien_se_vigila(self):
+        # Antes del primer bloque histórico hay estado presente: una cifra
+        # obsoleta ahí debe fallar igual que el último bloque.
+        raiz = self._repo(**{"docs/EVALUACIONES.md": (
+            "### Autoevaluación\n\n"
+            "**Con red**: 1.000. Suite **9/9** en Linux.\n\n"
+            "**Actualización 2026-10-23**\nSuite **3/3** en Linux.\n")})
+
+        problemas = verificar(raiz)
+
+        self.assertTrue(any("sección de estado" in p and "9" in p
+                            for p in problemas), problemas)
+
     def test_pin_distinto_entre_requirements_y_lock(self):
         raiz = self._repo(**{"requirements.lock": "requests==1.9.0\nopenai==2.5.0\n"})
 

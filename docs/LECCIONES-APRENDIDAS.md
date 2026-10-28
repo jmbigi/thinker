@@ -3297,9 +3297,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Incidente de proceso**: los 5 subagentes de apoyo fallaron por límite de
   cuota del proveedor (429); el trabajo se hizo en el agente principal. Se
   declara para que la evidencia de tiempos no se malinterprete.
-- **Verificación**: suite **1091/1091** (1057 + 34), ruff 0, preflight 0,
-  docs-check OK, escáner del repo limpio, `make verify-install` 17/17.
-  Re-medición de mutación r3c5 en curso por el cambio en `evaluar_proyecto.py`.
+- **Acciones documentales del análisis integral (mismo día)**:
+  `check_docs.py` ahora vigila también las cifras de suite de la **sección de
+  estado presente** de `EVALUACIONES.md` (antes solo el último bloque; la
+  cifra de la sección de autoevaluación había derivado sin que el gate lo
+  viera), con test nuevo; `brier_con_intervalo` en
+  `tests/benchmarks/calibracion_real.py` calcula IC bootstrap 95% determinista
+  (3 tests) — los pares del piloto n=20 **no se persistieron**, así que no se
+  inventa su intervalo: el instrumento lo producirá en la próxima ejecución
+  real (opt-in, P0.19); nota de «documento externo» en
+  `deep_research_guide.md` (GUIA-NCM ya la tenía); criterio de aceptación de
+  campañas futuras en `docs/TRIAGE-R3.md` (muestra de diffs «killed»
+  verificada a mano antes de publicar una cifra); checklist de
+  `docs/PUBLICACION.md` con informe de calidad regenerado y la aclaración de
+  que la CI espejo no sustituye `make ci` ni verifica PyPI; `AGENTS.md`
+  aclara que `REGLAS-COMPLETAS`/`SESGOS-Y-FALACIAS` viven en los repos
+  origen, no en este árbol.
+- **Verificación**: suite **1102/1102** (1057 + 45 nuevos), ruff 0, preflight
+  0, docs-check OK (con la vigilancia ampliada), escáner del repo limpio,
+  `make verify-install` 17/17. Re-medición de mutación: ver nota del artefacto
+  r3c5/r3c6; la cifra oficial sigue siendo r3c4 hasta que una campaña pase la
+  muestra directa.
 - **Lección**: los canarios de los tests de seguridad deben construirse en
   runtime (concatenación) o el propio test se convierte en hallazgo del
   escáner; y un límite de recursos solo es verificable si el subproceso lo

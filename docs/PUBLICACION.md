@@ -317,6 +317,14 @@ https://test.pypi.org/manage/account/token/.
 - [ ] Versión incrementada en `pyproject.toml` (`[project] version`).
 - [ ] Batería en verde: `ruff check .`, `python3 scripts/preflight.py`,
   `python3 -m unittest discover -s tests`, `make ci`.
+- [ ] **Informe de calidad regenerado y en verde**:
+  `python3 scripts/informe_calidad.py` → `docs/informe-calidad.json` con los
+  7 controles `PASS` y el commit evaluado. Se conserva con el release como
+  ficha reproducible.
+- [ ] La **CI espejo** de GitHub Actions (badge) no sustituye a `make ci` ni
+  verifica TestPyPI/PyPI: el checklist se ejecuta igual en local, y las
+  publicaciones se comprueban con `pip download`/instalación limpia desde los
+  índices reales.
 - [ ] **Artefactos de build limpios** (Hallazgo 83: setuptools no limpia
   `build/` entre compilaciones y puede empaquetar paquetes retirados):
   construir desde una copia limpia del tag o apartar `build/` y
@@ -324,7 +332,7 @@ https://test.pypi.org/manage/account/token/.
 - [ ] `python3 -m build` y
   `python3 -m twine check dist/thinker_research-0.1.13*` en verde.
 - [ ] Revisar el METADATA del wheel: `Name: thinker-research`,
-  `Version: 0.1.9` y sin frases transitorias sobre PyPI o el tag.
+  `Version: <la del release>` y sin frases transitorias sobre PyPI o el tag.
 - [ ] `git status` limpio, tag anotado y `git ls-remote` confirma el tag en
   el remoto.
 

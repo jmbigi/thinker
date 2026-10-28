@@ -4,7 +4,8 @@
 > Deriva de [jmbigi/better-ai](https://github.com/jmbigi/better-ai) (CC BY-SA 4.0)
 > y [jmbigi/better-project](https://github.com/jmbigi/better-project) (GPL-3.0-or-later),
 > adaptado a ESTE proyecto. Detalle y justificación de cada regla: `docs/REGLAS-COMPLETAS.md`
-> y `docs/SESGOS-Y-FALACIAS.md` de esos repositorios.
+> y `docs/SESGOS-Y-FALACIAS.md` **de esos repositorios** (no están en este
+> árbol; aquí solo vive este resumen adaptado).
 
 ## Prioridad
 
@@ -305,7 +306,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1098/1098 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1102/1102 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -332,7 +333,7 @@ mejora de código (`code_design_improvement_tools.py`).
   (tests de contrato de proveedores y fallos de recuperación, pruebas
   adversarias de seguridad, escáner de secretos portable, límites de CPU en
   `--ejecutar-tests`, esquema JSON `docs/schema-v2.json`, higiene OSS y CI
-  espejo en GitHub Actions; Hallazgo 142) dejó la suite en **1098/1098**. El
+  espejo en GitHub Actions; Hallazgo 142) dejó la suite en **1102/1102**. El
   auditor
   de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).

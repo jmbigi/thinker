@@ -73,6 +73,17 @@ def _declarado_evaluaciones(raiz: Path) -> int:
     return int(coincidencia.group(1))
 
 
+def _cifras_presentes_evaluaciones(raiz: Path) -> list:
+    """Cifras de suite de la sección de estado presente (antes del primer
+    bloque 'Actualización'): deben cuadrar con la realidad, igual que el
+    último bloque. Los bloques fechados son históricos y no se tocan."""
+    texto = (raiz / "docs" / "EVALUACIONES.md").read_text(encoding="utf-8")
+    primera = texto.find("**Actualización ")
+    cabecera = texto if primera == -1 else texto[:primera]
+    return [int(m.group(1)) for m in
+            re.finditer(r"Suite \*\*(\d+)/\1\*\* en Linux", cabecera)]
+
+
 def _cifra_mutacion(texto: str, patron: re.Pattern) -> tuple | None:
     """Extrae (porcentaje, muertos, total) de una afirmación de mutación."""
     coincidencia = patron.search(texto)
@@ -145,6 +156,12 @@ def verificar(raiz: Path) -> list[str]:
         if declarado != real:
             problemas.append(f"{nombre} declara {declarado} tests y hay {real}: "
                              "actualiza la cifra o retira la afirmación")
+    for declarado in _cifras_presentes_evaluaciones(raiz):
+        if declarado != real:
+            problemas.append(
+                f"docs/EVALUACIONES.md (sección de estado, antes del primer "
+                f"bloque histórico) declara {declarado} tests y hay {real}: "
+                "actualiza la cifra o retira la afirmación")
 
     readme = raiz / "README.md"
     if readme.exists():
