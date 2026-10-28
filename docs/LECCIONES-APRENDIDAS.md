@@ -3097,10 +3097,13 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Verificación estilo mutmut**: cada uno de los 16 mutantes se aplicó al
   fuente desde su diff del triaje, se ejecutó la clase de tests (debe FALLAR)
   y se restauró el archivo; resultado **16/16 muertos**, diff final vacío.
-  La re-medición oficial con `scripts/mutacion.py --objetivo evaluar` queda
-  pendiente; la cifra de campaña (1319 brechas, 2026-10-26) no se toca hasta
-  entonces.
-- **Evidencia**: suite **1019/1019**, ruff 0, preflight OK, docs-check OK.
+  La **re-medición oficial** (`scripts/mutacion.py --objetivo evaluar`, batch
+  r3c2, 2026-10-28) lo confirma: **5984 mutantes, 4681 muertos, 1303
+  supervivientes**, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
+  **78,23%** (antes 77,96%); `_verificar_test` 16 → 0.
+- **Evidencia**: suite **1019/1019**, ruff 0, preflight OK, docs-check OK;
+  campaña conservada en `build/mut-eval-r3c2` y triaje en
+  `build/triaje-eval-r3c2.json`.
 - **Lección**: la investigación externa (MutGen/MuTAP: feedback de mutantes)
   se confirma en la práctica — los supervivientes eran todos «aserción
   ausente», no defectos del código; el diff del triaje es el prompt exacto

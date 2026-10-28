@@ -16,7 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4665/5984, 1319 brechas, 0 timeouts; triaje 1368/1368 | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4681/5984, 1303 brechas, 0 timeouts; triaje 1352/1352 (re-medición 2026-10-28, batch r3c2) | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -63,7 +63,7 @@ re-medición.
 | Cobertura `scripts/preflight.py` | **93%** (26/425) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Mutación preflight | **95,18%** (967/1016; 49 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo preflight` |
-| Mutación evaluador | **77,96%** (4665/5984; 1319 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo evaluar` |
+| Mutación evaluador | **78,23%** (4681/5984; 1303 supervivientes, 0 timeouts; 2026-10-28) | `python3 scripts/mutacion.py --objetivo evaluar` |
 | Paquete publicado | **0.1.11** (2026-10-25; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
@@ -177,11 +177,18 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   cobertura**, **49 equivalencias demostradas** y **0 timeouts**. Detalle y
   razones en `docs/TRIAGE-R3.md` y `docs/TRIAGE-EQUIVALENCIAS.md`. No es una
   tasa limpia: 1319 siguen sin matar.
+- **Re-medición oficial (2026-10-28, batch r3c2):** **5984 mutantes, 4681
+  muertos, 1303 supervivientes, 0 sin tests, 0 timeouts**, 0 sospechosos; tasa
+  bruta **78,23%**. El test de contrato exacto de `_verificar_test` (Hallazgo
+  138) mata sus 16 supervivientes (16 → 0); triaje r3c2: 1303/1303, todas
+  brechas de aserción. Campaña y triaje conservados en `build/mut-eval-r3c2`
+  y `build/triaje-eval-r3c2.json`.
 - **Límite:** los denominadores no se mezclan con el 95,2% del núcleo ni entre
   sí. La mejora del preflight no autoriza a presentar el evaluador como sano.
 - **Criterio de aceptación:** [x] evaluador medido; [x] comando reproducible
   empaquetado; [x] 0 mutantes sin categoría de triaje (1368/1368); [x] 0
-  timeouts (re-medido); [ ] tasa limpia (1319 aserciones pendientes).
+  timeouts (re-medido); [ ] tasa limpia (1303 aserciones pendientes tras la
+  re-medición 2026-10-28, batch r3c2).
 - **Riesgo:** medio; el triaje del evaluador sigue siendo la deuda principal.
 
 ### R4 — Benchmark de precisión/recall del evaluador — CERRADA 2026-10-26 (alcance offline)
@@ -395,14 +402,14 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
-| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 1319 aserciones (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 1319 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
+| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 1303 aserciones (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 1303 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
 
 **Orden:** R3-C es la única deuda P1 abierta; R4 se cerró por alcance offline.
 R5-A, R6-C, R13-B/C y R14-B/C están implementadas; R14-C es un piloto real
 n=20, no una calibración general.
 
 - **R3 no requiere decisión de producto**: R3-C es P1 y sigue abierta; no se
-  cierra con 1319 brechas.
+  cierra con 1303 brechas.
 - **R5, R6 y R13 están cerradas**; no se reabren sin evidencia nueva.
 - **R14** cerrada por declaración; B (Brier simulado) y C (piloto real n=20)
   implementadas; ampliar la muestra sigue siendo trabajo futuro.
@@ -423,7 +430,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-26) | `preflight`, `mutacion`/`triaje_mutantes`, `evaluar_proyecto` y `code_design_improvement_tools` | preflight 967/1016, 49 equivalencias y 0 brechas; evaluador 4665/5984, 1319 brechas, 0 timeouts; autoevaluación offline 1.000 (25/29, 86,2% cobertura) sin hallazgos; el análisis estático no reportó defectos → se reforzaron aserciones, no se refactorizó; el triaje dirigió los clusters y detectó `_es_main`, e1/e2 | 116 tests nuevos en la suite (preflight, evaluador y salvaguardas), 2 campañas re-medidas, triaje 1368/1368, 0 timeouts; suite 1018/1018 |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 57 casos (5 trampas), 26 criterios, 26 TP/0 FP/0 FN, 1,00/1,00; c4/h4/v3/i1-i6/e1-e3 añadidos; encontró y corrigió dos defectos e1/e2 | `test_evaluador_precision` |
 | R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 902/902 (cierre); 1018/1018 actual |
-| R3 (2026-10-28) | `triaje_mutantes` (JSON de triaje) y `evaluar_proyecto` | 16 supervivientes de `_verificar_test` con su diff; 3 bordes sin aserción exacta identificados (rama `existe is None`, condición `ejecutado/error`, cadena de motivo) | 1 test de contrato nuevo; **16/16 mutantes mueren** en verificación manual estilo mutmut (mutante aplicado → tests fallan → restauración); suite **1019/1019**; re-medición de campaña pendiente |
+| R3 (2026-10-28) | `triaje_mutantes` (JSON de triaje) y `evaluar_proyecto` | 16 supervivientes de `_verificar_test` con su diff; 3 bordes sin aserción exacta identificados (rama `existe is None`, condición `ejecutado/error`, cadena de motivo) | 1 test de contrato nuevo; **16/16 mutantes mueren** (verificación manual estilo mutmut) y la **re-medición oficial r3c2 lo confirma**: 4681/5984, 1303 brechas, 0 timeouts; suite **1019/1019** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -456,8 +463,8 @@ declaradas). **Pendiente de ejecución:**
 1. **R3-C:** preflight 0 brechas reales (967/1016; 95,18%; 49 equivalencias) y
    evaluador 1319 brechas (4665/5984; 77,96%), con **0 timeouts** y
    triaje 1368/1368. El 2026-10-28 se atacaron 16 (`_verificar_test`; 16/16
-   muertos en verificación manual estilo mutmut): quedan 1303 hasta la próxima
-   re-medición de campaña; no cerrar hasta 0 brechas.
+   muertos, confirmado por la re-medición oficial r3c2): quedan **1303**
+   (oficial: 4681/5984; 78,23%); no cerrar hasta 0 brechas.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,

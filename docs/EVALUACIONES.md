@@ -552,6 +552,7 @@ red 1.000**. Suite **1019/1019** en Linux (Python 3.11.9, openai 3.40.0 en el
 entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
 supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
 los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
-fuente → la clase de tests falla → restauración; diff vacío al final). La
-cifra oficial de la campaña (1319 brechas, 2026-10-26) se actualiza tras la
-próxima re-medición con `scripts/mutacion.py`; R3 sigue **parcial**.
+fuente → la clase de tests falla → restauración; diff vacío al final) y la
+re-medición oficial lo confirma (batch r3c2): **5984 mutantes, 4681 muertos,
+1303 supervivientes**, 0 timeouts, tasa bruta **78,23%**; `_verificar_test`
+16 → 0. R3 sigue **parcial** (1303 brechas).

@@ -263,7 +263,11 @@ mejora de código (`code_design_improvement_tools.py`).
   r3c)**: **5984 mutantes, 4665 muertos, 1319 supervivientes, 0 sin tests, 0
   timeouts**; tasa bruta **77,96%**. Triaje de inventario **1368/1368**: 1319
   brechas (todas del evaluador), 49 equivalencias demostradas y 0 timeouts; detalle en `docs/TRIAGE-R3.md` y
-  `docs/TRIAGE-EQUIVALENCIAS.md`. Los tests exactos de `informe_texto` y
+  `docs/TRIAGE-EQUIVALENCIAS.md`. **Re-medición 2026-10-28 (batch r3c2)**:
+  **5984 mutantes, 4681 muertos, 1303 supervivientes, 0 sin tests, 0
+  timeouts**; tasa bruta **78,23%**; `_verificar_test` pasa de 16 a 0
+  supervivientes (test de contrato exacto de bordes, Hallazgo 138); triaje
+  1303/1303 (todas brechas de aserción). Los tests exactos de `informe_texto` y
   `detectar_comando_tests`, más los de `--sin-red` y `cwd`, mataron 504
   mutantes; el contrato de `evaluar_herramientas`/`evaluar_calidad` mató 134
   más; el de `evaluar_vigencia`/`_dependencias_pyproject` mató 144 y el de
