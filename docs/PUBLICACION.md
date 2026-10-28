@@ -50,9 +50,9 @@
 - **Publicación completada de `0.1.14`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.14` (`324848a`) y verificación limpia; ver la
   sección 0.1.14.
-- **Publicación completada de `0.1.15`**: en curso con esta guía (TestPyPI y
-  PyPI, hashes coincidentes, tag anotado `v0.1.15`, instalación limpia); los
-  resultados se anotan al cierre.
+- **Publicación completada de `0.1.15`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.15` (`6d81fc5`) y verificación limpia; ver la
+  sección 0.1.15.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -112,8 +112,15 @@ factual de evaluación de evidencia incluido en el repo (no se empaqueta:
 `tests/` no se instala).
 
 Estado: **publicada en TestPyPI y PyPI el 2026-10-28**. Artefactos
-construidos desde el tag `v0.1.15`; `twine check` PASSED. Hashes SHA-256 y
-verificación de instalación limpia en el cierre del release.
+construidos desde el tag `v0.1.15`; `twine check` PASSED. Hashes SHA-256:
+`753d7d8b536859f3b37862bcc34cf48874e5d4b26fb5108532c170f82d2be399` (wheel) y
+`e1825dec78bc3771ed8f82722d08b9100a23708fc4c2ff2c66fa611f1411b08e` (sdist).
+Verificación: TestPyPI y PyPI publican esos hashes; instalación limpia
+`thinker-research==0.1.15` desde ambos índices OK; los 8 módulos públicos +
+`plugins.registry` + `scripts.preflight` + `scripts.doctor` +
+`scripts.mutacion_cosmic` importan, los 4 console scripts responden a
+`--help` y `pip check` está limpio. Tag anotado `v0.1.15` (`6d81fc5`)
+empujado y verificado con `git ls-remote`.
 
 ## Versión 0.1.14 (2026-10-28)
 
