@@ -66,6 +66,21 @@ class TestContratoVerificadorInstalacion(unittest.TestCase):
             with self.subTest(modulo=modulo):
                 self.assertTrue(ruta.exists(), str(ruta))
 
+    def test_comando_wheel_usa_aislamiento_sin_setuptools(self):
+        # Python 3.12 no trae setuptools en el venv (PEP 632): el comando
+        # debe construirse con aislamiento (sin --no-build-isolation).
+        original = vi._setuptools_disponible
+        try:
+            vi._setuptools_disponible = lambda: True
+            self.assertIn("--no-build-isolation", vi._comando_wheel())
+        finally:
+            vi._setuptools_disponible = original
+        try:
+            vi._setuptools_disponible = lambda: False
+            self.assertNotIn("--no-build-isolation", vi._comando_wheel())
+        finally:
+            vi._setuptools_disponible = original
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -73,7 +73,7 @@ def main(argv=None) -> int:
         hallazgos = [(a, _hallazgos(a, patron)) for a in archivos]
         hallazgos = [(a, h) for a, h in hallazgos if h]
         if hallazgos:
-            print(f"⚠️  {etiqueta}:")
+            print(f"[!] {etiqueta}:")
             for archivo, lineas in hallazgos:
                 try:
                     ruta = archivo.relative_to(raiz)

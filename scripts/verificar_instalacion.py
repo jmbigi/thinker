@@ -21,6 +21,7 @@ Exit 0 si todas las comprobaciones pasan, 1 en caso contrario.
 """
 
 import argparse
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -68,14 +69,37 @@ class _Verificador:
             self.fallos += 1
 
 
+def _setuptools_disponible() -> bool:
+    # find_spec inspecciona sin importar: setuptools no es dependencia del
+    # proyecto, solo la pregunta de cómo construir el wheel.
+    return importlib.util.find_spec("setuptools") is not None
+
+
+def _comando_wheel() -> list:
+    """Comando de construcción sin instalación de red.
+
+    Python 3.12+ ya no incluye setuptools en los venv (PEP 632): con
+    `--no-build-isolation` la construcción falla. Si setuptools no está en el
+    intérprete actual, se usa **aislamiento de build** (requiere red) y se
+    declara en la salida. Función pura para poder testearla.
+    """
+    comando = [sys.executable, "-m", "pip", "wheel", ".", "--no-deps",
+               "--wheel-dir"]
+    if not _setuptools_disponible():
+        return comando          # aislamiento por defecto (red)
+    return comando + ["--no-build-isolation"]
+
+
 def _construir_wheel(tmp: Path, v: _Verificador) -> Path:
     dist = tmp / "dist"
-    proc = _ejecutar([sys.executable, "-m", "pip", "wheel", ".", "--no-deps",
-                      "--no-build-isolation", "--wheel-dir", str(dist)],
-                     cwd=RAIZ)
+    aislado = not _setuptools_disponible()
+    comando = _comando_wheel() + [str(dist)]
+    proc = _ejecutar(comando, cwd=RAIZ)
     ruedas = list(dist.glob("*.whl")) if proc.returncode == 0 else []
     v.check(proc.returncode == 0 and len(ruedas) == 1,
-            "wheel construido sin red (--no-deps --no-build-isolation)",
+            "wheel construido"
+            + (" con aislamiento de build (setuptools no presente)"
+               if aislado else " sin red (--no-deps --no-build-isolation)"),
             ruedas[0].name if ruedas else proc.stderr.strip()[:200])
     if not ruedas:
         sys.exit(1)

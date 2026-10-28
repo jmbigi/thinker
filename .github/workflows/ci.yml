@@ -56,7 +56,7 @@ jobs:
         run: python scripts/doctor.py
 
       - name: suite completa (offline, sin claves)
-        run: python -m unittest discover -s tests
+        run: python -m unittest discover -s tests -v
 
       - name: holdout (hashes + tests)
         run: python scripts/run_holdout.py

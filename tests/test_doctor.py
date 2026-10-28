@@ -56,6 +56,20 @@ class TestDoctor(unittest.TestCase):
             doctor.main([])
         self.assertNotIn("Sondas de red", buf.getvalue())
 
+    def test_consola_sin_unicode_no_revienta(self):
+        # Consolas cp1252 (Windows CI): las marcas caen a ASCII y el
+        # diagnóstico termina sin UnicodeEncodeError.
+        import subprocess
+        proc = subprocess.run(
+            [__import__("sys").executable, "scripts/doctor.py"],
+            cwd=RAIZ, capture_output=True, encoding="cp1252",
+            errors="replace",
+            env={**__import__("os").environ, "PYTHONIOENCODING": "cp1252"},
+            timeout=120)
+        self.assertEqual(proc.returncode, 0, proc.stderr[-500:])
+        self.assertNotIn("UnicodeEncodeError", proc.stderr)
+        self.assertIn("[OK]", proc.stdout + proc.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

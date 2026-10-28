@@ -42,17 +42,26 @@ VARIABLES_PROVEEDORES = (
 
 
 class _Doctor:
+    """Salida con marcas Unicode si la consola las soporta; ASCII si no
+    (consolas cp1252 de Windows: `✓` lanza UnicodeEncodeError)."""
+
     def __init__(self):
         self.fallos = 0
+        codificacion = getattr(sys.stdout, "encoding", "") or "utf-8"
+        try:
+            "✓✗ℹ".encode(codificacion)
+            self._ok, self._mal, self._info = "✓", "✗", "ℹ"
+        except (UnicodeEncodeError, LookupError):
+            self._ok, self._mal, self._info = "[OK]", "[FALLO]", "[i]"
 
     def check(self, ok: bool, etiqueta: str, detalle: str = ""):
-        print(f"  {'✓' if ok else '✗'} {etiqueta}"
+        print(f"  {self._ok if ok else self._mal} {etiqueta}"
               + (f" — {detalle}" if detalle else ""))
         if not ok:
             self.fallos += 1
 
     def info(self, etiqueta: str, detalle: str = ""):
-        print(f"  ℹ {etiqueta}" + (f" — {detalle}" if detalle else ""))
+        print(f"  {self._info} {etiqueta}" + (f" — {detalle}" if detalle else ""))
 
 
 def _deps_declaradas():

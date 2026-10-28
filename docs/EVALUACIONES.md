@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1102/1102** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1104/1104** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -548,7 +548,7 @@ de solo lectura) y los plugins citados por el documento externo devuelven
 
 **Actualización 2026-10-28** (lock `openai` 3.40.0 + lote dirigido R3):
 autoevaluación **con red 1.000** (v4 OK tras el bump; 0 hallazgos) y **sin
-red 1.000**. Suite **1102/1102** en Linux (Python 3.11.9, openai 3.40.0 en el
+red 1.000**. Suite **1104/1104** en Linux (Python 3.11.9, openai 3.40.0 en el
 entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
 supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
 los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
@@ -590,7 +590,7 @@ dependencias nuevas). Además: higiene OSS (`SECURITY.md`, `CONTRIBUTING.md`,
 `CODE_OF_CONDUCT.md`, plantillas de issue/PR y PR template) y CI espejo en
 GitHub Actions (3 SO × Python 3.11/3.12) con badge en el README; la CI local
 sigue siendo la referencia (regla 12: sin `gh` ni releases). Suite
-**1102/1102**. R3 sigue **parcial** (1131 brechas). La re-medición r3c5 quedó
+**1104/1104**. R3 sigue **parcial** (1131 brechas). La re-medición r3c5 quedó
 **descartada**: reportó 355 supervivientes, pero la prueba directa mostró que
 un mutante que declaraba «killed» (`con_red=True→False` en
 `evaluar_herramientas`) **sobrevive** a la suite de la campaña — un artefacto
