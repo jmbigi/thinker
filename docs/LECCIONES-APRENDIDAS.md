@@ -3341,9 +3341,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   decir: el resultado de mutmut no reproduce el criterio que dice medir.
 - **Aislamiento**: se repitió con venv limpio (mutmut 3.6.0 fijado, pytest
   **8.4.2**, paquete instalado con `--no-deps`) → **mismo resultado exacto**.
-  Descartada la hipótesis de pytest 9.0.2. El banco
-  `mutants/evaluar_proyecto.py` (~419.911 líneas) es normal en mutmut 3: el
-  de la campaña válida r3c4 tiene el mismo orden de tamaño.
+  Descartada la hipótesis de pytest 9.0.2. También se probó mutmut **3.8.1**
+  (genera 6163 mutantes, no 5999: la herramienta no es estable entre
+  versiones) → 5801/362 (94,13%), mismo patrón. Y **`--max-children 1`**
+  (cuarta hipótesis: carrera entre workers sobre el banco de mutantes) →
+  idéntico 6163/5801/362. El banco `mutants/evaluar_proyecto.py`
+  (~419.911 líneas) es normal en mutmut 3: el de la campaña válida r3c4 tiene
+  el mismo orden de tamaño. Cuatro hipótesis descartadas (versión de pytest,
+  versión de mutmut, workers, entorno aislado); el comportamiento es
+  determinista y de la herramienta. **Se detiene el diagnóstico** (regla
+  anti-repitencia): la causa raíz queda **no determinada** y las campañas
+  siguen bloqueadas como medición.
 - **Decisión**: la cifra 94,08% **no se publica**; la oficial vigente sigue
   siendo r3c4 (4846/5984; 1131 brechas + 7 equivalencias). Las campañas del
   evaluador quedan **bloqueadas como medición** hasta aislar la causa; el

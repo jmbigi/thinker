@@ -156,7 +156,8 @@ documento conserva el resumen y la clasificación.
   **tres** campañas (5999/5644/355, 94,08%): las tres idénticas, con la prueba
   directa mostrando que cuatro diffs «killed» sobreviven, tanto en el repo
   como en el temporal de la campaña; un venv aislado con pytest **8.4.2** y
-  mutmut 3.6.0 reprodujo el artefacto, así que no es la versión de pytest
-  (Hallazgo 143). Causa raíz **no determinada**; las campañas del evaluador
-  quedan **bloqueadas como medición**. La cifra oficial vigente es la de r3c4
-  (4846/5984; 1131 brechas) hasta que una campaña pase esta verificación.
+  mutmut 3.6.0 reprodujo el artefacto, y también mutmut 3.8.1 y
+  `--max-children 1` (cuatro hipótesis descartadas; Hallazgo 143). Causa raíz
+  **no determinada**; las campañas del evaluador quedan **bloqueadas como
+  medición**. La cifra oficial vigente es la de r3c4 (4846/5984; 1131 brechas)
+  hasta que una campaña pase esta verificación.
