@@ -5,8 +5,8 @@ endpoint `chat.completions.create` con `model`, `messages` y `timeout`. Si una
 versión futura cambia esa superficie, este test falla de forma ruidosa (P1.19)
 en vez de romper en producción.
 
-Verificado con openai 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0
-(el lock fija 3.37.0 desde el 2026-10-22; este canario corre con cada suite).
+Verificado con openai 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0
+(el lock fija 3.40.0 desde el 2026-10-28; este canario corre con cada suite).
 """
 
 import inspect

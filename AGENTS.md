@@ -115,8 +115,9 @@ mejora de código (`code_design_improvement_tools.py`).
   3.12.7/3.14.3, 2026-10-22). Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
   hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0,
-  3.33.0, 3.35.1, 3.36.1 y 3.37.0** (canario en `tests/test_openai_compatibilidad.py`;
-  3.35.1 verificado el 2026-10-20 con 703/703 en 3.11 y 3.12). Tras el corte 3
+  3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0** (canario en `tests/test_openai_compatibilidad.py`;
+  3.35.1 verificado el 2026-10-20 con 703/703 en 3.11 y 3.12; 3.40.0 verificado
+  el 2026-10-28 con 1018/1018 en 3.11, venv aislado desde el lock). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -280,8 +281,8 @@ mejora de código (`code_design_improvement_tools.py`).
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
   en ambos** con la suite de esa fecha (2026-10-22; incluye
   instalación limpia con `pip install .` y desde el lock). openai verificado
-  en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0 con
-  hashes desde 2026-10-22). La suite del evaluador creció de 41 a 58 tests con las
+  en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0 (lock en 3.40.0 con
+  hashes desde 2026-10-28). La suite del evaluador creció de 41 a 58 tests con las
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`

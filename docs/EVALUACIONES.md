@@ -39,7 +39,7 @@ lleva tope oculto.
 |---|---|---|
 | Funcionalidades | 1.00 | — |
 | Calidad | 1.00 | — (suite `make test` OK, 1,0 s) |
-| Vigencia | 1.00 | `v4_dependencias_al_dia` (lock en 3.37.0) |
+| Vigencia | 1.00 | `v4_dependencias_al_dia` (lock en 3.40.0) |
 | Herramientas | 1.00 | — (licencias de sus 4 dependencias, libres) |
 | Inteligencia | 1.00 | — |
 | Eficiencia | 1.00 | — |
@@ -55,7 +55,7 @@ Windows 11 (Python 3.12.7/3.14.3) y **778/778** en Linux (3.11/3.12, 2026-10-23)
 ruff 0, preflight 0, docs-check OK.
 
 `no_verificado`: **vacío** (2026-10-25). Migración de `openai` a rango
-`>=1.0,<4` completada (lock en 3.37.0); `v4_dependencias_al_dia` al día con
+`>=1.0,<4` completada (lock en 3.40.0); `v4_dependencias_al_dia` al día con
 hashes `requirements.lock`. No hay hallazgos pendientes de verificación.
 
 **Actualización 2026-10-17** (tras corregir 6 bugs ALTA —Hallazgo 71— y aplicar

@@ -3022,3 +3022,63 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: cerrar una recomendación por alcance es legítimo si se declara
   qué queda fuera y por qué; no lo es convertir N/A en aciertos ni llamar
   «cerrado» a R3 con 1319 aserciones pendientes.
+
+
+## 2026-10-28 — Deriva de lint: ruff a 2 errores pese a la regla «0 errores»
+
+### Hallazgo 136: los gates deterministas no sustituyen al linter
+
+- **Problema**: `ruff check .` reportaba **2 errores** cuando AGENTS.md exige
+  0: F541 (f-string sin placeholders en `llm_providers.py:240`) y F401
+  (`import time` sin usar en `test_openrouter_real.py:19`). Ni preflight ni
+  `check_docs` los detectan: el defecto es léxico, fuera de su alcance.
+- **Solución**: quitar el prefijo `f` sobrante y el import sin usar, sin tocar
+  lógica (la línea de `llm_providers` está cubierta por la campaña de
+  mutación; cambiar su comportamiento invalidaría el triaje documentado).
+- **Dogfooding (regla 14)**: `scripts/preflight.py` (0 hallazgos) y
+  `code_design_improvement_tools.analyze_python_code` (0 issues estructurales
+  en ambos archivos) acotaron el defecto al nivel de lint; la evidencia de
+  ambos componentes justificó el arreglo mínimo.
+- **Evidencia**: `ruff check .` → «All checks passed!»; `py_compile` OK en los
+  dos archivos; preflight OK; check_docs OK; suite **1018/1018** en ~50 s,
+  antes y después del arreglo.
+- **Lección**: «ruff en 0» solo se sostiene ejecutándolo; preflight y
+  check_docs no lo reemplazan. En toda sesión de verificación hay que correr
+  `ruff check .` de forma explícita, no asumirlo en verde.
+
+
+## 2026-10-28 — v4 vuelve a morder: lock de openai 3.37.0 → 3.40.0
+
+### Hallazgo 137: la autoevaluación con red detectó openai atrasado; lock regenerado y verificado
+
+- **Problema medido**: autoevaluación con red (`evaluar_proyecto.py . --json`)
+  en **0.958** con un único fallo real: `v4_dependencias_al_dia` —
+  «openai 3.37.0 → 3.40.0» (evidencia verified-real desde PyPI). El mismo
+  patrón que R1 (2026-10-21): PyPI publica más rápido de lo que se regenera
+  el lock.
+- **Investigación (opt-in de red)**: changelog oficial de openai-python —
+  3.38.0/3.39.0/3.40.0 traen solo features menores (prompt cache TTL,
+  identificador de modelo) y bugfixes (errores de status con mensaje del
+  servidor, parsing PEP 604); sin breaking changes en la superficie usada.
+  Búsqueda real con el componente propio (`web_search.py`, DuckDuckGo +
+  Wikipedia, sin API key) sobre calidad de aserciones en mutation testing,
+  aplicable a R3: el bucle de realimentación de mutantes (MuTAP) sube el
+  mutation score de 53% a 89,5% (MutGen); los mutantes equivalentes se
+  excluyen del denominador en la fórmula académica; la advertencia de Trail
+  of Bits (un agente que testea desde un mutante sin verificar el
+  comportamiento original puede codificar bugs) valida el test-first de R3-C.
+- **Acción**: `make lock` (uv `--upgrade`) → openai **3.40.0**, certifi
+  2026.10.23 y jiter 0.18.0 (transitivas); nada más cambió. Verificación en
+  venv aislado (`/tmp`, sin tocar el entorno principal): instalación
+  `--require-hashes` desde el lock, suite **1018/1018** y canario
+  `test_openai_compatibilidad` 2/2 con openai 3.40.0.
+- **Resultado**: autoevaluación con red de vuelta a **1.000** (v4 OK, 0
+  hallazgos); docs en presente actualizados (AGENTS.md, README,
+  EVALUACIONES, docstring del canario, comentario de requirements.txt).
+- **Dogfooding (regla 14)**: `evaluar_proyecto.py` (detectó el defecto y
+  certificó el cierre), `web_search.py` (investigación real), gates
+  `preflight`/`check_docs`/ruff en verde tras cada edición.
+- **Lección**: v4 es un vigilante real de deriva del lock; conviene ejecutar
+  la autoevaluación con red de forma periódica (opt-in), no solo tras
+  cambios. La verificación en venv aislado permite subir el lock sin tocar
+  el entorno de trabajo.

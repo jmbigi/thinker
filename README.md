@@ -37,7 +37,7 @@ herramientas de análisis estático de código.
     3.12.7/3.14.3 en Windows 11).
   - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML` (ver
     `requirements.txt`; el lock fija las exactas con hashes). `openai` verificado
-    en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1 y 3.37.0 (lock en 3.37.0).
+    en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0 (lock en 3.40.0).
   - Opcional: [Ollama](https://ollama.com/) para modelos locales.
 
 ## Instalación

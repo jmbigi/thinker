@@ -237,7 +237,7 @@ class OpenRouterLLM(OpenAILLM):
                 status = getattr(exc, "status_code", None)
                 # Backoff exponential para 429 (rate limit del free tier)
                 # antes de probar siguiente modelo o reintentar
-                print(f"[OpenRouterLLM] Rate limit 429, esperando 2s antes de reintentar...", file=sys.stderr)
+                print("[OpenRouterLLM] Rate limit 429, esperando 2s antes de reintentar...", file=sys.stderr)
                 time.sleep(2)
                 # Fallback también en errores no transitorios (403, 404, 401, etc.)
                 if status and (status == 429 or status not in TRANSIENT_STATUS):
