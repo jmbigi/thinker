@@ -19,7 +19,7 @@ from unittest.mock import patch
 import evaluar_proyecto
 from evaluar_proyecto import (archivos_python, detectar_comando_tests, ejecutar_tests,
                               evaluar, informe_texto, main, parsear_requisitos)
-from tests.helpers import crear_proyecto
+from tests.helpers import crear_historial_git, crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
 
@@ -2307,6 +2307,277 @@ class TestVigenciaContrato(unittest.TestCase):
                  "criterio": "v2_lockfile"}],
             "notas": ["locks: ninguno", "sin git: actividad no evaluable",
                       "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
+
+    def test_v1_rangos_cubiertos_por_lock(self):
+        """v1 es True con rangos si el lock los cubre; la nota lo declara."""
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests>=2.0\n",
+            "requirements.lock": "requests==2.31.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 1.0, "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": True,
+                          "v2_lockfile": True},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "comparación PyPI omitida (--sin-red): no verificada"}],
+            "hallazgos": [],
+            "notas": ["rangos Python cubiertos por lockfile",
+                      "locks: requirements.lock",
+                      "sin git: actividad no evaluable",
+                      "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
+
+    def test_v2_npm_sin_lock(self):
+        """Un ecosistema npm sin lock propio aparece por su nombre exacto."""
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.31.0\n",
+            "requirements.lock": "requests==2.31.0\n",
+            "package.json": '{"dependencies": {"react": "^18.2.0"}}'})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.5, "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": True,
+                          "v2_lockfile": False},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "comparación PyPI omitida (--sin-red): no verificada"}],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Sin lockfile para: npm "
+                                "(instalación no reproducible)",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "v2_lockfile"}],
+            "notas": ["locks: requirements.lock",
+                      "sin git: actividad no evaluable",
+                      "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
+
+    def test_v2_locks_multiples_en_nota(self):
+        """La nota de locks los lista todos, separados por ", "."""
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.31.0\n",
+            "requirements.lock": "requests==2.31.0\n",
+            "uv.lock": '[[package]]\nname="requests"\nversion="2.31.0"\n'})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict()["notas"][0],
+                         "locks: requirements.lock, uv.lock")
+        self.assertEqual(dimension.a_dict()["criterios"],
+                         {"v1_dependencias_fijadas": True,
+                          "v2_lockfile": True})
+
+    def test_v2_faltan_python_y_npm(self):
+        """Los ecosistemas sin lock se listan juntos, separados por ", "."""
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.31.0\n",
+            "package.json": '{"dependencies": {"react": "^18.2.0"}}'})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict()["hallazgos"], [
+            {"severidad": "media",
+             "descripcion": "Sin lockfile para: python, npm "
+                            "(instalación no reproducible)",
+             "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+             "criterio": "v2_lockfile"}])
+        self.assertEqual(dimension.a_dict()["notas"][0], "locks: ninguno")
+
+    def test_v3_repo_git_reciente(self):
+        """Repo con 1 commit reciente: v3 True, nota con fecha y conteos."""
+        raiz = crear_proyecto(self, {"demo.py": "x = 1\n"})
+        fecha = crear_historial_git(raiz, dias=2)
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 1.0, "evaluado": True,
+            "criterios": {"v3_actividad_reciente": True},
+            "no_aplica": [
+                {"criterio": "v1_dependencias_fijadas",
+                 "motivo": "sin dependencias Python runtime"},
+                {"criterio": "v2_lockfile",
+                 "motivo": "sin dependencias runtime detectadas"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "sin dependencias Python runtime que comparar"}],
+            "hallazgos": [],
+            "notas": [f"último commit: {fecha}; commits totales: 1; "
+                      "últimos 180 días: 1"]})
+
+    def test_v3_repo_git_antiguo(self):
+        """Repo con 1 commit de hace 400 días: v3 False y hallazgo exacto."""
+        raiz = crear_proyecto(self, {"demo.py": "x = 1\n"})
+        fecha = crear_historial_git(raiz, dias=400)
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_vigencia(
+            raiz, perfil, con_red=False)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.0, "evaluado": True,
+            "criterios": {"v3_actividad_reciente": False},
+            "no_aplica": [
+                {"criterio": "v1_dependencias_fijadas",
+                 "motivo": "sin dependencias Python runtime"},
+                {"criterio": "v2_lockfile",
+                 "motivo": "sin dependencias runtime detectadas"},
+                {"criterio": "v4_dependencias_al_dia",
+                 "motivo": "sin dependencias Python runtime que comparar"}],
+            "hallazgos": [
+                {"severidad": "baja",
+                 "descripcion": "Sin commits en los últimos 180 días",
+                 "evidencia": f"git: {fecha}",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "v3_actividad_reciente"}],
+            "notas": [f"último commit: {fecha}; commits totales: 1; "
+                      "últimos 180 días: 0"]})
+
+    def test_v3_nota_commits_no_contados(self):
+        """Si rev-list falla, la nota declara '?' en vez de inventar el dato."""
+        raiz = crear_proyecto(self, {"demo.py": "x = 1\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        def git_falso(_ruta, *args):
+            if args[0] == "log" and "-1" in args:
+                return "2026-10-20"
+            if args[0] == "rev-list":
+                return None
+            return "abc123 inicio"
+
+        with patch("evaluar_proyecto._git", side_effect=git_falso):
+            dimension = evaluar_proyecto.evaluar_vigencia(
+                raiz, perfil, con_red=False)
+
+        self.assertEqual(
+            dimension.a_dict()["notas"],
+            ["último commit: 2026-10-20; commits totales: ?; "
+             "últimos 180 días: 1"])
+
+    def test_v4_sin_versiones_que_comparar(self):
+        """Sin == ni lock: v4 False, no se llama a PyPI y se declara."""
+        raiz = crear_proyecto(self, {"requirements.txt": "requests>=2.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        with patch("evaluar_proyecto.ultima_version_pypi") as pypi:
+            dimension = evaluar_proyecto.evaluar_vigencia(
+                raiz, perfil, con_red=True)
+
+        pypi.assert_not_called()
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.0, "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": False,
+                          "v2_lockfile": False,
+                          "v4_dependencias_al_dia": False},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"}],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Dependencias Python sin fijar: requests",
+                 "evidencia": "manifiestos Python",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "v1_dependencias_fijadas"},
+                {"severidad": "media",
+                 "descripcion": "Sin lockfile para: python "
+                                "(instalación no reproducible)",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "v2_lockfile"},
+                {"severidad": "baja",
+                 "descripcion": "No se pudo comprobar la vigencia: no hay "
+                                "versiones fijadas (==) ni resueltas por lock",
+                 "evidencia": "manifiestos/locks",
+                 "tipo_evidencia": "unverified",
+                 "criterio": "v4_dependencias_al_dia"}],
+            "notas": ["locks: ninguno", "sin git: actividad no evaluable",
+                      "sin versiones (== o lock) que comparar: no verificado"]})
+
+    def test_v4_comparadas_parciales(self):
+        """Las dependencias sin versión no cuentan; la nota da la fracción."""
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "flask>=2.0\nrequests==2.31.0\nclick==8.1.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        def pypi_falso(nombre):
+            return {"version": {"requests": "2.31.0", "click": "8.1.0"}[nombre],
+                    "error": ""}
+
+        with patch("evaluar_proyecto.ultima_version_pypi",
+                   side_effect=pypi_falso):
+            dimension = evaluar_proyecto.evaluar_vigencia(
+                raiz, perfil, con_red=True)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": round(1 / 3, 3), "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": False,
+                          "v2_lockfile": False,
+                          "v4_dependencias_al_dia": True},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"}],
+            "hallazgos": [
+                {"severidad": "media",
+                 "descripcion": "Dependencias Python sin fijar: flask",
+                 "evidencia": "manifiestos Python",
+                 "tipo_evidencia": "verified-real",
+                 "criterio": "v1_dependencias_fijadas"},
+                {"severidad": "media",
+                 "descripcion": "Sin lockfile para: python "
+                                "(instalación no reproducible)",
+                 "evidencia": str(raiz), "tipo_evidencia": "verified-real",
+                 "criterio": "v2_lockfile"}],
+            "notas": ["locks: ninguno", "sin git: actividad no evaluable",
+                      "comparadas 2/3 dependencias: las que no tienen versión "
+                      "no se pueden comparar"]})
+
+    def test_v4_pypi_no_verificable(self):
+        """Errores de PyPI: hallazgo UNVERIFIED con la lista exacta unida."""
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.31.0\nclick==8.1.0\n",
+            "requirements.lock": "requests==2.31.0\nclick==8.1.0\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        def pypi_falso(nombre):
+            return {"version": None,
+                    "error": {"requests": "boom1", "click": "boom2"}[nombre]}
+
+        with patch("evaluar_proyecto.ultima_version_pypi",
+                   side_effect=pypi_falso):
+            dimension = evaluar_proyecto.evaluar_vigencia(
+                raiz, perfil, con_red=True)
+
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": round(2 / 3, 3), "evaluado": True,
+            "criterios": {"v1_dependencias_fijadas": True,
+                          "v2_lockfile": True,
+                          "v4_dependencias_al_dia": False},
+            "no_aplica": [
+                {"criterio": "v3_actividad_reciente",
+                 "motivo": "sin historial git: no se puede medir actividad"}],
+            "hallazgos": [
+                {"severidad": "baja",
+                 "descripcion": "No se pudo comprobar en PyPI: "
+                                "requests (boom1); click (boom2)",
+                 "evidencia": "PyPI", "tipo_evidencia": "unverified",
+                 "criterio": "v4_dependencias_al_dia"}],
+            "notas": ["locks: requirements.lock",
+                      "sin git: actividad no evaluable"]})
 
 
 class TestEficienciaFuncionalidadesContrato(unittest.TestCase):

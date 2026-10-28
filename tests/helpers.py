@@ -1,6 +1,9 @@
 """Dobles de prueba compartidos (SIMULADOS): sin red, sin API keys, deterministas."""
 
+import os
+import subprocess
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -15,6 +18,25 @@ def crear_proyecto(caso, archivos):
         ruta.parent.mkdir(parents=True, exist_ok=True)
         ruta.write_text(contenido, encoding="utf-8")
     return raiz
+
+
+def crear_historial_git(raiz, dias):
+    """Un commit sintético con fecha relativa (v3 medible sin depender del reloj)."""
+    fecha = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
+    entorno = {
+        **os.environ,
+        "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
+        "GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
+        "GIT_COMMITTER_NAME": "Test",
+        "GIT_COMMITTER_EMAIL": "test@example.invalid",
+    }
+    subprocess.run(["git", "init", "-q"], cwd=raiz, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=raiz, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "inicio"], cwd=raiz, check=True,
+                   capture_output=True, env=entorno)
+    return fecha[:10]
 
 
 class StubLLM:

@@ -1,8 +1,9 @@
-# Triaje R3 — 1303 brechas, 49 equivalencias y 0 timeouts
+# Triaje R3 — 1218 brechas, 51 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
-> medición: 2026-10-28 (batch r3c2; la de 2026-10-26 queda como histórico).
+> medición: 2026-10-28 (batch r3c3; las de 2026-10-26 y r3c2 quedan como
+> histórico).
 
 ## Método
 
@@ -29,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **1303** | 0 | **0** | **0** |
-| **Total** | **1303** | **49** | **0** | **0** |
+| Evaluador | **1218** | **2** | **0** | **0** |
+| **Total** | **1218** | **51** | **0** | **0** |
 
-Los **1303** casos de brecha son aserciones que faltan: sus funciones se
+Los **1218** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -53,16 +54,16 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 `cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
 `revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
-### Evaluador — 1303
+### Evaluador — 1218 brechas + 2 equivalencias
 
-Re-medición 2026-10-28 (batch r3c2): **5984 mutantes, 4681 muertos, 1303
+Re-medición 2026-10-28 (batch r3c3): **5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
-**78,23%** (antes 77,96%). `_verificar_test` pasa de 16 a **0** (Hallazgo
-138). Distribución por función (completa en `build/triaje-eval-r3c2.json`):
+**79,61%** (antes 78,23%). `evaluar_vigencia` pasa de 82 a **2**, ambas
+equivalencias demostradas (E1 en `docs/TRIAGE-EQUIVALENCIAS.md`, Hallazgo
+139). Distribución por función (completa en `build/triaje-eval-r3c3.json`):
 
 | Función | Casos |
 |---|---:|
-| `evaluar_vigencia` | 82 |
 | `evaluar` | 75 |
 | `evaluar_herramientas` | 70 |
 | `main` | 65 |
@@ -74,6 +75,12 @@ supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
 | `_ambito_requirements` | 33 |
 | `_versiones_lock` | 32 |
 | `evaluar_inteligencia` | 30 |
+| `sintetizar_con_llm` | 29 |
+
+Re-medición 2026-10-28 (batch r3c2): 5984 mutantes, 4681 muertos, 1303
+supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
+78,23% (antes 77,96%). `_verificar_test` pasa de 16 a **0** (Hallazgo
+138). Distribución de entonces en `build/triaje-eval-r3c2.json`.
 
 Campaña 2026-10-26 (batch digesto-calidad-h5): 5984 mutantes, 4665 muertos,
 1319 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
@@ -117,18 +124,18 @@ python3 scripts/triaje_mutantes.py --destino <temporal> \
 ```
 
 Los JSON completos están en `build/triaje-preflight-triage-final.json`,
-`build/triaje-eval-batch-r3c.json` (2026-10-26) y `build/triaje-eval-r3c2.json`
-(2026-10-28) (ignorados por git). Este documento conserva
-el resumen y la clasificación.
+`build/triaje-eval-batch-r3c.json` (2026-10-26), `build/triaje-eval-r3c2.json`
+y `build/triaje-eval-r3c3.json` (2026-10-28) (ignorados por git). Este
+documento conserva el resumen y la clasificación.
 
 ## Conclusión
 
-- **Triaje de inventario:** completo, 1352/1352 casos con categoría
-  (1303 brechas + 49 equivalencias).
+- **Triaje de inventario:** completo, 1269/1269 casos con categoría
+  (1218 brechas + 51 equivalencias).
 - **Equivalentes demostrados:** 49, todos en preflight y con prueba; no se
   cuentan como muertos.
-- **Tasas:** 967/1016 (preflight) y 4665/5984 (evaluador); no cambian por
+- **Tasas:** 967/1016 (preflight) y 4764/5984 (evaluador); no cambian por
   clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **1303 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **1218 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.

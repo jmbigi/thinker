@@ -3108,3 +3108,32 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   se confirma en la práctica — los supervivientes eran todos «aserción
   ausente», no defectos del código; el diff del triaje es el prompt exacto
   del test que falta.
+
+### Hallazgo 139: contrato exacto de `evaluar_vigencia` — 80 mutantes muertos y 2 equivalencias demostradas
+
+- **Acción (R3, segundo lote del 2026-10-28)**: 10 tests nuevos en
+  `TestVigenciaContrato` con `a_dict()` completo y exacto: v1 con rangos
+  cubiertos por lock, v2 con npm sin lock / multi-lock / dos ecosistemas sin
+  lock, v3 con repo git temporal reciente (2 días) y antiguo (400 días) vía
+  `crear_historial_git` (nuevo helper compartido en `tests/helpers.py`), la
+  nota con `rev-list` fallando (mock de `_git`), y v4 con PyPI simulada
+  (sin versiones, comparación parcial 2/3, errores de PyPI unidos con "; ").
+- **Verificación estilo mutmut**: 82 mutantes aplicados uno a uno desde el
+  diff del triaje → la clase debe fallar → restauración. Resultado: **80/82
+  muertos**; los 2 supervivientes (246/248, default de `dict.get`) son
+  **equivalencias demostradas** con prueba semántica (E1 en
+  `docs/TRIAGE-EQUIVALENCIAS.md`): `""` y `None` son ambos falsos y el valor
+  solo alimenta un `if not version: continue`.
+- **Re-medición oficial (batch r3c3)**: **5984 mutantes, 4764 muertos, 1220
+  supervivientes, 0 timeouts**; tasa bruta **79,61%** (antes 78,23%).
+  `evaluar_vigencia`: 82 → 2 (las equivalencias). Los 3 muertos extra sobre
+  los 80 previstos son mutantes de funciones auxiliares que los tests nuevos
+  también ejercen. Campaña en `build/mut-eval-r3c3`, triaje 1220/1220 en
+  `build/triaje-eval-r3c3.json`.
+- **Evidencia**: suite **1029/1029**, ruff 0, preflight OK, docs-check OK.
+- **Lección**: los mutantes de argumentos de `_git` mueren todos con UN repo
+  temporal real cuyo contenido de nota se aserta al completo; los de tuplas de
+  hallazgo mueren asertando el dict entero, no campos sueltos. Un fallo de
+  expectativa propio (`'?'` con comillas cuando el código no las pone) se
+  detectó ejecutando el test antes que los mutantes: primero verde sobre el
+  código correcto, siempre.

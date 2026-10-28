@@ -267,7 +267,11 @@ mejora de código (`code_design_improvement_tools.py`).
   **5984 mutantes, 4681 muertos, 1303 supervivientes, 0 sin tests, 0
   timeouts**; tasa bruta **78,23%**; `_verificar_test` pasa de 16 a 0
   supervivientes (test de contrato exacto de bordes, Hallazgo 138); triaje
-  1303/1303 (todas brechas de aserción). Los tests exactos de `informe_texto` y
+  1303/1303 (todas brechas de aserción). **Re-medición 2026-10-28 (batch
+  r3c3)**: **5984 mutantes, 4764 muertos, 1220 supervivientes, 0 sin tests, 0
+  timeouts**; tasa bruta **79,61%**; `evaluar_vigencia` pasa de 82 a 2
+  supervivientes, ambos equivalencias demostradas (`docs/TRIAGE-EQUIVALENCIAS.md`,
+  Hallazgo 139); triaje 1220/1220. Los tests exactos de `informe_texto` y
   `detectar_comando_tests`, más los de `--sin-red` y `cwd`, mataron 504
   mutantes; el contrato de `evaluar_herramientas`/`evaluar_calidad` mató 134
   más; el de `evaluar_vigencia`/`_dependencias_pyproject` mató 144 y el de
@@ -278,7 +282,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1019/1019 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1029/1029 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

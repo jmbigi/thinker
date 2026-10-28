@@ -169,3 +169,26 @@ comprobar que todas las entradas de un `Import` comparten línea.
 - **Tasa de mutación:** **967/1016 = 95,18%**; no cambia por este triaje.
 - No quedan brechas reales de preflight; las 49 equivalencias no se cuentan
   como muertos y no inflan la tasa.
+
+
+## Evaluador: 2 equivalencias demostradas (2026-10-28, batch r3c2)
+
+### E1. Default de `dict.get` en la comparación de versiones (2)
+
+Mutantes: `evaluar_vigencia` 246 y 248 —
+`perfil.versiones_lock.get(_clave_nombre(d["nombre"]), "")` muta a default
+`None` (246) y a default omitido (248, equivalente a `None`).
+
+**Prueba:** el valor solo se usa en `if not version: continue` y, cuando es
+verdadero, en la comparación con PyPI. `None` y `""` son ambos falsos, así que
+las tres formas ejecutan el mismo `continue` ante las mismas entradas y
+ninguna dependencia sin versión llega a compararse: el programa observable es
+idéntico. Verificado aplicando ambos mutantes al fuente: la clase
+`TestVigenciaContrato` (que incluye los casos con dependencia sin versión)
+sigue en verde; los 80 mutantes restantes de `evaluar_vigencia` mueren con
+los tests de contrato exacto añadidos el 2026-10-28 (Hallazgo 139).
+
+**Consecuencia para la contabilidad del evaluador:** los equivalentes no se
+cuentan como muertos; pasan de «brecha» a «equivalencia demostrada». Tras el
+lote: evaluador 1221 brechas + 2 equivalencias; total R3: 1221 brechas +
+51 equivalencias.
