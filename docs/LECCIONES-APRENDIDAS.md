@@ -3323,3 +3323,40 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   escáner; y un límite de recursos solo es verificable si el subproceso lo
   reporta (leer `getrlimit` dentro del subproceso), no por inspección del
   código.
+
+### Hallazgo 143: campañas de mutación del evaluador bloqueadas por herramienta (artefacto no reproducido a mano)
+
+- **Problema**: tres campañas consecutivas (`mutmut run --max-children 4` vía
+  `scripts/mutacion.py --objetivo evaluar`) reportaron **5999 mutantes, 5644
+  killed, 355 survived (94,08%)** con resultados idénticos entre sí, incluido
+  el conjunto por función (main 65, `_ambito_requirements` 33,
+  `sintetizar_con_llm` 29…). La cifra anterior válida (r3c4) era
+  5984/4846/1138 (80,98%).
+- **Contradicción (P0.1)**: cuatro diffs que las campañas declaran «killed»
+  —tres de `evaluar_herramientas` y el default `con_red=True→False`— se
+  aplicaron a mano al fuente y se ejecutó la **misma** suite de la campaña
+  (`tests/test_evaluar_proyecto.py`, `test_evaluador_corpus.py`,
+  `test_evaluador_precision.py`): **sobreviven** (204 passed), tanto en el
+  repo como en el temporal de la propia campaña con `pytest` directo. Es
+  decir: el resultado de mutmut no reproduce el criterio que dice medir.
+- **Aislamiento**: se repitió con venv limpio (mutmut 3.6.0 fijado, pytest
+  **8.4.2**, paquete instalado con `--no-deps`) → **mismo resultado exacto**.
+  Descartada la hipótesis de pytest 9.0.2. El banco
+  `mutants/evaluar_proyecto.py` (~419.911 líneas) es normal en mutmut 3: el
+  de la campaña válida r3c4 tiene el mismo orden de tamaño.
+- **Decisión**: la cifra 94,08% **no se publica**; la oficial vigente sigue
+  siendo r3c4 (4846/5984; 1131 brechas + 7 equivalencias). Las campañas del
+  evaluador quedan **bloqueadas como medición** hasta aislar la causa; el
+  criterio de aceptación (muestra directa de diffs «killed») está en
+  `docs/TRIAGE-R3.md`. Esto no es deuda de tests: es un defecto de la
+  herramienta/entorno que no se maquilla ni se compensa con tests.
+- **Reproducción**: `python3 scripts/mutacion.py --objetivo evaluar --json`
+  enciende el artefacto en este entorno; para un diff «killed» del triaje,
+  aplicarlo con `str.replace` sobre `evaluar_proyecto.py` y ejecutar
+  `python3 -m pytest tests/test_evaluar_proyecto.py
+  tests/test_evaluador_corpus.py tests/test_evaluador_precision.py` → pasa.
+  Causa raíz **no determinada** (P0.2: no se inventa); queda como incidencia
+  abierta de la cadena de mutación (mutmut 3.6.0, Linux/Python 3.11.9).
+- **Lección**: una tasa de mutación no es un hecho solo porque una herramienta
+  la imprima; la aceptación exige muestreo directo. Es el mismo principio de
+  P0.1 aplicado a las propias métricas del proyecto.

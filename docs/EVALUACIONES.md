@@ -594,6 +594,9 @@ sigue siendo la referencia (regla 12: sin `gh` ni releases). Suite
 **descartada**: reportó 355 supervivientes, pero la prueba directa mostró que
 un mutante que declaraba «killed» (`con_red=True→False` en
 `evaluar_herramientas`) **sobrevive** a la suite de la campaña — un artefacto
-de mutmut que no se maquilla (P0.1). La cifra oficial vigente es la de r3c4
-(4846/5984; 1131 brechas) hasta que la re-medición r3c6 (en curso) se
-verifique con muestra directa.
+de mutmut que no se maquilla (P0.1). r3c6 y una re-medición aislada con pytest
+8.4.2 reprodujeron el artefacto idéntico (5999/5644/355), así que no es la
+versión de pytest. La cifra oficial vigente sigue siendo la de r3c4
+(4846/5984; 1131 brechas + 7 equivalencias); las campañas del evaluador quedan
+**bloqueadas como medición** hasta aislar la causa (Hallazgo 143,
+`docs/TRIAGE-R3.md`).

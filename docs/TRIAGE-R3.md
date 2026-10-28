@@ -152,8 +152,11 @@ documento conserva el resumen y la clasificación.
   r3c6):** ninguna cifra de campaña se publica sin una **muestra directa
   verificada**: 5-10 diffs declarados «killed» se aplican a mano al fuente, se
   ejecuta la suite de la campaña y deben **fallar**. Si alguno sobrevive, la
-  campaña se descarta y se investiga el entorno (mutmut 3.6.0 + pytest 9.0.2
-  quedó bajo sospecha el 2026-10-28: dos campañas consecutivas reportaron los
-  mismos 5644 «killed» y la prueba directa sobre cuatro diffs mostró que
-  sobreviven). La cifra oficial vigente es la de r3c4 hasta que una campaña
-  pase esta verificación.
+  campaña se descarta y se investiga el entorno. El 2026-10-28 se descartaron
+  **tres** campañas (5999/5644/355, 94,08%): las tres idénticas, con la prueba
+  directa mostrando que cuatro diffs «killed» sobreviven, tanto en el repo
+  como en el temporal de la campaña; un venv aislado con pytest **8.4.2** y
+  mutmut 3.6.0 reprodujo el artefacto, así que no es la versión de pytest
+  (Hallazgo 143). Causa raíz **no determinada**; las campañas del evaluador
+  quedan **bloqueadas como medición**. La cifra oficial vigente es la de r3c4
+  (4846/5984; 1131 brechas) hasta que una campaña pase esta verificación.
