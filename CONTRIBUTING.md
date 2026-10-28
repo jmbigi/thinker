@@ -22,8 +22,8 @@ make doctor        # autodiagnóstico del entorno si algo falla
 make verify-install  # instalación limpia del paquete en un venv temporal
 ```
 
-`make check` debe quedar en verde. La CI pública (GitHub Actions) es un espejo;
-la referencia es la CI local.
+`make check` debe quedar en verde. La verificación es **local por diseño**:
+no se depende de GitHub ni de CI en la nube (regla 12).
 
 ## Reglas que no se negocian
 

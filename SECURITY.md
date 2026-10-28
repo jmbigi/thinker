@@ -16,6 +16,12 @@ Usa el **reporte privado de GitHub Security Advisories** del repositorio
 No abras un issue público con detalles explotables. No se usan correos
 personales como canal.
 
+Si el repositorio no está en GitHub, o el Advisor no está disponible, abre un
+issue **sin detalles técnicos** («solicito un canal privado de seguridad para
+un reporte») y el mantenedor habilitará uno. El flujo del proyecto no depende
+de GitHub para verificar ni distribuir (regla 12); este canal es solo el medio
+de contacto privado.
+
 ## Qué está en alcance
 
 - Fuga de credenciales (API keys, tokens) en informes, logs o mensajes de

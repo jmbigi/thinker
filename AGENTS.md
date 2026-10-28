@@ -75,15 +75,17 @@ mejora de código (`code_design_improvement_tools.py`).
     probar y comprender el sistema, no son la naturaleza del proyecto. Toda
     cifra o promesa documentada se mantiene al día tras cada cambio, con
     evidencia verificable.
-12. **Sin `gh` ni GitHub Releases desde el repo** (regla del programador,
-    2026-10-21; ampliada el 2026-10-25): no se ejecuta la CLI `gh` en ningún
-    paso ni se crean o publican GitHub Releases como parte del flujo del
-    repositorio. La publicación se hace con git estándar (`git push`, `git
-    tag`, `git ls-remote`) y con PyPI/TestPyPI; no se depende de instalar
-    herramientas ni de cuentas de GitHub para distribuir. Cualquier release
-    web queda fuera del flujo, es opcional y no se documenta como tarea
-    pendiente. La guía `docs/PUBLICACION.md` no debe contener comandos de
-    `gh` ni pasos de GitHub Release.
+12. **Sin `gh`, sin GitHub Releases y sin CI en la nube** (regla del
+    programador, 2026-10-21; ampliada el 2026-10-25 y el 2026-10-28): no se
+    ejecuta la CLI `gh` en ningún paso ni se crean o publican GitHub Releases
+    como parte del flujo del repositorio. **No se depende de GitHub** para
+    verificar, integrar ni distribuir: la CI es local (`make check` /
+    `scripts/ci.sh`) y no hay workflow en la nube, badge de estado ni servicio
+    externo que condicione el flujo. La publicación se hace con git estándar
+    (`git push`, `git tag`, `git ls-remote`) y con PyPI/TestPyPI. Cualquier
+    release web queda fuera del flujo, es opcional y no se documenta como
+    tarea pendiente. La guía `docs/PUBLICACION.md` no debe contener comandos
+    de `gh` ni pasos de GitHub Release.
 13. **No manipular la evaluación** (regla del programador, 2026-10-24): no se
     cambia el código de thinker para subir artificialmente la evaluación de
     thinker, ni la de los proyectos evaluados con thinker, ni por opiniones no
@@ -332,8 +334,8 @@ mejora de código (`code_design_improvement_tools.py`).
   dejó la suite en **1057/1057**. El lote de quick wins del 2026-10-28
   (tests de contrato de proveedores y fallos de recuperación, pruebas
   adversarias de seguridad, escáner de secretos portable, límites de CPU en
-  `--ejecutar-tests`, esquema JSON `docs/schema-v2.json`, higiene OSS y CI
-  espejo en GitHub Actions; Hallazgo 142) dejó la suite en **1104/1104**. El
+  `--ejecutar-tests`, esquema JSON `docs/schema-v2.json` e higiene OSS;
+  Hallazgo 142) dejó la suite en **1104/1104**. El
   auditor
   de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
@@ -363,16 +365,16 @@ mejora de código (`code_design_improvement_tools.py`).
   declaran explícitos en `[tool.setuptools]`: el flat-layout con varios
   módulos raíz rompe el auto-descubrimiento. Verificado end-to-end: venv
   limpio, llamadas desde otro directorio (Hallazgo 82).
-- CI local de referencia: `make ci` / `bash scripts/ci.sh` — exporta HEAD a una
-  copia limpia y verifica allí (detecta dependencias de archivos no versionados).
-  La CI pública de GitHub Actions (`.github/workflows/ci.yml`, badge en el
-  README) es un **espejo** de los mismos gates en 3 SO × Python 3.11/3.12; la
-  referencia sigue siendo local y no se usa la CLI `gh` (regla 12).
+- CI local (sin nube): `make ci` / `bash scripts/ci.sh` — exporta HEAD a una
+  copia limpia y verifica allí (detecta dependencias de archivos no
+  versionados). No hay workflow en la nube ni badge: verificar no depende de
+  GitHub (regla 12).
 - Informe JSON del evaluador: contrato público en `docs/schema-v2.json`
   (validado por `tests/test_schema_informe.py` con un validador mínimo sin
   dependencias nuevas).
 - Higiene OSS: `SECURITY.md` (reporte privado de vulnerabilidades),
-  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` y plantillas en `.github/`.
+  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` y plantillas de issue/PR en
+  `.github/` (solo metadata de colaboración; nada del flujo depende de ellas).
 - Antes de entregar: todo lo anterior en verde + checklist pre-entrega.
 
 ## Arquitectura de módulos

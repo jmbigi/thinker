@@ -102,7 +102,7 @@ def copiar_proyecto(destino):
     shutil.copytree(RAIZ, destino, ignore=_ignorar, dirs_exist_ok=True)
 
 
-def ejecutar(objetivo, timeout=1200):
+def ejecutar(objetivo, timeout=1200, max_children=4):
     destino = Path(tempfile.mkdtemp(prefix=f"mut-{objetivo}-"))
     copiar_proyecto(destino)
     pyproject = destino / "pyproject.toml"
@@ -110,7 +110,8 @@ def ejecutar(objetivo, timeout=1200):
         configurar(pyproject.read_text(encoding="utf-8"), objetivo),
         encoding="utf-8")
     proceso = subprocess.run(
-        [sys.executable, "-m", "mutmut", "run", "--max-children", "4"],
+        [sys.executable, "-m", "mutmut", "run",
+         "--max-children", str(max_children)],
         cwd=destino, capture_output=True, text=True, timeout=timeout)
     resultados = subprocess.run(
         [sys.executable, "-m", "mutmut", "results", "--all", "true"],
@@ -118,6 +119,7 @@ def ejecutar(objetivo, timeout=1200):
     resumen = parsear_resultados(resultados.stdout + resultados.stderr)
     resumen.update({
         "objetivo": objetivo,
+        "max_children": max_children,
         "temporal": str(destino),
         "exit": proceso.returncode,
     })
@@ -128,10 +130,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--objetivo", choices=sorted(OBJETIVOS), required=True)
     parser.add_argument("--timeout", type=int, default=1200)
+    parser.add_argument("--max-children", type=int, default=4,
+                        help="workers de mutmut (1 aísla carreras del banco "
+                             "de mutantes; Hallazgo 143)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
-        resultado = ejecutar(args.objetivo, args.timeout)
+        resultado = ejecutar(args.objetivo, args.timeout, args.max_children)
     except subprocess.TimeoutExpired:
         print(f"MUTACIÓN: timeout de {args.timeout}s", file=sys.stderr)
         return 2

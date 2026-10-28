@@ -587,9 +587,9 @@ límite de CPU en `--ejecutar-tests`, 4 del escáner de secretos portable
 (`scripts/scan_secrets.py`, ahora también escanea archivos nuevos sin ignorar)
 y 7 del esquema público `docs/schema-v2.json` (validador mínimo sin
 dependencias nuevas). Además: higiene OSS (`SECURITY.md`, `CONTRIBUTING.md`,
-`CODE_OF_CONDUCT.md`, plantillas de issue/PR y PR template) y CI espejo en
-GitHub Actions (3 SO × Python 3.11/3.12) con badge en el README; la CI local
-sigue siendo la referencia (regla 12: sin `gh` ni releases). Suite
+`CODE_OF_CONDUCT.md`, plantillas de issue/PR y PR template), sin CI en la nube
+ni badge: la verificación es local, por diseño (regla 12 ampliada el
+2026-10-28: no se depende de GitHub). Suite
 **1104/1104**. R3 sigue **parcial** (1131 brechas). La re-medición r3c5 quedó
 **descartada**: reportó 355 supervivientes, pero la prueba directa mostró que
 un mutante que declaraba «killed» (`con_red=True→False` en

@@ -96,7 +96,10 @@ Paquete `thinker-research 0.1.14` (wheel y sdist). Cambios de código desde
   (autodiagnóstico offline), `verificar_instalacion.py` (instalación limpia
   verificable) e `informe_calidad.py` (informe PASS/FAIL/NOT_RUN de los gates).
 - README con el badge de la CI espejo y la limitación de CI actualizada (la
-  verificación de referencia sigue siendo local; sin `gh` ni releases).
+  verificación de referencia sigue siendo local; sin `gh` ni releases). Nota
+  posterior (mismo día, regla 12 ampliada por el programador): el workflow y
+  el badge se **retiraron** del repositorio por no depender de GitHub; el
+  artefacto 0.1.14 ya publicado conserva ese texto en su METADATA.
 - Sin cambios en las dependencias declaradas.
 
 Métricas del release: suite **1102/1102**, ruff 0, preflight 0, docs-check OK
@@ -363,8 +366,8 @@ https://test.pypi.org/manage/account/token/.
   `python3 scripts/informe_calidad.py` → `docs/informe-calidad.json` con los
   7 controles `PASS` y el commit evaluado. Se conserva con el release como
   ficha reproducible.
-- [ ] La **CI espejo** de GitHub Actions (badge) no sustituye a `make ci` ni
-  verifica TestPyPI/PyPI: el checklist se ejecuta igual en local, y las
+- [ ] **Sin dependencia de GitHub** (regla 12): no hay workflow en la nube ni
+  badge; la verificación es local (`make check` / `make ci`) y las
   publicaciones se comprueban con `pip download`/instalación limpia desde los
   índices reales.
 - [ ] **Artefactos de build limpios** (Hallazgo 83: setuptools no limpia
