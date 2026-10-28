@@ -1,9 +1,9 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-28: **versión `0.1.12` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-28: **versión `0.1.13` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
-> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11` y `v0.1.12` empujados; `v0.1.2` a `v0.1.12` son anotados. `0.1.2` **no
+> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12` y `v0.1.13` empujados; `v0.1.2` a `v0.1.13` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -15,7 +15,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.12`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.13`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -24,7 +24,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.13*` (se generan en esta release).
+  `dist/thinker_research-0.1.13*` (ya existen).
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -83,8 +83,16 @@ oficial R3 del evaluador (batch r3c2: **4681/5984**, 1303 brechas, 0 timeouts;
 empaquetado al día (la página de 0.1.12 quedó con el texto de 0.1.11, patrón
 documentado en la nota de 0.1.4). Sin cambios de código de runtime.
 
-Estado: **en preparación** — la publicación en TestPyPI/PyPI y los hashes se
-documentan aquí solo después de verificar la versión en los índices (P0.1).
+Estado: **publicada en TestPyPI y PyPI el 2026-10-28**. Artefactos
+construidos desde el tag `v0.1.13`; `twine check` PASSED. Hashes SHA-256:
+`f97e981edecaa719b60eeb6b6737ff9a9a5353a3dce83e90e2eb321945f51594` (wheel) y
+`f139ba5f321db39472a146b391b3ae73e2148e2f427ac0c065b19f6b7ce12a65` (sdist).
+Verificación: ambos índices publican esos hashes; instalación limpia
+`thinker-research==0.1.13` desde TestPyPI y desde PyPI OK;
+`evaluate-project --help`, imports OK y `pip check` limpio. El índice simple
+tardó ~1-2 min en servir la versión (JSON correcto desde el inicio; mismo
+retardo documentado en los Hallazgos 91/104). Tag anotado `v0.1.13` empujado
+y verificado con `git ls-remote`.
 
 ## Versión 0.1.12 (2026-10-28)
 
