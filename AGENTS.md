@@ -301,10 +301,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.11` publicado en TestPyPI y PyPI; tags
-  `v0.1.0` a `v0.1.11` empujados, `v0.1.2` a `v0.1.11` anotados; instalación
-  `pip install thinker-research==0.1.11` o por tag con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.11`; sin
+  (`thinker-research 0.1.12` publicado en TestPyPI y PyPI; tags
+  `v0.1.0` a `v0.1.12` empujados, `v0.1.2` a `v0.1.12` anotados; instalación
+  `pip install thinker-research==0.1.12` o por tag con
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.12`; sin
   GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
   cuentas de GitHub (regla 12).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
