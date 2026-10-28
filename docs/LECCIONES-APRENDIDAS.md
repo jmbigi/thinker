@@ -3360,3 +3360,9 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: una tasa de mutación no es un hecho solo porque una herramienta
   la imprima; la aceptación exige muestreo directo. Es el mismo principio de
   P0.1 aplicado a las propias métricas del proyecto.
+- **Nota (mismo día, decisión del programador)**: la regla 12 se amplió a
+  «sin dependencia de GitHub»; el workflow espejo y el badge de CI **se
+  retiraron** (commit `7e6e116`). Los fallos de CI que se estaban
+  diagnosticando (`doctor` en cp1252, wheel en Python 3.12) se corrigieron
+  igualmente porque afectaban a scripts reales del paquete; la suite `-v` en
+  el workflow desapareció con él. La verificación es local, por diseño.
