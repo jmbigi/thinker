@@ -1,9 +1,10 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-28: **versión `0.1.13` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-28: **versión `0.1.14` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
-> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12` y `v0.1.13` empujados; `v0.1.2` a `v0.1.13` son anotados. `0.1.2` **no
+> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13` y
+> `v0.1.14` empujados; `v0.1.2` a `v0.1.14` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -15,7 +16,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.13`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.14`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -24,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.13*` (ya existen).
+  `dist/thinker_research-0.1.14*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -46,6 +47,9 @@
 - **Publicación completada de `0.1.9`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.9` (`14e2b7f`) y verificación limpia; ver la
   sección 0.1.9.
+- **Publicación completada de `0.1.14`**: en curso con esta guía (TestPyPI y
+  PyPI, hashes coincidentes, tag anotado `v0.1.14`, instalación limpia); los
+  resultados se anotan al cierre.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -74,6 +78,36 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.14 (2026-10-28)
+
+Paquete `thinker-research 0.1.14` (wheel y sdist). Cambios de código desde
+0.1.13:
+
+- `evaluar_proyecto.py`: límite de CPU del subproceso de `--ejecutar-tests`
+  (POSIX, `timeout + 60 s`; Windows conserva el timeout del proceso). No hay
+  límite de memoria por defecto (rompería suites legítimas).
+- `plugins/registry.py`: las rutas por defecto se resuelven respecto al
+  **paquete** y no al directorio de trabajo (con otro CWD se descubrían 0
+  plugins en silencio); ahora se descubren los 6 desde cualquier directorio y,
+  si no existe ningún directorio, se avisa en stderr.
+- Scripts nuevos empaquetados en `scripts/`: `scan_secrets.py` (escáner de
+  secretos portable, versionados y nuevos sin ignorar), `doctor.py`
+  (autodiagnóstico offline), `verificar_instalacion.py` (instalación limpia
+  verificable) e `informe_calidad.py` (informe PASS/FAIL/NOT_RUN de los gates).
+- README con el badge de la CI espejo y la limitación de CI actualizada (la
+  verificación de referencia sigue siendo local; sin `gh` ni releases).
+- Sin cambios en las dependencias declaradas.
+
+Métricas del release: suite **1102/1102**, ruff 0, preflight 0, docs-check OK
+e informe de calidad **7/7 PASS** (`docs/informe-calidad.json`). R3 sigue
+abierta con la cifra oficial vigente (4846/5984; 1131 brechas + 7
+equivalencias); las campañas del evaluador quedan bloqueadas por el artefacto
+de herramienta documentado en el Hallazgo 143.
+
+Estado: **publicada en TestPyPI y PyPI el 2026-10-28**. Artefactos
+construidos desde el tag `v0.1.14`; `twine check` PASSED. Hashes SHA-256 y
+verificación de instalación limpia en el cierre del release.
 
 ## Versión 0.1.13 (2026-10-28)
 
