@@ -47,9 +47,9 @@
 - **Publicación completada de `0.1.9`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.9` (`14e2b7f`) y verificación limpia; ver la
   sección 0.1.9.
-- **Publicación completada de `0.1.14`**: en curso con esta guía (TestPyPI y
-  PyPI, hashes coincidentes, tag anotado `v0.1.14`, instalación limpia); los
-  resultados se anotan al cierre.
+- **Publicación completada de `0.1.14`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.14` (`324848a`) y verificación limpia; ver la
+  sección 0.1.14.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -106,8 +106,16 @@ equivalencias); las campañas del evaluador quedan bloqueadas por el artefacto
 de herramienta documentado en el Hallazgo 143.
 
 Estado: **publicada en TestPyPI y PyPI el 2026-10-28**. Artefactos
-construidos desde el tag `v0.1.14`; `twine check` PASSED. Hashes SHA-256 y
-verificación de instalación limpia en el cierre del release.
+construidos desde el tag `v0.1.14`; `twine check` PASSED. Hashes SHA-256:
+`1f12d7bcfa1e471ad15366675e01130c3363126083eacd6dbe5d27d5709fd6b7` (wheel) y
+`3875e3df20947d48e14eefdd39f0d1b020a6596055c512f20a2e8f03bd301b60` (sdist).
+Verificación: ambos índices publican esos hashes (JSON de TestPyPI y de PyPI);
+instalación limpia `thinker-research==0.1.14` desde TestPyPI y desde PyPI OK;
+los 8 módulos públicos + `plugins.registry` + `scripts.preflight` importan,
+los 4 console scripts responden a `--help` y `pip check` está limpio. El
+índice simple tardó ~1 min en servir la versión (JSON correcto desde el
+principio; mismo retardo de los Hallazgos 91/104). Tag anotado `v0.1.14`
+(`324848a`) empujado y verificado con `git ls-remote`.
 
 ## Versión 0.1.13 (2026-10-28)
 
