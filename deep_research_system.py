@@ -976,12 +976,16 @@ class ResearchOrchestrator:
 
 # CLI principal
 def main():
+    # Modo demo offline (ayuda): componentes simulados, sin red ni API keys.
+    # El aviso es visible en la salida, no solo en comentarios (regla 4).
+    print("*** MODO DEMO OFFLINE — RESULTADOS SIMULADOS ***")
+    print("    LLM y búsqueda son MockLLM/MockSearchAPI (sin red ni claves):")
+    print("    nada de lo producido es investigación real ni evidencia verificada.\n")
     print("=== Deep Research Decision-Making System ===\n")
     print("This system implements autonomous decision-making for deep research.")
     print("It decomposes questions, retrieves evidence, evaluates claims,")
     print("and generates structured reports with citations.\n")
 
-    # Modo demo offline (ayuda): componentes simulados, sin red ni API keys.
     # Para una investigación real, sustituir por un proveedor real:
     #   llm = OpenRouterLLM()   # requiere OPENROUTER_API_KEY en el entorno
     #   llm = OllamaLLM()       # requiere Ollama corriendo en localhost:11434

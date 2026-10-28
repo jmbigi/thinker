@@ -10,6 +10,7 @@ import time
 import tomllib
 import importlib
 import importlib.util
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Callable
 from dataclasses import dataclass
 from collections import defaultdict
@@ -24,6 +25,14 @@ from .interfaces import (
     SearchProviderPlugin,
     CorePlugin,
 )
+
+# Las rutas por defecto se resuelven respecto al PAQUETE, no al directorio de
+# trabajo: el descubrimiento debe funcionar igual con el repo clonado que con
+# el paquete instalado y lanzado desde otro directorio. `config/` no se
+# instala con el paquete; en ese caso el archivo de configuración por defecto
+# simplemente no existe y se usan los valores por defecto (ya declarado en
+# `_load_config_file`).
+_DIR_PLUGINS = Path(__file__).resolve().parent
 
 
 @dataclass
@@ -49,11 +58,12 @@ class PluginRegistry:
 
     def __init__(self, plugin_dirs: List[str] = None, config_path: str = None):
         self.plugin_dirs = plugin_dirs or [
-            "plugins/llm_providers",
-            "plugins/search_providers",
-            "plugins/core",
+            str(_DIR_PLUGINS / "llm_providers"),
+            str(_DIR_PLUGINS / "search_providers"),
+            str(_DIR_PLUGINS / "core"),
         ]
-        self.config_path = config_path or "config/plugins.yaml"
+        self.config_path = config_path or str(_DIR_PLUGINS.parent
+                                              / "config" / "plugins.yaml")
         
         self._plugins: Dict[str, PluginEntry] = {}
         self._hooks: Dict[str, List[Callable]] = defaultdict(list)
@@ -74,9 +84,11 @@ class PluginRegistry:
         Returns number of plugins discovered.
         """
         count = 0
+        existentes = 0
         for plugin_dir in self.plugin_dirs:
             if not os.path.isdir(plugin_dir):
                 continue
+            existentes += 1
             for file in os.listdir(plugin_dir):
                 if file.endswith(".py") and not file.startswith("__"):
                     module_path = os.path.join(plugin_dir, file)
@@ -86,6 +98,14 @@ class PluginRegistry:
                         count += discovered
                     except Exception as e:
                         print(f"[PluginRegistry] Failed to load {module_name}: {e}", file=sys.stderr)
+        if not existentes:
+            # Cero directorios existentes es casi siempre una mala resolución
+            # de rutas (CWD distinto, instalación rota), no "no hay plugins":
+            # se declara en vez de devolver 0 en silencio (P1.19).
+            print(f"[PluginRegistry] Aviso: no existe ningún directorio de "
+                  f"plugins: {self.plugin_dirs}; se descubren 0. Comprueba la "
+                  f"instalación o pasa plugin_dirs explícitos.",
+                  file=sys.stderr)
         return count
 
     def _load_plugin_module(self, module_name: str, module_path: str) -> int:

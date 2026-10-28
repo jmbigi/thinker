@@ -548,7 +548,7 @@ de solo lectura) y los plugins citados por el documento externo devuelven
 
 **Actualización 2026-10-28** (lock `openai` 3.40.0 + lote dirigido R3):
 autoevaluación **con red 1.000** (v4 OK tras el bump; 0 hallazgos) y **sin
-red 1.000**. Suite **1045/1045** en Linux (Python 3.11.9, openai 3.40.0 en el
+red 1.000**. Suite **1057/1057** en Linux (Python 3.11.9, openai 3.40.0 en el
 entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
 supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
 los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
@@ -572,5 +572,11 @@ verificación estilo mutmut y 5 equivalencias demostradas (E2-E5 en
 `docs/TRIAGE-EQUIVALENCIAS.md`). La re-medición oficial (batch r3c4) lo
 confirma: **5984 mutantes, 4846 muertos, 1138 supervivientes** (1131 brechas +
 7 equivalencias), 0 timeouts, tasa bruta **80,98%**; `evaluar` 75 → 5 (las
-equivalencias). Suite **1045/1045**. R3 sigue **parcial**
-(1131 brechas).
+equivalencias). Cuarto lote (mismo día, recomendaciones externas triadas): el
+banner `*** MODO DEMO OFFLINE — RESULTADOS SIMULADOS ***` en los 3 demos
+—antes solo era un comentario de código—, las rutas de plugins resueltas
+respecto al paquete (antes CWD: con otro directorio se descubrían 0 plugins en
+silencio y ahora 6, con aviso si no existe ningún directorio),
+`make verify-install` (wheel + venv temporal + 17 comprobaciones offline) y
+`make doctor` (autodiagnóstico offline con presencia de claves, nunca sus
+valores). Suite **1057/1057**. R3 sigue **parcial** (1131 brechas).

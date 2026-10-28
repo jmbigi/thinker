@@ -5,6 +5,9 @@ escriben en directorios temporales y los reales que se ejercitan son los
 simulados (`mock_llm`, `mock_search`), que no usan red ni API keys.
 """
 
+import contextlib
+import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -97,6 +100,36 @@ class TestDescubrimiento(PluginRegistryTestCase):
         )
         self.assertEqual(registry.discover_plugins(), 0)
         self.assertFalse(inexistente.exists())
+
+
+class TestRutasPorDefectoDelRegistro(unittest.TestCase):
+    """Las rutas por defecto se resuelven respecto al PAQUETE, no al CWD:
+    descubrir plugins debe funcionar igual desde cualquier directorio."""
+
+    def test_los_defaults_descubren_lo_mismo_desde_otro_cwd(self):
+        referencia = PluginRegistry().discover_plugins()
+        self.assertGreaterEqual(referencia, 1)  # el test no es trivial (0==0)
+
+        with tempfile.TemporaryDirectory() as otro:
+            cwd_original = os.getcwd()
+            os.chdir(otro)
+            try:
+                desde_otro_cwd = PluginRegistry().discover_plugins()
+            finally:
+                os.chdir(cwd_original)
+
+        self.assertEqual(desde_otro_cwd, referencia)
+
+    def test_avisa_si_ningun_directorio_existe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = PluginRegistry(
+                plugin_dirs=[str(Path(tmp) / "inexistente")],
+                config_path=str(Path(tmp) / "plugins.yaml"),
+            )
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(registry.discover_plugins(), 0)
+        self.assertIn("no existe ningún directorio de plugins",
+                      err.getvalue())
 
 
 class TestConfiguracionYaml(PluginRegistryTestCase):

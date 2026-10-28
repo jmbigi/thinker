@@ -1,5 +1,5 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint preflight docs-check test coverage audit-diff holdout secrets lock sbom vuln-scan mutation check ci hook install
+.PHONY: help lint preflight docs-check test coverage audit-diff holdout secrets lock sbom vuln-scan mutation check ci hook install verify-install doctor
 
 help:
 	@echo "make lint        - ruff check ."
@@ -15,6 +15,8 @@ help:
 	@echo "make vuln-scan   - pip-audit sobre requirements.lock"
 	@echo "make mutation    - pruebas de mutación (mutmut): miden la fuerza de la suite"
 	@echo "make ci          - CI local: verifica una copia limpia de HEAD"
+	@echo "make verify-install - instalación limpia del paquete en venv temporal"
+	@echo "make doctor      - autodiagnóstico del entorno (offline por defecto)"
 	@echo "make check       - todo lo anterior + hook pre-commit"
 	@echo "make hook        - instala el hook pre-commit de git"
 	@echo "make install     - instala el paquete (pip install .) con sus comandos"
@@ -74,3 +76,9 @@ hook:
 
 install:
 	python3 -m pip install .
+
+verify-install:
+	python3 scripts/verificar_instalacion.py
+
+doctor:
+	python3 scripts/doctor.py

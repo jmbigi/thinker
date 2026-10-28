@@ -140,7 +140,20 @@ mejora de código (`code_design_improvement_tools.py`).
 - Tests honestos offline: `python3 honest_test.py`, `python3 test_systems_honest.py`,
   `python3 test_kilo_integration.py`, `python3 test_env_usage.py`.
 - Demos offline: `python3 deep_research_system.py`, `python3 pensamiento_layer.py`,
-  `python3 code_design_improvement_tools.py`.
+  `python3 code_design_improvement_tools.py` — abren con el aviso visible
+  `*** MODO DEMO OFFLINE — RESULTADOS SIMULADOS ***` (regla propia 4; los
+  componentes son `MockLLM`/`MockSearchAPI`, sin red ni claves).
+- Autodiagnóstico del entorno: `make doctor` / `python3 scripts/doctor.py`
+  (offline por defecto; `--con-red` sondea Ollama/OpenRouter de forma opt-in y
+  declarada). Comprueba Python ≥3.11, dependencias vs `requirements.txt`,
+  herramientas externas, presencia de variables de proveedores (nunca sus
+  valores) y descubrimiento de plugins; exit 1 solo si falla lo esencial.
+- Instalación limpia verificable: `make verify-install` /
+  `python3 scripts/verificar_instalacion.py` — construye el wheel sin red, lo
+  instala en un venv temporal y lo comprueba desde un CWD ajeno; offline
+  verifica la forma del paquete (`--no-deps`) y `--con-red` además las
+  dependencias, los 8 módulos públicos y los console scripts (Hallazgo 82
+  hecho reproducible).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
   con el modelo gratuito por defecto.
@@ -286,7 +299,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1045/1045 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1057/1057 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -306,7 +319,10 @@ mejora de código (`code_design_improvement_tools.py`).
   evaluador (`main` sin clave) y 2 de `tests/test_guardrails.py`; la suite
   quedó en **1018/1018**. Los lotes R3 del 2026-10-28 añadieron tests de
   contrato exacto del evaluador (`_verificar_test`, `evaluar_vigencia` y
-  `evaluar`; Hallazgos 138-140); la suite quedó en **1045/1045**. El auditor
+  `evaluar`; Hallazgos 138-140); la suite quedó en **1045/1045**. El lote de
+  mejoras externas del 2026-10-28 (banner simulado en demos, rutas de plugins
+  resueltas al paquete, `make verify-install`, `make doctor`; Hallazgo 141)
+  dejó la suite en **1057/1057**. El auditor
   de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos

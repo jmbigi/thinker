@@ -3187,3 +3187,51 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   bloque de investigación mueren con un doble que registra argumentos
   (`llamadas.append((preguntas, search_api))`) más aserciones de identidad
   (`assertIs`) y de tipo (`assertIsInstance(..., WikipediaSearchAPI)`).
+
+### Hallazgo 141: triaje de recomendaciones externas — 4 mejoras verificadas y 3 rechazos razonados
+
+- **Contexto**: llegaron tres listas externas (~30 propuestas, solapadas)
+  pidiendo subir la nota del proyecto. Se evaluaron con evidencia antes de
+  tocar nada (P0.1/P0.2, regla 13): **ya hechas** la auditoría clasificada de
+  mutantes (TRIAGE-R3 1187/1187, R3 en curso), el dogfooding publicado
+  (EVALUACIONES.md, 1.000 con y sin red), el `--update` del holdout, el SBOM
+  SPDX (con `syft`), los fallos LLM (429/5xx/timeout/jitter/backoff ya
+  testeados) y el benchmark tipo DeepResearch Bench (20 tareas, rúbricas).
+  **Rechazadas por contradecir decisiones del proyecto**: CI en GitHub Actions
+  (decisión documentada «CI local, sin nube»; regla 12), mover `scripts/` fuera
+  del paquete (rompería el contrato público `scripts.preflight` ya publicado en
+  PyPI) y mypy obligatorio (herramienta nueva, P0.18). Las tres quedan como
+  propuestas a decidir por el programador, no como defectos.
+- **Mejoras implementadas (las 4 brechas reales confirmadas)**:
+  1. **Banner simulado visible** en los tres demos (`*** MODO DEMO OFFLINE —
+     RESULTADOS SIMULADOS ***`): la declaración de lo simulado estaba solo en
+     comentarios de código; la regla propia 4 pide que sea explícita para el
+     usuario. 2 tests en `tests/test_demos_banner.py`.
+  2. **Rutas de plugins resueltas respecto al paquete** (`plugins/registry.py`,
+     `_DIR_PLUGINS = Path(__file__).resolve().parent`): antes eran relativas al
+     CWD y con el paquete instalado desde otro directorio `discover_plugins`
+     devolvía 0 en silencio (reproducido: `/tmp` → 0). Ahora descubre los 6
+     plugins desde cualquier CWD y, si ningún directorio existe, lo declara en
+     stderr (P1.19). 2 tests nuevos (mismo resultado desde otro CWD; aviso con
+     dirs inexistentes).
+  3. **`scripts/verificar_instalacion.py` + `make verify-install`**: hace
+     reproducible la verificación manual del Hallazgo 82. Offline construye el
+     wheel sin red, lo instala en un venv temporal con `--no-index --no-deps`,
+     comprueba los 4 console scripts, los 6 módulos stdlib-only importables
+     desde un CWD ajeno y que los otros 4 fallan SOLO por `requests` ausente;
+     `--con-red` (opt-in) añade dependencias, los 8 imports y `--help` de los
+     scripts. 17/17 comprobaciones verdes. 4 tests de contrato con
+     `pyproject.toml`.
+  4. **`scripts/doctor.py` + `make doctor`**: autodiagnóstico offline (Python
+     ≥3.11, deps vs `requirements.txt`, git/make, presencia de variables de
+     proveedores —nunca valores—, descubrimiento de plugins). 4 tests.
+- **Defecto propio descubierto durante la mejora 4**: al ejecutar
+  `python3 scripts/doctor.py`, `sys.path[0]` es `scripts/`, así que
+  `from plugins.registry import ...` importaba el `plugins` del **paquete
+  instalado en site-packages** (copia congelada) y diagnosticaba 3 plugins y
+  3 fallos que el repo no tiene. Fix: `sys.path.insert(0, RAIZ)` y el doctor
+  declara la ruta desde la que importa. Lección: un script dentro de
+  `scripts/` que importe módulos del repo debe fijar `sys.path` — este es el
+  mismo mecanismo que hizo necesario empaquetar `scripts/` con el evaluador.
+- **Evidencia**: suite **1057/1057** (1045 + 12 nuevos), ruff 0, preflight 0,
+  docs-check OK, `make doctor` exit 0, `make verify-install` 17/17.

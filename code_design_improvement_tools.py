@@ -690,6 +690,12 @@ def analyze_python_code(file_path: str) -> Dict[str, Any]:
 
 # CLI principal (modo demo offline si no se configura proveedor)
 def main():
+    # Modo demo offline (ayuda): el LLM es MockLLM, sin red ni claves; el
+    # aviso es visible en la salida, no solo en comentarios (regla 4).
+    print("*** MODO DEMO OFFLINE — RESULTADOS SIMULADOS ***")
+    print("    El LLM es MockLLM (determinista, sin red): las respuestas")
+    print("    demuestran la mecánica; nada de lo producido es investigación")
+    print("    real ni evidencia verificada.\n")
     print("=" * 70)
     print("HERRAMIENTAS PARA DISEÑO Y MEJORA DE PROYECTOS DE CÓDIGO")
     print("==================================================================")
