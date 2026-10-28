@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thinker-research"
-version = "0.1.14"
+version = "0.1.15"
 description = "Sistema de investigación profunda con LLM: pensamiento estructurado, recuperación de fuentes y reportes trazables"
 readme = "README.md"
 requires-python = ">=3.11"

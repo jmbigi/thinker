@@ -1,10 +1,10 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-28: **versión `0.1.14` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-28: **versión `0.1.15` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
-> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13` y
-> `v0.1.14` empujados; `v0.1.2` a `v0.1.14` son anotados. `0.1.2` **no
+> `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
+> `v0.1.14` y `v0.1.15` empujados; `v0.1.2` a `v0.1.15` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -16,7 +16,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.14`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.15`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -25,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.14*`.
+  `dist/thinker_research-0.1.15*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -50,6 +50,9 @@
 - **Publicación completada de `0.1.14`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.14` (`324848a`) y verificación limpia; ver la
   sección 0.1.14.
+- **Publicación completada de `0.1.15`**: en curso con esta guía (TestPyPI y
+  PyPI, hashes coincidentes, tag anotado `v0.1.15`, instalación limpia); los
+  resultados se anotan al cierre.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -78,6 +81,39 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.15 (2026-10-28)
+
+Paquete `thinker-research 0.1.15` (wheel y sdist). Cambios desde 0.1.14:
+
+- **README empaquetado sin badge ni mención a CI en la nube**: regla 12
+  ampliada por el programador (sin dependencia de GitHub; la verificación es
+  local por diseño). El artefacto 0.1.14 ya publicado conservaba el badge en
+  su METADATA; 0.1.15 ya no.
+- `scripts/doctor.py`: en consolas sin Unicode (cp1252 de Windows CI) las
+  marcas caen a `[OK]/[FALLO]/[i]` en vez de lanzar `UnicodeEncodeError`.
+- `scripts/scan_secrets.py`: salida ASCII (`[!]`); mantiene el escaneo de
+  versionados **y nuevos sin ignorar**.
+- `scripts/verificar_instalacion.py`: si no hay `setuptools` en el intérprete
+  (venv de Python 3.12, PEP 632) construye con aislamiento de build y lo
+  declara; la detección usa `importlib.util.find_spec` (sin import).
+- `scripts/mutacion.py`: opción `--max-children` (diagnóstico de carreras del
+  banco de mutantes; Hallazgo 143).
+- `scripts/mutacion_cosmic.py` (nuevo): motor de mutación alternativo
+  (cosmic-ray) que muta una **copia** del repo en el destino, nunca el árbol
+  de trabajo; `--config/--init/--exec`.
+- Sin cambios en las dependencias declaradas.
+
+Métricas del release: suite **1128/1128**, ruff 0, preflight 0, docs-check OK
+e informe de calidad **7/7 PASS**. R3: cifra oficial r3c4 reducida a **1067
+brechas + 62 equivalencias** (clúster `evaluar_herramientas` cerrado, Hallazgo
+144); campañas del evaluador bloqueadas como medición (Hallazgo 143). Benchmark
+factual de evaluación de evidencia incluido en el repo (no se empaqueta:
+`tests/` no se instala).
+
+Estado: **publicada en TestPyPI y PyPI el 2026-10-28**. Artefactos
+construidos desde el tag `v0.1.15`; `twine check` PASSED. Hashes SHA-256 y
+verificación de instalación limpia en el cierre del release.
 
 ## Versión 0.1.14 (2026-10-28)
 
