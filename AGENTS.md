@@ -308,7 +308,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1104/1104 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1107/1107 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -335,7 +335,7 @@ mejora de código (`code_design_improvement_tools.py`).
   (tests de contrato de proveedores y fallos de recuperación, pruebas
   adversarias de seguridad, escáner de secretos portable, límites de CPU en
   `--ejecutar-tests`, esquema JSON `docs/schema-v2.json` e higiene OSS;
-  Hallazgo 142) dejó la suite en **1104/1104**. El
+  Hallazgo 142) dejó la suite en **1107/1107**. El
   auditor
   de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).

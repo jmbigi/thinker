@@ -3352,6 +3352,13 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   determinista y de la herramienta. **Se detiene el diagnóstico** (regla
   anti-repitencia): la causa raíz queda **no determinada** y las campañas
   siguen bloqueadas como medición.
+- **Experimento blanco (mismo día)**: un mini-proyecto (2 funciones, 1 test)
+  mutado con mutmut 3.8.1 da el resultado correcto (2 killed y 1 superviviente
+  real por falta de un caso límite). **mutmut no está roto en general**: el
+  artefacto aparece solo con la suite del repo (probablemente en el mapeo
+  test↔mutante de una suite de ~200 tests con subtests y procesos internos; no
+  aislado). Refuerza la decisión: no se adapta la suite a la herramienta; se
+  busca un motor independiente (cosmic-ray) o se acepta el bloqueo documentado.
 - **Decisión**: la cifra 94,08% **no se publica**; la oficial vigente sigue
   siendo r3c4 (4846/5984; 1131 brechas + 7 equivalencias). Las campañas del
   evaluador quedan **bloqueadas como medición** hasta aislar la causa; el
