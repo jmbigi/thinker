@@ -1,4 +1,4 @@
-# Triaje R3 — 1131 brechas, 56 equivalencias y 0 timeouts
+# Triaje R3 — 1067 brechas, 62 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **1131** | **7** | **0** | **0** |
-| **Total** | **1131** | **56** | **0** | **0** |
+| Evaluador | **1067** | **13** | **0** | **0** |
+| **Total** | **1067** | **62** | **0** | **0** |
 
-Los **1131** casos de brecha son aserciones que faltan: sus funciones se
+Los **1067** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -54,7 +54,7 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 `cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
 `revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
-### Evaluador — 1131 brechas + 7 equivalencias
+### Evaluador — 1067 brechas + 13 equivalencias
 
 Re-medición 2026-10-28 (batch r3c4): **5984 mutantes, 4846 muertos, 1138
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
@@ -62,11 +62,15 @@ supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
 equivalencias demostradas (E2-E5 en `docs/TRIAGE-EQUIVALENCIAS.md`, Hallazgo
 140; 16 tests de contrato exacto en `TestEvaluarContrato`, incluidos los
 bordes 0.500/0.800 que solo son alcanzables con `--ejecutar-tests`, total 30).
-Distribución por función (completa en `build/triaje-eval-r3c4.json`):
+Lote 2026-10-28 (Hallazgo 144): `evaluar_herramientas` pasa de 70 a **0
+brechas** — **64 muertos** verificados diff a diff y **6 equivalencias
+demostradas** (E6-E8) con 16 tests de contrato exacto
+(`tests/test_herramientas_contrato.py`). Distribución por función (completa
+en `build/triaje-eval-r3c4.json`; el clúster evaluar_herramientas ya cerrado):
 
 | Función | Casos |
 |---|---:|
-| `evaluar_herramientas` | 70 |
+| `evaluar_herramientas` | 0 (64 muertos + 6 equivalencias) |
 | `main` | 65 |
 | `_dependencias_pyproject` | 48 |
 | `evaluar_calidad` | 47 |
@@ -140,12 +144,12 @@ documento conserva el resumen y la clasificación.
 ## Conclusión
 
 - **Triaje de inventario:** completo, 1187/1187 casos con categoría
-  (1131 brechas + 56 equivalencias).
+  (1067 brechas + 62 equivalencias).
 - **Equivalentes demostrados:** 56 (49 en preflight y 7 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas:** 967/1016 (preflight) y 4846/5984 (evaluador); no cambian por
   clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **1131 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **1067 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

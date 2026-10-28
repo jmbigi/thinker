@@ -257,3 +257,49 @@ patcheada) y **5 equivalencias demostradas** (E2-E5). Verificación estilo
 mutmut aplicando los 75 diffs uno a uno: 70/70 muertos y los 5 equivalentes
 siguiendo en verde. Contabilidad del evaluador: 1221 − 75 = **1146 brechas** +
 **7 equivalencias** (E1 + E2-E5).
+
+### E6. Patrón de licencia en minúsculas con `re.I` (1)
+
+Mutante: `evaluar_herramientas` 52 — `re.match(r"(LICEN[CS]E|COPYING)",
+p.name, re.I)` muta el patrón a minúsculas `(licen[cs]e|copying)`.
+
+**Prueba:** con `re.IGNORECASE` el conjunto de nombres que casan es
+exactamente el mismo para ambos patrones (los corchetes ya cubren ambas
+mayúsculas y `re.I` cubre el resto). Inobservable para cualquier proyecto.
+Verificado aplicando el mutante: `tests/test_herramientas_contrato.py` sigue
+en verde.
+
+### E7. Rama `runner_extra` con `tox.ini`/`noxfile.py` inalcanzable (4)
+
+Mutantes: `evaluar_herramientas` 158, 159 (`tox.ini` → `XXtox.iniXX` /
+`TOX.INI`) y 161, 162 (`noxfile.py` → `XXnoxfile.pyXX` / `NOXFILE.PY`).
+
+**Prueba:** `detectar_comando_tests` reconoce `tox.ini` y `noxfile.py` como
+runner **siempre que existen** (origen `tox.ini` / `noxfile.py`, verificado en
+el test `test_tox_y_noxfile_se_detectan_por_deteccion_no_por_runner_extra`):
+la rama `elif runner_extra` solo se ejecuta cuando `deteccion` es None, y
+`next()` de `(build.sh, tox.ini, noxfile.py)` solo puede devolver `build.sh`
+—los otros dos ya habrían producido detección—. Las mutaciones sobre esas dos
+tuplas son código inalcanzable.
+
+### E8. `root` no se usa en `cargar_modulos` con `archivos` dados (1)
+
+Mutante: `evaluar_herramientas` 315 —
+`cargar_modulos(None, archivos=perfil.codigo_paquete)`.
+
+**Prueba:** `cargar_modulos` solo usa `root` para `archivos_python(root)`
+cuando `archivos is None` (aquí nunca) y para `_relativa(root, ruta)` al
+registrar un hallazgo de **sintaxis**; con código parseable no se ejecuta
+ninguna. Verificado aplicando el mutante: la clase de contrato sigue en verde.
+
+**Consecuencia del tercer lote del evaluador (2026-10-28, clúster
+`evaluar_herramientas`):** 70 supervivientes triados → **64 mutantes muertos**
+con 16 tests de contrato exacto en `tests/test_herramientas_contrato.py`
+(manifiestos con truncado en 8/9, licencia con mayúscula, cada señal de CI
+aislada, runner por `build.sh`, h5 con libres/no libres/no verificables
+—error con licencia conocida y dos no-libres—, h6 con módulo del lock y con
+import de tercero, h7 con 9 fuentes) y **6 equivalencias demostradas**
+(E6-E8). Verificación diff a diff: 70/70 aplicados, 64 muertos y los 6
+equivalentes en verde. Contabilidad del evaluador: 1131 − 64 = **1067
+brechas** + **62 equivalencias** (E1-E8), pendiente de re-medición oficial
+cuando la herramienta vuelva a ser fiable (Hallazgo 143).

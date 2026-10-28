@@ -3375,6 +3375,68 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: una tasa de mutación no es un hecho solo porque una herramienta
   la imprima; la aceptación exige muestreo directo. Es el mismo principio de
   P0.1 aplicado a las propias métricas del proyecto.
+
+### Hallazgo 144: contrato exacto de `evaluar_herramientas` — 64 mutantes muertos y 6 equivalencias
+
+- **Acción (R3, cuarto lote del 2026-10-28)**: 16 tests de contrato exacto en
+  `TestHerramientasContrato` (`tests/test_herramientas_contrato.py`): firma
+  por defecto con `licencia_pypi` mockeada; h1 con 9 manifiestos (8 + «…») y
+  con 8 sin «…»; h2 con «License» en mayúscula; **cada señal de CI aislada**
+  (workflows, gitlab-ci, circleci, azure, Jenkinsfile, scripts/*verif*,
+  Makefile, tox.ini) y sin ninguna; h4 por `build.sh` con test en la raíz (la
+  convención `tests/` gana y `runner_extra` solo aplica ahí); h5 con libres,
+  **dos** no libres (separador observable) y no verificables con **error y
+  licencia conocida** (aísla la condición `error or libre is None` del caso
+  `libre=None`); h6 con un módulo **del lock sin declarar** (aísla
+  `permitidos = first_party | versiones_lock`) y con import de tercero
+  (severidad exacta); h7 con 9 fuentes (muestra 8, sin «…»).
+- **Verificación diff a diff**: los 70 diffs del triaje r3c4 aplicados uno a
+  uno → **64 muertos** y **6 supervivientes** que son equivalencias
+  demostradas: E6 (patrón de licencia en minúsculas con `re.I`: conjunto
+  idéntico), E7 (la rama `runner_extra` nunca devuelve `tox.ini`/`noxfile.py`
+  porque `detectar_comando_tests` los reconoce siempre: código inalcanzable) y
+  E8 (`cargar_modulos(None, archivos=...)`: `root` solo se usa sin `archivos`
+  o en hallazgos de sintaxis). Determinista y repetible
+  (`/tmp/verificar_herramientas.py`, 15 s).
+- **Lección de método**: sin campaña fiable (Hallazgo 143), la verificación
+  diff a diff **sí** es válida y es la que se usó en los lotes anteriores; los
+  tres primeros borradores de test no mataban 14 diffs por fixtures mal
+  aislados (un solo no-libre, `libre=None` con error, `build.sh` ausente,
+  módulo local en vez de uno del lock) — corregir el fixture, no el aserto.
+- **Evidencia**: suite **1107/1107**, ruff 0, preflight 0, docs-check OK.
+  Contabilidad: 1131 − 64 = **1067 brechas + 62 equivalencias** (E1-E8),
+  pendiente de re-medición oficial cuando la herramienta vuelva a ser fiable.
+
+### Hallazgo 145: benchmark factual de evaluación de evidencia y motor cosmic-ray
+
+- **Arnés (`tests/benchmarks/factual.py`)**: 30 casos versionados con veredicto
+  esperado declarado ANTES de ejecutar — 10 `supported`, 10 `contradicted` y
+  10 `insufficient` (la fuente no aborda el claim: mide **abstención**).
+  Métricas: exactitud global y por categoría, **falsos verificados** (esperado
+  contradicted/insufficient presentado como respaldo: el error más grave),
+  tasa de abstención y el detalle por caso. Reutiliza `EvidenceEvaluator`.
+  Con `MockLLM` el protocolo se ejercita y las métricas discriminan (Mock dice
+  «supported» a todo → exactitud 0,333 y 20 falsos verificados, exactamente el
+  patrón de alucinación que el arnés debe detectar); **no mide calidad real**,
+  está declarado en la salida. La medición real es `--con-llm` (opt-in,
+  key + red, coste 0 con `:free`).
+- **Bug real del arnés corregido en el proceso (P0.1)**: la categoría
+  `insufficient` se comparaba contra el veredicto literal `insufficient`, que
+  el evaluador nunca emite; el mapeo correcto es `not_addressed`
+  (`MAPA_ESPERADO`). Lo detectó el test con el evaluador perfecto (0,933 en
+  vez de 1,0).
+- **Doble de test**: el LLM falso debe leer el claim de la línea `Claim:` del
+  prompt, no buscarlo como substring: la FUENTE de un caso puede coincidir con
+  el claim de otro y dar un veredicto falso (2 casos contaminados en el primer
+  intento).
+- **cosmic-ray 8.7.0**: validado como motor independiente. `evidence.py` (93
+  líneas): **61 mutantes, 51 killed, 10 supervivientes (16,39%)** en 36 s.
+  `scripts/mutacion_cosmic.py` copia el repo a un destino y apunta la config a
+  la copia (cosmic-ray reemplaza el archivo en su ruta; nunca el árbol de
+  trabajo, P0.3); la campaña completa del evaluador tarda horas y no se lanza
+  por defecto (P2.5).
+- **Evidencia**: suite **1128/1128** (1107 + 16 de herramientas + 5 del
+  benchmark), ruff 0, preflight 0, docs-check OK.
 - **Nota (mismo día, decisión del programador)**: la regla 12 se amplió a
   «sin dependencia de GitHub»; el workflow espejo y el badge de CI **se
   retiraron** (commit `7e6e116`). Los fallos de CI que se estaban

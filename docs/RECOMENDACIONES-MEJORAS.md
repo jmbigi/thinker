@@ -16,7 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984, 1131 brechas + 7 equivalencias, 0 timeouts; triaje 1187/1187 (re-medición 2026-10-28, batch r3c4) | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984, 1067 brechas + 62 equivalencias tras el clúster evaluar_herramientas (64 muertos + 6 equivalencias, Hallazgo 144), 0 timeouts; triaje 1187/1187 (re-medición r3c4) | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -202,7 +202,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   sí. La mejora del preflight no autoriza a presentar el evaluador como sano.
 - **Criterio de aceptación:** [x] evaluador medido; [x] comando reproducible
   empaquetado; [x] 0 mutantes sin categoría de triaje (1368/1368); [x] 0
-  timeouts (re-medido); [ ] tasa limpia (1131 aserciones pendientes tras la
+  timeouts (re-medido); [ ] tasa limpia (1067 aserciones pendientes tras la
   re-medición 2026-10-28, batch r3c4).
 - **Riesgo:** medio; el triaje del evaluador sigue siendo la deuda principal.
 
@@ -417,14 +417,14 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
-| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 1131 aserciones (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 1131 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
+| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 1067 aserciones (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 1067 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
 
 **Orden:** R3-C es la única deuda P1 abierta; R4 se cerró por alcance offline.
 R5-A, R6-C, R13-B/C y R14-B/C están implementadas; R14-C es un piloto real
 n=20, no una calibración general.
 
 - **R3 no requiere decisión de producto**: R3-C es P1 y sigue abierta; no se
-  cierra con 1131 brechas.
+  cierra con 1067 brechas.
 - **R5, R6 y R13 están cerradas**; no se reabren sin evidencia nueva.
 - **R14** cerrada por declaración; B (Brier simulado) y C (piloto real n=20)
   implementadas; ampliar la muestra sigue siendo trabajo futuro.
@@ -448,6 +448,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-28) | `triaje_mutantes` (JSON de triaje) y `evaluar_proyecto` | 16 supervivientes de `_verificar_test` con su diff; 3 bordes sin aserción exacta identificados (rama `existe is None`, condición `ejecutado/error`, cadena de motivo) | 1 test de contrato nuevo; **16/16 mutantes mueren** (verificación manual estilo mutmut) y la **re-medición oficial r3c2 lo confirma**: 4681/5984, 1303 brechas, 0 timeouts; suite **1019/1019** |
 | R3 (2026-10-28, vigencia) | `triaje_mutantes` (JSON r3c2) y `evaluar_proyecto` | 82 supervivientes de `evaluar_vigencia` con su diff; patrones: argumentos de `_git`, tuplas de hallazgo, notas exactas y contadores de v4 | 10 tests de contrato nuevos (repo git temporal + PyPI simulada); **80/82 mueren** en verificación manual; 2 equivalencias demostradas (E1); **re-medición oficial r3c3**: 4764/5984 (79,61%), 1218 brechas, 0 timeouts; suite **1029/1029** |
 | R3 (2026-10-28, evaluar) | `triaje_mutantes` (JSON r3c3) y `evaluar_proyecto` | 75 supervivientes de `evaluar` con su diff; la exploración empírica de fixtures evitó declarar 3 falsas equivalencias de borde (0.500/0.800 alcanzables con `--ejecutar-tests`, total 30) | 16 tests de contrato nuevos (fixture completa 29/29, dobles de LLM/búsqueda, bordes con suite ejecutada); **70/75 mueren** en verificación manual; 5 equivalencias demostradas (E2-E5); **re-medición oficial r3c4**: 4846/5984 (80,98%), 1131 brechas, 0 timeouts; suite **1045/1045** |
+| R3 (2026-10-28, herramientas) | `triaje_mutantes` (JSON r3c4) y `evaluar_proyecto` | 70 supervivientes de `evaluar_herramientas` con su diff; el experimento blanco de mutmut del Hallazgo 143 guió el método (verificación diff a diff, no campaña masiva) | 16 tests de contrato nuevos (`TestHerramientasContrato`); **64/70 mueren** en verificación manual; 6 equivalencias demostradas (E6-E8); contabilidad 1131 → **1067 brechas + 62 equivalencias**; suite **1107/1107** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -482,7 +483,9 @@ declaradas). **Pendiente de ejecución:**
    triaje 1368/1368. El 2026-10-28 se atacaron 16 (`_verificar_test`; 16/16
    muertos, r3c2), 80 de `evaluar_vigencia` (82 → 2, ambas equivalencias
    demostradas; r3c3) y 70 de `evaluar` (75 → 5, las cinco equivalencias
-   demostradas E2-E5; r3c4): quedan **1131** (oficial: 4846/5984; 80,98%);
+   demostradas E2-E5; r3c4) y 64 de `evaluar_herramientas` (70 → 0: 64
+   muertos + 6 equivalencias E6-E8, Hallazgo 144): quedan **1067**
+   (oficial: 4846/5984; 80,98%);
    no cerrar hasta 0 brechas.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para

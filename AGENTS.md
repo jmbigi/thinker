@@ -308,7 +308,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1107/1107 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1128/1128 en la suite
   Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -335,7 +335,7 @@ mejora de código (`code_design_improvement_tools.py`).
   (tests de contrato de proveedores y fallos de recuperación, pruebas
   adversarias de seguridad, escáner de secretos portable, límites de CPU en
   `--ejecutar-tests`, esquema JSON `docs/schema-v2.json` e higiene OSS;
-  Hallazgo 142) dejó la suite en **1107/1107**. El
+  Hallazgo 142) dejó la suite en **1128/1128**. El
   auditor
   de cambios de
   `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
@@ -361,7 +361,13 @@ mejora de código (`code_design_improvement_tools.py`).
   `evidence`) + paquetes `plugins` y `scripts` (este último porque el
   evaluador importa `scripts.preflight`). `tests` no se instala (colisión de
   nombre raíz en site-packages): el benchmark se ejecuta desde el repo con
-  `python3 -m tests.benchmarks.run_bench` (Hallazgo 83). Los paquetes se
+  `python3 -m tests.benchmarks.run_bench` (Hallazgo 83). El **benchmark
+  factual** de evaluación de evidencia (30 casos versionados: 10 soportados,
+  10 contradichos, 10 de abstención; métricas de exactitud, falsos
+  verificados y tasa de abstención) se ejecuta con
+  `python3 -m tests.benchmarks.factual` — simulado por defecto (MockLLM) y
+  `--con-llm` opt-in real (key + red, coste 0 con `:free`); con Mock el
+  protocolo se ejercita pero **no mide calidad real** (Hallazgo 145). Los paquetes se
   declaran explícitos en `[tool.setuptools]`: el flat-layout con varios
   módulos raíz rompe el auto-descubrimiento. Verificado end-to-end: venv
   limpio, llamadas desde otro directorio (Hallazgo 82).

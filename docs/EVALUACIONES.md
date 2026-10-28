@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1107/1107** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1128/1128** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -548,7 +548,7 @@ de solo lectura) y los plugins citados por el documento externo devuelven
 
 **Actualización 2026-10-28** (lock `openai` 3.40.0 + lote dirigido R3):
 autoevaluación **con red 1.000** (v4 OK tras el bump; 0 hallazgos) y **sin
-red 1.000**. Suite **1107/1107** en Linux (Python 3.11.9, openai 3.40.0 en el
+red 1.000**. Suite **1128/1128** en Linux (Python 3.11.9, openai 3.40.0 en el
 entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
 supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
 los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
@@ -590,13 +590,25 @@ dependencias nuevas). Además: higiene OSS (`SECURITY.md`, `CONTRIBUTING.md`,
 `CODE_OF_CONDUCT.md`, plantillas de issue/PR y PR template), sin CI en la nube
 ni badge: la verificación es local, por diseño (regla 12 ampliada el
 2026-10-28: no se depende de GitHub). Suite
-**1107/1107**. R3 sigue **parcial** (1131 brechas). La re-medición r3c5 quedó
+**1128/1128**. R3 sigue **parcial**: la cifra oficial r3c4 deja 1131 brechas,
+reducidas a **1067 brechas + 62 equivalencias** con el cierre del clúster
+`evaluar_herramientas` (64 muertos verificados diff a diff y 6 equivalencias
+nuevas, Hallazgo 144; 16 tests de contrato en `TestHerramientasContrato`).
+La re-medición r3c5 quedó
 **descartada**: reportó 355 supervivientes, pero la prueba directa mostró que
 un mutante que declaraba «killed» (`con_red=True→False` en
 `evaluar_herramientas`) **sobrevive** a la suite de la campaña — un artefacto
 de mutmut que no se maquilla (P0.1). r3c6 y una re-medición aislada con pytest
 8.4.2 reprodujeron el artefacto idéntico (5999/5644/355), así que no es la
 versión de pytest. La cifra oficial vigente sigue siendo la de r3c4
-(4846/5984; 1131 brechas + 7 equivalencias); las campañas del evaluador quedan
+(4846/5984; 1131 brechas + 7 equivalencias), reducida a 1067 + 62 con el
+lote del Hallazgo 144; las campañas del evaluador quedan
 **bloqueadas como medición** hasta aislar la causa (Hallazgo 143,
-`docs/TRIAGE-R3.md`).
+`docs/TRIAGE-R3.md`). Quinto lote (mismo día, mejoras de fondo): **benchmark
+factual** de evaluación de evidencia (`tests/benchmarks/factual.py`, 30 casos
+versionados —10 soportados, 10 contradichos, 10 de abstención—, métricas de
+exactitud, falsos verificados y tasa de abstención; simulado por defecto con
+MockLLM y `--con-llm` opt-in real; Hallazgo 145) con 5 tests del arnés, y
+**cosmic-ray** validado como motor de mutación alternativo
+(`scripts/mutacion_cosmic.py`, evidence.py: 61 mutantes, 51 killed, 10
+supervivientes en 36 s).
