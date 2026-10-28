@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-26**. **Base:** commit `38f8839`
+**Fecha:** 2026-10-22, actualizado el **2026-10-28**. **Base:** commit `38f8839`
 más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -423,6 +423,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-26) | `preflight`, `mutacion`/`triaje_mutantes`, `evaluar_proyecto` y `code_design_improvement_tools` | preflight 967/1016, 49 equivalencias y 0 brechas; evaluador 4665/5984, 1319 brechas, 0 timeouts; autoevaluación offline 1.000 (25/29, 86,2% cobertura) sin hallazgos; el análisis estático no reportó defectos → se reforzaron aserciones, no se refactorizó; el triaje dirigió los clusters y detectó `_es_main`, e1/e2 | 116 tests nuevos en la suite (preflight, evaluador y salvaguardas), 2 campañas re-medidas, triaje 1368/1368, 0 timeouts; suite 1018/1018 |
 | R4 | `evaluar_proyecto` y `tests/benchmarks` | 57 casos (5 trampas), 26 criterios, 26 TP/0 FP/0 FN, 1,00/1,00; c4/h4/v3/i1-i6/e1-e3 añadidos; encontró y corrigió dos defectos e1/e2 | `test_evaluador_precision` |
 | R7 | `evaluar_proyecto` | `aserciones_debiles` + 2 tests; c5 sin cambios | suite 902/902 (cierre); 1018/1018 actual |
+| R3 (2026-10-28) | `triaje_mutantes` (JSON de triaje) y `evaluar_proyecto` | 16 supervivientes de `_verificar_test` con su diff; 3 bordes sin aserción exacta identificados (rama `existe is None`, condición `ejecutado/error`, cadena de motivo) | 1 test de contrato nuevo; **16/16 mutantes mueren** en verificación manual estilo mutmut (mutante aplicado → tests fallan → restauración); suite **1019/1019**; re-medición de campaña pendiente |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -454,7 +455,9 @@ declaradas). **Pendiente de ejecución:**
 
 1. **R3-C:** preflight 0 brechas reales (967/1016; 95,18%; 49 equivalencias) y
    evaluador 1319 brechas (4665/5984; 77,96%), con **0 timeouts** y
-   triaje 1368/1368. Queda reforzar 1319 aserciones; no cerrar hasta 0 brechas.
+   triaje 1368/1368. El 2026-10-28 se atacaron 16 (`_verificar_test`; 16/16
+   muertos en verificación manual estilo mutmut): quedan 1303 hasta la próxima
+   re-medición de campaña; no cerrar hasta 0 brechas.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,

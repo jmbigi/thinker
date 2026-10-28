@@ -3082,3 +3082,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   la autoevaluación con red de forma periódica (opt-in), no solo tras
   cambios. La verificación en venv aislado permite subir el lock sin tocar
   el entorno de trabajo.
+
+
+### Hallazgo 138: 16/16 mutantes de `_verificar_test` mueren con un test de contrato exacto
+
+- **Acción (R3, lote dirigido)**: los 16 supervivientes actuales de
+  `_verificar_test` (triaje `build/triaje-eval-ambito-verificar-cobertura.json`)
+  eran tres bordes sin aserción exacta: el juego de caracteres del
+  `strip("`'\"")` y el join con `"::"`, la rama `existe is None` (archivo de
+  test no analizable, sin test) y la condición `ejecutado/error` con la cadena
+  `motivo or error or "suite no ejecutada"`. Un test nuevo
+  (`test_verificar_test_contrato_exacto_bordes`) fija las tuplas completas
+  (estado, mensaje exacto, evidencia, `EvidenceKind`) de los 7 bordes.
+- **Verificación estilo mutmut**: cada uno de los 16 mutantes se aplicó al
+  fuente desde su diff del triaje, se ejecutó la clase de tests (debe FALLAR)
+  y se restauró el archivo; resultado **16/16 muertos**, diff final vacío.
+  La re-medición oficial con `scripts/mutacion.py --objetivo evaluar` queda
+  pendiente; la cifra de campaña (1319 brechas, 2026-10-26) no se toca hasta
+  entonces.
+- **Evidencia**: suite **1019/1019**, ruff 0, preflight OK, docs-check OK.
+- **Lección**: la investigación externa (MutGen/MuTAP: feedback de mutantes)
+  se confirma en la práctica — los supervivientes eran todos «aserción
+  ausente», no defectos del código; el diff del triaje es el prompt exacto
+  del test que falta.

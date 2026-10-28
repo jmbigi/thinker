@@ -3164,6 +3164,56 @@ class TestAmbitoVerificarYCobertura(unittest.TestCase):
             ("CUMPLE", "suite completa verde (test declarado, no aislado)",
              "tests/test_x.py", real))
 
+    def test_verificar_test_contrato_exacto_bordes(self):
+        """Bordes exactos de _verificar_test (R3: 16 mutantes supervivientes)."""
+        raiz = crear_proyecto(self, {
+            "tests/test_x.py": "def test_x():\n    assert True\n",
+            "tests/test_roto.py": "def test_roto(:\n",
+        })
+        req = SimpleNamespace
+        verificar = evaluar_proyecto._verificar_test
+        sin = evaluar_proyecto.EvidenceKind.UNVERIFIED
+        real = evaluar_proyecto.EvidenceKind.VERIFIED_REAL
+
+        # Las comillas/backticks de los bordes se eliminan antes de dividir
+        self.assertEqual(
+            verificar(raiz, req(evidencia="`tests/test_x.py::test_x`"), None),
+            ("CUBIERTO", "test declarado; suite no ejecutada "
+                         "(--ejecutar-tests)", "tests/test_x.py", real))
+        # El juego de caracteres eliminados es exactamente ` ' " (sin "X")
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_xX"), None),
+            ("NO CUMPLE", "el test 'test_xX' no existe en el archivo",
+             "tests/test_x.py", real))
+        # El nombre del test conserva los "::" internos al unir partes
+        self.assertEqual(
+            verificar(raiz,
+                      req(evidencia="tests/test_x.py::test_x::extra"), None),
+            ("NO CUMPLE", "el test 'test_x::extra' no existe en el archivo",
+             "tests/test_x.py", real))
+        # Archivo de test no analizable (error de sintaxis): NO VERIFICABLE
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_roto.py::test_x"), None),
+            ("NO VERIFICABLE", "no se pudo analizar el archivo de test",
+             "tests/test_roto.py", sin))
+        # Un error de suite se reporta aunque haya ejecución
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
+                      {"ejecutado": True, "error": "boom"}),
+            ("CUBIERTO", "test declarado; boom", "tests/test_x.py", sin))
+        # Motivo vacío cae al error; sin motivo ni error, al genérico
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
+                      {"ejecutado": False, "motivo": "",
+                       "error": "cayo el runner"}),
+            ("CUBIERTO", "test declarado; cayo el runner", "tests/test_x.py",
+             sin))
+        self.assertEqual(
+            verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
+                      {"ejecutado": False}),
+            ("CUBIERTO", "test declarado; suite no ejecutada",
+             "tests/test_x.py", sin))
+
     def test_cobertura_exacta_de_proyecto_sin_codigo(self):
         raiz = crear_proyecto(self, {"requirements.txt": "requests==2\n"})
 

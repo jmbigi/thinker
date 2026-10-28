@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1018/1018** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1019/1019** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -545,3 +545,13 @@ tests) para que la cadena de gates no desaparezca en silencio. DSH `dsh-tui`
 no se modifica: `dsh plugin --profile dsh-tui list` falla con `EROFS` (perfil
 de solo lectura) y los plugins citados por el documento externo devuelven
 **404** en npm; no se instala nada no verificado (P0.18).
+
+**Actualización 2026-10-28** (lock `openai` 3.40.0 + lote dirigido R3):
+autoevaluación **con red 1.000** (v4 OK tras el bump; 0 hallazgos) y **sin
+red 1.000**. Suite **1019/1019** en Linux (Python 3.11.9, openai 3.40.0 en el
+entorno actual), ruff 0, preflight 0, docs-check OK. El lote R3 atacó los 16
+supervivientes de `_verificar_test` con un test de contrato exacto de bordes:
+los **16/16 mueren** verificado al estilo mutmut (cada mutante aplicado al
+fuente → la clase de tests falla → restauración; diff vacío al final). La
+cifra oficial de la campaña (1319 brechas, 2026-10-26) se actualiza tras la
+próxima re-medición con `scripts/mutacion.py`; R3 sigue **parcial**.
