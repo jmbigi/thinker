@@ -48,7 +48,7 @@ herramientas de análisis estático de código.
     con hashes). `openai` verificado en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1,
     3.37.0 y 3.40.0 (lock en 3.40.0).
   - Opcional: [Ollama](https://ollama.com/) para modelos locales y extra `ml`
-    con `torch==2.5.1` (`requirements-ml.txt` + `requirements-ml.lock`).
+    con `torch==2.15.0` (`requirements-ml.txt` + `requirements-ml.lock`).
 
 ## Instalación
 

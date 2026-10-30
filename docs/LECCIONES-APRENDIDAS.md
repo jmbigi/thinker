@@ -3547,3 +3547,22 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   speculative decoding equivale a greedy con menos llamadas al target; VQ
   reconstruye por niveles. Son modelos diminutos en CPU, no benchmarks del LLM
   de producción. Suite completa **1211/1211**, ruff 0 y preflight 0.
+
+### Hallazgo 150: actualización de seguridad del extra ML
+
+- **Hallazgo (2026-10-30)**: `pip-audit` detectó **22 vulnerabilidades conocidas**
+  en el pin inicial `torch==2.5.1` de `requirements-ml.lock`. El extra es opt-in,
+  pero eso no elimina el riesgo para quien lo instala.
+- **Corrección**: `requirements-ml.txt` y el extra `ml` de `pyproject.toml` fijan
+  `torch==2.15.0`; el lock se regeneró con hashes. La auditoría del lock completo
+  resultante informó `No known vulnerabilities found`. El lock base no cambió.
+- **Fallo de validación y causa**: instalar torch con `--no-deps` impidió importarlo
+  por la ausencia de `libcudart.so.13`; no fue un fallo de API ni de los tests. Se
+  repitió la validación instalando el lock completo, sin cambiar código ni pruebas.
+- **Evidencia**: en un venv temporal con el lock completo, `torch 2.15.0` superó
+  **7/7 tests neurales** en CPU; `make check` completó **1211/1211 tests**, ruff 0,
+  preflight 0, docs-check, escaneo de secretos y holdout en verde. La instalación
+  limpia del paquete y las tres demos offline también terminaron correctamente.
+- **Lección documental**: un salto de línea entre `en` y `Linux` hizo fallar dos
+  veces el gate. Se consultó la expresión regular real de `check_docs.py` y se
+  corrigió la presentación; no se modificó el gate ni la evidencia declarada.

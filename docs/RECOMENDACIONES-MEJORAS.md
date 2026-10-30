@@ -560,7 +560,8 @@ offline**, no una promesa de calidad de producción.
 
 **Evidencia común:** **1211/1211 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
-`torch==2.5.1` en el extra `ml` y su lock. Las pruebas reales de Ollama se
+`torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
+vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se
 omitieron por servidor ausente. No se ejecutó RACE/FACT oficial ni un benchmark
 real de calidad de modelos de producción; eso permanece como validación externa
 opt-in, no como resultado afirmado.

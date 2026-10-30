@@ -128,7 +128,7 @@ mejora de código (`code_design_improvement_tools.py`).
 - SO verificados: **Linux** (Python 3.11/3.12) y **Windows 11** (Python
   3.12.7/3.14.3, 2026-10-22). Dependencias en `requirements.txt` (`requests`,
   `openai>=1.0,<4`, `python-dotenv`, `PyYAML`, `pypdf` y `cryptography`; el lock
-  fija las exactas con hashes); `ollama` opcional y extra `ml` con `torch==2.5.1`
+  fija las exactas con hashes); `ollama` opcional y extra `ml` con `torch==2.15.0`
   (`requirements-ml.txt` + lock propio). `openai` verificado en **1.109.1, 2.54.0,
   3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0** (canario en `tests/test_openai_compatibilidad.py`;
   3.35.1 verificado el 2026-10-20 con 703/703 en 3.11 y 3.12; 3.40.0 verificado

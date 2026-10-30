@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 local = ["ollama>=0.3"]
-ml = ["torch==2.5.1"]
+ml = ["torch==2.15.0"]
 # Herramientas de desarrollo verificadas en este repo (2026-10-14):
 # ruff 0.6+, coverage 7+, mutmut 3+ (pruebas de mutación) y pytest (lo usa mutmut).
 dev = ["ruff>=0.6", "coverage>=7.0", "mutmut>=3.0", "pytest>=8.0"]

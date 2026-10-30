@@ -641,6 +641,14 @@ cuantización/poda, MoE, speculative decoding y VQ con PyTorch. La distinción
 orquestación↔modelo del paper queda explícita. Se añaden **77 tests**.
 Suite **1211/1211** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK. Dependencias base fijadas con hashes: `pypdf 6.21.4` y
-`cryptography 50.0.2`; extra ML `torch==2.5.1` con lock propio. Prueba real
+`cryptography 50.0.2`; extra ML `torch==2.15.0` con lock propio. Prueba real
 Ollama omitida por servidor ausente; las pruebas neurales usan modelos pequeños
 reales en CPU y no afirman calidad de producción. Hallazgos 148-149.
+
+**Actualización 2026-10-30** (seguridad del extra ML): `pip-audit` detectó 22
+vulnerabilidades conocidas en `torch 2.5.1`; el pin y su lock se actualizaron a
+`torch==2.15.0`, y la nueva auditoría no encontró vulnerabilidades conocidas.
+Con el lock completo pasan los **7/7 tests neurales**.
+Suite **1211/1211** en Linux (Python 3.11.9); ruff 0, preflight 0, docs-check
+y holdout OK. La instalación limpia y las demos offline también pasan.
+Hallazgo 150.
