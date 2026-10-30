@@ -898,7 +898,7 @@ class ResearchOrchestrator:
                  llm_verificador=None, muestras_consenso: int = 1,
                  evaluador_relevancia: bool = False,
                  umbral_relevancia: float = 0.5,
-                 informe_coarse_to_fine: bool = False):
+                 informe_coarse_to_fine: bool = False, plugin_registry=None):
         """Monta el pipeline.
 
         `llm_rapido` (enrutado por tarea): si se pasa, descompone y extrae con
@@ -914,10 +914,13 @@ class ResearchOrchestrator:
         `informe_coarse_to_fine=True`: genera el informe en dos etapas (esquema
         y secciones), con una llamada extra por sección; si el esquema no es
         válido, cae a la pasada única y lo registra en `decision_log`.
+        `plugin_registry`: si se pasa, sus CorePlugins reciben los hooks del
+        ciclo de investigación. Los proveedores ya inyectados no se sustituyen.
         """
         self.llm = llm_provider
         self.llm_rapido = llm_rapido or llm_provider
         self.search = search_api
+        self.plugin_registry = plugin_registry
         self.context = ResearchContext("pending", max_iterations)
         self.decomposer = QuestionDecomposer(self.llm_rapido)
         juez = RelevanceJudge(self.llm_rapido) if evaluador_relevancia else None
@@ -931,14 +934,44 @@ class ResearchOrchestrator:
         self.generator = ReportGenerator(
             llm_provider, coarse_to_fine=informe_coarse_to_fine)
 
+    @classmethod
+    def from_plugins(cls, registry=None, **kwargs):
+        """Usa los proveedores activos de un registro ya cargado.
+
+        El descubrimiento es idempotente, pero la carga y activación son
+        explícitas: nunca se elige un mock ni un proveedor real como fallback.
+        """
+        if registry is None:
+            from plugins import plugin_registry
+            registry = plugin_registry
+        registry.discover_plugins()
+        llm = registry.get_active_llm()
+        search = registry.get_active_search()
+        faltantes = [nombre for nombre, provider in
+                     (("LLM", llm), ("búsqueda", search)) if provider is None]
+        if faltantes:
+            raise RuntimeError(
+                f"No hay proveedores activos de {' y '.join(faltantes)}; "
+                "carga y activa los plugins antes de crear el orquestador")
+        return cls(llm, search, plugin_registry=registry, **kwargs)
+
+    def _hook(self, name: str, **payload):
+        if self.plugin_registry is None:
+            return []
+        return self.plugin_registry.trigger_hook(
+            name, {"context": self.context, **payload})
+
     def research(self, question: str) -> Tuple[str, ResearchContext]:
         """Execute the full research pipeline."""
         self.context = ResearchContext(question, self.context.max_iterations)
+        self._hook("pre_research")
 
         # Step 1: Decompose question
         subquestions = self.decomposer.decide(self.context)
         if not subquestions:
-            return "Could not decompose research question", self.context
+            report = "Could not decompose research question"
+            self._hook("post_research", report=report)
+            return report, self.context
 
         # `max_iterations` limita de verdad el bucle (antes era un parámetro
         # decorativo): cada subpregunta consume una iteración de recuperación.
@@ -954,17 +987,25 @@ class ResearchOrchestrator:
         for sq in subquestions:
             results = self.retriever.decide(self.context, sq)
             for result in results[:3]:
-                self.extractor.decide(self.context, {
+                source = {
                     "url": result.get("url", ""),
                     "snippet": result.get("snippet", "")
-                })
+                }
+                self._hook("pre_claim_extraction", source=source)
+                claims = self.extractor.decide(self.context, source)
+                self._hook("post_claim_extraction", source=source, claims=claims)
 
         # Step 3: Evaluate all claims against evidence
         for claim in self.context.claims[:]:
-            self.evaluator.decide(self.context, claim)
+            self._hook("pre_evaluation", claim=claim)
+            evaluation = self.evaluator.decide(self.context, claim)
+            self._hook("post_evaluation", claim=claim, evaluation=evaluation)
 
         # Step 4: Generate final report
+        self._hook("pre_report")
         report = self.generator.decide(self.context)
+        self._hook("post_report", report=report)
+        self._hook("post_research", report=report)
 
         return report, self.context
 

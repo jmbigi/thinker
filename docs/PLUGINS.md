@@ -107,6 +107,49 @@ como override.
 `search(query)` lo usa y `search(query, N)` lo sobreescribe. Sin el parámetro,
 el defecto es 5.
 
+## Integración con el pipeline de investigación
+
+`ResearchOrchestrator.from_plugins()` toma los proveedores activos de un
+registro y conecta sus CorePlugins al ciclo de investigación. El descubrimiento
+es idempotente; la carga y activación se hacen explícitamente. Si falta el LLM o
+el buscador activo, eleva `RuntimeError`: no carga proveedores ni cae a un mock
+silenciosamente.
+
+```python
+from deep_research_system import ResearchOrchestrator
+from plugins import PluginRegistry
+
+registry = PluginRegistry()
+registry.discover_plugins()
+assert registry.load_plugin("mock_llm")
+assert registry.load_plugin("mock_search")
+
+orchestrator = ResearchOrchestrator.from_plugins(registry)
+report, context = orchestrator.research("Comprobar la integración offline")
+```
+
+Sin argumento, `from_plugins()` usa la instancia global `plugin_registry`. Los
+proveedores quedan inyectados en el orquestador: después de `set_active_llm()`,
+`set_active_search()` o un hot-swap, crea otro orquestador para usar la nueva
+selección. La selección del registro global vive en el proceso actual; ejecutar
+la CLI de plugins no reconfigura otro proceso.
+
+Con `plugin_registry` (directo o mediante `from_plugins`), el pipeline emite
+`pre_research`, `post_research`, `pre_claim_extraction`,
+`post_claim_extraction`, `pre_evaluation`, `post_evaluation`, `pre_report` y
+`post_report`. Cada hook recibe **un diccionario payload**:
+
+- Todos incluyen `context`, el `ResearchContext` actual.
+- Los de extracción incluyen `source`; `post_claim_extraction` añade `claims`.
+- Los de evaluación incluyen `claim`; `post_evaluation` añade `evaluation`.
+- `post_report` y `post_research` incluyen `report`.
+
+Son notificaciones: el orquestador no usa sus valores de retorno para sustituir
+claims, evaluaciones o informe. `pre_thinking_step` y `post_thinking_step`
+siguen declarados como puntos de extensión, pero este incremento no los conecta
+al motor de pensamiento. La construcción clásica `ResearchOrchestrator(llm,
+search)` no emite hooks salvo que reciba `plugin_registry=registry`.
+
 ## Configuración (config/plugins.yaml)
 
 ```yaml

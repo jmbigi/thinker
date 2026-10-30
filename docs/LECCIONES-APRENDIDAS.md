@@ -3443,3 +3443,59 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   diagnosticando (`doctor` en cp1252, wheel en Python 3.12) se corrigieron
   igualmente porque afectaban a scripts reales del paquete; la suite `-v` en
   el workflow desapareció con él. La verificación es local, por diseño.
+
+### Hallazgo 146: integración explícita de plugins activos y hooks de investigación
+
+- **Defecto reproducible (2026-10-30)**: el núcleo aceptaba proveedores por
+  inyección, pero no consultaba `plugin_registry`; `set-active` no influía en
+  un orquestador y los hooks solo se invocaban en el registro y sus tests, no
+  en el pipeline. No era un fallo de importación: faltaba la composición entre
+  subsistemas.
+- **Dogfooding y diseño**: `scripts/preflight.py` se ejecutó antes del cambio
+  (0 hallazgos en imports, duplicados, silencios y tareas) y fijó la restricción
+  de integrar en el orquestador existente, sin un pipeline paralelo ni clientes
+  duplicados. La decisión se apoyó además en la llamada offline
+  pensamiento→investigación y en la inspección de llamadas, no en una salida
+  simulada de diseño.
+- **Solución incremental**: `ResearchOrchestrator.from_plugins()` descubre de
+  forma idempotente y toma los proveedores ya cargados/activos; eleva
+  `RuntimeError` si falta alguno, sin fallback. `plugin_registry` es opcional en
+  el constructor clásico y emite `pre_research`, `post_research`, extracción,
+  evaluación e informe (pre/post) con un diccionario payload documentado. Los
+  proveedores se capturan al construir: tras hot-swap se crea otro orquestador.
+  Quedan fuera los hooks de pensamiento y la CLI unificada.
+- **Regresión del propio test**: la primera ejecución end-to-end con plugins
+  reales offline produjo 9 claims, no los 3 supuestos: `MockSearchPlugin`
+  devuelve 5 resultados por defecto y el pipeline extrae de 3 por subpregunta;
+  `MockSearchAPI` devuelve 1. Se corrigió el fixture con
+  `PluginConfig(params={"max_results": 1})`, no el código ni la aserción para
+  ocultar el comportamiento. Lección: fijar la configuración del doble usado en
+  una prueba de integración.
+- **Evidencia**: 5 regresiones nuevas; las 15 pruebas enfocadas pasan, incluida
+  la composición real offline `PluginRegistry`→proveedores activos→pipeline.
+  Suite completa **1133/1133**, ruff 0, preflight 0, docs-check OK, holdout OK y
+  tres demos offline correctas. No se probaron proveedores externos ni red.
+- **Bloqueo preexistente detectado**: `make verify-install` falló con pip
+  26.2.1 porque `_comando_wheel()` dejaba `--no-build-isolation` entre
+  `--wheel-dir` y su destino (`scripts/verificar_instalacion.py:86-96`); pip
+  interpretaba ese destino como requisito. El archivo no tenía cambios en la
+  integración; la orden posterior de mejorar y probar antes del commit llevó al
+  arreglo registrado en el Hallazgo 147.
+
+### Hallazgo 147: destino de `pip wheel` separado de las demás opciones
+
+- **Defecto reproducible**: `_comando_wheel()` devolvía la secuencia
+  `--wheel-dir --no-build-isolation DESTINO` cuando setuptools estaba
+  disponible. En pip 26.2.1 el destino se interpretaba como requisito y
+  `make verify-install` terminaba con `Invalid requirement: '.../dist'`.
+- **Corrección**: las opciones booleanas se añaden primero y `--wheel-dir`
+  queda al final; `_construir_wheel()` añade el destino inmediatamente después.
+  No cambian el aislamiento ni las dependencias: solo el orden de argumentos.
+- **Regresión**: `test_wheel_dir_queda_junto_al_destino` fija el par exacto
+  `["--wheel-dir", "DESTINO"]` con setuptools presente; el orden anterior no
+  cumple ese contrato.
+- **Evidencia**: 6/6 tests del verificador y `make verify-install` OK: wheel
+  construido sin red, venv temporal, instalación `--no-index --no-deps`, cuatro
+  console scripts y módulos públicos con la degradación esperada por
+  dependencias ausentes. Suite completa **1134/1134**, ruff 0, preflight 0,
+  docs-check OK y holdout OK.

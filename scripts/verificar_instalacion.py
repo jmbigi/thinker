@@ -83,11 +83,11 @@ def _comando_wheel() -> list:
     intérprete actual, se usa **aislamiento de build** (requiere red) y se
     declara en la salida. Función pura para poder testearla.
     """
-    comando = [sys.executable, "-m", "pip", "wheel", ".", "--no-deps",
-               "--wheel-dir"]
-    if not _setuptools_disponible():
-        return comando          # aislamiento por defecto (red)
-    return comando + ["--no-build-isolation"]
+    comando = [sys.executable, "-m", "pip", "wheel", ".", "--no-deps"]
+    if _setuptools_disponible():
+        comando.append("--no-build-isolation")
+    comando.append("--wheel-dir")
+    return comando
 
 
 def _construir_wheel(tmp: Path, v: _Verificador) -> Path:

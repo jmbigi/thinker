@@ -434,6 +434,24 @@ class TestPluginsRealesOffline(unittest.TestCase):
         self.assertEqual(datos["active_llm"], "mock_llm")
         self.assertGreaterEqual(datos["loaded_plugins"], 1)
 
+    def test_orquestador_usa_los_plugins_activos(self):
+        from deep_research_system import ResearchOrchestrator
+
+        registry = self.make_registry()
+        registry.discover_plugins()
+        self.assertTrue(registry.load_plugin("mock_llm"))
+        self.assertTrue(registry.load_plugin(
+            "mock_search", PluginConfig(params={"max_results": 1})))
+
+        orchestrator = ResearchOrchestrator.from_plugins(registry)
+        report, ctx = orchestrator.research("Integración offline")
+
+        self.assertIn("SIMULADO", report)
+        self.assertIs(orchestrator.llm, registry.get_active_llm())
+        self.assertIs(orchestrator.search, registry.get_active_search())
+        self.assertEqual(len(ctx.claims), 3)
+        self.assertEqual(len(ctx.evaluations), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

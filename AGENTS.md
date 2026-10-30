@@ -308,8 +308,8 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1128/1128 en la suite
-  Linux** (2026-10-28; openai 3.40.0 en el entorno actual) y **3.12.3**
+- Plataformas verificadas: Linux con Python **3.11.9**: **1134/1134 en la suite
+  Linux** (2026-10-30; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
@@ -335,10 +335,11 @@ mejora de código (`code_design_improvement_tools.py`).
   (tests de contrato de proveedores y fallos de recuperación, pruebas
   adversarias de seguridad, escáner de secretos portable, límites de CPU en
   `--ejecutar-tests`, esquema JSON `docs/schema-v2.json` e higiene OSS;
-  Hallazgo 142) dejó la suite en **1128/1128**. El
-  auditor
-  de cambios de
-  `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
+  Hallazgo 142) dejó la suite en **1128/1128**. La integración explícita de
+  proveedores activos y hooks de investigación (Hallazgo 146) añadió 5 tests y
+  dejó la suite en **1133/1133**. La corrección del orden de `--wheel-dir`
+  (Hallazgo 147) añadió 1 test y dejó la suite en **1134/1134**. El auditor de
+  cambios de `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.
@@ -391,7 +392,10 @@ mejora de código (`code_design_improvement_tools.py`).
   sin separación, la pasada se declara `mismo-proveedor`, nunca silenciosa) y
   piloto opt-in de consenso por muestreo (`muestras_consenso>1`: veredictos
   divergentes ⇒ `discrepancia_muestreo` para revisión humana, con su
-  benchmark `tests/benchmarks/consenso_muestreo.py`).
+  benchmark `tests/benchmarks/consenso_muestreo.py`). Integración opt-in con
+  `ResearchOrchestrator.from_plugins()`: usa los proveedores activos de un
+  registro cargado y emite los hooks de investigación; no carga proveedores ni
+  hace fallback implícito.
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
   Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
   Ollama y Mock no reintentan. **No duplicar** clientes en otros módulos.

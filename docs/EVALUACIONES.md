@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1128/1128** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1134/1134** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -612,3 +612,20 @@ MockLLM y `--con-llm` opt-in real; Hallazgo 145) con 5 tests del arnés, y
 **cosmic-ray** validado como motor de mutación alternativo
 (`scripts/mutacion_cosmic.py`, evidence.py: 61 mutantes, 51 killed, 10
 supervivientes en 36 s).
+
+**Actualización 2026-10-30** (integración de plugins con investigación):
+`ResearchOrchestrator.from_plugins()` usa los proveedores activos de un registro
+ya cargado, sin fallback implícito, y `plugin_registry` conecta los ocho hooks
+del ciclo de investigación con un payload documentado. La API previa queda
+compatible; los hooks de pensamiento y una CLI unificada quedan fuera de este
+incremento. Cinco regresiones nuevas cubren proveedores activos, ausencia de
+fallback, orden/payload de hooks, salida temprana y ejecución end-to-end con
+los plugins mock reales. Suite **1133/1133** en Linux (Python 3.11.9), ruff 0,
+preflight 0, docs-check OK; evidencia y límites en Hallazgo 146.
+
+**Actualización 2026-10-30** (verificación de instalación): corregido el orden
+de argumentos de `pip wheel` en `scripts/verificar_instalacion.py`, con una
+regresión que mantiene `--wheel-dir` junto a su destino. `make verify-install`
+construye e instala el wheel en un venv temporal y supera las comprobaciones
+offline de módulos y console scripts. Suite **1134/1134** en Linux (Python
+3.11.9), ruff 0, preflight 0, docs-check OK; evidencia en Hallazgo 147.

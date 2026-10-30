@@ -170,13 +170,16 @@ class CorePlugin(PluginBase):
         Supported hooks:
         - 'pre_research': called before research starts
         - 'post_research': called after research completes
-        - 'pre_thinking_step': called before each thinking step
-        - 'post_thinking_step': called after each thinking step
         - 'pre_claim_extraction': called before claim extraction
         - 'post_claim_extraction': called after claim extraction
         - 'pre_evaluation': called before evidence evaluation
         - 'post_evaluation': called after evidence evaluation
         - 'pre_report': called before report generation
         - 'post_report': called after report generation
+
+        ResearchOrchestrator emits those hooks with one payload dict containing
+        the current context and the stage data (see docs/PLUGINS.md).
+        'pre_thinking_step' and 'post_thinking_step' are reserved for thinking
+        engines; StepThinkingEngine does not currently emit them.
         """
         pass

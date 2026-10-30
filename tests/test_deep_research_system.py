@@ -681,6 +681,26 @@ class TestDecisionEngines(unittest.TestCase):
 
 
 class TestResearchOrchestrator(unittest.TestCase):
+    class Registro:
+        def __init__(self, llm=None, search=None):
+            self.llm = llm
+            self.search = search
+            self.descubrimientos = 0
+            self.hooks = []
+
+        def discover_plugins(self):
+            self.descubrimientos += 1
+
+        def get_active_llm(self):
+            return self.llm
+
+        def get_active_search(self):
+            return self.search
+
+        def trigger_hook(self, name, payload):
+            self.hooks.append((name, payload))
+            return []
+
     def test_pipeline_completo_con_mocks(self):
         orchestrator = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
                                             max_iterations=3)
@@ -694,6 +714,63 @@ class TestResearchOrchestrator(unittest.TestCase):
         resumen = ctx.to_dict()
         self.assertEqual(resumen["num_claims"], 3)
         self.assertGreater(resumen["decisions"], 0)
+
+    def test_from_plugins_usa_los_proveedores_activos(self):
+        registry = self.Registro(MockLLM(), MockSearchAPI())
+
+        orchestrator = ResearchOrchestrator.from_plugins(registry, max_iterations=2)
+
+        self.assertEqual(registry.descubrimientos, 1)
+        self.assertIs(orchestrator.llm, registry.llm)
+        self.assertIs(orchestrator.search, registry.search)
+        self.assertIs(orchestrator.plugin_registry, registry)
+        self.assertEqual(orchestrator.context.max_iterations, 2)
+
+    def test_from_plugins_sin_activos_falla_sin_fallback(self):
+        registry = self.Registro()
+
+        with self.assertRaises(RuntimeError) as error:
+            ResearchOrchestrator.from_plugins(registry)
+
+        self.assertEqual(
+            str(error.exception),
+            "No hay proveedores activos de LLM y búsqueda; carga y activa "
+            "los plugins antes de crear el orquestador")
+        self.assertEqual(registry.descubrimientos, 1)
+
+    def test_hooks_del_pipeline_con_orden_y_payload(self):
+        registry = self.Registro()
+        orchestrator = ResearchOrchestrator(
+            MockLLM(), MockSearchAPI(), plugin_registry=registry)
+
+        report, ctx = orchestrator.research("¿Estado de la fusión nuclear?")
+
+        nombres = [name for name, _ in registry.hooks]
+        self.assertEqual(
+            nombres,
+            ["pre_research"]
+            + ["pre_claim_extraction", "post_claim_extraction"] * 3
+            + ["pre_evaluation", "post_evaluation"] * 3
+            + ["pre_report", "post_report", "post_research"])
+        self.assertTrue(all(payload["context"] is ctx
+                            for _, payload in registry.hooks))
+        extraccion = next(payload for name, payload in registry.hooks
+                          if name == "post_claim_extraction")
+        self.assertEqual(extraccion["source"]["url"], ctx.sources[0]["url"])
+        self.assertEqual(extraccion["claims"], ctx.claims[:1])
+        self.assertEqual(registry.hooks[-1][1]["report"], report)
+
+    def test_hooks_si_no_hay_subpreguntas_no_generan_informe(self):
+        registry = self.Registro()
+        orchestrator = ResearchOrchestrator(
+            StubLLM(lambda p: ""), MockSearchAPI(), plugin_registry=registry)
+
+        report, _ = orchestrator.research("pregunta")
+
+        self.assertEqual(report, "Could not decompose research question")
+        self.assertEqual([name for name, _ in registry.hooks],
+                         ["pre_research", "post_research"])
+        self.assertEqual(registry.hooks[-1][1]["report"], report)
 
     def test_max_iterations_limita_las_subpreguntas_procesadas(self):
         """El parámetro limita de verdad (antes era decorativo)."""

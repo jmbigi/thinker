@@ -81,6 +81,17 @@ class TestContratoVerificadorInstalacion(unittest.TestCase):
         finally:
             vi._setuptools_disponible = original
 
+    def test_wheel_dir_queda_junto_al_destino(self):
+        original = vi._setuptools_disponible
+        try:
+            vi._setuptools_disponible = lambda: True
+            comando = vi._comando_wheel() + ["DESTINO"]
+        finally:
+            vi._setuptools_disponible = original
+
+        self.assertEqual(comando[-2:], ["--wheel-dir", "DESTINO"])
+        self.assertIn("--no-build-isolation", comando)
+
 
 if __name__ == "__main__":
     unittest.main()
