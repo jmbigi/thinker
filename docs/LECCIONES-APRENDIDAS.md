@@ -3566,3 +3566,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección documental**: un salto de línea entre `en` y `Linux` hizo fallar dos
   veces el gate. Se consultó la expresión regular real de `check_docs.py` y se
   corrigió la presentación; no se modificó el gate ni la evidencia declarada.
+
+### Hallazgo 151: contrato de licencias no runtime, un paso acotado de R3
+
+- **Dogfooding (2026-10-30)**: `analyze_python_source` de Thinker comparó los
+  candidatos R3 y mostró `licencias_no_runtime` con 40 líneas y complejidad 6,
+  frente a 20-21 de los otros candidatos. Se eligió esa función para una mejora
+  pequeña. El JSON detallado de r3c4 ya no existe en `build/`; no se atribuyen
+  IDs de mutantes ni una reducción oficial del inventario.
+- **Regresión añadida**: `test_licencias_no_runtime_filtra_y_conserva_error`
+  fija la salida completa con dependencias runtime y nombres vacíos excluidos,
+  duplicados eliminados, fuente `PyPI` de fallback y error conservado como
+  `unverified`. No cambia el evaluador, sus criterios ni sus umbrales.
+- **Verificación**: la prueba pasa en el código real y detecta **4/4 mutaciones
+  dirigidas** en copias temporales (runtime invertido, duplicados admitidos,
+  fuente omitida y error invertido). Suite **1212/1212** y tres demos offline
+  correctas. Es evidencia local, no una nueva tasa global: R3 sigue abierta.

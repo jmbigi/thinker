@@ -2954,6 +2954,28 @@ class TestMasRamasDelEvaluador(unittest.TestCase):
                                     "fuente": "license_expression",
                                     "procedencia": "real"}])
 
+    def test_licencias_no_runtime_filtra_y_conserva_error(self):
+        perfil = SimpleNamespace(deps_python=[
+            {"nombre": "requests", "ambito": "runtime"},
+            {"nombre": "", "ambito": "dev"},
+            {"nombre": "pytest", "ambito": "dev", "origen": "pyproject.toml",
+             "version": "8", "operador": ">="},
+            {"nombre": "pytest", "ambito": "dev"},
+        ])
+        info = {"licencia": "desconocida", "libre": None, "fuente": "",
+                "error": "OSError: boom"}
+
+        with patch("evaluar_proyecto.licencia_pypi", return_value=info) as consulta:
+            resultado = evaluar_proyecto.licencias_no_runtime(perfil, True)
+
+        self.assertEqual(resultado, [{
+            "nombre": "pytest", "ambito": "dev", "origen": "pyproject.toml",
+            "version": "8", "operador": ">=", "licencia": "desconocida",
+            "libre": None, "fuente": "PyPI", "procedencia": "unverified",
+            "error": "OSError: boom",
+        }])
+        consulta.assert_called_once_with("pytest")
+
 
 class TestParserEjecutarEInteligencia(unittest.TestCase):
     """Contrato de requisitos, runner de tests y dimensión inteligencia."""

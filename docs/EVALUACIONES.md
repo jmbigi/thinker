@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1211/1211** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1212/1212** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -652,3 +652,10 @@ Con el lock completo pasan los **7/7 tests neurales**.
 Suite **1211/1211** en Linux (Python 3.11.9); ruff 0, preflight 0, docs-check
 y holdout OK. La instalación limpia y las demos offline también pasan.
 Hallazgo 150.
+
+**Actualización 2026-10-30** (paso acotado de R3): una regresión de
+`licencias_no_runtime` fija filtrado, deduplicación y conservación de errores;
+detecta 4/4 mutaciones dirigidas sin cambiar el evaluador. No se atribuye una
+reducción del inventario oficial ni una nueva tasa de mutación.
+Suite **1212/1212** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta. Hallazgo 151.
