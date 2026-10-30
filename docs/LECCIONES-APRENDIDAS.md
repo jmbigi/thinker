@@ -3499,3 +3499,51 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   console scripts y módulos públicos con la degradación esperada por
   dependencias ausentes. Suite completa **1134/1134**, ruff 0, preflight 0,
   docs-check OK y holdout OK.
+
+### Hallazgo 148: documentos, CLI, conectores, NCM y privacidad end-to-end
+
+- **Requisito y dogfooding (2026-10-30)**: la comparativa externa mostró brechas
+  en contenido, conectores y usabilidad. Antes de diseñar se usaron
+  `evaluar_proyecto` (GLOBAL 1.000 estático), preflight (0 hallazgos) y el
+  analizador AST de Thinker (`deep_research_system`: 1084 líneas/complejidad 88)
+  para ubicar módulos cohesivos en vez de inflar el orquestador. La prueba real
+  Ollama se omitió por servidor ausente; no se simuló su uso.
+- **Implementado**: `documents` (HTML/PDF/TXT/MD/CSV/DOCX/PPTX/XLSX, hash y
+  localización, RAG BM25+coseno y full-text), `research_cli` (Markdown/JSON,
+  presupuestos y opciones reales) y `research_state` (checkpoints atómicos 0600,
+  caché y reanudación por subpregunta/fuente/claim). Conectores SearXNG,
+  arXiv, PubMed, Semantic Scholar y MCP stdio con negociación oficial,
+  allowlist, timeout y límites. `concept_ncm` añade jerarquía residual con
+  hashes, generación paralela por nivel y reconstrucción determinista.
+  `privacy` añade `public`, `local-only`, `private-documents` y Fernet.
+- **Defectos encontrados y corregidos**: `GuardSearch` asignaba `self.search` y
+  ocultaba el método homónimo (renombrado a `_search`); el progreso del benchmark
+  se mezclaba con JSON (redirigido a stderr); MCP tenía un `except: pass` en el
+  cierre (ahora se reporta); `claim_key` colapsaba evaluaciones de fuentes con la
+  misma URL pero contenido distinto (ahora cada claim guarda `source_key`).
+  Los tests confirmaron las causas antes de corregirlas; no se editaron
+  criterios para ocultarlas.
+- **Evidencia**: 77 tests nuevos, suite **1211/1211**, ruff 0, preflight 0,
+  docs-check OK. PDF real validado en venv con `pypdf 6.21.4`; checkpoints
+  cifrados con `cryptography 50.0.2`; prueba Ollama omitida. No se ejecutó
+  RACE/FACT oficial ni investigación real con proveedores en esta entrega.
+
+### Hallazgo 149: eficiencia orquestada y subsistema neural opt-in
+
+- **Alcance honesto**: las diez técnicas solicitadas no se mezclan con el modelo
+  del paper. Orquestación/RAG: routing heurístico declarado, poda con métricas,
+  caché exacta/semántica opt-in, vectores INT4/INT8, expertos y
+  draft-verificación. Neural real opt-in: destilación con logits, LoRA,
+  cuantización y poda de pesos, MoE, speculative decoding y VQ residual.
+  Ninguna afirmación de ahorro/calidad sin medición.
+- **Defectos de implementación corregidos**: la versión de PyTorch exigía
+  `src_mask` (no `mask`) en `TransformerEncoderLayer`; el MoE top-1 no daba
+  gradiente al router y ahora pondera por la probabilidad seleccionada. El lock
+  ML inicial resolvió una versión distinta a la probada; se fijó `torch==2.5.1`
+  y se regeneró `requirements-ml.lock` para mantener coherencia. Los tests ML se
+  omiten explícitamente si torch no está instalado.
+- **Evidencia**: cuantización reduce memoria medida y mantiene dirección; poda
+  produce sparsity real; LoRA deja pesos base intactos; MoE recibe gradiente;
+  speculative decoding equivale a greedy con menos llamadas al target; VQ
+  reconstruye por niveles. Son modelos diminutos en CPU, no benchmarks del LLM
+  de producción. Suite completa **1211/1211**, ruff 0 y preflight 0.

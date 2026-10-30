@@ -401,3 +401,24 @@ class MockLLM(LLMProvider):
                 "el prompt no corresponde a un patrón conocido.")
 
 
+class BudgetLLM(LLMProvider):
+    """Decorador con límite de llamadas compartido y seguro entre hilos."""
+
+    def __init__(self, provider: LLMProvider, max_calls: int):
+        if not isinstance(max_calls, int) or isinstance(max_calls, bool) or max_calls < 1:
+            raise ValueError("max_calls debe ser un entero >= 1")
+        import threading
+        self.provider = provider
+        self.max_calls = max_calls
+        self.calls = 0
+        self._lock = threading.Lock()
+
+    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+        with self._lock:
+            if self.calls >= self.max_calls:
+                raise RuntimeError(
+                    f"Presupuesto de llamadas LLM agotado ({self.calls}/{self.max_calls})")
+            self.calls += 1
+        return self.provider.generate(prompt, model=model, **kwargs)
+
+

@@ -1,0 +1,3 @@
+# Extra opt-in para neural_concepts.py (modelos pequeños de validación)
+# Verificado en CPU con torch 2.5.1; no es requisito de la instalación base.
+torch==2.5.1

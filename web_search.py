@@ -262,3 +262,172 @@ class DuckDuckGoSearchAPI(SearchAPI):
         if not _es_host_publico(parsed.netloc):
             return ""
         return href
+
+
+def _json_response(response, proveedor: str):
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise RuntimeError(f"Respuesta no JSON de {proveedor}: {exc}") from exc
+
+
+def _url_publica(url: str) -> bool:
+    parsed = urlparse(url)
+    return (parsed.scheme in ("http", "https") and bool(parsed.netloc)
+            and _es_host_publico(parsed.netloc))
+
+
+class SearXNGSearchAPI(SearchAPI):
+    """SearXNG autoalojado o público; hosts privados requieren opt-in."""
+
+    def __init__(self, base_url: str, timeout: int = 20,
+                 allow_private: bool = False):
+        parsed = urlparse(base_url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("SEARXNG_URL debe ser HTTP(S) válida")
+        if not allow_private and not _es_host_publico(parsed.netloc):
+            raise ValueError("SearXNG privado exige allow_private=True")
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        if max_results <= 0:
+            return []
+        response = requests.get(
+            f"{self.base_url}/search",
+            params={"q": query, "format": "json"},
+            headers={"User-Agent": USER_AGENT}, timeout=self.timeout)
+        response.raise_for_status()
+        datos = _json_response(response, "SearXNG")
+        if not isinstance(datos, dict) or not isinstance(datos.get("results"), list):
+            raise RuntimeError("Respuesta inesperada de SearXNG: falta results")
+        resultados = []
+        for hit in datos["results"]:
+            url = hit.get("url", "")
+            if not _url_publica(url):
+                continue
+            resultados.append({
+                "title": hit.get("title", ""),
+                "url": url,
+                "snippet": hit.get("content", ""),
+                "source": "searxng",
+            })
+            if len(resultados) >= max_results:
+                break
+        return resultados
+
+
+class ArxivSearchAPI(SearchAPI):
+    """Artículos de arXiv mediante su API Atom pública."""
+
+    def __init__(self, timeout: int = 20):
+        self.endpoint = "https://export.arxiv.org/api/query"
+        self.timeout = timeout
+
+    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        if max_results <= 0:
+            return []
+        from xml.etree import ElementTree as ET
+        response = requests.get(
+            self.endpoint,
+            params={"search_query": f"all:{query}", "start": 0,
+                    "max_results": max_results},
+            headers={"User-Agent": USER_AGENT}, timeout=self.timeout)
+        response.raise_for_status()
+        try:
+            raiz = ET.fromstring(response.content)
+        except ET.ParseError as exc:
+            raise RuntimeError(f"XML inválido de arXiv: {exc}") from exc
+        ns = "{http://www.w3.org/2005/Atom}"
+        resultados = []
+        for entrada in raiz.findall(f"{ns}entry"):
+            url = (entrada.findtext(f"{ns}id", default="")).replace("http://", "https://")
+            if not _url_publica(url):
+                continue
+            resultados.append({
+                "title": _strip_html(entrada.findtext(f"{ns}title", default="")),
+                "url": url,
+                "snippet": _strip_html(entrada.findtext(f"{ns}summary", default="")),
+                "source": "arxiv",
+            })
+        return resultados
+
+
+class PubMedSearchAPI(SearchAPI):
+    """Artículos biomédicos mediante E-utilities de NCBI."""
+
+    def __init__(self, timeout: int = 20):
+        self.base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+        self.timeout = timeout
+
+    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        if max_results <= 0:
+            return []
+        busqueda = requests.get(
+            f"{self.base}/esearch.fcgi",
+            params={"db": "pubmed", "term": query, "retmode": "json",
+                    "retmax": max_results},
+            headers={"User-Agent": USER_AGENT}, timeout=self.timeout)
+        busqueda.raise_for_status()
+        datos = _json_response(busqueda, "PubMed esearch")
+        try:
+            ids = datos["esearchresult"]["idlist"]
+        except KeyError as exc:
+            raise RuntimeError("Respuesta inesperada de PubMed esearch") from exc
+        if not ids:
+            return []
+        resumen = requests.get(
+            f"{self.base}/esummary.fcgi",
+            params={"db": "pubmed", "id": ",".join(ids), "retmode": "json"},
+            headers={"User-Agent": USER_AGENT}, timeout=self.timeout)
+        resumen.raise_for_status()
+        datos = _json_response(resumen, "PubMed esummary")
+        resultados = []
+        for identificador in ids:
+            try:
+                hit = datos["result"][identificador]
+            except KeyError as exc:
+                raise RuntimeError("PubMed esummary omitió un ID") from exc
+            autores = ", ".join(a.get("name", "") for a in hit.get("authors", [])[:3])
+            resultados.append({
+                "title": hit.get("title", ""),
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{identificador}/",
+                "snippet": f"{hit.get('pubdate', '')} | {hit.get('source', '')} | {autores}",
+                "source": "pubmed",
+            })
+        return resultados
+
+
+class SemanticScholarSearchAPI(SearchAPI):
+    """Artículos de Semantic Scholar Graph API (sin clave obligatoria)."""
+
+    def __init__(self, timeout: int = 20):
+        self.endpoint = "https://api.semanticscholar.org/graph/v1/paper/search"
+        self.timeout = timeout
+
+    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        if max_results <= 0:
+            return []
+        response = requests.get(
+            self.endpoint,
+            params={"query": query, "limit": max_results,
+                    "fields": "title,url,abstract,year,authors"},
+            headers={"User-Agent": USER_AGENT}, timeout=self.timeout)
+        response.raise_for_status()
+        datos = _json_response(response, "Semantic Scholar")
+        if not isinstance(datos, dict) or not isinstance(datos.get("data"), list):
+            raise RuntimeError("Respuesta inesperada de Semantic Scholar")
+        resultados = []
+        for hit in datos["data"]:
+            url = hit.get("url") or f"https://www.semanticscholar.org/paper/{hit.get('paperId', '')}"
+            if not _url_publica(url):
+                continue
+            autores = ", ".join(a.get("name", "") for a in hit.get("authors", [])[:3])
+            abstract = hit.get("abstract") or "Sin resumen disponible"
+            resultados.append({
+                "title": hit.get("title", ""),
+                "url": url,
+                "snippet": f"{hit.get('year', '')} | {autores} | {abstract}",
+                "source": "semantic_scholar",
+            })
+        return resultados

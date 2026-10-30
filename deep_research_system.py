@@ -40,6 +40,10 @@ class ResearchContext:
         self.evaluations: List[Dict[str, Any]] = []
         self.conclusions: List[Dict[str, Any]] = []
         self.decision_log: List[Dict[str, Any]] = []
+        self.retrieved_subquestions: List[str] = []
+        self.retrieval_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self.processed_source_keys: List[str] = []
+        self.evaluated_claim_keys: List[str] = []
         self.start_time = time.time()
 
     def add_decision(self, step: str, decision: str, rationale: str = ""):
@@ -220,7 +224,8 @@ class SourceRetriever(DecisionEngine):
             if url and url in known_urls:
                 continue  # no repetir fuentes ya recuperadas
             known_urls.add(url)
-            source = {
+            source = dict(result)
+            source.update({
                 "title": result.get("title", ""),
                 "url": url,
                 "snippet": result.get("snippet", ""),
@@ -228,7 +233,7 @@ class SourceRetriever(DecisionEngine):
                 "retrieved_at": time.time(),
                 "related_to": subquestion,
                 "query_used": query,
-            }
+            })
             context.sources.append(source)
             added += 1
 
@@ -296,6 +301,8 @@ Return ONLY a JSON array (no markdown fences, no extra text) with fields:
                 raise json.JSONDecodeError("se esperaba un array JSON", str(claims), 0)
             for claim in claims:
                 claim["source_id"] = source.get("url", "unknown")
+                claim["source_key"] = (source.get("sha256") or source.get("location")
+                                       or source.get("snippet", ""))
                 claim["extracted_at"] = time.time()
             context.claims.extend(claims)
             context.add_decision("claim_extraction", "extract",
@@ -615,16 +622,17 @@ Return ONLY JSON (no markdown fences, no extra text):
 class ReportGenerator(DecisionEngine):
     """Generates the final research report with citations and structure.
 
-    `coarse_to_fine=True` activa un modo opt-in de dos etapas: primero un
-    esquema (secciones) y después cada sección. Se inspira en el principio
-    coarse-to-fine de Next-Concept Modeling (arXiv:2610.14162), **no** en su
-    tokenizer ni en su decodificación paralela: aquí el LLM sigue siendo el
-    generador y el número de llamadas aumenta (1 esquema + N secciones).
+    `coarse_to_fine=True` genera esquema y secciones. `ncm_residual=True`
+    añade refinamientos residuales y paralelismo por nivel, inspirado en NCM;
+    no implementa el tokenizer VQ ni el transformer entrenado del paper.
     """
 
-    def __init__(self, llm_provider, coarse_to_fine: bool = False):
+    def __init__(self, llm_provider, coarse_to_fine: bool = False,
+                 ncm_residual: bool = False, max_workers: int = 1):
         self.llm_provider = llm_provider
-        self.coarse_to_fine = coarse_to_fine
+        self.coarse_to_fine = coarse_to_fine or ncm_residual
+        self.ncm_residual = ncm_residual
+        self.max_workers = max_workers
 
     def decide(self, context: ResearchContext) -> str:
         supported_claims = [c for c in context.claims if any(
@@ -730,6 +738,24 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
         if len(secciones) < total:
             motivo += f" (truncated from {total})"
         context.add_decision("report_outline", "generate", motivo)
+
+        if self.ncm_residual:
+            from concept_ncm import ResidualConceptGenerator
+            resultado = ResidualConceptGenerator(
+                self.llm_provider, max_workers=self.max_workers).generate(
+                    context, secciones, fuentes_txt, claims_txt,
+                    self._prompt_seccion, self._sin_encabezado_repetido)
+            for traza in resultado.traces:
+                context.add_decision(
+                    "ncm_concept", traza["status"],
+                    json.dumps(traza, ensure_ascii=False, sort_keys=True))
+            if not resultado.generated_sections:
+                context.add_decision(
+                    "report_generation", "fallback_single_pass",
+                    "Ningún concepto de sección generó contenido; pasada única")
+                return self._pasada_unica_validada(context, prompt_unica)
+            self._validar_citas(context, resultado.report, "Informe NCM residual")
+            return resultado.report
 
         partes = [f"# Research Report: {context.question}"]
         generadas = 0
@@ -898,7 +924,10 @@ class ResearchOrchestrator:
                  llm_verificador=None, muestras_consenso: int = 1,
                  evaluador_relevancia: bool = False,
                  umbral_relevancia: float = 0.5,
-                 informe_coarse_to_fine: bool = False, plugin_registry=None):
+                 informe_coarse_to_fine: bool = False, plugin_registry=None,
+                 state_path=None, informe_ncm_residual: bool = False,
+                 max_workers: int = 1, encrypt_state: bool = False,
+                 context_pruner=None):
         """Monta el pipeline.
 
         `llm_rapido` (enrutado por tarea): si se pasa, descompone y extrae con
@@ -916,11 +945,19 @@ class ResearchOrchestrator:
         válido, cae a la pasada única y lo registra en `decision_log`.
         `plugin_registry`: si se pasa, sus CorePlugins reciben los hooks del
         ciclo de investigación. Los proveedores ya inyectados no se sustituyen.
+        `state_path`: activa checkpoints y reanudación idempotente. Sin esta
+        ruta no se escribe estado ni cambia el comportamiento previo.
+        `informe_ncm_residual=True`: activa conceptos residuales y paralelismo
+        por nivel; `max_workers` acota los trabajadores (1 conserva secuencial).
         """
         self.llm = llm_provider
         self.llm_rapido = llm_rapido or llm_provider
         self.search = search_api
         self.plugin_registry = plugin_registry
+        self.state_path = state_path
+        self.max_workers = max_workers
+        self.encrypt_state = encrypt_state
+        self.context_pruner = context_pruner
         self.context = ResearchContext("pending", max_iterations)
         self.decomposer = QuestionDecomposer(self.llm_rapido)
         juez = RelevanceJudge(self.llm_rapido) if evaluador_relevancia else None
@@ -932,7 +969,8 @@ class ResearchOrchestrator:
             llm_verificador=llm_verificador,
             muestras_consenso=muestras_consenso)
         self.generator = ReportGenerator(
-            llm_provider, coarse_to_fine=informe_coarse_to_fine)
+            llm_provider, coarse_to_fine=informe_coarse_to_fine,
+            ncm_residual=informe_ncm_residual, max_workers=max_workers)
 
     @classmethod
     def from_plugins(cls, registry=None, **kwargs):
@@ -955,21 +993,74 @@ class ResearchOrchestrator:
                 "carga y activa los plugins antes de crear el orquestador")
         return cls(llm, search, plugin_registry=registry, **kwargs)
 
+    @classmethod
+    def adaptive(cls, question: str, llm_provider, search_api, llm_rapido=None,
+                 llm_profundo=None, **kwargs):
+        """Configura cómputo y modelos según un plan heurístico declarado."""
+        from efficiency import AdaptiveRouter
+        plan = AdaptiveRouter().plan(question)
+        if plan.level == "basic":
+            principal = llm_rapido or llm_provider
+        elif plan.level == "deep":
+            principal = llm_profundo or llm_provider
+        else:
+            principal = llm_provider
+        opciones = plan.orchestrator_options()
+        opciones.update(kwargs)
+        instancia = cls(principal, search_api, llm_rapido=llm_rapido, **opciones)
+        instancia.adaptive_plan = plan
+        return instancia
+
     def _hook(self, name: str, **payload):
         if self.plugin_registry is None:
             return []
         return self.plugin_registry.trigger_hook(
             name, {"context": self.context, **payload})
 
+    def _checkpoint(self, report: str = "", completed: bool = False) -> None:
+        if self.state_path:
+            if self.encrypt_state:
+                from privacy import save_encrypted_research_state
+                save_encrypted_research_state(
+                    self.state_path, self.context, report, completed)
+            else:
+                from research_state import save_research_state
+                save_research_state(self.state_path, self.context, report, completed)
+
+    def _restore(self, question: str):
+        if not self.state_path:
+            return None
+        from pathlib import Path
+        if not Path(self.state_path).exists():
+            return None
+        if self.encrypt_state:
+            from privacy import load_encrypted_research_state
+            context, report, completed = load_encrypted_research_state(self.state_path)
+        else:
+            from research_state import load_research_state
+            context, report, completed = load_research_state(self.state_path)
+        if context.question != question:
+            raise RuntimeError(
+                "La pregunta no coincide con el estado; usa otro state_path")
+        return context, report, completed
+
     def research(self, question: str) -> Tuple[str, ResearchContext]:
-        """Execute the full research pipeline."""
-        self.context = ResearchContext(question, self.context.max_iterations)
+        """Execute the full research pipeline, resuming checkpoints if enabled."""
+        restaurado = self._restore(question)
+        self.context = (restaurado[0] if restaurado else
+                        ResearchContext(question, self.context.max_iterations))
         self._hook("pre_research")
+        if restaurado and restaurado[2]:
+            report = restaurado[1]
+            self._hook("post_research", report=report)
+            return report, self.context
 
         # Step 1: Decompose question
-        subquestions = self.decomposer.decide(self.context)
+        subquestions = (self.context.subquestions if self.context.decomposed
+                        else self.decomposer.decide(self.context))
         if not subquestions:
             report = "Could not decompose research question"
+            self._checkpoint(report, completed=True)
             self._hook("post_research", report=report)
             return report, self.context
 
@@ -982,32 +1073,168 @@ class ResearchOrchestrator:
                 f"{len(subquestions)} subpreguntas (max_iterations)")
             subquestions = subquestions[: self.context.max_iterations]
             self.context.subquestions = subquestions
+        self._checkpoint()
 
-        # Step 2: For each subquestion, retrieve sources and extract claims
-        for sq in subquestions:
-            results = self.retriever.decide(self.context, sq)
-            for result in results[:3]:
-                source = {
-                    "url": result.get("url", ""),
-                    "snippet": result.get("snippet", "")
-                }
-                self._hook("pre_claim_extraction", source=source)
-                claims = self.extractor.decide(self.context, source)
-                self._hook("post_claim_extraction", source=source, claims=claims)
+        # Steps 2-3: retrieval and evaluation, optionally in isolated workers.
+        if self.max_workers > 1:
+            self._retrieve_parallel(subquestions)
+            self._evaluate_parallel()
+        else:
+            from research_state import claim_key, source_key
+            for sq in subquestions:
+                if sq in self.context.retrieved_subquestions:
+                    continue
+                if sq in self.context.retrieval_cache:
+                    results = self.context.retrieval_cache[sq]
+                else:
+                    results = self.retriever.decide(self.context, sq)
+                    if self.context_pruner is not None:
+                        results, metricas = self.context_pruner.prune(sq, results)
+                        self.context.add_decision(
+                            "context_pruning", "compress",
+                            json.dumps(metricas, sort_keys=True))
+                    self.context.retrieval_cache[sq] = results
+                    self._checkpoint()
+                for result in results[:3]:
+                    source = dict(result)
+                    source["url"] = result.get("url", "")
+                    source["snippet"] = result.get("snippet", "")
+                    clave_fuente = source_key(source)
+                    if clave_fuente in self.context.processed_source_keys:
+                        continue
+                    self._hook("pre_claim_extraction", source=source)
+                    claims = self.extractor.decide(self.context, source)
+                    self._hook("post_claim_extraction", source=source, claims=claims)
+                    self.context.processed_source_keys.append(clave_fuente)
+                    self._checkpoint()
+                self.context.retrieved_subquestions.append(sq)
+                self._checkpoint()
 
-        # Step 3: Evaluate all claims against evidence
-        for claim in self.context.claims[:]:
-            self._hook("pre_evaluation", claim=claim)
-            evaluation = self.evaluator.decide(self.context, claim)
-            self._hook("post_evaluation", claim=claim, evaluation=evaluation)
+            for claim in self.context.claims[:]:
+                clave_claim = claim_key(claim)
+                if clave_claim in self.context.evaluated_claim_keys:
+                    continue
+                self._hook("pre_evaluation", claim=claim)
+                evaluation = self.evaluator.decide(self.context, claim)
+                self._hook("post_evaluation", claim=claim, evaluation=evaluation)
+                self.context.evaluated_claim_keys.append(clave_claim)
+                self._checkpoint()
 
         # Step 4: Generate final report
         self._hook("pre_report")
         report = self.generator.decide(self.context)
         self._hook("post_report", report=report)
+        self._checkpoint(report, completed=True)
         self._hook("post_research", report=report)
 
         return report, self.context
+
+    def _retrieve_parallel(self, subquestions: List[str]) -> None:
+        """Recupera/extrae en contextos aislados y fusiona en orden estable."""
+        from concurrent.futures import ThreadPoolExecutor
+        from research_state import source_key
+        import threading
+
+        trabajos = []
+        iteracion = self.context.iteration
+        for sq in subquestions:
+            if sq in self.context.retrieved_subquestions:
+                continue
+            cache = self.context.retrieval_cache.get(sq)
+            if cache is None:
+                iteracion += 1
+            trabajos.append((sq, cache, iteracion))
+        reservas = set(self.context.processed_source_keys)
+        lock = threading.Lock()
+
+        def trabajar(item):
+            sq, cache, numero = item
+            local = ResearchContext(self.context.question, 1)
+            local.iteration = numero
+            try:
+                resultados = cache if cache is not None else self.retriever.decide(local, sq)
+                if cache is None and self.context_pruner is not None:
+                    resultados, metricas = self.context_pruner.prune(sq, resultados)
+                    local.add_decision("context_pruning", "compress",
+                                       json.dumps(metricas, sort_keys=True))
+                extracciones = []
+                for result in resultados[:3]:
+                    source = dict(result)
+                    source["url"] = result.get("url", "")
+                    source["snippet"] = result.get("snippet", "")
+                    clave = source_key(source)
+                    with lock:
+                        if clave in reservas:
+                            continue
+                        reservas.add(clave)
+                    try:
+                        self._hook("pre_claim_extraction", source=source)
+                        claims = self.extractor.decide(local, source)
+                        self._hook("post_claim_extraction", source=source, claims=claims)
+                    except Exception:
+                        with lock:
+                            reservas.discard(clave)
+                        raise
+                    extracciones.append((source, claims, clave))
+                return {"sq": sq, "results": resultados, "cache": cache,
+                        "iteration": numero, "local": local,
+                        "extracciones": extracciones}
+            except Exception as exc:
+                return {"sq": sq, "error": exc}
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            resultados = list(executor.map(trabajar, trabajos))
+        for resultado in resultados:
+            if "error" in resultado:
+                raise resultado["error"]
+            local = resultado["local"]
+            conocidas = {s.get("url") for s in self.context.sources}
+            for source in local.sources:
+                if source.get("url") not in conocidas:
+                    self.context.sources.append(source)
+                    conocidas.add(source.get("url"))
+            self.context.claims.extend(local.claims)
+            self.context.decision_log.extend(local.decision_log)
+            self.context.iteration = resultado["iteration"]
+            if resultado["cache"] is None:
+                self.context.retrieval_cache[resultado["sq"]] = resultado["results"]
+            for source, claims, clave in resultado["extracciones"]:
+                self.context.processed_source_keys.append(clave)
+            self.context.retrieved_subquestions.append(resultado["sq"])
+            self._checkpoint()
+
+    def _evaluate_parallel(self) -> None:
+        """Evalúa claims con fuentes de solo lectura y fusiona en orden."""
+        from concurrent.futures import ThreadPoolExecutor
+        from research_state import claim_key
+        import copy
+
+        pendientes = [claim for claim in self.context.claims[:]
+                      if claim_key(claim) not in self.context.evaluated_claim_keys]
+
+        def trabajar(claim):
+            local = ResearchContext(self.context.question, self.context.max_iterations)
+            local.iteration = self.context.iteration
+            local.sources = copy.deepcopy(self.context.sources)
+            try:
+                self._hook("pre_evaluation", claim=claim)
+                evaluation = self.evaluator.decide(local, claim)
+                self._hook("post_evaluation", claim=claim, evaluation=evaluation)
+                return {"claim": claim, "evaluation": evaluation,
+                        "decisions": local.decision_log}
+            except Exception as exc:
+                return {"claim": claim, "error": exc}
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            resultados = list(executor.map(trabajar, pendientes))
+        for resultado in resultados:
+            claim = resultado["claim"]
+            if "error" in resultado:
+                raise resultado["error"]
+            self.context.evaluations.append(resultado["evaluation"])
+            self.context.decision_log.extend(resultado["decisions"])
+            self.context.evaluated_claim_keys.append(claim_key(claim))
+            self._checkpoint()
 
 
 # Los proveedores de búsqueda viven en web_search.py:

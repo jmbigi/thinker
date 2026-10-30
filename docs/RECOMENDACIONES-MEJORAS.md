@@ -545,3 +545,33 @@ Una recomendación se considera cerrada solo si:
 
 Este documento no promete que thinker sea un ranking universal de calidad:
 promete que sus diagnósticos sean **verificables, acotados y honestos**.
+
+## 10. Programa comparativo y de optimización (2026-10-30)
+
+Estas recomendaciones nacen de la comparativa externa y de las reglas NCM y de
+eficiencia solicitadas por el programador. Estado: **implementadas y verificadas
+offline**, no una promesa de calidad de producción.
+
+| ID | Alcance | Estado y criterio de aceptación |
+|---|---|---|
+| **R15** | Contenido completo, documentos, CLI y persistencia | **Hecho**: HTML/PDF/TXT/MD/CSV/DOCX/PPTX/XLSX con hash/localización; RAG local híbrida; CLI Markdown/JSON; checkpoints idempotentes y reanudación sin repetir trabajo. |
+| **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
+| **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
+
+**Evidencia común:** **1211/1211 tests**, ruff 0, preflight 0, docs-check OK;
+`pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
+`torch==2.5.1` en el extra `ml` y su lock. Las pruebas reales de Ollama se
+omitieron por servidor ausente. No se ejecutó RACE/FACT oficial ni un benchmark
+real de calidad de modelos de producción; eso permanece como validación externa
+opt-in, no como resultado afirmado.
+
+Comandos de aceptación adicionales:
+
+```bash
+python3 -m unittest tests.test_documents tests.test_research_state \
+  tests.test_research_cli tests.test_concept_ncm tests.test_parallel_research \
+  tests.test_privacy tests.test_efficiency tests.test_neural_concepts
+make verify-install
+python3 -m tests.benchmarks.external --dataset query.jsonl --kind drb \
+  --provider mock --max-tasks 1 --json
+```

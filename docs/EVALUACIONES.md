@@ -40,13 +40,13 @@ lleva tope oculto.
 | Funcionalidades | 1.00 | — |
 | Calidad | 1.00 | — (suite `make test` OK, 1,0 s) |
 | Vigencia | 1.00 | `v4_dependencias_al_dia` (lock en 3.40.0) |
-| Herramientas | 1.00 | — (licencias de sus 4 dependencias, libres) |
+| Herramientas | 1.00 | — (licencias de sus 6 dependencias, libres) |
 | Inteligencia | 1.00 | — |
 | Eficiencia | 1.00 | — |
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1134/1134** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
+`h5`). Suite **1211/1211** en Linux (Python 3.11/3.12), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -629,3 +629,18 @@ regresión que mantiene `--wheel-dir` junto a su destino. `make verify-install`
 construye e instala el wheel en un venv temporal y supera las comprobaciones
 offline de módulos y console scripts. Suite **1134/1134** en Linux (Python
 3.11.9), ruff 0, preflight 0, docs-check OK; evidencia en Hallazgo 147.
+
+**Actualización 2026-10-30** (programa documental, NCM y optimización):
+`documents` añade contenido completo/PDF/Office y RAG local con trazabilidad;
+`research_cli` y `research_state` añaden CLI real, checkpoints y reanudación;
+`web_search`/`mcp_client` añaden SearXNG, académicos y MCP stdio;
+`concept_ncm` implementa jerarquía residual y paralelismo por nivel;
+`privacy` añade políticas de egreso y estado Fernet; `efficiency` añade routing,
+poda, caché y vectores cuantizados; `neural_concepts` valida destilación, LoRA,
+cuantización/poda, MoE, speculative decoding y VQ con PyTorch. La distinción
+orquestación↔modelo del paper queda explícita. Se añaden **77 tests**.
+Suite **1211/1211** en Linux (Python 3.11.9), ruff 0, preflight 0,
+docs-check OK. Dependencias base fijadas con hashes: `pypdf 6.21.4` y
+`cryptography 50.0.2`; extra ML `torch==2.5.1` con lock propio. Prueba real
+Ollama omitida por servidor ausente; las pruebas neurales usan modelos pequeños
+reales en CPU y no afirman calidad de producción. Hallazgos 148-149.

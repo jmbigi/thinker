@@ -15,10 +15,13 @@ dependencies = [
     "openai>=1.0,<4",
     "python-dotenv>=1.0",
     "PyYAML>=6.0",
+    "pypdf>=6.0,<7",
+    "cryptography>=43,<51",
 ]
 
 [project.optional-dependencies]
 local = ["ollama>=0.3"]
+ml = ["torch==2.5.1"]
 # Herramientas de desarrollo verificadas en este repo (2026-10-14):
 # ruff 0.6+, coverage 7+, mutmut 3+ (pruebas de mutación) y pytest (lo usa mutmut).
 dev = ["ruff>=0.6", "coverage>=7.0", "mutmut>=3.0", "pytest>=8.0"]
@@ -28,7 +31,7 @@ Repository = "https://github.com/jmbigi/thinker"
 
 [project.scripts]
 think = "pensamiento_layer:main"
-research = "deep_research_system:main"
+research = "research_cli:main"
 code-design = "code_design_improvement_tools:main"
 evaluate-project = "evaluar_proyecto:main"
 
@@ -43,11 +46,19 @@ evaluate-project = "evaluar_proyecto:main"
 [tool.setuptools]
 py-modules = [
     "code_design_improvement_tools",
+    "concept_ncm",
     "deep_research_system",
+    "documents",
+    "efficiency",
     "evaluar_proyecto",
     "evidence",
     "llm_providers",
+    "mcp_client",
+    "neural_concepts",
     "pensamiento_layer",
+    "privacy",
+    "research_cli",
+    "research_state",
     "thinking_engine",
     "web_search",
 ]

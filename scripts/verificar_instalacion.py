@@ -35,13 +35,15 @@ RAIZ = Path(__file__).resolve().parent.parent
 MODULOS_STDLIB = ("evidence", "thinking_engine", "llm_providers",
                   "code_design_improvement_tools", "plugins.registry",
                   "scripts.preflight")
-MODULOS_CON_DEPS = ("web_search", "deep_research_system", "pensamiento_layer",
+MODULOS_CON_DEPS = ("web_search", "deep_research_system", "documents", "efficiency",
+                    "concept_ncm", "mcp_client", "neural_concepts", "privacy",
+                    "research_state", "research_cli", "pensamiento_layer",
                     "evaluar_proyecto")
 CONSOLE_SCRIPTS = ("evaluate-project", "think", "research", "code-design")
 # Dependencias de terceros que el venv sin deps no tiene: su ImportError es lo
 # ESPERADO en el nivel offline; cualquier otro ImportError es un defecto del
 # paquete.
-DEPS_TERCEROS = ("requests", "openai", "yaml", "dotenv", "ollama")
+DEPS_TERCEROS = ("requests", "openai", "yaml", "dotenv", "ollama", "torch")
 
 
 def _bin_dir(venv_dir: Path) -> Path:

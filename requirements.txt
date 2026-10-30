@@ -6,6 +6,10 @@ openai>=1.0,<4
 python-dotenv==1.2.4
 # Necesaria para config/plugins.yaml (el subsistema de plugins lee YAML)
 PyYAML==6.0.3
+# Extracción de texto PDF (BSD-3-Clause; import perezoso en documents.py)
+pypdf>=6.0,<7
+# Cifrado Fernet de checkpoints sensibles (Apache-2.0/BSD)
+cryptography>=43,<51
 
 # Opcional: solo si se usa Ollama local como proveedor LLM
 # ollama==0.3.0

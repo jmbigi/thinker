@@ -113,13 +113,23 @@ mejora de código (`code_design_improvement_tools.py`).
     aplicable), se declara la excepción y se compensa; no se simula el uso.
     Esta regla no rebaja P0.1/P0.2 ni la verificación empírica: thinker
     propone, los tests y la evidencia deciden.
+15. **NCM y eficiencia verificable** (regla del programador, 2026-10-30):
+  los conceptos NCM se implementan como jerarquía residual con trazas hash,
+  generación acotada por niveles y reconstrucción determinista, sin afirmar que
+  son el tokenizer VQ ni el transformer del paper. Destilación, cuantización,
+  MoE, poda, LoRA y decodificación especulativa tienen dos alcances declarados:
+  orquestación/RAG y subsistema neural opt-in con modelos pequeños reales. No se
+  prometen ahorro, aceleración ni calidad sin una medición concreta; la salida
+  simulada se declara y el hardware/framework real se valida antes de afirmar
+  funcionamiento.
 
 ## Entorno y verificación (comandos del proyecto)
 
 - SO verificados: **Linux** (Python 3.11/3.12) y **Windows 11** (Python
   3.12.7/3.14.3, 2026-10-22). Dependencias en `requirements.txt` (`requests`,
-  `openai>=1.0,<4`, `python-dotenv`, `PyYAML`; el lock fija las exactas con
-  hashes); `ollama` opcional. `openai` verificado en **1.109.1, 2.54.0,
+  `openai>=1.0,<4`, `python-dotenv`, `PyYAML`, `pypdf` y `cryptography`; el lock
+  fija las exactas con hashes); `ollama` opcional y extra `ml` con `torch==2.5.1`
+  (`requirements-ml.txt` + lock propio). `openai` verificado en **1.109.1, 2.54.0,
   3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0** (canario en `tests/test_openai_compatibilidad.py`;
   3.35.1 verificado el 2026-10-20 con 703/703 en 3.11 y 3.12; 3.40.0 verificado
   el 2026-10-28 con 1018/1018 en 3.11, venv aislado desde el lock). Tras el corte 3
@@ -157,7 +167,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `python3 scripts/verificar_instalacion.py` — construye el wheel sin red, lo
   instala en un venv temporal y lo comprueba desde un CWD ajeno; offline
   verifica la forma del paquete (`--no-deps`) y `--con-red` además las
-  dependencias, los 8 módulos públicos y los console scripts (Hallazgo 82
+  dependencias, los 16 módulos públicos y los console scripts (Hallazgo 82
   hecho reproducible).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
@@ -308,7 +318,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1134/1134 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1211/1211 en la suite
   Linux** (2026-10-30; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -338,8 +348,10 @@ mejora de código (`code_design_improvement_tools.py`).
   Hallazgo 142) dejó la suite en **1128/1128**. La integración explícita de
   proveedores activos y hooks de investigación (Hallazgo 146) añadió 5 tests y
   dejó la suite en **1133/1133**. La corrección del orden de `--wheel-dir`
-  (Hallazgo 147) añadió 1 test y dejó la suite en **1134/1134**. El auditor de
-  cambios de `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
+  (Hallazgo 147) añadió 1 test y dejó la suite en **1134/1134**. El programa
+  documental, NCM, conectores, privacidad y optimización (Hallazgos 148-149)
+  añadió 77 tests y dejó la suite en **1211/1211**. El auditor de cambios de
+  `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.
@@ -356,19 +368,24 @@ mejora de código (`code_design_improvement_tools.py`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,
-  `code-design`. Módulos públicos importables: los 8 del núcleo
+  `code-design`. Módulos públicos importables: los 16 del núcleo
   (`deep_research_system`, `pensamiento_layer`, `code_design_improvement_tools`,
   `thinking_engine`, `llm_providers`, `web_search`, `evaluar_proyecto`,
-  `evidence`) + paquetes `plugins` y `scripts` (este último porque el
-  evaluador importa `scripts.preflight`). `tests` no se instala (colisión de
-  nombre raíz en site-packages): el benchmark se ejecuta desde el repo con
+  `evidence`, `documents`, `research_state`, `research_cli`, `mcp_client`,
+  `concept_ncm`, `privacy`, `efficiency`, `neural_concepts`) + paquetes
+  `plugins` y `scripts` (este último porque el evaluador importa
+  `scripts.preflight`). `tests` no se instala (colisión de nombre raíz en
+  site-packages): el benchmark se ejecuta desde el repo con
   `python3 -m tests.benchmarks.run_bench` (Hallazgo 83). El **benchmark
   factual** de evaluación de evidencia (30 casos versionados: 10 soportados,
   10 contradichos, 10 de abstención; métricas de exactitud, falsos
   verificados y tasa de abstención) se ejecuta con
   `python3 -m tests.benchmarks.factual` — simulado por defecto (MockLLM) y
   `--con-llm` opt-in real (key + red, coste 0 con `:free`); con Mock el
-  protocolo se ejercita pero **no mide calidad real** (Hallazgo 145). Los paquetes se
+  protocolo se ejercita pero **no mide calidad real** (Hallazgo 145). El benchmark
+  externo acepta DeepResearch Bench (`id/prompt/article`) y atribución
+  claim→pasaje con `python3 -m tests.benchmarks.external --dataset DATOS.jsonl
+  --kind drb|attribution` (rúbricas locales, no RACE/FACT oficiales). Los paquetes se
   declaran explícitos en `[tool.setuptools]`: el flat-layout con varios
   módulos raíz rompe el auto-descubrimiento. Verificado end-to-end: venv
   limpio, llamadas desde otro directorio (Hallazgo 82).
@@ -395,10 +412,12 @@ mejora de código (`code_design_improvement_tools.py`).
   benchmark `tests/benchmarks/consenso_muestreo.py`). Integración opt-in con
   `ResearchOrchestrator.from_plugins()`: usa los proveedores activos de un
   registro cargado y emite los hooks de investigación; no carga proveedores ni
-  hace fallback implícito.
+  hace fallback implícito. Checkpoints reanudables, paralelismo acotado con
+  fusión determinista y routing/poda adaptativos.
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
   Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
-  Ollama y Mock no reintentan. **No duplicar** clientes en otros módulos.
+  Ollama y Mock no reintentan. `BudgetLLM` acota llamadas entre hilos.
+  **No duplicar** clientes en otros módulos.
 - `thinking_engine.py` — motor común de ciclos de pensamiento (validación,
   confianza, forma de resultado) con piloto opt-in `congelar_fases` (phase-chain
   freeze: fases previas inmutables con hash; no aplica a ToT y lo declara).
@@ -406,7 +425,26 @@ mejora de código (`code_design_improvement_tools.py`).
 - `pensamiento_layer.py` / `code_design_improvement_tools.py` — pasos concretos
   sobre ese motor.
 - `web_search.py` — búsqueda: `MockSearchAPI` (offline), `WikipediaSearchAPI`
-  y `DuckDuckGoSearchAPI` (reales, sin API key) + `formulate_query`.
+  y `DuckDuckGoSearchAPI` (reales, sin API key), `SearXNGSearchAPI`,
+  `ArxivSearchAPI`, `PubMedSearchAPI` y `SemanticScholarSearchAPI` +
+  `formulate_query`.
+- `documents.py` — contenido completo HTML/PDF/TXT/Markdown/CSV y Office Open
+  XML, pasajes con hash/localización, RAG local BM25+coseno y full-text web.
+- `research_state.py` — estado JSON versionado, checkpoints idempotentes y
+  escritura atómica 0600.
+- `research_cli.py` — CLI real `research` (proveedores, buscadores, documentos,
+  salida Markdown/JSON, presupuestos y opciones opt-in); sin args conserva demo.
+- `mcp_client.py` — cliente MCP stdio oficial (initialize/initialized/tools),
+  sin shell ni herencia de secretos, con allowlist, timeout y salida limitada.
+- `concept_ncm.py` — NCM conceptual: esquema→secciones→residuales, trazas hash,
+  paralelismo por nivel y reconstrucción determinista; no es el modelo del paper.
+- `privacy.py` — políticas `public`, `local-only`, `private-documents` y
+  checkpoints cifrados Fernet con `THINKER_STATE_KEY`.
+- `efficiency.py` — routing heurístico declarado, poda RAG con métricas, caché
+  exacta/semántica opt-in, vectores INT4/INT8, expertos y draft-verificación.
+- `neural_concepts.py` — extra `ml` con modelos pequeños reales: destilación,
+  LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ residual.
+  No afirma calidad de producción; tests CPU opt-in y skip sin torch.
 
 ---
 

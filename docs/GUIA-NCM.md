@@ -517,26 +517,31 @@ reproducible o un requisito explícito y se mide con el benchmark propio. La
 única parte que se ejecuta es el modo opt-in descrito abajo; el resto son
 fuentes y contexto.
 
-- **Next-Concept Modeling:** se incorporó su **principio** coarse-to-fine como
-  modo opt-in `informe_coarse_to_fine` en `ReportGenerator` y
-  `ResearchOrchestrator`: un esquema (1 llamada) y después una llamada por
-  sección (máximo 5), con las mismas fuentes numeradas y los claims filtrados
-  por sección. **No es NCM**: no usa VQ-VAE ni decodificación paralela; añade
-  1+N llamadas y no se atribuye mejora de calidad sin medirla con el benchmark.
-  Si el esquema no es JSON válido, cae a la pasada única y lo registra en
-  `decision_log` (nunca en silencio). Además, valida las citas `[n]` contra las
-  fuentes (`cita_fuera_de_rango`), registra las secciones sin citas y aísla el
-  fallo de una sección: el informe conserva un marcador explícito y sigue.
-  Validado offline con 16 tests; el modelo, sus checkpoints y su tokenizer no se
-  adoptan porque exigirían PyTorch, pesos y un backend nuevo (regla 13). Uso:
+- **Next-Concept Modeling:** existen dos alcances complementarios y declarados.
+  `informe_coarse_to_fine` conserva el modo original esquema→secciones.
+  `informe_ncm_residual` añade la jerarquía **esquema global→secciones→
+  refinamientos residuales de evidencia**, con hashes padre/hijo, detección de
+  duplicados, reconstrucción en orden y paralelismo acotado dentro de cada
+  nivel (`concept_ncm.py`). No es el tokenizer VQ ni el transformer entrenado
+  del paper: los códigos son hashes de trazabilidad y el residuo son claims no
+  cubiertos. Si el esquema o todas las secciones fallan, se registra y se vuelve
+  a pasada única; las citas se validan y los fallos se aíslan.
+  Además, `neural_concepts.ResidualVectorQuantizer` implementa VQ residual real
+  con codebooks discretos y reconstrucción nivel a nivel en el extra opt-in
+  `ml`. Es un banco de validación CPU, no un generador NCM de producción ni una
+  prueba de calidad/velocidad comparable con el paper. Uso:
 
   ```python
   from deep_research_system import ResearchOrchestrator
 
   orquestador = ResearchOrchestrator(
-      llm, search, informe_coarse_to_fine=True)
+      llm, search, informe_ncm_residual=True, max_workers=2)
   informe, contexto = orquestador.research("...")
   ```
+
+  Validación: 6 tests de jerarquía/paralelismo/residuo/errores y 7 tests
+  neurales (incluida equivalencia greedy del speculative decoding y
+  reconstrucción VQ), sin afirmar ahorro ni calidad general.
 - **Nearest Class Mean (Avalanche/CapyMOA):** thinker no hace clasificación
   incremental ni entrena clasificadores; no aplica.
 - **Neural/Neutrosophic Cognitive Maps:** no hay solapamiento con el pipeline de

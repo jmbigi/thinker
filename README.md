@@ -15,12 +15,20 @@ herramientas de análisis estático de código.
 
 | Módulo | Función |
 |---|---|
-| `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, extracción de claims, evaluación y reporte. Incluye informe opt-in **coarse-to-fine** (esquema + secciones, inspirado en NCM), validación de citas fuera de rango y caída registrada a la pasada única. |
-| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles; Ollama y Mock no reintentan. |
+| `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, claims, evaluación y reporte. CoVe, consenso, checkpoints reanudables, paralelismo determinista y routing/poda adaptativos. |
+| `documents.py` | Contenido completo HTML/PDF/TXT/Markdown/CSV y Office Open XML, pasajes con hash/localización, RAG local BM25+coseno y full-text web. |
+| `research_cli.py` | CLI real `research`: proveedores, buscadores, documentos, Markdown/JSON, estado, presupuestos y opciones opt-in. Sin argumentos conserva la demo. |
+| `research_state.py` | Checkpoints idempotentes con esquema versionado, caché de recuperación y escritura atómica 0600. |
+| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, Ollama, Mock). Reintentos con backoff, caché y presupuesto seguro entre hilos. |
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
-| `web_search.py` | Búsqueda real sin API key (Wikipedia, DuckDuckGo) y mock offline, con formulación de consulta. |
+| `web_search.py` | Wikipedia, DuckDuckGo, SearXNG, arXiv, PubMed y Semantic Scholar + mock offline y formulación de consulta. |
+| `mcp_client.py` | Cliente MCP stdio oficial: negociación, allowlist, sin shell ni herencia de secretos, timeout y límite de salida. |
+| `concept_ncm.py` | NCM conceptual: esquema→secciones→residuales, trazas hash, paralelismo por nivel y reconstrucción determinista; no es el modelo neural del paper. |
+| `privacy.py` | Políticas `public`, `local-only`, `private-documents` y checkpoints cifrados con Fernet. |
+| `efficiency.py` | Routing heurístico, poda RAG, caché exacta/semántica, vectores INT4/INT8, expertos y draft-verificación. |
+| `neural_concepts.py` | Extra `ml` con modelos pequeños reales: destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ residual. No afirma calidad de producción. |
 | `plugins/` | Sistema de plugins con hot-swap (proveedores LLM y búsqueda, extensiones del núcleo) + CLI de gestión. `ResearchOrchestrator.from_plugins()` usa los proveedores activos y conecta los hooks de investigación. Config: `config/plugins.yaml`; guía: `docs/PLUGINS.md`. |
 | `tests/benchmarks/` | Framework de benchmark por dominio con rúbricas y LLM-as-judge opcional (`--list` para ver las tareas). |
 | `docs/LECCIONES-APRENDIDAS.md` | Memoria del proyecto: hallazgos, causas y soluciones. |
@@ -35,10 +43,12 @@ herramientas de análisis estático de código.
 - **Requisitos**
   - Python 3.11 o superior (verificado en 3.11/3.12 en Linux y en
     3.12.7/3.14.3 en Windows 11).
-  - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML` (ver
-    `requirements.txt`; el lock fija las exactas con hashes). `openai` verificado
-    en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0 y 3.40.0 (lock en 3.40.0).
-  - Opcional: [Ollama](https://ollama.com/) para modelos locales.
+  - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML`,
+    `pypdf` y `cryptography` (ver `requirements.txt`; el lock fija las exactas
+    con hashes). `openai` verificado en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1,
+    3.37.0 y 3.40.0 (lock en 3.40.0).
+  - Opcional: [Ollama](https://ollama.com/) para modelos locales y extra `ml`
+    con `torch==2.5.1` (`requirements-ml.txt` + `requirements-ml.lock`).
 
 ## Instalación
 
@@ -52,6 +62,13 @@ python3 -m pip install --require-hashes -r requirements.lock
 
 # Opción rápida (rangos de versión):
 pip install -r requirements.txt
+```
+
+El subsistema neural es opt-in y no forma parte de la instalación base:
+
+```bash
+pip install ".[ml]"
+python3 -m pip install --require-hashes -r requirements-ml.lock
 ```
 
 En Windows, `python3` no siempre existe o puede apuntar a otro intérprete; usa
@@ -173,6 +190,89 @@ Es el modo **demo**: una ayuda para probar y comprender el sistema. `MockLLM` y
 `MockSearchAPI` están declarados como simulados y no producen investigación
 real; con proveedores y buscadores reales (sección siguiente), sí.
 
+## CLI de investigación real
+
+`research` acepta una pregunta y opciones; sin argumentos conserva la demo
+anterior. La salida va a stdout o a `--output`, mientras configuración, progreso
+y errores van a stderr. Con `mock`, la salida se marca como simulada.
+
+```bash
+# Protocolo offline (SIMULADO; no mide calidad real):
+research "Compara RAG y MCP" --format json
+
+# Investigación real con Ollama local (requiere ollama serve):
+research "Compara RAG y MCP" --provider ollama --search wikipedia
+
+# Documentos locales, salida JSON y reanudación:
+research "Resume la evidencia" --provider ollama \
+  --documents ./corpus --format json --state investigacion.json
+```
+
+Formatos: `.txt`, `.md`, `.csv`, `.html`, `.pdf`, `.docx`, `.pptx` y `.xlsx`.
+Los pasajes conservan `sha256`, `location`, `fetched_at` y contenido. La RAG
+local combina BM25 y coseno vectorial léxico, **no afirma embeddings semánticos**.
+Para contenido web completo (no solo snippets) usa `--full-text` con un buscador
+web real; las descargas parciales se reportan y el fallo total no cae a snippets.
+
+```bash
+# Web completa + SearXNG local explícito:
+SEARXNG_URL=http://localhost:8080 research "Fusión nuclear" \
+  --provider ollama --search searxng --allow-private-search --full-text
+
+# SearXNG, arXiv, PubMed y Semantic Scholar también disponibles:
+research "CRISPR" --provider openrouter --search pubmed
+
+# Cliente MCP explícito (servidor confiable, sin shell):
+research "Evidencia" --provider ollama --search mcp \
+  --mcp-command "python servidor_mcp.py" --mcp-tool search --mcp-timeout 10
+```
+
+El estado contiene fuentes y claims; puede ser sensible. Para cifrarlo, genera
+una clave Fernet y guárdala como secreto de entorno (nunca se escribe en estado):
+
+```bash
+export THINKER_STATE_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+research "Investiga documentos" --provider ollama --documents ./corpus \
+  --privacy private-documents --state privado.bin --encrypt-state
+```
+
+`public` permite web/nube; `local-only` restringe endpoints locales pero
+SearXNG puede reenviar consultas; `private-documents` solo documentos y modelos
+locales. No son un *air gap*: MCP no ofrece garantía de egreso local y queda
+fuera de esos dos modos.
+
+NCM conceptual y eficiencia opt-in:
+
+```bash
+research "Compara arquitecturas RAG" --provider ollama \
+  --ncm-residual --max-workers 2 \
+  --adaptive --prune-context --context-passages 6 --context-chars 2400 \
+  --cache --cache-bits 4
+```
+
+- NCM: esquema→secciones→refinamientos residuales con hashes, paralelismo por
+  nivel y reconstrucción determinista. **No es el tokenizer VQ ni el transformer
+  NCM del paper** (`docs/GUIA-NCM.md`).
+- `--adaptive`: routing heurístico declarado; no es un clasificador calibrado.
+- `--prune-context`: métricas reales de ahorro en `decision_log`.
+- `--cache`: exacta; `--semantic-cache-threshold` además activa similitud léxica
+  opt-in. `--cache-bits 4|8` cuantiza vectores de la caché, no pesos del LLM.
+- `--speculative`: draft-verificación, no decodificación especulativa por tokens.
+- `--max-llm-calls`: presupuesto por proveedor, seguro entre hilos.
+
+Benchmark externo (rúbricas locales; no RACE/FACT oficiales):
+
+```bash
+python3 -m tests.benchmarks.external --dataset query.jsonl --kind drb \
+  --provider mock --max-tasks 2 --json
+python3 -m tests.benchmarks.external --dataset claims.jsonl --kind attribution
+```
+
+El extra `ml` (`neural_concepts.py`) implementa con PyTorch y modelos diminutos
+reales: destilación con logits, LoRA, cuantización/poda de pesos, MoE,
+decodificación especulativa verificada y VQ residual. Es un banco de validación
+mecánica en CPU, **no una demostración de mejora de calidad del LLM de producción**.
+
 ## Uso real (OpenRouter con modelos gratuitos)
 
 1. Copia `.env.example` a `.env` y pon tu clave de OpenRouter:
@@ -281,6 +381,17 @@ auditor de cambios y el holdout antes de cada commit.
   `ResearchOrchestratorWithThinking`) usan **el mismo pipeline real** de
   evidencias; la calidad del informe depende del modelo y del buscador
   configurados, no de heurísticas locales.
+- La RAG local y la caché semántica son **léxicas**, no embeddings semánticos;
+  la cuantización de esos vectores no es cuantización de pesos del LLM. La poda
+  puede eliminar contexto necesario y las opciones de draft, consenso, CoVe y
+  NCM pueden aumentar llamadas y latencia: no hay ahorro ni calidad garantizados.
+- `local-only`/`private-documents` no son un *air gap*: el código acota endpoints
+  y resultados, pero no sustituye firewall/contenedor. MCP se considera contenido
+  no confiable y queda fuera de esos modos.
+- El subsistema `neural_concepts` valida mecánica con modelos diminutos en CPU;
+  no prueba destilación, cuantización, poda, MoE, LoRA ni speculative decoding
+  sobre el LLM de producción. La prueba real Ollama se omitió al no estar el
+  servidor disponible; no se simuló.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube: la verificación es **local por
