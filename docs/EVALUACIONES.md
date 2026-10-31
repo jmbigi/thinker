@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1230/1230** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1232/1232** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -812,3 +812,14 @@ cambios de producción ni nuevos tests: R3 baja de **917 a 879 brechas** y sube
 de 79 a **81 equivalencias**, sin recalcular la tasa global histórica.
 Suite **1230/1230** en Linux (Python 3.11.9). R3 permanece abierta con las demás
 funciones pendientes. Hallazgo 171.
+
+**Actualización 2026-10-31** (cierre R3 de `main`): 162 mutantes, **160 muertos
++ 2 equivalencias, 0 brechas**. Dos regresiones fijan el contrato completo de
+`--help` y la propagación de `con_red=True` por defecto. La campaña pasó de 97
+muertos/65 supervivientes a 158/4; los mutantes 3 y 12 murieron en la
+verificación directa final y 76/108 demostraron ser equivalentes (E13). Diez
+muertes adicionales fueron confirmadas y el original restaurado pasó la
+selección. El clúster de 65 queda cerrado sin cambios de producción: R3 baja de
+**879 a 814 brechas** y sube de 81 a **83 equivalencias**, sin recalcular la
+tasa global histórica. Suite **1232/1232** en Linux (Python 3.11.9). R3
+permanece abierta con las demás funciones pendientes. Hallazgo 172.

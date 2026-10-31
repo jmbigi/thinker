@@ -3491,6 +3491,46 @@ class TestMainRamas(unittest.TestCase):
         self.assertEqual(codigo, 0)
         self.assertEqual(salida.getvalue(), "linea1\nlinea2\n")
 
+    def test_main_ayuda_documenta_todas_las_opciones(self):
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida), \
+                self.assertRaises(SystemExit) as exc:
+            main(["--help"])
+
+        self.assertEqual(exc.exception.code, 0)
+        crudo = salida.getvalue()
+        self.assertIn("\n\nEvalúa un proyecto externo en 6 dimensiones (read-only)."
+                      "\n\npositional arguments:", crudo)
+        self.assertIn("  ruta                  ruta del proyecto a evaluar\n", crudo)
+        texto = " ".join(crudo.split())
+        fragmentos = (
+            "Evalúa un proyecto externo en 6 dimensiones (read-only).",
+            "ruta del proyecto a evaluar",
+            "--sin-red omite la comprobación de versiones y licencias en PyPI",
+            "--ignorar DIRECTORIO directorio a excluir del análisis (repetible)",
+            "--ejecutar-tests EJECUTA el comando de tests declarado por el proyecto "
+            "(opt-in explícito: es lo único que corre código ajeno, P0.8)",
+            "--requisitos ARCHIVO verifica una lista de requisitos en Markdown "
+            "estructurado (opt-in, read-only; ver docs/REQUISITOS.md)",
+            "--sintesis-llm pide a un LLM propuestas de FONDO a partir del informe "
+            "medido (opt-in; requiere key y red; coste 0 con :free)",
+            "--modelo MODELO modelo para la síntesis (defecto: el gratuito del proyecto)",
+            "--investigar resuelve las dudas del modelo con búsqueda real y cita "
+            "las fuentes (implica --sintesis-llm; requiere red)",
+        )
+        for fragmento in fragmentos:
+            with self.subTest(fragmento=fragmento):
+                self.assertIn(fragmento, texto)
+
+    def test_main_por_defecto_evalua_con_red(self):
+        with patch.object(evaluar_proyecto, "evaluar",
+                          return_value={"x": 1}) as evaluar_mock, \
+                contextlib.redirect_stdout(io.StringIO()):
+            codigo = main(["proyecto", "--json"])
+
+        self.assertEqual(codigo, 0)
+        self.assertIs(evaluar_mock.call_args.kwargs["con_red"], True)
+
     def test_main_sin_dotenv_devuelve_dos(self):
         error = io.StringIO()
         with patch.object(evaluar_proyecto, "cargar_entorno_llm",

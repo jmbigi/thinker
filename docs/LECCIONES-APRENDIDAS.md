@@ -3900,3 +3900,24 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   cambios de producción ni nuevos tests. El clúster de 44 queda cerrado: R3 baja
   de **917 a 879 brechas** y sube de 79 a **81 equivalencias**. No se recalcula
   la tasa global histórica. Evidencia: `build/deps-r3-verificacion.json` y E12.
+
+### Hallazgo 172: `main` cierra con 160 muertos y 2 equivalentes
+
+- **Medición (2026-10-31)**: Thinker midió `main` en 67 líneas y complejidad 7.
+  La campaña acotada produjo 162 mutantes: 97 muertos y 65 supervivientes. Diez
+  muertes se confirmaron aplicando sus diffs a la selección real.
+- **Regresiones y equivalencias**: una prueba fija la descripción, metavars y
+  ayuda de todas las opciones; otra exige `con_red=True` por defecto. La segunda
+  campaña dejó cuatro supervivientes: 3 y 12 murieron al comprobar los límites
+  exactos de los textos; 76 y 108 eliminan `default=None`, que ya es el default
+  de opciones de `argparse`, y pasan como equivalentes (E13).
+- **Contabilidad**: **160 muertos + 2 equivalencias, 0 brechas**, sin cambios de
+  producción. El clúster de 65 queda cerrado: R3 baja de **879 a 814 brechas** y
+  sube de 81 a **83 equivalencias**. Suite **1232/1232**. Evidencia:
+  `build/main-r3-verificacion.json`.
+- **Lección operativa**: en mutmut 3.6.0, `1` es killed y `0` survived; el
+  contador de progreso incluye todos los mutantes generados aunque la ejecución
+  esté filtrada. Regenerar reinicia resultados, por eso no se combinaron estados
+  parciales. `mutmut show` y `ast.get_source_segment` reprocesan el archivo de 21
+  MB por mutante; la extracción por indentación en una lectura lineal tardó 0,45
+  s. Ninguna cifra se aceptó sin comprobación directa.

@@ -380,3 +380,24 @@ se comprobaron directamente, con el fuente restaurado. Evidencia:
 **Contabilidad:** **136 muertos + 2 equivalentes, 0 brechas**. El clúster de 44
 queda cerrado sin cambios de producción ni nuevos tests: R3 pasa de 917 a **879
 brechas** y de 79 a **81 equivalencias**. No se recalcula la tasa global histórica.
+
+### E13. `default=None` ya es el default de argumentos opcionales (2)
+
+Mutantes 76 y 108 de `main`: eliminan `default=None` de las opciones
+`--requisitos` y `--modelo` de `argparse`.
+
+**Prueba:** para una opción no posicional, `argparse` ya asigna `None` cuando no
+se indica `default` ni aparece la opción. Escribirlo explícitamente u omitirlo
+produce el mismo `Namespace`, la misma ayuda y los mismos argumentos propagados
+a `evaluar`. No cambia ningún comportamiento observable.
+
+**Verificación (2026-10-31):** con las dos nuevas regresiones de ayuda y
+`con_red`, los mutantes 76 y 108 pasan los 216 tests de la selección; los
+mutantes 3 y 12 fallan como se esperaba. Diez muertes adicionales ya habían sido
+confirmadas aplicando sus diffs. El original restaurado también pasa la selección.
+Evidencia: `build/main-r3-verificacion.json`.
+
+**Contabilidad:** 162 mutantes: **160 muertos + 2 equivalentes, 0 brechas**. El
+clúster de 65 queda cerrado con dos regresiones nuevas y sin cambios de
+producción: R3 pasa de 879 a **814 brechas** y de 81 a **83 equivalencias**. No
+se recalcula la tasa global histórica.
