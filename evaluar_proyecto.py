@@ -1144,7 +1144,8 @@ def _ambito_requirements(archivo: Path, ruta: Path) -> str:
 
 def _leer_requirements(archivo: Path, ruta: Path,
                        vistos: Optional[Set[Path]] = None) -> List[Dict[str, str]]:
-    vistos = vistos or set()
+    if vistos is None:
+        vistos = set()
     archivo = archivo.resolve()
     if archivo in vistos or not archivo.is_file():
         return []

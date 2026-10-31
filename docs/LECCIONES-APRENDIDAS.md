@@ -3613,3 +3613,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `runtime`). Con el entorno temporal externo: suite **1214/1214** y tres demos
   offline correctas. R3 sigue abierta y su inventario oficial no cambia sin una
   re-medición fiable.
+
+### Hallazgo 154: un set vacío de requirements sí pertenece al llamador
+
+- **Defecto reproducido (2026-10-30)**: `_leer_requirements` usaba
+  `vistos = vistos or set()`. Al recibir un set vacío lo descartaba; una segunda
+  llamada con el mismo set releía `requests` y el llamador seguía con 0 archivos
+  registrados. Así se perdía la deduplicación entre llamadas independientes.
+- **Dogfooding y corrección**: `analyze_python_source` midió 24 líneas y
+  complejidad 5; el lector de `scripts/preflight.py` mostró el patrón explícito
+  de compartir el set. Se cambió solo la inicialización a `if vistos is None`.
+- **Regresión y evidencia**: `test_requirements_conserva_vistos_entre_llamadas`
+  falló antes por la segunda lectura duplicada y pasó después, con ambos paths
+  en el set del llamador y segunda salida `[]`. Las 8 pruebas del grupo y **3/3
+  mutaciones dirigidas** pasan; suite **1215/1215** y tres demos offline
+  correctas. No se cambia el inventario oficial R3 sin re-medición.

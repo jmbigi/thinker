@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1214/1214** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1215/1215** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -675,3 +675,10 @@ sin cambiar el evaluador. No se atribuye una reducción del inventario oficial
 ni una nueva tasa de mutación.
 Suite **1214/1214** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta. Hallazgo 153.
+
+**Actualización 2026-10-30** (includes compartidos): corregido
+`_leer_requirements` para conservar un set `vistos` vacío proporcionado por el
+llamador, evitando releer includes en llamadas posteriores. La regresión falló
+antes, pasa después y detecta 3/3 mutaciones dirigidas.
+Suite **1215/1215** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 154.

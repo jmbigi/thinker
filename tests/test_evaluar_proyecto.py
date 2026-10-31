@@ -313,6 +313,25 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
             [(d["nombre"], d["operador"], d["version"]) for d in deps],
             [("requests", "==", "2.31.0"), ("pandas", ">=", "2")])
 
+    def test_requirements_conserva_vistos_entre_llamadas(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "-r base.txt\n",
+            "base.txt": "requests==2.32.5\n",
+        })
+        vistos = set()
+
+        primera = evaluar_proyecto._leer_requirements(
+            raiz / "requirements.txt", raiz, vistos)
+        segunda = evaluar_proyecto._leer_requirements(
+            raiz / "requirements.txt", raiz, vistos)
+
+        self.assertEqual([d["nombre"] for d in primera], ["requests"])
+        self.assertEqual(segunda, [])
+        self.assertEqual(vistos, {
+            (raiz / "requirements.txt").resolve(),
+            (raiz / "base.txt").resolve(),
+        })
+
     def test_pyproject_lee_project_dependencies_y_no_listas_de_herramientas(self):
         from evaluar_proyecto import _dependencias
 
