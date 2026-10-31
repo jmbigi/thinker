@@ -3673,3 +3673,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mutaciones dirigidas** pasan (guarda de Pipfile, de package-lock y avisos).
   Suite **1218/1218** y tres demos offline correctas. El inventario oficial R3
   no cambia sin una re-medición fiable.
+
+### Hallazgo 158: un grupo Poetry inválido no anula los grupos válidos
+
+- **Defecto reproducido (2026-10-30)**: `_dependencias_pyproject` llamaba a
+  `.items()` sobre `dependencies` de un grupo Poetry sin validar su tipo. Una
+  lista en `group.dev` provocaba `AttributeError` y abortaba también los grupos
+  válidos posteriores.
+- **Dogfooding y corrección**: `analyze_python_source` midió 77 líneas y
+  complejidad 20; se limitó la corrección a esta guarda. Ahora el grupo inválido
+  emite `RuntimeWarning` con su nombre y se omite, continuando con los demás.
+- **Regresión y evidencia**: la prueba falló antes; después conserva
+  `("tox", "test")` y avisa de `grupo Poetry dev` y `dependencies no es un
+  objeto`. Detecta **3/3 mutaciones dirigidas** (reversión, sin aviso y grupo
+  válido descartado). Suite **1219/1219** y tres demos offline correctas. El
+  inventario oficial R3 no cambia sin una re-medición fiable.

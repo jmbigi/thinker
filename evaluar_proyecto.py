@@ -1247,8 +1247,14 @@ def _dependencias_pyproject(texto: str,
                 nombre = str(grupo).lower()
                 ambito = "docs" if "doc" in nombre else \
                     ("test" if "test" in nombre else "dev")
-                for dep_nombre, especificacion in \
-                        (contenido.get("dependencies") or {}).items():
+                dependencias_grupo = contenido.get("dependencies") or {}
+                if not isinstance(dependencias_grupo, dict):
+                    warnings.warn(
+                        f"{origen}: grupo Poetry {grupo} inválido "
+                        "(dependencies no es un objeto)",
+                        RuntimeWarning, stacklevel=2)
+                    continue
+                for dep_nombre, especificacion in dependencias_grupo.items():
                     if isinstance(especificacion, str):
                         _agregar_items(deps, [_requisito_poetry(
                             str(dep_nombre), especificacion)], origen, ambito)

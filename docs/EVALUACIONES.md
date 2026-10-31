@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1218/1218** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1219/1219** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -703,3 +703,10 @@ de fallar en `datos.get()`. Una regresión con dos subcasos falló antes y pasa
 después, con 3/3 mutaciones detectadas.
 Suite **1218/1218** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 157.
+
+**Actualización 2026-10-30** (grupo Poetry inválido): un grupo con
+`dependencies` no objeto ahora emite aviso y se omite sin descartar los demás
+grupos. La regresión conserva `tox` de `test`, falló antes y detecta 3/3
+mutaciones dirigidas.
+Suite **1219/1219** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 158.

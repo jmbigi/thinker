@@ -2298,6 +2298,22 @@ class TestDependenciasPyprojectContrato(unittest.TestCase):
             ("ruff", "dev", "", "", False, "pyproject.toml", "python"),
             ("tox", "test", "", "", False, "pyproject.toml", "python")])
 
+    def test_poetry_grupo_invalido_avisa_y_conserva_otros(self):
+        texto = (
+            '[tool.poetry.group.dev]\ndependencies = ["pytest==8.0.0"]\n'
+            '[tool.poetry.group.test.dependencies]\ntox = "^4"\n')
+
+        with warnings.catch_warnings(record=True) as capturados:
+            warnings.simplefilter("always")
+            deps = evaluar_proyecto._dependencias_pyproject(texto)
+
+        self.assertEqual([(d["nombre"], d["ambito"]) for d in deps],
+                         [("tox", "test")])
+        self.assertEqual(len(capturados), 1)
+        self.assertIn("grupo Poetry dev", str(capturados[0].message))
+        self.assertIn("dependencies no es un objeto",
+                      str(capturados[0].message))
+
 
 class TestVigenciaContrato(unittest.TestCase):
     """Contrato exacto de vigencia: criterios, N/A, notas y hallazgos."""
