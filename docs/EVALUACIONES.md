@@ -775,3 +775,11 @@ Dos regresiones nuevas cubren nombres y bordes de ruta; 10 muertes verificadas
 directamente y 14 mutantes comparados en 11 contratos.
 Suite **1229/1229** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta con las demás funciones pendientes. Hallazgo 167.
+
+**Actualización 2026-10-31** (cierre R3 de `licencias_no_runtime`): campaña
+acotada de 120 mutantes, **120 muertos y 0 supervivientes**. Diez muertes se
+confirmaron aplicando los diffs y ejecutando la selección real; el fuente quedó
+restaurado. El clúster de 37 queda cerrado sin cambios de código ni tests.
+R3 baja de **1034 a 997 brechas**, con **76 equivalencias** sin cambios y sin
+recalcular la tasa global histórica. Suite **1229/1229** en Linux (Python
+3.11.9), verificada en el pre-commit. Hallazgo 168.

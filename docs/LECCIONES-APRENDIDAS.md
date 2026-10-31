@@ -3839,3 +3839,16 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Validación del repositorio**: suite **1229/1229**, tres demos offline,
   preflight y gates en verde. Evidencia detallada en
   `build/ambito-r3-verificacion.json` y `docs/TRIAGE-EQUIVALENCIAS.md` (E9).
+
+### Hallazgo 168: `licencias_no_runtime` cierra con 120/120 mutantes muertos
+
+- **Medición (2026-10-31)**: Thinker midió la función en 40 líneas y
+  complejidad 6. La campaña acotada con mutmut 3.6.0 y un worker produjo 120
+  mutantes y **0 supervivientes**, frente a 37 brechas históricas.
+- **Verificación directa**: diez diffs declarados muertos se aplicaron uno a uno
+  y la selección real falló en todos, como exige el criterio del Hallazgo 143.
+  El fuente quedó restaurado. Evidencia: `build/licencias-r3-verificacion.json`.
+- **Contabilidad y alcance**: no fueron necesarios cambios de producción ni
+  nuevos tests; la suite permanece en **1229/1229**. El clúster de 37 queda
+  cerrado: R3 baja de **1034 a 997 brechas** y mantiene **76 equivalencias**.
+  No se recalcula la tasa global histórica ni se atribuyen IDs ausentes.
