@@ -339,3 +339,20 @@ de ocultarlo; otras 10 muertes no equivalentes fueron confirmadas.
 **Contabilidad (2026-10-31):** 259 mutantes: **258 muertos + 1 equivalente, 0
 brechas**. El clúster de 48 queda cerrado: R3 pasa de 997 a **949 brechas** y de
 76 a **77 equivalencias**. Evidencia: `build/pyproject-r3-verificacion.json`.
+
+### E11. Valores ausentes de `package` no producen iteraciones (2)
+
+Mutantes 7 y 9 de `_versiones_lock`: el valor por omisión de `package` cambia de
+`[]` a `None` o se elimina el segundo argumento de `get`, que también es `None`.
+
+**Prueba:** con la clave ausente, `isinstance(paquetes, list)` es falso en ambos
+casos y se ejecuta la lista vacía `[]`; no hay iteraciones. Con la clave presente,
+el valor por omisión no interviene. Original y mutantes devolvieron el mismo
+resultado en `uv.lock` vacío, `poetry.lock` válido y `pdm.lock` con `package` de
+tipo incorrecto.
+
+**Contabilidad (2026-10-31):** 203 mutantes: **201 muertos + 2 equivalentes, 0
+brechas**. El mutante 12 no era equivalente y quedó cubierto por una regresión de
+paquetes incompletos. El clúster de 32 queda cerrado: R3 pasa de 949 a **917
+brechas** y de 77 a **79 equivalencias**. Evidencia:
+`build/lock-r3-verificacion.json`.

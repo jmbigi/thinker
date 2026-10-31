@@ -3866,3 +3866,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   brechas**, no 259 muertos. El clúster de 48 queda cerrado sin cambios de código
   ni tests: R3 baja de **997 a 949 brechas** y sube de 76 a **77 equivalencias**.
   Evidencia: `build/pyproject-r3-verificacion.json` y E10. Fuente restaurado.
+
+### Hallazgo 170: `_versiones_lock` cierra con 201 muertos y 2 equivalentes
+
+- **Medición (2026-10-31)**: Thinker midió 86 líneas/complejidad 24. La campaña
+  acotada produjo 203 mutantes; la verificación directa evitó aceptar el 203/203
+  sin revisión. Los mutantes 7 y 9 demostraron ser equivalentes y el 12 reveló
+  una brecha real.
+- **Equivalencias y regresión**: 7 (`package=None`) y 9 (sin segundo argumento)
+  producen cero iteraciones cuando falta la clave, igual que `[]`. El 12 cambia
+  `or` por `and` y admite paquetes incompletos; la nueva regresión exige omitir
+  quien no tiene `name` o `version`, conservando el válido. Diez muertes no
+  equivalentes y dos equivalencias quedaron confirmadas, con fuente restaurado.
+- **Contabilidad**: **201 muertos + 2 equivalencias, 0 brechas**. El clúster de
+  32 queda cerrado: R3 baja de **949 a 917 brechas** y sube de 77 a **79
+  equivalencias**. Suite **1230/1230** y tres demos offline correctas. Evidencia:
+  `build/lock-r3-verificacion.json` y E11.

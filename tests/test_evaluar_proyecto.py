@@ -3730,6 +3730,16 @@ class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
             "pdm-pkg": "6.0", "poetry-pkg": "5.0", "react": "18.2.0",
             "react-dom": "18.0.0", "x": "7.0"})
 
+    def test_versiones_lock_omite_paquetes_incompletos(self):
+        raiz = crear_proyecto(self, {
+            "uv.lock": ('[[package]]\nname="incompleto"\n\n'
+                        '[[package]]\nname="valido"\nversion="1.0"\n\n'
+                        '[[package]]\nversion="2.0"\n'),
+        })
+
+        self.assertEqual(evaluar_proyecto._versiones_lock(raiz), {
+            "valido": "1.0"})
+
     def test_versiones_lock_excluye_directorios_ignorados(self):
         raiz = crear_proyecto(self, {
             "uv.lock": ('[[package]]\nname="requests"\nversion="2.32.5"\n'),

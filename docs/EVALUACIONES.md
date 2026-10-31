@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1229/1229** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1230/1230** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -792,3 +792,13 @@ restaurado. El clúster de 48 queda cerrado sin cambios de código ni tests.
 R3 baja de **997 a 949 brechas** y sube de 76 a **77 equivalencias**, sin
 recalcular la tasa global histórica. Suite **1229/1229** en Linux (Python
 3.11.9), verificada en el pre-commit. Hallazgo 169.
+
+**Actualización 2026-10-31** (cierre R3 de `_versiones_lock`): 203 mutantes,
+**201 muertos + 2 equivalencias, 0 brechas**. Los valores ausentes de `package`
+producen las mismas cero iteraciones (E11); el mutante 12 reveló una brecha real
+con paquetes incompletos y quedó cubierto por una nueva regresión. Diez muertes
+no equivalentes y dos equivalencias fueron verificadas, con fuente restaurado.
+El clúster de 32 queda cerrado: R3 baja de **949 a 917 brechas** y sube de 77 a
+**79 equivalencias**, sin recalcular la tasa global histórica.
+Suite **1230/1230** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta con las demás funciones pendientes. Hallazgo 170.
