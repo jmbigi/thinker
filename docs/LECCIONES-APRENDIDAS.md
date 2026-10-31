@@ -3921,3 +3921,16 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   parciales. `mutmut show` y `ast.get_source_segment` reprocesan el archivo de 21
   MB por mutante; la extracción por indentación en una lectura lineal tardó 0,45
   s. Ninguna cifra se aceptó sin comprobación directa.
+
+### Hallazgo 173: `evaluar_calidad` cierra con 339/339 mutantes muertos
+
+- **Medición (2026-10-31)**: Thinker midió la función en 122 líneas y
+  complejidad 23. La campaña acotada produjo 339 mutantes y **0 supervivientes**,
+  frente a las 47 brechas históricas.
+- **Verificación directa**: diez diffs representativos (1–5, 50, 100, 200, 300
+  y 339) se aplicaron al fuente y la selección real falló en todos. El original
+  restaurado volvió a pasar. Evidencia: `build/calidad-r3-verificacion.json`.
+- **Contabilidad y alcance**: no fueron necesarios cambios de producción ni
+  nuevos tests; la suite permanece en **1232/1232**. El clúster de 47 queda
+  cerrado: R3 baja de **814 a 767 brechas** y mantiene **83 equivalencias**.
+  No se recalcula la tasa global histórica ni se atribuyen IDs ausentes.

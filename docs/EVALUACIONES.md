@@ -823,3 +823,12 @@ selección. El clúster de 65 queda cerrado sin cambios de producción: R3 baja 
 **879 a 814 brechas** y sube de 81 a **83 equivalencias**, sin recalcular la
 tasa global histórica. Suite **1232/1232** en Linux (Python 3.11.9). R3
 permanece abierta con las demás funciones pendientes. Hallazgo 172.
+
+**Actualización 2026-10-31** (cierre R3 de `evaluar_calidad`): campaña acotada
+de 339 mutantes, **339 muertos y 0 supervivientes**. Diez diffs representativos
+(1–5, 50, 100, 200, 300 y 339) fueron detectados al aplicarlos y ejecutar la
+selección real; el original restaurado también pasó. El clúster de 47 queda
+cerrado sin cambios de producción ni nuevos tests: R3 baja de **814 a 767
+brechas**, con **83 equivalencias** intactas y sin recalcular la tasa global
+histórica. Suite **1232/1232** en Linux (Python 3.11.9). R3 permanece abierta
+con las demás funciones pendientes. Hallazgo 173.
