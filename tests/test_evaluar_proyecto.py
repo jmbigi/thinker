@@ -478,6 +478,43 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         self.assertTrue(_es_lock(raiz / "requirements" / "exacto.txt"))
         self.assertTrue(_es_lock(raiz / "requirements" / "hash.txt"))
 
+    def test_parsear_requisito_contrato_exacto(self):
+        base = {
+            "nombre": "requests", "operador": "==", "version": "2.31.0",
+            "origen": "", "ambito": "runtime", "ecosistema": "python",
+            "fijada": True,
+        }
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito(" Requests ==2.31.0 # nota"),
+            base)
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito("requests[security]==2.31.0"),
+            base)
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito("requests==2.31.0#etiqueta#otra"),
+            base)
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito(
+                "requests==2.31.0", "requirements/base.txt", "dev", "npm"),
+            {**base, "origen": "requirements/base.txt",
+             "ambito": "dev", "ecosistema": "npm"})
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito("requests>=2.0"),
+            {**base, "operador": ">=", "version": "2.0", "fijada": False})
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito("requests"),
+            {**base, "operador": "", "version": "", "fijada": False})
+        self.assertEqual(
+            evaluar_proyecto._parsear_requisito("requests==2.*"),
+            {**base, "version": "2.*", "fijada": False})
+        for linea in ("", "# comentario", "-r base.txt", "--index-url x",
+                      "pkg @ https://example.invalid", "https://example.invalid/pkg",
+                      "git+https://example.invalid/repo", "file:paquete.whl",
+                      "./paquete.whl", "../paquete.zip", "~/paquete.zip",
+                      "paquete.whl", "paquete.tar.gz", "paquete.zip"):
+            with self.subTest(linea=linea):
+                self.assertIsNone(evaluar_proyecto._parsear_requisito(linea))
+
     def test_es_lock_contrato_exacto(self):
         archivos = {nombre: "" for nombre in evaluar_proyecto.LOCKS_NOMBRES}
         archivos["UV.LOCK"] = ""

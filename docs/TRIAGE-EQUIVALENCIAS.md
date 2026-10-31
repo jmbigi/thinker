@@ -523,3 +523,24 @@ directiva alterado) sí cambian comportamiento y mueren con las nuevas fronteras
 **Contabilidad:** 51 mutantes objetivo: **46 muertos + 5 equivalentes, 0 brechas**.
 R3 permanece en **673 brechas** y sube de 90 a **95 equivalencias** por falta de
 distribución histórica detallada; no se recalcula la tasa global.
+
+### E20. Primer segmento y rechazo redundante de directivas (3)
+
+Mutantes 10 y 13 de `_parsear_requisito`: omiten el límite de `split("#", 1)` o
+lo elevan a 2. Mutante 18: cambia el prefijo `"-"` por `"XX-XX"` al rechazar
+directivas.
+
+**Prueba:** dividir por todos los `#` o por dos conserva exactamente el mismo
+primer segmento que dividir por uno; por tanto 10 y 13 no alteran salida. En 18,
+`_REQUISITO` exige que el nombre empiece por carácter alfanumérico y ya rechaza
+cualquier directiva que empieza por `-`, incluso si se elimina el retorno temprano.
+No hay cambio observable.
+
+**Verificación (2026-10-31):** los tres pasan con salida idéntica al original
+con el contrato de siete formas válidas y 14 entradas rechazadas. Los casos 1,
+11, 12, 33 y 34 sí cambian metadatos, comentarios o `.zip` y mueren. Evidencia:
+`build/parser-e20-verificacion.json`.
+
+**Contabilidad:** 75 mutantes: **72 muertos + 3 equivalentes, 0 brechas**. R3
+permanece en **673 brechas** y sube de 95 a **98 equivalencias** por falta de
+distribución histórica detallada; no se recalcula la tasa global.

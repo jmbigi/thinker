@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1298/1298** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1299/1299** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1116,3 +1116,15 @@ brechas** y sube a **95 equivalencias** por falta de distribución histórica.
 Suite **1298/1298** en Linux (Python 3.11.9). Evidencias:
 `build/es-lock-r3-verificacion.json` y `build/es-lock-e19-verificacion.json`.
 Hallazgo 199.
+
+**Actualización 2026-10-31** (cierre acotado de `_parsear_requisito`): 75
+mutantes, **72 muertos + 3 equivalencias (E20), 0 supervivientes**. La verificación
+directa inicial dejó 67 muertos y ocho supervivientes. Una regresión con siete
+formas válidas y 14 entradas rechazadas cubre metadatos, comentarios, directivas
+y `.zip`; mata 1, 11, 12, 33 y 34. Los casos 10 y 13 conservan el primer segmento;
+18 es redundante con la regex que ya rechaza directivas. El original restaurado
+pasó, sin cambios de producción. R3 permanece en **673 brechas** y sube a **98
+equivalencias** por falta de distribución histórica.
+Suite **1299/1299** en Linux (Python 3.11.9). Evidencias:
+`build/parser-r3-verificacion.json` y `build/parser-e20-verificacion.json`.
+Hallazgo 200.

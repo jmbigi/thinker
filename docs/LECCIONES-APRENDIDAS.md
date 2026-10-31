@@ -4320,3 +4320,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   comprobaciones y original restaurado verde. R3 permanece en **673 brechas** y
   sube a **95 equivalencias**. Suite **1298/1298**. Evidencias:
   `build/es-lock-r3-verificacion.json` y `build/es-lock-e19-verificacion.json`.
+
+### Hallazgo 200: `_parsear_requisito` necesita contrato directo, no solo indirecto
+
+- **Medición (2026-10-31)**: Thinker midió 30 líneas/complejidad 5 y no señaló
+  estilo. La verificación directa de 75 diffs dejó 67 muertos y ocho
+  supervivientes pese a las pruebas indirectas existentes.
+- **Regresión**: siete formas válidas con diccionario y metadatos exactos y 14
+  entradas rechazadas cubren default de `origen`, comentarios múltiples,
+  directivas y `.zip`. Matan 1, 11, 12, 33 y 34 sin cambiar producción.
+- **Equivalencias**: 10 y 13 conservan el primer segmento antes de `#`. El 18
+  cambia el prefijo de directiva, pero `_REQUISITO` ya exige nombre alfanumérico
+  y rechaza `-` de todos modos. Es E20, no una brecha que deba ocultarse.
+- **Contabilidad**: **72 muertos + 3 equivalencias, 0 supervivientes**. R3
+  permanece en **673 brechas** y sube a **98 equivalencias** por falta de
+  distribución histórica. Suite **1299/1299**. Evidencias:
+  `build/parser-r3-verificacion.json` y `build/parser-e20-verificacion.json`.
