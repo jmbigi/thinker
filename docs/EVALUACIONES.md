@@ -1035,3 +1035,13 @@ equivalencias** por falta de distribución histórica.
 Suite **1293/1293** en Linux (Python 3.11.9).
 Evidencia: `build/no-codigo-r3-verificacion.json`.
 Hallazgo 191.
+
+**Actualización 2026-10-31** (corrección de `_normalizar_release`): se reprodujo
+un falso «dependencia atrasada» con `requests==01.0` frente a PyPI `1.0`.
+PyPA exige interpretar cada componente por su valor entero; la función devolvía
+`01` y `1`, y `v4` era `False`. Ahora normaliza enteros antes de recortar ceros
+finales, sin añadir dependencias ni afirmar soporte PEP 440 completo para otros
+sufijos. Las dos direcciones `01.0 ↔ 1.0` pasan en el evaluador real con PyPI
+simulada. Suite **1293/1293** en Linux (Python 3.11.9), sin nuevas pruebas:
+se ampliaron dos contratos existentes. Evidencia:
+`build/versiones-enteras-verificacion.json`. Hallazgo 192.

@@ -2736,7 +2736,8 @@ class TestVigenciaContrato(unittest.TestCase):
                       "no se pueden comparar"]})
 
     def test_v4_relleno_ceros_es_equivalente(self):
-        for declarada, publicada in (("2.31", "2.31.0"), ("2.31.0", "2.31")):
+        for declarada, publicada in (("2.31", "2.31.0"), ("2.31.0", "2.31"),
+                                     ("01.0", "1.0"), ("1.0", "01.0")):
             with self.subTest(declarada=declarada, publicada=publicada):
                 raiz = crear_proyecto(self, {
                     "requirements.txt": f"requests=={declarada}\n"})
@@ -2758,7 +2759,7 @@ class TestVigenciaContrato(unittest.TestCase):
             ("1.2rc1", "1.2rc1"), (".1", ".1"), ("1.", "1."),
             ("1..0", "1..0"), ("0", "0"), ("0.0", "0"),
             ("10", "10"), ("1.0.0", "1"), ("2.31.0.0", "2.31"),
-            ("1.0.1", "1.0.1"), ("00.010.0", "00.010"),
+            ("1.0.1", "1.0.1"), ("00.010.0", "0.10"),
         )
         for entrada, esperada in casos:
             with self.subTest(entrada=entrada):

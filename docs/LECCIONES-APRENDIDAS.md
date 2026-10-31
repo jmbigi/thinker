@@ -4197,3 +4197,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Contabilidad**: no se cambió producción ni hubo equivalencias. R3 permanece
   en **673 brechas + 88 equivalencias** por falta de distribución histórica.
   Suite **1293/1293**. Evidencia: `build/no-codigo-r3-verificacion.json`.
+
+### Hallazgo 192: ceros a la izquierda causaban un falso atraso de dependencia
+
+- **Defecto (2026-10-31)**: `_normalizar_release("01.0")` devolvía `01`, pero
+  `_normalizar_release("1.0")` devolvía `1`. El evaluador real marcaba
+  `requests==01.0` como atrasado frente a PyPI `1.0`. La especificación PyPA
+  exige normalizar cada entero por su valor numérico y rellenar con ceros al
+  comparar releases: https://packaging.python.org/en/latest/specifications/version-specifiers/
+- **Diagnóstico y solución**: Thinker midió 7 líneas/complejidad 2 y no señaló
+  estilo; el fallo era semántico. Se cambia una línea para convertir cada parte
+  con `int` antes de recortar ceros finales, sin dependencias nuevas. El alcance
+  sigue limitado a releases numéricas; no se declara PEP 440 completo.
+- **Verificación**: dos contratos existentes cubren ahora `01.0 ↔ 1.0` en ambos
+  sentidos y `00.010.0 → 0.10`. Evaluador: **237 pruebas + 124 subpruebas**;
+  suite total **1293/1293**, sin cambiar el recuento. Evidencia reproducible:
+  `build/versiones-enteras-verificacion.json`.

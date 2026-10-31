@@ -1511,7 +1511,7 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
 def _normalizar_release(version: Optional[str]) -> Optional[str]:
     if not isinstance(version, str) or not re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", version):
         return version
-    partes = version.split(".")
+    partes = [str(int(parte)) for parte in version.split(".")]
     while len(partes) > 1 and partes[-1] == "0":
         partes.pop()
     return ".".join(partes)
