@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1293/1293** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1294/1294** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1055,3 +1055,12 @@ Nueva dependencia `packaging 26.3` (Apache-2.0/BSD-2-Clause), lock con hashes y
 `openai 3.42.0`; evaluador 237/237 en venv aislado y pip-audit sin vulnerabilidades
 conocidas. Suite **1293/1293** en Linux (Python 3.11.9). Evidencia:
 `build/pep440-versiones-verificacion.json`. Hallazgo 193.
+
+**Actualización 2026-10-31** (cierre acotado de `_es_lock_python`): 12 mutantes,
+**12 muertos y 0 supervivientes**. Una regresión con 16 rutas fija locks Python,
+locks npm, mayúsculas y directorios `requirements/*`. Los 12/12 diffs fueron
+detectados al aplicarlos al módulo real; el original restaurado pasó. No hubo
+cambios de producción ni equivalencias. R3 permanece en **673 brechas + 88
+equivalencias** por falta de distribución histórica.
+Suite **1294/1294** en Linux (Python 3.11.9). Evidencia:
+`build/lock-python-r3-verificacion.json`. Hallazgo 194.

@@ -478,6 +478,21 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         self.assertTrue(_es_lock(raiz / "requirements" / "exacto.txt"))
         self.assertTrue(_es_lock(raiz / "requirements" / "hash.txt"))
 
+    def test_es_lock_python_contrato_exacto(self):
+        casos = {
+            "requirements.lock": True, "REQUIREMENTS.LOCK": True,
+            "uv.lock": True, "poetry.lock": True, "Pipfile.lock": True,
+            "pdm.lock": True, "package-lock.json": False,
+            "pnpm-lock.yaml": False, "yarn.lock": False,
+            "requirements/base.txt": True, "Requirements/base.TXT": True,
+            "requirements/base.in": False, "requirements/custom.lock": False,
+            "other/base.txt": False, "requirements.txt": False,
+            "requirements.lock/base.txt": False,
+        }
+        for nombre, esperado in casos.items():
+            with self.subTest(nombre=nombre):
+                self.assertIs(evaluar_proyecto._es_lock_python(Path(nombre)), esperado)
+
     def test_es_manifiesto_contrato_exacto(self):
         casos = {
             "pyproject.toml": True, "SETUP.PY": True, "setup.cfg": True,

@@ -4231,3 +4231,15 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   pip-audit con `--disable-pip` (lock con hashes, sin resolver en Python 3.10)
   informó «No known vulnerabilities found». Evidencia:
   `build/pep440-versiones-verificacion.json`.
+
+### Hallazgo 194: `_es_lock_python` fija qué rutas pertenecen al ecosistema
+
+- **Medición (2026-10-31)**: Thinker midió 4 líneas, complejidad 0 y ninguna
+  incidencia. No había una prueba directa de esta clasificación. La campaña
+  aislada generó 12 mutantes, todos detectados por el nuevo contrato.
+- **Regresión**: 16 rutas distinguen locks Python de locks npm, mayúsculas,
+  extensiones y `requirements/*`, sin exigir archivos en disco ni cambiar producción.
+- **Verificación**: los **12/12 diffs** aplicados al módulo real fueron detectados;
+  el original restaurado pasó 238 pruebas del evaluador. R3 permanece en **673
+  brechas + 88 equivalencias** por falta de distribución histórica. Suite
+  **1294/1294**. Evidencia: `build/lock-python-r3-verificacion.json`.
