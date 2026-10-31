@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1223/1223** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1224/1224** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -736,3 +736,10 @@ releases numéricas y valores de texto; la regresión cubre ambos sentidos y el
 caso previo con `None`, con 3/3 mutaciones detectadas.
 Suite **1223/1223** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 162.
+
+**Actualización 2026-10-30** (validación de estado): `context_from_state`
+rechaza ahora `iteration` con cadenas, booleanos, negativos o floats, en lugar
+de restaurarlos como válidos. La regresión cubre cuatro valores, falló antes y
+detecta 3/3 mutaciones dirigidas; el esquema no cambia.
+Suite **1224/1224** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 163.

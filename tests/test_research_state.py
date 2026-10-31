@@ -84,6 +84,15 @@ class TestEstado(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "No se pudo leer"):
             load_research_state(self.ruta)
 
+    def test_iteration_invalida_no_se_restaura(self):
+        for valor in ("0", True, -1, 1.5):
+            with self.subTest(valor=valor):
+                state = context_to_state(ResearchContext("pregunta"))
+                state["iteration"] = valor
+                with self.assertRaisesRegex(
+                        RuntimeError, "Campo de estado inválido: iteration"):
+                    context_from_state(state)
+
     def test_estado_completado_no_repite_llamadas(self):
         llm = _ContadorLLM()
         report, _ = ResearchOrchestrator(

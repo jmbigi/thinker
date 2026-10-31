@@ -3754,3 +3754,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   hallazgo de atraso, y las 15 pruebas de vigencia pasan. **3/3 mutaciones
   dirigidas** detectadas; suite **1223/1223** y tres demos offline correctas.
   El inventario oficial R3 no cambia sin una re-medición fiable.
+
+### Hallazgo 163: `iteration` también necesita validación al restaurar
+
+- **Defecto reproducido (2026-10-30)**: `context_from_state` validaba
+  `max_iterations` pero asignaba `iteration` sin comprobarlo. Una cadena `"0"`
+  se restauraba como `str`; booleanos, negativos y floats también se aceptaban.
+- **Dogfooding y corrección**: `analyze_python_source` midió `research_state`
+  en 136 líneas, 7 funciones y complejidad 12, y guió revisar el contrato de
+  «contexto validado». Ahora `iteration` debe ser un entero no booleano y no
+  negativo, sin cambiar el esquema ni los valores válidos existentes.
+- **Regresión y evidencia**: una prueba con `"0"`, `True`, `-1` y `1.5` falló
+  antes en los cuatro subcasos y ahora exige `RuntimeError` con el nombre del
+  campo. Las 6 pruebas de persistencia y **3/3 mutaciones dirigidas** pasan
+  (sin guarda, booleanos y negativos). Suite **1224/1224** y tres demos offline
+  correctas. El inventario oficial R3 no cambia sin una re-medición fiable.

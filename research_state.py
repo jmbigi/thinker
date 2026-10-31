@@ -74,8 +74,12 @@ def context_from_state(state: Dict[str, Any]) -> ResearchContext:
             or max_iterations < 1:
         raise RuntimeError("Campo de estado inválido: max_iterations")
 
+    iteration = state.get("iteration", 0)
+    if not isinstance(iteration, int) or isinstance(iteration, bool) or iteration < 0:
+        raise RuntimeError("Campo de estado inválido: iteration")
+
     contexto = ResearchContext(state["question"], max_iterations)
-    contexto.iteration = state.get("iteration", 0)
+    contexto.iteration = iteration
     contexto.decomposed = bool(state.get("decomposed"))
     contexto.subquestions = copy.deepcopy(state["subquestions"])
     contexto.sources = copy.deepcopy(state["sources"])
