@@ -4370,3 +4370,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Límite**: `0.1.17` queda en preparación hasta comprobar tag, wheel/sdist,
   hashes, subida e instalación limpia real desde TestPyPI y PyPI. La versión
   `0.1.16` sigue siendo la última publicada mientras se construye la nueva.
+
+### Hallazgo 203: validar el entorno de build y el ejecutable instalado
+
+- **Entorno**: el primer build con setuptools 65.5.0 rechazó la licencia PEP 639,
+  sin producir artefactos. El intérprete del proyecto con setuptools **82.0.1**
+  cumplió `pyproject`; wheel y sdist pasaron `twine check`. No se rebajó ningún
+  requisito ni se cambió el tag para ocultar el fallo.
+- **Instalación**: `neural_concepts` no es un módulo base obligatorio sin el
+  extra `ml`; su ausencia de `torch` se comprueba aparte. La consola se valida
+  con la ruta absoluta del venv, no con un `evaluate-project` del `PATH` global.
+- **Publicación comprobada**: TestPyPI y PyPI publican los mismos hashes que los
+  artefactos del tag. Las instalaciones limpias verificaron `pip check`, 18
+  módulos base, consola y el bucle `RuntimeError` ya convertido en evidencia no
+  verificable. Los índices simples tardaron unos segundos; el JSON ya tenía los
+  hashes y la instalación se repitió con `--no-cache-dir`.
+- **Identidad**: `v0.1.17` anotado apunta a `760e5f4`; `origin/main` y el tag
+  fueron confirmados con `git ls-remote`. Evidencia completa:
+  `build/release17-verificacion.json`.

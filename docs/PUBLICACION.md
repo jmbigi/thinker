@@ -1,10 +1,10 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-31: **versión `0.1.16` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-31: **versión `0.1.17` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
-> `v0.1.14`, `v0.1.15` y `v0.1.16` empujados; `v0.1.2` a `v0.1.16` son anotados. `0.1.2` **no
+> `v0.1.14`, `v0.1.15`, `v0.1.16` y `v0.1.17` empujados; `v0.1.2` a `v0.1.17` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -16,7 +16,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.16`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.17`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -56,6 +56,9 @@
 - **Publicación completada de `0.1.16`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.16` y verificación limpia; ver la sección
   0.1.16.
+- **Publicación completada de `0.1.17`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.17` (`760e5f4`) y verificación limpia; ver la
+  sección 0.1.17.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -85,18 +88,27 @@ commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
 
-## Versión 0.1.17 (preparación, 2026-10-31)
+## Versión 0.1.17 (2026-10-31)
 
-Paquete `thinker-research 0.1.17` en preparación, **todavía no publicado**.
-Corrige `_resolver_evidencia`: un bucle de enlaces simbólicos produce evidencia
-`NO VERIFICABLE` en Python 3.11 en vez de interrumpir el análisis con
+Paquete `thinker-research 0.1.17` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Corrige `_resolver_evidencia`: un bucle de enlaces simbólicos produce
+evidencia `NO VERIFICABLE` en Python 3.11 en vez de interrumpir el análisis con
 `RuntimeError`. Añade contratos de contención, procedencia y archivos ausentes.
 
 Métricas del cambio: suite **1303/1303**, 7/7 gates PASS, CI limpia OK y R3
 **673 brechas + 98 equivalencias**. El clúster acotado quedó en **71/71 mutantes
-detectados**, sin descontar el inventario histórico. La publicación queda
-condicionada al tag, `twine check`, hashes e instalación limpia desde ambos
-índices; esos datos se añadirán únicamente después de comprobarlos.
+detectados**, sin descontar el inventario histórico.
+
+Artefactos construidos desde el tag `v0.1.17` con setuptools 82.0.1; `twine
+check` PASSED. SHA-256:
+`19364d1681fb248e5ffc4fd7021d3ac7d8e697e0029e56302b1ae4df2dd01871` (wheel) y
+`45b74837934a66c76fc4e7b3e93db6e6cb2d3c702e3b8af4ff4b36362c5a7d5f` (sdist).
+Ambos índices publican esos hashes. Instalación limpia desde TestPyPI y PyPI OK,
+con `pip check`, 18 módulos base, consola absoluta del venv y el bucle convertido
+en evidencia no verificable. El extra `ml` no se exige en la instalación base.
+Los índices simples tardaron unos segundos en servir la versión; se comprobó con
+`--no-cache-dir`. Tag anotado `v0.1.17` (`760e5f4`) empujado y verificado con
+`git ls-remote`. Evidencia: `build/release17-verificacion.json`.
 
 ## Versión 0.1.16 (2026-10-31)
 

@@ -1147,3 +1147,15 @@ para distribuir el arreglo de evidencia no resoluble. Suite **1303/1303** en Lin
 verificados; ese commit
 ya está en `origin/main`. **No se declara publicada** antes de comprobar wheel,
 sdist, hashes e instalación limpia en TestPyPI y PyPI. Hallazgo 202.
+
+**Actualización 2026-10-31** (publicación de `0.1.17`): wheel y sdist construidos
+desde `v0.1.17` con setuptools 82.0.1; `twine check` PASSED y publicados en
+TestPyPI y PyPI. SHA-256:
+`19364d1681fb248e5ffc4fd7021d3ac7d8e697e0029e56302b1ae4df2dd01871` (wheel) y
+`45b74837934a66c76fc4e7b3e93db6e6cb2d3c702e3b8af4ff4b36362c5a7d5f` (sdist);
+ambos índices coinciden. Instalaciones limpias desde ambos índices con `pip
+check`, 18 módulos base, consola absoluta del venv y bucle de evidencia no
+verificable. El extra `ml` no se exige en la instalación base.
+Suite **1303/1303** en Linux (Python 3.11.9); CI limpia OK. `main` y tag anotado
+`v0.1.17` (`760e5f4`) empujados. Evidencia:
+`build/release17-verificacion.json`. Hallazgo 203.
