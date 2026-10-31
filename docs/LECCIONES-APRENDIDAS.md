@@ -3719,3 +3719,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   Las 8 pruebas del grupo y **3/3 mutaciones dirigidas** pasan (condición del
   lock, parser y versión exacta descartada). Suite **1221/1221** y tres demos
   offline correctas. El inventario oficial R3 no cambia sin re-medición.
+
+### Hallazgo 161: un comodín no convierte requirements en lock
+
+- **Defecto reproducido (2026-10-30)**: `_es_lock` contaba cualquier línea con
+  `==` como fijada y devolvía `True` para `requests==2.*`, contradiciendo su
+  propio contrato de reproducibilidad. La primera sonda usó el nombre inexistente
+  `_es_lock_requisitos`; se verificó la función real y se repitió antes de
+  atribuir el defecto.
+- **Dogfooding y corrección**: `analyze_python_source` midió 19 líneas y
+  complejidad 3. El conteo ahora usa `_parsear_requisito(... )["fijada"]` o la
+  presencia de `--hash=`, conservando la regla de mayoría sin cambiar umbrales.
+- **Regresión y evidencia**: `test_requirements_comodin_no_es_lock` falló antes;
+  después exige falso para el comodín y verdadero para una versión exacta y un
+  requisito con hash. Las 9 pruebas del grupo y **3/3 mutaciones dirigidas**
+  pasan. Suite **1222/1222** y tres demos offline correctas. El inventario
+  oficial R3 no cambia sin una re-medición fiable.

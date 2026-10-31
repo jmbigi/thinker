@@ -451,6 +451,19 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         self.assertFalse(_es_lock(raiz / "requirements" / "sin_fijar.txt"))
         self.assertFalse(_es_lock(raiz / "requirements" / "a_medias.txt"))
 
+    def test_requirements_comodin_no_es_lock(self):
+        from evaluar_proyecto import _es_lock
+
+        raiz = crear_proyecto(self, {
+            "requirements/comodin.txt": "requests==2.*\n",
+            "requirements/exacto.txt": "requests==2.32.5\n",
+            "requirements/hash.txt": "requests>=2 --hash=sha256:abcd\n",
+        })
+
+        self.assertFalse(_es_lock(raiz / "requirements" / "comodin.txt"))
+        self.assertTrue(_es_lock(raiz / "requirements" / "exacto.txt"))
+        self.assertTrue(_es_lock(raiz / "requirements" / "hash.txt"))
+
 
 class TestCriteriosAnadidos(unittest.TestCase):
     """h6 (imports declarados), c5 (tests con aserciones) y h7 (decisiones)."""

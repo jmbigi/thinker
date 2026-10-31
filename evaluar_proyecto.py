@@ -319,7 +319,11 @@ def _es_lock(archivo: Path) -> bool:
                   if linea and not linea.startswith("-")]
     if not requisitos:
         return False
-    fijadas = sum(1 for linea in requisitos if "==" in linea or "--hash=" in linea)
+    fijadas = 0
+    for linea in requisitos:
+        dep = _parsear_requisito(linea)
+        if "--hash=" in linea or (dep and dep["fijada"]):
+            fijadas += 1
     return fijadas * 2 > len(requisitos)
 
 
