@@ -783,3 +783,12 @@ restaurado. El clúster de 37 queda cerrado sin cambios de código ni tests.
 R3 baja de **1034 a 997 brechas**, con **76 equivalencias** sin cambios y sin
 recalcular la tasa global histórica. Suite **1229/1229** en Linux (Python
 3.11.9), verificada en el pre-commit. Hallazgo 168.
+
+**Actualización 2026-10-31** (cierre R3 de `_dependencias_pyproject`): 259
+mutantes, **258 muertos + 1 equivalencia, 0 brechas**. El mutante 5 sobrevivió
+a la primera muestra directa; se investigó y se demostró que `None` y `""`
+siguen el mismo fallback. Otras 10 muertes fueron confirmadas y el fuente quedó
+restaurado. El clúster de 48 queda cerrado sin cambios de código ni tests.
+R3 baja de **997 a 949 brechas** y sube de 76 a **77 equivalencias**, sin
+recalcular la tasa global histórica. Suite **1229/1229** en Linux (Python
+3.11.9), verificada en el pre-commit. Hallazgo 169.

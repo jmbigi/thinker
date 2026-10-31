@@ -3852,3 +3852,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   nuevos tests; la suite permanece en **1229/1229**. El clúster de 37 queda
   cerrado: R3 baja de **1034 a 997 brechas** y mantiene **76 equivalencias**.
   No se recalcula la tasa global histórica ni se atribuyen IDs ausentes.
+
+### Hallazgo 169: `_dependencias_pyproject` cierra con 258 muertos y 1 equivalente
+
+- **Medición y anomalía (2026-10-31)**: Thinker midió 83 líneas/complejidad 21.
+  La campaña acotada declaró 259/259 muertos, pero la primera muestra directa
+  encontró que el mutante 5 sobrevivía. No se aceptó ese resultado sin revisión.
+- **Equivalencia demostrada**: el mutante 5 cambia `None` por `""`; ambos valores
+  no son `dict` y siguen el mismo fallback. Original y mutante produjeron la
+  misma salida en TOML inválido con dependencias, inválido sin dependencias y
+  válido. Otras 10 muertes no equivalentes se confirmaron con la selección real.
+- **Contabilidad**: el resultado correcto es **258 muertos + 1 equivalente, 0
+  brechas**, no 259 muertos. El clúster de 48 queda cerrado sin cambios de código
+  ni tests: R3 baja de **997 a 949 brechas** y sube de 76 a **77 equivalencias**.
+  Evidencia: `build/pyproject-r3-verificacion.json` y E10. Fuente restaurado.

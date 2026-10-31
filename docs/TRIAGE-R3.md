@@ -1,4 +1,4 @@
-# Triaje R3 — 997 brechas, 76 equivalencias y 0 timeouts
+# Triaje R3 — 949 brechas, 77 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **997** | **27** | **0** | **0** |
-| **Total** | **997** | **76** | **0** | **0** |
+| Evaluador | **949** | **28** | **0** | **0** |
+| **Total** | **949** | **77** | **0** | **0** |
 
-Los **997** casos de brecha son aserciones que faltan: sus funciones se
+Los **949** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -54,7 +54,7 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 `cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
 `revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
-### Evaluador — 997 brechas + 27 equivalencias
+### Evaluador — 949 brechas + 28 equivalencias
 
 Re-medición 2026-10-28 (batch r3c4): **5984 mutantes, 4846 muertos, 1138
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
@@ -72,7 +72,7 @@ en `build/triaje-eval-r3c4.json`; el clúster evaluar_herramientas ya cerrado):
 |---|---:|
 | `evaluar_herramientas` | 0 (64 muertos + 6 equivalencias) |
 | `main` | 65 |
-| `_dependencias_pyproject` | 48 |
+| `_dependencias_pyproject` | 0 (48 muertos + 1 equivalencia) |
 | `evaluar_calidad` | 47 |
 | `_dependencias` | 44 |
 | `licencias_no_runtime` | 0 (37 muertos) |
@@ -99,6 +99,14 @@ cambios de producción ni nuevos tests. Evidencia:
 `build/licencias-r3-verificacion.json`. El clúster de 37 queda cerrado:
 **1034 → 997 brechas**, con **76 equivalencias** intactas y sin nueva tasa
 global.
+
+Cierre dirigido de `_dependencias_pyproject` (2026-10-31): **259 mutantes, 258
+muertos y 1 equivalencia (E10), 0 brechas**. El mutante 5 sobrevivió a la
+primera muestra directa; se demostró que `None` y `""` siguen el mismo fallback
+en TOML inválido con/sin dependencias y válido. Otras 10 muertes no equivalentes
+se confirmaron con la selección real, con el fuente restaurado. Evidencia:
+`build/pyproject-r3-verificacion.json`. El clúster de 48 queda cerrado:
+**997 → 949 brechas** y **76 → 77 equivalencias**, sin nueva tasa global.
 
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
@@ -161,13 +169,13 @@ documento conserva el resumen y la clasificación.
 ## Conclusión
 
 - **Triaje de inventario:** r3c4 completo, con cierres dirigidos posteriores de
-  `_ambito_requirements` y `licencias_no_runtime`: **997 brechas + 76
-  equivalencias**.
-- **Equivalentes demostrados:** 76 (49 en preflight y 27 en el evaluador), todos
+  `_ambito_requirements`, `licencias_no_runtime` y `_dependencias_pyproject`:
+  **949 brechas + 77 equivalencias**.
+- **Equivalentes demostrados:** 77 (49 en preflight y 28 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **997 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **949 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

@@ -324,3 +324,18 @@ restaurado. Evidencia: `build/ambito-r3-verificacion.json`.
 reclasificados como equivalentes. El clúster de 33 queda cerrado: R3 pasa de
 1067 a **1034 brechas** y de 62 a **76 equivalencias**. No se recalcula la tasa
 global histórica.
+
+### E10. `None` y `""` siguen el mismo fallback de TOML (1)
+
+Mutante 5 de `_dependencias_pyproject`: `datos = None` cambia a `datos = ""` al
+capturar `TOMLDecodeError`.
+
+**Prueba:** ambos valores no son instancias de `dict`; por tanto entran en la
+misma rama `if not isinstance(datos, dict)` y usan el fallback textual. La salida
+es idéntica en TOML inválido con dependencias, inválido sin dependencias y TOML
+válido. El mutante sobrevivió a la primera muestra directa y se investigó en vez
+de ocultarlo; otras 10 muertes no equivalentes fueron confirmadas.
+
+**Contabilidad (2026-10-31):** 259 mutantes: **258 muertos + 1 equivalente, 0
+brechas**. El clúster de 48 queda cerrado: R3 pasa de 997 a **949 brechas** y de
+76 a **77 equivalencias**. Evidencia: `build/pyproject-r3-verificacion.json`.
