@@ -3681,6 +3681,14 @@ class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
         self.assertEqual(evaluar_proyecto._versiones_lock(raiz), {
             "requests": "2.32.5"})
 
+    def test_versiones_lock_omite_comodines(self):
+        raiz = crear_proyecto(self, {
+            "custom.lock": "requests==2.*\nclick==8.1.7\n",
+        })
+
+        self.assertEqual(evaluar_proyecto._versiones_lock(raiz), {
+            "click": "8.1.7"})
+
     def test_dependencias_dedupe_y_prioridad(self):
         raiz = crear_proyecto(self, {
             "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'

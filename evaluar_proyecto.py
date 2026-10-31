@@ -1499,7 +1499,7 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
                 and archivo.suffix.lower() == ".txt"):
             for linea in leer(archivo).splitlines():
                 dep = _parsear_requisito(linea)
-                if dep and dep["operador"] == "==" and dep["version"]:
+                if dep and dep["fijada"]:
                     versiones[_clave_nombre(dep["nombre"])] = dep["version"]
     return versiones
 

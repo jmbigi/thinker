@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1220/1220** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1221/1221** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -717,3 +717,9 @@ consulta literalmente en PyPI. La regresión falló antes y detecta 3/3
 mutaciones dirigidas, sin cambiar criterios ni umbrales.
 Suite **1220/1220** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 159.
+
+**Actualización 2026-10-30** (comodín en locks): los locks textuales reutilizan
+`dep["fijada"]` y ya no devuelven `2.*` como versión resuelta. La regresión
+falló antes, conserva `click==8.1.7` y detecta 3/3 mutaciones dirigidas.
+Suite **1221/1221** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 160.

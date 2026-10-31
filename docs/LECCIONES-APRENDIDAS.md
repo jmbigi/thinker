@@ -3705,3 +3705,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `v4=False` y cero llamadas a PyPI. Las 14 pruebas de vigencia y **3/3
   mutaciones dirigidas** pasan; suite **1220/1220** y tres demos offline
   correctas. El inventario oficial R3 no cambia sin re-medición.
+
+### Hallazgo 160: un comodín tampoco es una versión resuelta por lock
+
+- **Defecto reproducido (2026-10-30)**: `_versiones_lock` leía
+  `requests==2.*` y devolvía `{"requests": "2.*", "click": "8.1.7"}`. Aunque
+  el parser ya distinguía el comodín, el lock repetía la condición antigua.
+- **Dogfooding y corrección**: `analyze_python_source` midió 86 líneas y
+  complejidad 24; se cambió solo la rama de locks textuales para reutilizar
+  `dep["fijada"]`, igual que `v1` y `v4` en el Hallazgo 159.
+- **Regresión y evidencia**: `test_versiones_lock_omite_comodines` falló antes
+  con la entrada `requests`; después devuelve exactamente `{"click": "8.1.7"}`.
+  Las 8 pruebas del grupo y **3/3 mutaciones dirigidas** pasan (condición del
+  lock, parser y versión exacta descartada). Suite **1221/1221** y tres demos
+  offline correctas. El inventario oficial R3 no cambia sin re-medición.
