@@ -3448,6 +3448,17 @@ class TestSintesisContrato(unittest.TestCase):
             "app.py": "import requests\n",
             "requirements.txt": "requests==2.31.0\n"})
 
+    @staticmethod
+    def _informe_minimo(ruta="/tmp/proyecto", notas=None):
+        return {
+            "ruta": ruta, "archivos_python": 1, "lineas_python": 1,
+            "cobertura": {},
+            "dimensiones": {
+                "calidad": {"puntuacion": 1.0, "criterios": {},
+                            "hallazgos": [],
+                            "notas": notas if notas is not None else []}},
+        }
+
     def test_sintesis_campos_respaldo_y_modelo(self):
         from evaluar_proyecto import sintetizar_con_llm
         from tests.helpers import StubLLM
@@ -3478,10 +3489,98 @@ class TestSintesisContrato(unittest.TestCase):
         from evaluar_proyecto import sintetizar_con_llm
         from tests.helpers import StubLLM
 
-        with self.assertRaisesRegex(ValueError, "propuestas"):
+        with self.assertRaises(ValueError) as exc:
             sintetizar_con_llm(
                 evaluar(self._fixture(), con_red=False),
                 StubLLM(lambda p: '{"propuestas": "x"}'))
+
+        self.assertEqual(str(exc.exception), "`propuestas` debe ser una lista")
+
+    def test_sintesis_prompt_contiene_instrucciones_y_digesto(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        informe = evaluar(self._fixture(), con_red=False)
+        llm = StubLLM(lambda p: '{"propuestas": []}')
+
+        sintetizar_con_llm(informe, llm)
+
+        self.assertEqual(llm.prompts, [
+            evaluar_proyecto.PROMPT_SINTESIS + "\n"
+            + evaluar_proyecto._digesto(informe)])
+
+    def test_sintesis_objeto_sin_propuestas_devuelve_lista_vacia(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        sintesis = sintetizar_con_llm(
+            self._informe_minimo(),
+            StubLLM(lambda p: '{"preguntas_abiertas": ["duda"]}'))
+
+        self.assertEqual(sintesis, {
+            "modelo": "?", "propuestas": [],
+            "preguntas_abiertas": ["duda"], "sin_respaldo": 0})
+
+    def test_sintesis_json_escalar_tiene_error_exacto(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        with self.assertRaises(ValueError) as exc:
+            sintetizar_con_llm(self._informe_minimo(),
+                               StubLLM(lambda p: "42"))
+
+        self.assertEqual(str(exc.exception),
+                         "La síntesis debe ser un objeto o array JSON")
+
+    def test_sintesis_campos_ausentes_usan_cadena_vacia(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        sintesis = sintetizar_con_llm(self._informe_minimo(),
+                                      StubLLM(lambda p: "[{}]"))
+
+        self.assertEqual(sintesis, {
+            "modelo": "?",
+            "propuestas": [{
+                "dimension": "", "propuesta": "", "por_que": "",
+                "evidencia": "", "como_verificar": "", "con_respaldo": False}],
+            "preguntas_abiertas": [], "sin_respaldo": 1})
+
+    def test_sintesis_modelo_real_y_cero_sin_respaldo(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        llm = StubLLM(lambda p: (
+            '[{"dimension": "calidad", "propuesta": "fijar", '
+            '"por_que": "x", "evidencia": "requirements.txt", '
+            '"como_verificar": "y"}]'))
+        llm.model = "modelo-prueba"
+
+        sintesis = sintetizar_con_llm(
+            evaluar(self._fixture(), con_red=False), llm)
+
+        self.assertEqual(sintesis["modelo"], "modelo-prueba")
+        self.assertEqual(sintesis["sin_respaldo"], 0)
+
+    def test_sintesis_evidencia_vacia_nunca_tiene_respaldo(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        sintesis = sintetizar_con_llm(
+            self._informe_minimo(ruta="XXXX"),
+            StubLLM(lambda p: '[{"evidencia": ""}]'))
+
+        self.assertFalse(sintesis["propuestas"][0]["con_respaldo"])
+
+    def test_sintesis_union_de_evidencia_no_fabrica_respaldo(self):
+        from evaluar_proyecto import sintetizar_con_llm
+        from tests.helpers import StubLLM
+
+        sintesis = sintetizar_con_llm(
+            self._informe_minimo(notas=[""]),
+            StubLLM(lambda p: '[{"evidencia": "XX"}]'))
+
+        self.assertFalse(sintesis["propuestas"][0]["con_respaldo"])
 
 
 class TestMainRamas(unittest.TestCase):

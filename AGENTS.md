@@ -326,10 +326,11 @@ mejora de código (`code_design_improvement_tools.py`).
   Después, `_dependencias`: **136 muertos + 2 equivalencias**; clúster 44 → 0.
   Después, `main`: **160 muertos + 2 equivalencias**; clúster 65 → 0. Después,
   `evaluar_calidad`: **339/339 muertos**; clúster 47 → 0. Después,
-  `parsear_requisitos`: **217 muertos + 1 equivalencia**; clúster 35 → 0. Por
-  último en este lote, `evaluar_inteligencia`: **139/139 muertos**; clúster 30 → 0.
-  R3 queda en **702 brechas + 84 equivalencias**, sin una nueva tasa global.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1234/1234 en la suite
+  `parsear_requisitos`: **217 muertos + 1 equivalencia**; clúster 35 → 0. Después,
+  `evaluar_inteligencia`: **139/139 muertos**; clúster 30 → 0. Por último en este
+  lote, `sintetizar_con_llm`: **139/139 muertos**; clúster 29 → 0.
+  R3 queda en **673 brechas + 84 equivalencias**, sin una nueva tasa global.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1241/1241 en la suite
   Linux** (2026-10-31; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

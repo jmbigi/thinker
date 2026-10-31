@@ -1,4 +1,4 @@
-# Triaje R3 — 702 brechas, 84 equivalencias y 0 timeouts
+# Triaje R3 — 673 brechas, 84 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **702** | **35** | **0** | **0** |
-| **Total** | **702** | **84** | **0** | **0** |
+| Evaluador | **673** | **35** | **0** | **0** |
+| **Total** | **673** | **84** | **0** | **0** |
 
-Los **702** casos de brecha son aserciones que faltan: sus funciones se
+Los **673** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -54,7 +54,7 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 `cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
 `revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
-### Evaluador — 702 brechas + 35 equivalencias
+### Evaluador — 673 brechas + 35 equivalencias
 
 Re-medición 2026-10-28 (batch r3c4): **5984 mutantes, 4846 muertos, 1138
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
@@ -80,7 +80,7 @@ en `build/triaje-eval-r3c4.json`; el clúster evaluar_herramientas ya cerrado):
 | `_ambito_requirements` | 0 (19 muertos + 14 equivalencias) |
 | `_versiones_lock` | 0 (32 muertos + 2 equivalencias) |
 | `evaluar_inteligencia` | 0 (30 muertos) |
-| `sintetizar_con_llm` | 29 |
+| `sintetizar_con_llm` | 0 (29 muertos) |
 | `evaluar` | 5 (equivalencias) |
 
 Cierre dirigido de `_ambito_requirements` (2026-10-31): **77 mutantes, 63
@@ -165,6 +165,15 @@ otras siete muertes fueron confirmadas y el original restaurado pasó. Evidencia
 cambios de producción: **732 → 702 brechas**, con **84 equivalencias** intactas
 y sin nueva tasa global.
 
+Cierre dirigido de `sintetizar_con_llm` (2026-10-31): **139 mutantes, 139
+muertos y 0 supervivientes**. La campaña reprodujo 110 muertos y 29 brechas.
+Siete regresiones nuevas fijan los contratos restantes y otra exige el mensaje
+exacto; los 29 supervivientes y diez mutantes de control fueron detectados al
+aplicar sus diffs, con el original restaurado verde. Evidencia:
+`build/sintesis-r3-verificacion.json`. El clúster de 29 queda cerrado sin cambios
+de producción: **702 → 673 brechas**, con **84 equivalencias** intactas y sin
+nueva tasa global.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -228,13 +237,13 @@ documento conserva el resumen y la clasificación.
 - **Triaje de inventario:** r3c4 completo, con cierres dirigidos posteriores de
   `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`,
   `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`,
-  `parsear_requisitos` y `evaluar_inteligencia`: **702 brechas + 84
-  equivalencias**.
+  `parsear_requisitos`, `evaluar_inteligencia` y `sintetizar_con_llm`: **673
+  brechas + 84 equivalencias**.
 - **Equivalentes demostrados:** 84 (49 en preflight y 35 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **702 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **673 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

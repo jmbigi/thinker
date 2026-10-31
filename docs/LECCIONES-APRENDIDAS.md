@@ -3963,3 +3963,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Contabilidad**: **139 muertos, 0 supervivientes**. El clúster de 30 queda
   cerrado: R3 baja de **732 a 702 brechas** y mantiene **84 equivalencias**.
   Suite **1234/1234**. Evidencia: `build/inteligencia-r3-verificacion.json`.
+
+### Hallazgo 176: `sintetizar_con_llm` cierra sus 29 brechas con siete regresiones
+
+- **Medición (2026-10-31)**: Thinker midió la función en 44 líneas, 1 función y
+  complejidad 5, sin incidencias estáticas. La campaña reprodujo exactamente el
+  inventario: 139 mutantes, 110 muertos y 29 supervivientes.
+- **Regresiones**: siete pruebas fijan prompt, defaults, errores exactos, campos
+  ausentes, modelo, conteo sin respaldo y dos barreras anti-invención. Una prueba
+  existente pasó a exigir el mensaje exacto. No se cambió producción.
+- **Verificación y contabilidad**: los **29/29 supervivientes** y una muestra de
+  **10/10 mutantes ya muertos** fueron detectados al aplicar sus diffs; el
+  original restaurado pasó. Resultado: **139/139 muertos**, sin equivalencias.
+  El clúster de 29 queda cerrado: R3 baja de **702 a 673 brechas** y mantiene
+  **84 equivalencias**. Suite **1241/1241**. Evidencia:
+  `build/sintesis-r3-verificacion.json`.

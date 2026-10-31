@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1234/1234** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1241/1241** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -852,3 +852,13 @@ restaurado pasó. El clúster de 30 queda cerrado sin cambios de producción: R3
 baja de **732 a 702 brechas**, con **84 equivalencias** intactas y sin recalcular
 la tasa global histórica. Suite **1234/1234** en Linux (Python 3.11.9). R3
 permanece abierta con las demás funciones pendientes. Hallazgo 175.
+
+**Actualización 2026-10-31** (cierre R3 de `sintetizar_con_llm`): 139 mutantes,
+**139 muertos y 0 supervivientes**. La campaña reprodujo 110 muertos y las 29
+brechas históricas. Siete regresiones nuevas fijan prompt, defaults, errores,
+campos ausentes, modelo, conteo y barreras anti-invención; otra existente exige
+ahora el mensaje exacto. Los 29 supervivientes y diez mutantes de control fueron
+detectados directamente, con el original restaurado verde. El clúster de 29 queda
+cerrado sin cambios de producción: R3 baja de **702 a 673 brechas**, con
+**84 equivalencias** intactas y sin recalcular la tasa global histórica.
+Suite **1241/1241** en Linux (Python 3.11.9). R3 permanece abierta. Hallazgo 176.
