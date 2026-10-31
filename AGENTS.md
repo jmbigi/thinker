@@ -340,7 +340,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `parsear_requisitos`: **217 muertos + 1 equivalencia**; clúster 35 → 0. Después,
   `evaluar_inteligencia`: **139/139 muertos**; clúster 30 → 0. Por último en este
   lote, `sintetizar_con_llm`: **139/139 muertos**; clúster 29 → 0.
-  R3 queda en **673 brechas + 88 equivalencias**, sin una nueva tasa global.
+  R3 queda en **673 brechas + 90 equivalencias**, sin una nueva tasa global.
   Re-medición acotada adicional de `evaluar_eficiencia`: **190/190 muertos**,
   con 10/10 muertes de una muestra directa. Después, `_digesto`: **68/68
   muertos**, incluidos 13 antiguos supervivientes y 10/10 controles directos.
@@ -359,9 +359,10 @@ mejora de código (`code_design_improvement_tools.py`).
   directamente. Después, `_es_manifiesto`: **24 muertos + 2 equivalencias (E17)**.
   Después, `_es_no_codigo`: **7/7 muertos**, todos verificados directamente.
   Después, `_es_lock_python`: **12/12 muertos**, todos verificados directamente.
+  Después, `_es_test`: **36 muertos + 2 equivalencias (E18)**.
   Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1296/1296 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1297/1297 en la suite
   Linux** (2026-10-31; openai 3.42.0 y `packaging 26.3` en venv aislado desde el
   lock, con `ruff` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado

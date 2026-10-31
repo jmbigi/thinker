@@ -1,4 +1,4 @@
-# Triaje R3 — 673 brechas, 88 equivalencias y 0 timeouts
+# Triaje R3 — 673 brechas, 90 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,8 +30,8 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **673** | **41** | **0** | **0** |
-| **Total** | **673** | **88** | **0** | **0** |
+| Evaluador | **673** | **43** | **0** | **0** |
+| **Total** | **673** | **90** | **0** | **0** |
 
 Los **673** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
@@ -284,6 +284,15 @@ necesarios cambios de producción. Evidencia: `build/lock-python-r3-verificacion
 La contabilidad permanece en **673 brechas + 88 equivalencias** por falta de
 distribución histórica.
 
+Cierre acotado de `_es_test` (2026-10-31): **39 mutantes, 36 muertos + 2
+equivalencias (E18), 0 supervivientes**. Una regresión con 26 rutas fija Python,
+JS/TS, Go, Java y directorios de tests. El mutante 36 elimina `src/test/` y muere;
+37/39 producen salidas idénticas en 28 rutas y tienen prueba en E18. El original
+restaurado pasó, sin cambios de producción. Evidencias:
+`build/es-test-r3-verificacion.json` y `build/es-test-e18-verificacion.json`.
+La contabilidad permanece en **673 brechas** y sube a **90 equivalencias** por
+falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -350,8 +359,9 @@ documento conserva el resumen y la clasificación.
   `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`,
   `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`,
   `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`,
-  `_es_no_codigo` y `_es_lock_python`: **673 brechas + 88 equivalencias**.
-- **Equivalentes demostrados:** 88 (49 en preflight y 41 en el evaluador), todos
+  `_es_no_codigo`, `_es_lock_python` y `_es_test`: **673 brechas + 90
+  equivalencias**.
+- **Equivalentes demostrados:** 90 (49 en preflight y 43 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.

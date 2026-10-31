@@ -4286,3 +4286,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   proceso de verificación comprueba códigos de salida: un `printf` final no prueba
   éxito. Tag anotado `v0.1.16` (`1cc7039`) y `main` empujados. Detalle:
   `build/release16-verificacion.json`.
+
+### Hallazgo 198: `_es_test` separa una brecha real de dos equivalencias
+
+- **Medición (2026-10-31)**: Thinker midió 13 líneas/complejidad 4 y no señaló
+  estilo. No existía contrato directo. La campaña aislada produjo 39 mutantes,
+  36 muertos y tres supervivientes, sin timeouts ni casos sin tests.
+- **Regresión**: 26 rutas cubren Python, JS/TS, Go, Java, directorios de tests,
+  mayúsculas y falsos positivos (`testing`, `contest`, `mytests`). El mutante 36
+  elimina `src/test/` y muere con la nueva ruta Java, sin cambiar producción.
+- **Equivalencias**: 37/39 solo cambian mayúsculas en una comparación donde la
+  ruta relativa ya usa `lower()`. Ambos produjeron salidas idénticas en 28 rutas,
+  incluidas dos que solo ejercitan el fallback: son E18, no brechas.
+- **Contabilidad**: **36 muertos + 2 equivalencias, 0 supervivientes**. R3
+  permanece en **673 brechas** y sube a **90 equivalencias** por falta de
+  distribución histórica. Suite **1297/1297**. Evidencias:
+  `build/es-test-r3-verificacion.json` y `build/es-test-e18-verificacion.json`.

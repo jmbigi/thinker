@@ -493,6 +493,26 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
             with self.subTest(nombre=nombre):
                 self.assertIs(evaluar_proyecto._es_lock_python(Path(nombre)), esperado)
 
+    def test_es_test_contrato_exacto(self):
+        raiz = Path("/proyecto")
+        casos = {
+            "tests/app.py": True, "test/app.py": True, "spec/app.js": True,
+            "specs/app.js": True, "__tests__/app.js": True,
+            "cypress/app.js": True, "e2e/app.py": True,
+            "testdata/app.py": True, "test-data/app.py": True,
+            "src/tests/app.py": True, "test_app.py": True,
+            "APP_TEST.PY": True, "app.test.js": True, "app.spec.ts": True,
+            "app.cy.js": True, "app_test.go": True,
+            "src/test/Main.java": True, "docs/test_app.py": True,
+            "testing/app.py": False, "contest/app.py": False,
+            "src/testapp.py": False, "test.py": False,
+            "app_test.pyi": False, "mytests/app.py": False,
+            "src/app.py": False, "tests.py": False,
+        }
+        for nombre, esperado in casos.items():
+            with self.subTest(nombre=nombre):
+                self.assertIs(evaluar_proyecto._es_test(raiz, raiz / nombre), esperado)
+
     def test_es_manifiesto_contrato_exacto(self):
         casos = {
             "pyproject.toml": True, "SETUP.PY": True, "setup.cfg": True,

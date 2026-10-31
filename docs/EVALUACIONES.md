@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1296/1296** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1297/1297** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1092,3 +1092,15 @@ ambos índices coinciden. Instalación limpia real en cada índice, `pip check`,
 Suite **1296/1296** en Linux (Python 3.11.9); CI limpia OK. `main` y tag anotado
 `v0.1.16` (`1cc7039`)
 empujados. Evidencia: `build/release16-verificacion.json`. Hallazgo 197.
+
+**Actualización 2026-10-31** (cierre acotado de `_es_test`): 39 mutantes,
+**36 muertos + 2 equivalencias (E18), 0 supervivientes**. Una regresión con 26
+rutas fija Python, JS/TS, Go, Java, directorios y falsos positivos. El mutante
+36 elimina `src/test/` y muere; 37/39 producen salidas idénticas en 28 rutas por
+la normalización `lower()` ya existente. Los 36 diffs no equivalentes fueron
+detectados directamente y el original restaurado pasó. No hubo cambios de
+producción. R3 permanece en **673 brechas** y sube a **90 equivalencias** por
+falta de distribución histórica.
+Suite **1297/1297** en Linux (Python 3.11.9). Evidencias:
+`build/es-test-r3-verificacion.json` y `build/es-test-e18-verificacion.json`.
+Hallazgo 198.

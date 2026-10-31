@@ -482,3 +482,23 @@ original restaurado pasó. Evidencia: `build/manifiestos-e17-verificacion.json`.
 **Contabilidad:** 26 mutantes: **24 muertos + 2 equivalentes, 0 brechas**. R3
 permanece en **673 brechas** y sube de 86 a **88 equivalencias** por falta de
 distribución histórica detallada; no se recalcula la tasa global.
+
+### E18. Mayúsculas tras `lower()` en `_es_test` (2)
+
+Mutantes 37 y 39 de `_es_test`: cambian `src/test/` por `SRC/TEST/` y
+`rel.as_posix().lower()` por `rel.as_posix().upper()` en el último retorno.
+
+**Prueba:** la ruta relativa ya está convertida a minúsculas antes de comparar.
+En 37 se comparan dos literales equivalentes bajo esa normalización; en 39,
+`upper()` solo cambia el operando ya convertido a mayúsculas, sin cambiar la
+coincidencia. No hay cambio observable en ninguna ruta.
+
+**Verificación (2026-10-31):** ambos produjeron salidas idénticas al original en
+28 rutas, incluidas `src/test/data.txt` y `src/test/resource.dat`, que solo
+ejercitan el fallback. El mutante 36 sí elimina la detección y murió con la nueva
+regresión Java; los otros 36 mutantes fueron detectados. Evidencia:
+`build/es-test-e18-verificacion.json`.
+
+**Contabilidad:** 39 mutantes: **36 muertos + 2 equivalentes, 0 brechas**. R3
+permanece en **673 brechas** y sube de 88 a **90 equivalencias** por falta de
+distribución histórica detallada; no se recalcula la tasa global.
