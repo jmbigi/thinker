@@ -3769,3 +3769,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   campo. Las 6 pruebas de persistencia y **3/3 mutaciones dirigidas** pasan
   (sin guarda, booleanos y negativos). Suite **1224/1224** y tres demos offline
   correctas. El inventario oficial R3 no cambia sin una re-medición fiable.
+
+### Hallazgo 164: `decomposed="false"` no puede restaurarse como `True`
+
+- **Defecto reproducido (2026-10-30)**: `context_from_state` aplicaba
+  `bool(state.get("decomposed"))`; la cadena `"false"` se convertía en `True`
+  y números o `None` también se aceptaban sin validación.
+- **Dogfooding y corrección**: `analyze_python_source` midió el módulo en 140
+  líneas/complejidad 13 y guió revisar la coerción. Ahora `decomposed` debe ser
+  un booleano real, con `False` como valor por omisión y sin cambiar el esquema.
+- **Regresión y evidencia**: la prueba falló antes para `"false"`, `0`, `1` y
+  `None`; ahora todos elevan `RuntimeError`, mientras los valores `True` y
+  `False` se restauran sin alteración. Las 7 pruebas de persistencia y **3/3
+  mutaciones dirigidas** pasan (sin validación, coerción y `True` descartado).
+  Suite **1225/1225** y tres demos offline correctas. El inventario oficial R3
+  no cambia sin una re-medición fiable.

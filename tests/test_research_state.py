@@ -93,6 +93,20 @@ class TestEstado(unittest.TestCase):
                         RuntimeError, "Campo de estado inválido: iteration"):
                     context_from_state(state)
 
+    def test_decomposed_exige_booleano(self):
+        for valor in ("false", 0, 1, None):
+            with self.subTest(invalido=valor):
+                state = context_to_state(ResearchContext("pregunta"))
+                state["decomposed"] = valor
+                with self.assertRaisesRegex(
+                        RuntimeError, "Campo de estado inválido: decomposed"):
+                    context_from_state(state)
+        for valor in (True, False):
+            with self.subTest(valido=valor):
+                state = context_to_state(ResearchContext("pregunta"))
+                state["decomposed"] = valor
+                self.assertIs(context_from_state(state).decomposed, valor)
+
     def test_estado_completado_no_repite_llamadas(self):
         llm = _ContadorLLM()
         report, _ = ResearchOrchestrator(

@@ -78,9 +78,13 @@ def context_from_state(state: Dict[str, Any]) -> ResearchContext:
     if not isinstance(iteration, int) or isinstance(iteration, bool) or iteration < 0:
         raise RuntimeError("Campo de estado inválido: iteration")
 
+    decomposed = state.get("decomposed", False)
+    if not isinstance(decomposed, bool):
+        raise RuntimeError("Campo de estado inválido: decomposed")
+
     contexto = ResearchContext(state["question"], max_iterations)
     contexto.iteration = iteration
-    contexto.decomposed = bool(state.get("decomposed"))
+    contexto.decomposed = decomposed
     contexto.subquestions = copy.deepcopy(state["subquestions"])
     contexto.sources = copy.deepcopy(state["sources"])
     contexto.claims = copy.deepcopy(state["claims"])
