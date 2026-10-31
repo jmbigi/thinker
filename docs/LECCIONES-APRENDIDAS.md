@@ -3948,3 +3948,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   35 queda cerrado sin cambios de producción: R3 baja de **767 a 732 brechas**
   y sube de 83 a **84 equivalencias**. Suite **1233/1233**. Evidencia:
   `build/requisitos-r3-verificacion.json`.
+
+### Hallazgo 175: `evaluar_inteligencia` cierra con 139/139 mutantes muertos
+
+- **Medición y anomalía (2026-10-31)**: Thinker midió la función en 36 líneas,
+  1 función y complejidad 4, sin incidencias estáticas. La campaña declaró
+  139/139 muertos, pero la muestra directa encontró que 130 y 139 sobrevivían;
+  los otros siete mutantes de la muestra murieron y el original restaurado pasó.
+- **Brecha y regresión**: ambos cambiaban la evidencia de los hallazgos a `None`
+  o mayúsculas. La nueva prueba fija el contrato completo de un proyecto LLM sin
+  señales: seis criterios falsos, puntuación 0.0 y los mensajes, evidencia y
+  criterio de cada hallazgo. Los dos mutantes mueren; no hubo equivalencias ni
+  cambios de producción.
+- **Contabilidad**: **139 muertos, 0 supervivientes**. El clúster de 30 queda
+  cerrado: R3 baja de **732 a 702 brechas** y mantiene **84 equivalencias**.
+  Suite **1234/1234**. Evidencia: `build/inteligencia-r3-verificacion.json`.

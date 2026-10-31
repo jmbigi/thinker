@@ -3169,6 +3169,34 @@ class TestParserEjecutarEInteligencia(unittest.TestCase):
             "hallazgos": [],
             "notas": ["dimensión N/A: señales específicas de sistemas LLM"]})
 
+    def test_inteligencia_sin_senales_contrato_completo(self):
+        raiz = crear_proyecto(self, {
+            "app.py": "def f():\n    return 1\n",
+            "requirements.txt": "openai==1.0\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_inteligencia(raiz, perfil)
+
+        claves = (
+            "i1_cachea_trabajo_repetido", "i2_timeouts_explicitos",
+            "i3_reintentos_con_limite", "i4_valida_respuestas",
+            "i5_declara_lo_simulado", "i6_metricas_propias")
+        nombres = (
+            "caché", "timeouts explícitos", "reintentos con límite",
+            "validación de respuestas", "declaración de lo simulado",
+            "métricas propias")
+        self.assertEqual(dimension.a_dict(), {
+            "puntuacion": 0.0, "evaluado": True,
+            "criterios": dict.fromkeys(claves, False),
+            "no_aplica": [],
+            "hallazgos": [{
+                "severidad": "baja", "descripcion": f"Sin señal de {nombre}",
+                "evidencia": "código de producción",
+                "tipo_evidencia": "verified-real", "criterio": clave}
+                for clave, nombre in zip(claves, nombres)],
+            "notas": []})
+
     def test_ejecutar_tests_sin_runner(self):
         raiz = crear_proyecto(self, {"README.md": "# x\n"})
 

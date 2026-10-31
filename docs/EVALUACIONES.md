@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1233/1233** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1234/1234** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -842,3 +842,13 @@ restaurado pasó. El clúster de 35 queda cerrado sin cambios de producción: R3
 baja de **767 a 732 brechas** y sube de 83 a **84 equivalencias**, sin recalcular
 la tasa global histórica. Suite **1233/1233** en Linux (Python 3.11.9). R3
 permanece abierta con las demás funciones pendientes. Hallazgo 174.
+
+**Actualización 2026-10-31** (cierre R3 de `evaluar_inteligencia`): 139 mutantes,
+**139 muertos y 0 supervivientes**. La campaña declaró 139/139, pero la muestra
+directa encontró dos supervivientes (130 y 139) que cambiaban la evidencia de los
+hallazgos. Una nueva regresión fija el contrato completo de un proyecto LLM sin
+señales y mata ambos; otras siete muertes fueron confirmadas y el original
+restaurado pasó. El clúster de 30 queda cerrado sin cambios de producción: R3
+baja de **732 a 702 brechas**, con **84 equivalencias** intactas y sin recalcular
+la tasa global histórica. Suite **1234/1234** en Linux (Python 3.11.9). R3
+permanece abierta con las demás funciones pendientes. Hallazgo 175.
