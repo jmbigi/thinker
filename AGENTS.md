@@ -337,9 +337,10 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes cubiertos y 10/10 controles directos en total. Después,
   `detectar_comando_tests`: **235/235 muertos**, con 10/10 controles directos.
   Después, `_puntuacion_texto`: **4/4 mutantes verificados directamente**.
-  Estas funciones no se descuentan del inventario histórico porque su
-  distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1245/1245 en la suite
+  Después, `investigar_preguntas`: **43/43 muertos**, incluidos 14 antiguos
+  supervivientes y 10/10 controles directos. Estas funciones no se descuentan del
+  inventario histórico porque su distribución detallada no está disponible.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1249/1249 en la suite
   Linux** (2026-10-31; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

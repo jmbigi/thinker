@@ -4045,3 +4045,16 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   cambios de producción. Evidencia: `build/puntuacion-r3-verificacion.json`.
 - **Contabilidad**: R3 permanece en **673 brechas + 84 equivalencias** por falta
   de distribución histórica; la suite se mantiene en **1245/1245**.
+
+### Hallazgo 182: `investigar_preguntas` cierra 14 brechas con cuatro contratos
+
+- **Medición (2026-10-31)**: Thinker midió 23 líneas, 1 función y complejidad 2,
+  sin incidencias. La campaña produjo 43 mutantes: 29 muertos y 14 supervivientes.
+- **Regresiones**: cuatro pruebas fijan el límite de dos fuentes, la consulta de
+  cinco términos, la continuación y error exacto tras un fallo, y metadatos
+  ausentes como cadenas vacías. No se cambió producción.
+- **Verificación y contabilidad**: los **14/14 supervivientes** y **10/10
+  controles** fueron detectados; el original restaurado pasó. Resultado:
+  **43/43 muertos**, sin equivalencias. R3 permanece en **673 brechas + 84
+  equivalencias** por falta de distribución histórica. Suite **1249/1249**.
+  Evidencia: `build/investigar-r3-verificacion.json`.

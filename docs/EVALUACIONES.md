@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1245/1245** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1249/1249** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -907,3 +907,13 @@ cambios de producción ni tests. Suite **1245/1245** en Linux (Python 3.11.9).
 R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución
 histórica detallada. Evidencia: `build/puntuacion-r3-verificacion.json`.
 Hallazgo 181.
+
+**Actualización 2026-10-31** (cierre acotado de `investigar_preguntas`): campaña
+de 43 mutantes, inicialmente 29 muertos y 14 supervivientes. Cuatro regresiones
+fijan el límite de dos fuentes, la consulta de cinco términos, la continuación
+tras error y los metadatos vacíos. Los **14/14 supervivientes** y diez controles
+fueron detectados; el original restaurado pasó. Resultado: **43/43 muertos**,
+sin equivalencias ni cambios de producción. R3 permanece en
+**673 brechas + 84 equivalencias** por falta de distribución histórica.
+Suite **1249/1249** en Linux (Python 3.11.9). Evidencia:
+`build/investigar-r3-verificacion.json`. Hallazgo 182.

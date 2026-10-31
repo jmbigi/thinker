@@ -210,6 +210,14 @@ directamente y el original restaurado pasó. No fueron necesarios cambios de
 producción ni tests. Evidencia: `build/puntuacion-r3-verificacion.json`. La
 contabilidad permanece en **673 brechas + 84 equivalencias**.
 
+Cierre acotado de `investigar_preguntas` (2026-10-31): **43 mutantes, 43
+muertos y 0 supervivientes**. La campaña inicial produjo 29 muertos y 14 brechas.
+Cuatro regresiones fijan límite de fuentes, consulta, recuperación de errores y
+metadatos ausentes. Los 14 supervivientes y diez controles fueron detectados al
+aplicar sus diffs, con el original restaurado verde. Evidencia:
+`build/investigar-r3-verificacion.json`. La contabilidad permanece en
+**673 brechas + 84 equivalencias** por falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

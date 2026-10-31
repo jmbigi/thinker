@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `6e08c92`
+**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `4cefc4d`
 más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -484,6 +484,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-31, cierre `evaluar_funcionalidades`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 75 líneas/complejidad 14; la muestra directa detectó dos supervivientes pese al 224/224 de campaña | Una regresión de `README.txt` y severidad alta mata 50/100; otros ocho controles y original restaurado verdes; **224/224 muertos**; R3 permanece en **673 brechas + 84 equivalencias**; suite **1245/1245** |
 | R3 (2026-10-31, re-medición `detectar_comando_tests`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 78 líneas/complejidad 16; la campaña produjo 235 mutantes y 0 supervivientes | 10/10 muertes directas, original restaurado; sin cambios de producción ni tests; R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución histórica |
 | R3 (2026-10-31, verificación `_puntuacion_texto`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 2 líneas/complejidad 0; solo se generaron cuatro mutantes | **4/4 diffs detectados directamente**, original restaurado; sin cambios de producción ni tests; R3 permanece en **673 brechas + 84 equivalencias** |
+| R3 (2026-10-31, cierre `investigar_preguntas`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 23 líneas/complejidad 2; la campaña produjo 29 muertos y 14 supervivientes | Cuatro regresiones nuevas; **14/14 supervivientes y 10/10 controles detectados**, original restaurado; **43/43 muertos**; R3 permanece en **673 brechas + 84 equivalencias**; suite **1249/1249** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -541,7 +542,9 @@ declaradas). **Pendiente de ejecución:**
    `detectar_comando_tests` confirmó después **235/235 muertos** y 10/10
    controles directos, sin nuevas regresiones (Hallazgo 180).
    `_puntuacion_texto` confirmó sus **4/4 mutantes** en verificación directa
-   (Hallazgo 181), sin cambiar el inventario.
+   (Hallazgo 181), sin cambiar el inventario. `investigar_preguntas` añadió cuatro
+   regresiones y confirmó **43/43 muertos** (14 antiguos supervivientes y 10/10
+   controles; Hallazgo 182), con el mismo límite de contabilidad.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
@@ -613,7 +616,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1245/1245 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1249/1249 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

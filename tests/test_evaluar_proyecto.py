@@ -3583,6 +3583,67 @@ class TestSintesisContrato(unittest.TestCase):
         self.assertFalse(sintesis["propuestas"][0]["con_respaldo"])
 
 
+class TestInvestigarPreguntasContrato(unittest.TestCase):
+    """Contrato de búsqueda, citas y recuperación de la investigación."""
+
+    def test_limita_a_dos_fuentes_por_defecto(self):
+        from evaluar_proyecto import investigar_preguntas
+        from tests.helpers import StubSearch
+
+        busqueda = StubSearch([{"title": f"t{i}", "url": f"u{i}"}
+                               for i in range(3)])
+
+        resultado = investigar_preguntas(["medición"], busqueda)
+
+        self.assertEqual(resultado[0]["fuentes"], [
+            {"titulo": "t0", "url": "u0"},
+            {"titulo": "t1", "url": "u1"}])
+
+    def test_consulta_real_usa_exactamente_cinco_terminos(self):
+        from evaluar_proyecto import investigar_preguntas
+        from tests.helpers import StubSearch
+        from web_search import formulate_query
+
+        pregunta = "¿Cómo medir calidad real de sistemas LLM sin inventar evidencia?"
+        busqueda = StubSearch([])
+
+        investigar_preguntas([pregunta], busqueda)
+
+        self.assertEqual(busqueda.queries, [formulate_query(pregunta, 5)])
+
+    def test_error_exacto_y_continua_con_la_siguiente_pregunta(self):
+        from evaluar_proyecto import investigar_preguntas
+
+        class BusquedaFalloUnaVez:
+            def __init__(self):
+                self.llamadas = 0
+
+            def search(self, query, max_results=5):
+                self.llamadas += 1
+                if self.llamadas == 1:
+                    raise RuntimeError("sin red")
+                return [{"title": "Doc", "url": "https://ejemplo.invalid/d"}]
+
+        resultado = investigar_preguntas(["mala", "buena"], BusquedaFalloUnaVez())
+
+        self.assertEqual(resultado, [
+            {"pregunta": "mala", "error": "RuntimeError: sin red"},
+            {"pregunta": "buena",
+             "fuentes": [{"titulo": "Doc", "url": "https://ejemplo.invalid/d"}],
+             "sin_resultados": False}])
+
+    def test_metadatos_ausentes_quedan_como_cadenas_vacias(self):
+        from evaluar_proyecto import investigar_preguntas
+        from tests.helpers import StubSearch
+
+        resultado = investigar_preguntas(["medición"], StubSearch([{}]))
+
+        self.assertEqual(resultado, [{
+            "pregunta": "medición",
+            "fuentes": [{"titulo": "", "url": ""}],
+            "sin_resultados": False}])
+
+
 class TestMainRamas(unittest.TestCase):
     """Ramas de main que no estaban cubiertas: LLM, tests, requisitos y texto."""
 
