@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1215/1215** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1216/1216** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -682,3 +682,10 @@ llamador, evitando releer includes en llamadas posteriores. La regresión falló
 antes, pasa después y detecta 3/3 mutaciones dirigidas.
 Suite **1215/1215** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 154.
+
+**Actualización 2026-10-30** (sección Pipfile inválida): `_versiones_lock`
+ahora avisa y omite una sección `default`/`develop` que no sea objeto, en lugar
+de fallar con `AttributeError`; las entradas válidas de la otra sección se
+conservan. Regresión roja antes y verde después, con 3/3 mutaciones detectadas.
+Suite **1216/1216** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 155.

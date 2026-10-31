@@ -453,6 +453,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-30, locks ignorados) | `code_design_improvement_tools` y `evaluar_proyecto` | `_versiones_lock`: 62 líneas/complejidad 20, sin issues; se acotó el trabajo a la guarda de directorios excluidos, sin refactor | 1 test de contrato; **3/3 mutaciones dirigidas detectadas**; suite **1213/1213** y demos OK. R3 y su inventario oficial no cambian sin re-medición |
 | R3 (2026-10-30, ámbito junto a manifiestos) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos; `_ambito_requirements` fue el más acotado: 27 líneas/complejidad 8, sin issues. Se eligió la rama de manifiestos anidados | 1 test de contrato para `pyproject.toml` y `setup.py`; **3/3 mutaciones dirigidas detectadas**; suite **1214/1214** y demos OK. R3 y su inventario oficial no cambian sin re-medición |
 | R3 (2026-10-30, includes compartidos) | `code_design_improvement_tools`, `evaluar_proyecto` y `preflight` | `_leer_requirements`: 24 líneas/complejidad 5; la reproducción mostró segunda lectura duplicada y 0 archivos en `vistos`. El patrón explícito de preflight confirmó la corrección | 1 regresión roja antes y verde después; `None` ya no se confunde con set vacío; **3/3 mutaciones detectadas**; suite **1215/1215** y demos OK. Inventario oficial sin re-medición |
+| R3 (2026-10-30, sección Pipfile inválida) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió `_versiones_lock` (62 líneas/complejidad 20) y se acotó el caso: `default` como lista no vacía causaba `AttributeError` | 1 regresión roja antes y verde después; aviso explícito, sección inválida omitida y `develop` conservado; **3/3 mutaciones detectadas**; suite **1216/1216** y demos OK |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -562,7 +563,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1215/1215 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1216/1216 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

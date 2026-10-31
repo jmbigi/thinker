@@ -1446,7 +1446,14 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
                               RuntimeWarning, stacklevel=2)
                 continue
             for seccion in ("default", "develop"):
-                for paquete, detalle in (datos.get(seccion) or {}).items():
+                contenido = datos.get(seccion) or {}
+                if not isinstance(contenido, dict):
+                    warnings.warn(
+                        f"{archivo}: lock JSON inválido "
+                        f"(sección {seccion} no es un objeto)",
+                        RuntimeWarning, stacklevel=2)
+                    continue
+                for paquete, detalle in contenido.items():
                     if isinstance(detalle, dict) and detalle.get("version"):
                         versiones[_clave_nombre(paquete)] = \
                             str(detalle["version"]).lstrip("=")

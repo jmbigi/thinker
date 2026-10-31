@@ -1588,6 +1588,23 @@ class TestCoberturaDeRamasDelEvaluador(unittest.TestCase):
         self.assertTrue(all("lock JSON inválido" in str(w.message)
                             for w in capturados))
 
+    def test_versiones_lock_avisa_seccion_pipfile_no_objeto(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = Path(tmp)
+            (ruta / "Pipfile.lock").write_text(json.dumps({
+                "default": ["no-es-un-mapa"],
+                "develop": {"pytest": {"version": "==8.0.0"}},
+            }), encoding="utf-8")
+
+            with warnings.catch_warnings(record=True) as capturados:
+                warnings.simplefilter("always")
+                versiones = evaluar_proyecto._versiones_lock(ruta)
+
+        self.assertEqual(versiones, {"pytest": "8.0.0"})
+        self.assertEqual(len(capturados), 1)
+        self.assertIn("sección default no es un objeto",
+                      str(capturados[0].message))
+
     def test_parsear_requisito_y_ambito_requirements(self):
         from evaluar_proyecto import _ambito_requirements, _parsear_requisito
 

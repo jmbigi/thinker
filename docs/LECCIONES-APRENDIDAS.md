@@ -3628,3 +3628,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   en el set del llamador y segunda salida `[]`. Las 8 pruebas del grupo y **3/3
   mutaciones dirigidas** pasan; suite **1215/1215** y tres demos offline
   correctas. No se cambia el inventario oficial R3 sin re-medición.
+
+### Hallazgo 155: una sección Pipfile con tipo incorrecto no debe romper el lock
+
+- **Defecto reproducido (2026-10-30)**: en `_versiones_lock`, un `Pipfile.lock`
+  con `default` como lista no vacía provocaba `AttributeError` en `.items()`.
+  Una lista vacía ya caía en `{}` por el `or`; el tipo no vacío era el problema.
+- **Dogfooding y corrección**: `analyze_python_source` confirmó que la función
+  concentra 62 líneas y complejidad 20, por lo que se limitó el cambio a esta
+  guarda. Ahora una sección que no es objeto genera `RuntimeWarning` y se omite,
+  sin descartar las dependencias válidas de la otra sección.
+- **Regresión y evidencia**: la prueba falló antes con `AttributeError`; después
+  devuelve `{"pytest": "8.0.0"}` desde `develop` y un aviso que nombra `default`.
+  Detecta **3/3 mutaciones dirigidas** (reversión, aviso eliminado y contenido
+  válido descartado). Suite **1216/1216** y tres demos offline correctas. No se
+  altera el inventario oficial R3 sin re-medición.
