@@ -3547,6 +3547,37 @@ class TestAmbitoVerificarYCobertura(unittest.TestCase):
                     evaluar_proyecto._ambito_requirements(
                         raiz / relativo, raiz), "runtime")
 
+    def test_ambito_requirements_todas_las_marcas_de_nombre(self):
+        esperado = {
+            "requirements-sphinx.txt": "docs",
+            "requirements-mkdocs.txt": "docs",
+            "requirements-test.txt": "test",
+            "requirements-lint.txt": "dev",
+            "requirements-type.txt": "dev",
+            "requirements-ci.txt": "dev",
+            "requirements-bench.txt": "dev",
+            "requirements-check.txt": "dev",
+            "main.txt": "runtime",
+            "runtime.txt": "runtime",
+            "production.txt": "runtime",
+        }
+        raiz = crear_proyecto(self, {nombre: "" for nombre in esperado})
+
+        for nombre, ambito in esperado.items():
+            with self.subTest(nombre=nombre):
+                self.assertEqual(
+                    evaluar_proyecto._ambito_requirements(
+                        raiz / nombre, raiz), ambito)
+
+    def test_ambito_requirements_bordes_de_ruta(self):
+        raiz = crear_proyecto(self, {"spec": ""})
+        archivo = raiz / "spec"
+
+        self.assertEqual(
+            evaluar_proyecto._ambito_requirements(archivo, raiz), "dev")
+        self.assertEqual(
+            evaluar_proyecto._ambito_requirements(archivo, raiz / "otro"), "dev")
+
     def test_verificar_test_ramas(self):
         raiz = crear_proyecto(self, {
             "tests/test_x.py": "def test_x():\n    assert True\n",

@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1227/1227** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1229/1229** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -765,3 +765,13 @@ selecciona aislamiento en vez de fallar con `--no-build-isolation`. Regresión
 Suite **1227/1227** en Linux (Python 3.11.9), tres demos y `make verify-install`
 con 82.0.1 correctos. Con 65.5.0 solo se verificó la selección de aislamiento.
 R3 permanece abierta. Hallazgo 166.
+
+**Actualización 2026-10-31** (cierre R3 de `_ambito_requirements`): campaña
+acotada de 77 mutantes con 63 muertos y 14 equivalencias demostradas. Los 44
+muertos previos pasan a 63 (+19) y los 33 supervivientes a 14, todos
+reclasificados; el clúster queda cerrado. R3 baja de **1067 a 1034 brechas** y
+sube de 62 a **76 equivalencias**, sin recalcular la tasa global histórica.
+Dos regresiones nuevas cubren nombres y bordes de ruta; 10 muertes verificadas
+directamente y 14 mutantes comparados en 11 contratos.
+Suite **1229/1229** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta con las demás funciones pendientes. Hallazgo 167.

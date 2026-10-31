@@ -16,7 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984, 1067 brechas + 62 equivalencias tras el clúster evaluar_herramientas (64 muertos + 6 equivalencias, Hallazgo 144), 0 timeouts; triaje 1187/1187 (re-medición r3c4) | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **1034 brechas + 76 equivalencias** tras cerrar también `_ambito_requirements` (19 muertos + 14 equivalencias, Hallazgo 167), 0 timeouts | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -202,8 +202,8 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   sí. La mejora del preflight no autoriza a presentar el evaluador como sano.
 - **Criterio de aceptación:** [x] evaluador medido; [x] comando reproducible
   empaquetado; [x] 0 mutantes sin categoría de triaje (1368/1368); [x] 0
-  timeouts (re-medido); [ ] tasa limpia (1067 aserciones pendientes tras la
-  re-medición 2026-10-28, batch r3c4).
+  timeouts (re-medido); [ ] tasa limpia (**1034 aserciones pendientes** tras el
+  cierre dirigido de `_ambito_requirements` el 2026-10-31, Hallazgo 167).
 - **Riesgo:** medio; el triaje del evaluador sigue siendo la deuda principal.
 
 ### R4 — Benchmark de precisión/recall del evaluador — CERRADA 2026-10-26 (alcance offline)
@@ -417,14 +417,14 @@ medible; las limitaciones declaradas del README no se cuentan como deuda.
 
 | Orden | ID | Prioridad | Deuda | Próximo paso concreto | Criterio de aceptación | Esfuerzo |
 |---|---|---|---|---|---|---|
-| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar 1067 aserciones (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 1067 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
+| 1 | **R3** | **P1 / C** | Mutación del evaluador y preflight (parcial) | Test-first, luego triaje; reforzar **1034 aserciones** (0 timeouts) | Comando reproducible; 0 mutantes sin categoría; 1034 brechas resueltas; 0 timeouts re-medidos; tasa con denominador y exclusiones | Medio-alto |
 
 **Orden:** R3-C es la única deuda P1 abierta; R4 se cerró por alcance offline.
 R5-A, R6-C, R13-B/C y R14-B/C están implementadas; R14-C es un piloto real
 n=20, no una calibración general.
 
 - **R3 no requiere decisión de producto**: R3-C es P1 y sigue abierta; no se
-  cierra con 1067 brechas.
+  cierra con **1034 brechas**.
 - **R5, R6 y R13 están cerradas**; no se reabren sin evidencia nueva.
 - **R14** cerrada por declaración; B (Brier simulado) y C (piloto real n=20)
   implementadas; ampliar la muestra sigue siendo trabajo futuro.
@@ -465,6 +465,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R15 (2026-10-30, decomposed no booleano) | `code_design_improvement_tools` y `research_state` | Thinker midió el módulo actualizado (140 líneas/complejidad 13); `decomposed="false"` se restauraba como `True` por `bool(...)` | Regresión con 4 inválidos y controles `True`/`False`; validación estricta, **3/3 mutaciones detectadas**; suite **1225/1225** y demos OK |
 | R15 (2026-10-30, duración no finita) | `code_design_improvement_tools` y `research_state` | Thinker midió el módulo (144 líneas/complejidad 14); `NaN` e infinito producían `start_time` no finito | `math.isfinite` en `duration_seconds`; regresión con NaN/±inf y control válido, **3/3 mutaciones detectadas**; suite **1226/1226** y demos OK |
 | Instalación limpia (2026-10-30) | `code_design_improvement_tools` y `scripts/verificar_instalacion.py` | `make verify-install` falló con setuptools 65.5.0; pyproject exige >=77 y el verificador solo comprobaba presencia | Versión mediante `importlib.metadata`; regresión 65.5/77 y selección de aislamiento; **3/3 mutaciones detectadas**; suite **1227/1227**, demos y wheel/instalación con 82.0.1 OK |
+| R3 (2026-10-31, cierre `_ambito_requirements`) | `triaje_mutantes`, `code_design_improvement_tools` y `evaluar_proyecto` | Campaña acotada: 77 mutantes; diffs agrupados en nombres/bordes y 14 equivalencias semánticas. La salida guió dos regresiones, no cambios de producción | 44→63 muertos (+19), 33→14 supervivientes (todos equivalentes); 10/10 muertes directas y 14/14 comparaciones en 11 rutas; **1067→1034 brechas, 62→76 equivalencias**; suite **1229/1229** y demos OK |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -500,8 +501,9 @@ declaradas). **Pendiente de ejecución:**
    muertos, r3c2), 80 de `evaluar_vigencia` (82 → 2, ambas equivalencias
    demostradas; r3c3) y 70 de `evaluar` (75 → 5, las cinco equivalencias
    demostradas E2-E5; r3c4) y 64 de `evaluar_herramientas` (70 → 0: 64
-   muertos + 6 equivalencias E6-E8, Hallazgo 144): quedan **1067**
-   (oficial: 4846/5984; 80,98%);
+   muertos + 6 equivalencias E6-E8, Hallazgo 144), y el cierre dirigido de
+   `_ambito_requirements` (33 → 0: 19 muertos + 14 equivalencias E9, Hallazgo
+   167): quedan **1034** (tasa histórica: 4846/5984; 80,98%);
    no cerrar hasta 0 brechas.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
@@ -574,7 +576,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1227/1227 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1229/1229 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

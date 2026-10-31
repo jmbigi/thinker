@@ -3818,3 +3818,24 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `make verify-install` con setuptools 82.0.1 correctos. Con 65.5.0 se verificó
   la selección de aislamiento, no una construcción con red. El inventario R3 no
   cambia sin una re-medición fiable.
+
+### Hallazgo 167: cierre verificable del clúster `_ambito_requirements`
+
+- **Objetivo y evidencia (2026-10-31)**: sin los JSON/diffs de r3c4, no se
+  atribuyeron IDs históricos. Se re-midió solo esa función, cuya implementación
+  no cambió, con mutmut 3.6.0 y la selección de la campaña. La primera ejecución
+  usó por error el CWD del repo principal; corregido a la copia temporal, dio
+  77 mutantes y 28 supervivientes. Dos regresiones nuevas de nombres y bordes
+  de ruta dejaron 14, sin cambiar producción.
+- **Equivalencias demostradas**: los 14 no son brechas. `mkdocs` contiene `doc`;
+  las marcas `dev/lint/type/ci/bench/check` devuelven `dev`, igual que el
+  fallback, y no aparecen en los nombres runtime explícitos. Se aplicaron los 14
+  diffs y las salidas original/mutante coincidieron en 11 contratos de ruta.
+- **Verificación y contabilidad**: 10 muertes adicionales se confirmaron con la
+  selección real; fuente restaurado. Resultado: 44 → 63 muertos (+19) y 33 → 14
+  supervivientes, todos equivalentes. El clúster de 33 queda cerrado: R3 baja de
+  **1067 a 1034 brechas** y sube de 62 a **76 equivalencias**. No se recalcula
+  la tasa global histórica.
+- **Validación del repositorio**: suite **1229/1229**, tres demos offline,
+  preflight y gates en verde. Evidencia detallada en
+  `build/ambito-r3-verificacion.json` y `docs/TRIAGE-EQUIVALENCIAS.md` (E9).

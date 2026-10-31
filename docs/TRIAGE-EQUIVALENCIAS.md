@@ -303,3 +303,24 @@ import de tercero, h7 con 9 fuentes) y **6 equivalencias demostradas**
 equivalentes en verde. Contabilidad del evaluador: 1131 − 64 = **1067
 brechas** + **62 equivalencias** (E1-E8), pendiente de re-medición oficial
 cuando la herramienta vuelva a ser fiable (Hallazgo 143).
+
+### E9. Marcas redundantes de `_ambito_requirements` (14)
+
+Mutantes 23/24 (`mkdocs`) y 34-45 (`dev`, `lint`, `type`, `ci`, `bench`,
+`check`, cada uno en dos formas).
+
+**Prueba:** `mkdocs` contiene la subcadena `doc`, así que quitar la tercera
+marca no altera la condición. Las marcas de desarrollo devuelven `dev`, igual
+que el fallback; las rutas `runtime` explícitas no contienen esas marcas. Por
+tanto las 14 mutaciones producen exactamente las mismas salidas.
+
+**Verificación (2026-10-31):** campaña acotada de 77 mutantes con mutmut 3.6.0:
+63 muertos y 14 supervivientes, todos equivalentes. Diez muertes se confirmaron
+aplicando los diffs y ejecutando la selección; cada uno de los 14 se comparó
+contra el original en 11 contratos de ruta, con salidas idénticas y fuente
+restaurado. Evidencia: `build/ambito-r3-verificacion.json`.
+
+**Contabilidad:** 44 → 63 muertos (+19) y 33 → 14 supervivientes, todos
+reclasificados como equivalentes. El clúster de 33 queda cerrado: R3 pasa de
+1067 a **1034 brechas** y de 62 a **76 equivalencias**. No se recalcula la tasa
+global histórica.

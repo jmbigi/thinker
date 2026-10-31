@@ -318,8 +318,11 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1227/1227 en la suite
-  Linux** (2026-10-30; openai 3.40.0 en el entorno actual) y **3.12.3**
+  Cierre dirigido 2026-10-31 de `_ambito_requirements`: **77 mutantes, 63
+  muertos y 14 equivalencias demostradas**; clúster 33 → 0, R3 queda en
+  **1034 brechas + 76 equivalencias**, sin una nueva tasa global.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1229/1229 en la suite
+  Linux** (2026-10-31; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
