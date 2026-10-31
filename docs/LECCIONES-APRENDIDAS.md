@@ -4360,3 +4360,13 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/requisitos-verificacion-cierre.json` y
   `build/resolver-mutante3-cierre.json`. Fuente:
   <https://docs.python.org/3/library/pathlib.html#pathlib.Path.resolve>.
+
+### Hallazgo 202: el estado de una release debe seguir a su evidencia
+
+- **Decisión (2026-10-31)**: el arreglo de `_resolver_evidencia` justifica una
+  release de mantenimiento, no una publicación para modificar una nota.
+- **Verificación previa**: 1303/1303 pruebas, 7/7 gates, demos offline, holdout
+  y CI limpia de `eab1e7f`; el commit está en `origin/main`.
+- **Límite**: `0.1.17` queda en preparación hasta comprobar tag, wheel/sdist,
+  hashes, subida e instalación limpia real desde TestPyPI y PyPI. La versión
+  `0.1.16` sigue siendo la última publicada mientras se construye la nueva.

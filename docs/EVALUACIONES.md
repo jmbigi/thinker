@@ -1140,3 +1140,10 @@ global ni descuento del inventario histórico. Suite **1303/1303** en Linux
 (Python 3.11.9). Evidencias: `build/requisitos-verificacion-directa.json`,
 `build/requisitos-verificacion-cierre.json` y
 `build/resolver-mutante3-cierre.json`. Hallazgo 201.
+
+**Actualización 2026-10-31** (preparación de `0.1.17`): se incrementa la versión
+para distribuir el arreglo de evidencia no resoluble. Suite **1303/1303** en Linux
+(Python 3.11.9), 7/7 gates PASS, demos offline y CI limpia del commit `eab1e7f`
+verificados; ese commit
+ya está en `origin/main`. **No se declara publicada** antes de comprobar wheel,
+sdist, hashes e instalación limpia en TestPyPI y PyPI. Hallazgo 202.

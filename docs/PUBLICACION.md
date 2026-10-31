@@ -25,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.16*`.
+  `dist/thinker_research-0.1.17*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -84,6 +84,19 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.17 (preparación, 2026-10-31)
+
+Paquete `thinker-research 0.1.17` en preparación, **todavía no publicado**.
+Corrige `_resolver_evidencia`: un bucle de enlaces simbólicos produce evidencia
+`NO VERIFICABLE` en Python 3.11 en vez de interrumpir el análisis con
+`RuntimeError`. Añade contratos de contención, procedencia y archivos ausentes.
+
+Métricas del cambio: suite **1303/1303**, 7/7 gates PASS, CI limpia OK y R3
+**673 brechas + 98 equivalencias**. El clúster acotado quedó en **71/71 mutantes
+detectados**, sin descontar el inventario histórico. La publicación queda
+condicionada al tag, `twine check`, hashes e instalación limpia desde ambos
+índices; esos datos se añadirán únicamente después de comprobarlos.
 
 ## Versión 0.1.16 (2026-10-31)
 
