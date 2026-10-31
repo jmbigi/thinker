@@ -102,10 +102,18 @@ Paquete `thinker-research 0.1.16` (wheel y sdist). Cambios desde 0.1.15:
 - La CI local limpia su temporal con Python y validación de ruta, sin `rm -rf`.
 
 Métricas: suite **1296/1296**, 7/7 gates PASS y R3 **673 brechas + 88
-equivalencias**. Estado: publicada en TestPyPI y PyPI el 2026-10-31, con
-artefactos construidos desde el tag anotado `v0.1.16`, hashes e instalaciones
-verificados en ambos índices. Los hashes se registran en un commit documental
-posterior para no alterar los artefactos medidos.
+equivalencias**. Estado: publicada en TestPyPI y PyPI el 2026-10-31.
+
+Artefactos construidos desde el tag `v0.1.16`; `twine check` PASSED. SHA-256:
+`1016dad281f05d04442092ae8adb7788b83e5d8ceddd56ddcfc02bc87226ab71` (wheel) y
+`f2340d3d18b8232c73bc1eed3f33cb27f305266c215604b4b2b509be0c900677` (sdist).
+Ambos índices publican esos hashes. Instalación limpia desde TestPyPI y PyPI OK,
+con dependencias, 19 módulos obligatorios, consola, `pip check` y comparación
+`2.0 → 1.0` sin falso atraso. El índice simple de PyPI tardó unos segundos en
+servir la versión aunque el JSON ya publicaba los hashes; se verificó con
+`--no-cache-dir`, sin declarar éxito antes de instalar. Tag anotado `v0.1.16`
+(`1cc7039`) empujado y verificado con `git ls-remote`. Evidencia:
+`build/release16-verificacion.json`.
 
 ## Versión 0.1.15 (2026-10-28)
 

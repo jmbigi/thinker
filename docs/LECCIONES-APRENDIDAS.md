@@ -4271,3 +4271,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   la guarda antes del cambio y descartó fijar `/tmp` porque el entorno usa otro
   `TMPDIR`. Suite **1296/1296**. La CI real se comprueba desde el commit antes
   de crear el tag de `0.1.16`.
+
+### Hallazgo 197: publicar exige índice, hash e instalación, no solo upload
+
+- **Publicación (2026-10-31)**: `0.1.16` se construyó desde `v0.1.16` tras CI
+  limpia y 1296/1296 tests. `twine check` pasó y se subió primero a TestPyPI,
+  luego a PyPI. No se usó `dist/*` ni GitHub Releases.
+- **Evidencia**: wheel `1016dad281f05d04442092ae8adb7788b83e5d8ceddd56ddcfc02bc87226ab71`;
+  sdist `f2340d3d18b8232c73bc1eed3f33cb27f305266c215604b4b2b509be0c900677`.
+  Ambos índices devuelven esos hashes y las instalaciones limpias pasan
+  `pip check`, módulos, consola y el caso `2.0 → 1.0` sin falso atraso.
+- **Límite detectado**: el JSON de PyPI apareció antes que el índice simple para
+  pip. No se declaró la instalación hasta que `--no-cache-dir` la completó. El
+  proceso de verificación comprueba códigos de salida: un `printf` final no prueba
+  éxito. Tag anotado `v0.1.16` (`1cc7039`) y `main` empujados. Detalle:
+  `build/release16-verificacion.json`.

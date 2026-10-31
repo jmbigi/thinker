@@ -1082,3 +1082,13 @@ Python con validación del directorio generado por `mktemp`; una regresión impi
 reintroducirlo. `bash -n` y 3/3 pruebas de salvaguarda pasan.
 Suite **1296/1296** en Linux (Python 3.11.9). La CI estándar se ejecuta sobre
 el commit que contiene esta corrección antes del tag `v0.1.16`. Hallazgo 196.
+
+**Actualización 2026-10-31** (publicación de `0.1.16`): wheel y sdist construidos
+desde `v0.1.16`, `twine check` PASSED y publicados en TestPyPI y PyPI. SHA-256:
+`1016dad281f05d04442092ae8adb7788b83e5d8ceddd56ddcfc02bc87226ab71` (wheel) y
+`f2340d3d18b8232c73bc1eed3f33cb27f305266c215604b4b2b509be0c900677` (sdist);
+ambos índices coinciden. Instalación limpia real en cada índice, `pip check`,
+19 módulos obligatorios, consola y PEP 440 verificados.
+Suite **1296/1296** en Linux (Python 3.11.9); CI limpia OK. `main` y tag anotado
+`v0.1.16` (`1cc7039`)
+empujados. Evidencia: `build/release16-verificacion.json`. Hallazgo 197.
