@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1212/1212** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1213/1213** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -659,3 +659,11 @@ detecta 4/4 mutaciones dirigidas sin cambiar el evaluador. No se atribuye una
 reducción del inventario oficial ni una nueva tasa de mutación.
 Suite **1212/1212** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta. Hallazgo 151.
+
+**Actualización 2026-10-30** (paso acotado de R3 — locks): una regresión de
+`_versiones_lock` fija la exclusión de locks en `.venv`, `build` y
+`node_modules`, conservando la versión del lock real. Detecta 3/3 mutaciones
+dirigidas sin cambiar el evaluador. No se atribuye una reducción del inventario
+oficial ni una nueva tasa de mutación.
+Suite **1213/1213** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta. Hallazgo 152.

@@ -318,7 +318,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1212/1212 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1213/1213 en la suite
   Linux** (2026-10-30; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
@@ -352,8 +352,9 @@ mejora de código (`code_design_improvement_tools.py`).
   documental, NCM, conectores, privacidad y optimización (Hallazgos 148-149)
   añadió 77 tests y dejó la suite en **1211/1211**. La regresión acotada de
   licencias no runtime (Hallazgo 151) añadió 1 test y dejó la suite en
-  **1212/1212**. El auditor de cambios de `scripts/` añadió 28 tests y el runner
-  de holdout 9 (2026-10-23).
+  **1212/1212**. La regresión de locks ignorados (Hallazgo 152) añadió 1 test
+  y dejó la suite en **1213/1213**. El auditor de cambios de `scripts/` añadió
+  28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.

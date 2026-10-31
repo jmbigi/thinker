@@ -3554,6 +3554,18 @@ class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
             "pdm-pkg": "6.0", "poetry-pkg": "5.0", "react": "18.2.0",
             "react-dom": "18.0.0", "x": "7.0"})
 
+    def test_versiones_lock_excluye_directorios_ignorados(self):
+        raiz = crear_proyecto(self, {
+            "uv.lock": ('[[package]]\nname="requests"\nversion="2.32.5"\n'),
+            ".venv/uv.lock": ('[[package]]\nname="requests"\nversion="0.0.1"\n'),
+            "build/custom.lock": "obsoleto==1.0\n",
+            "node_modules/package-lock.json": (
+                '{"packages":{"node_modules/react":{"version":"0.0.1"}}}'),
+        })
+
+        self.assertEqual(evaluar_proyecto._versiones_lock(raiz), {
+            "requests": "2.32.5"})
+
     def test_dependencias_dedupe_y_prioridad(self):
         raiz = crear_proyecto(self, {
             "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'

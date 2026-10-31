@@ -3582,3 +3582,20 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   dirigidas** en copias temporales (runtime invertido, duplicados admitidos,
   fuente omitida y error invertido). Suite **1212/1212** y tres demos offline
   correctas. Es evidencia local, no una nueva tasa global: R3 sigue abierta.
+
+### Hallazgo 152: locks de directorios ignorados, un paso acotado de R3
+
+- **Dogfooding (2026-10-30)**: `analyze_python_source` midió `_versiones_lock`
+  con 62 líneas y complejidad 20, sin issues estáticos. En vez de refactorizar
+  una función sin defecto reproducido, se eligió una sola guarda sin contrato
+  explícito: los locks dentro de directorios ignorados no aportan versiones.
+- **Regresión añadida**: `test_versiones_lock_excluye_directorios_ignorados`
+  fija la salida exacta con un `uv.lock` real y señuelos en `.venv`, `build` y
+  `node_modules`. No cambia el evaluador, sus criterios ni sus umbrales.
+- **Verificación**: la prueba aislada pasa y detecta **3/3 mutaciones
+  dirigidas** (`or`→`and`, `any`→`all` y exclusiones vacías). El primer entorno
+  de suite se ubicó dentro del repo y `test_mutacion_cosmic` detectó
+  correctamente la ruta original en una configuración temporal; se corrigió la
+  ubicación del entorno, no el test. Con el entorno externo: suite **1213/1213**
+  y tres demos offline correctas. R3 sigue abierta y su inventario oficial no
+  cambia sin una re-medición fiable.
