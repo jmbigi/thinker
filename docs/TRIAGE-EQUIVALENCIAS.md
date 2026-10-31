@@ -356,3 +356,27 @@ brechas**. El mutante 12 no era equivalente y quedó cubierto por una regresión
 paquetes incompletos. El clúster de 32 queda cerrado: R3 pasa de 949 a **917
 brechas** y de 77 a **79 equivalencias**. Evidencia:
 `build/lock-r3-verificacion.json`.
+
+### E12. Inicialización y filtros redundantes de `_dependencias` (2)
+
+Mutante 2: `vistos_req = set()` cambia a `vistos_req = None`. Mutante 6:
+`p.is_file() and not any(...)` cambia a `p.is_file() or not any(...)` al seleccionar
+manifiestos.
+
+**Prueba:** `_leer_requirements` inicializa el conjunto cuando recibe `None`, por lo
+que un include compartido con dependencias duplicadas produce la misma salida en el
+original y en el mutante 2. En el mutante 6, los directorios con nombres de
+`requirements.txt`, `pyproject.toml`, `setup.cfg`, `setup.py` o `package.json`
+pueden llegar a los lectores, pero estos devuelven vacío: no se añade ninguna
+dependencia ni cambia el resultado.
+
+**Verificación (2026-10-31):** campaña acotada de 138 mutantes con mutmut 3.6.0.
+Se aplicaron diez muertes no equivalentes (1, 3–5 y 7–12) y se ejecutaron
+`tests.test_evaluar_proyecto`, `tests.test_evaluador_corpus` y
+`tests.test_evaluador_precision`; todas fueron detectadas. Las dos equivalencias
+se comprobaron directamente, con el fuente restaurado. Evidencia:
+`build/deps-r3-verificacion.json`.
+
+**Contabilidad:** **136 muertos + 2 equivalentes, 0 brechas**. El clúster de 44
+queda cerrado sin cambios de producción ni nuevos tests: R3 pasa de 917 a **879
+brechas** y de 79 a **81 equivalencias**. No se recalcula la tasa global histórica.

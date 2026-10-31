@@ -1,4 +1,4 @@
-# Triaje R3 — 917 brechas, 79 equivalencias y 0 timeouts
+# Triaje R3 — 879 brechas, 81 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **917** | **29** | **0** | **0** |
-| **Total** | **917** | **79** | **0** | **0** |
+| Evaluador | **879** | **32** | **0** | **0** |
+| **Total** | **879** | **81** | **0** | **0** |
 
-Los **917** casos de brecha son aserciones que faltan: sus funciones se
+Los **879** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -54,7 +54,7 @@ mutantes `encoding=None` se mataron cambiando la locale a `C` **en proceso**
 `cargar_modulos` 60 con un byte nulo (`lineno is None` → línea 0) y
 `revisar_imports` 59 con `import os` seguido de `import os, requests`.
 
-### Evaluador — 917 brechas + 29 equivalencias
+### Evaluador — 879 brechas + 32 equivalencias
 
 Re-medición 2026-10-28 (batch r3c4): **5984 mutantes, 4846 muertos, 1138
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos**; tasa bruta
@@ -74,7 +74,7 @@ en `build/triaje-eval-r3c4.json`; el clúster evaluar_herramientas ya cerrado):
 | `main` | 65 |
 | `_dependencias_pyproject` | 0 (48 muertos + 1 equivalencia) |
 | `evaluar_calidad` | 47 |
-| `_dependencias` | 44 |
+| `_dependencias` | 0 (44 muertos + 2 equivalencias) |
 | `licencias_no_runtime` | 0 (37 muertos) |
 | `parsear_requisitos` | 35 |
 | `_ambito_requirements` | 0 (19 muertos + 14 equivalencias) |
@@ -115,6 +115,17 @@ incompletos y quedó cubierto por una nueva regresión. Diez muertes no equivale
 y dos equivalencias fueron verificadas, con el fuente restaurado. Evidencia:
 `build/lock-r3-verificacion.json`. El clúster de 32 queda cerrado:
 **949 → 917 brechas** y **77 → 79 equivalencias**, sin nueva tasa global.
+
+Cierre dirigido de `_dependencias` (2026-10-31): **138 mutantes, 136 muertos
+y 2 equivalencias (E12), 0 brechas**. `vistos_req=None` usa la inicialización
+ya existente del lector, con deduplicación idéntica; los directorios admitidos
+por el filtro de manifiestos producen lecturas vacías. Diez muertes no
+equivalentes (1, 3–5 y 7–12) se confirmaron aplicando los diffs y ejecutando
+`tests.test_evaluar_proyecto`, `tests.test_evaluador_corpus` y
+`tests.test_evaluador_precision`, con el fuente restaurado. No fueron necesarios
+cambios de producción ni nuevos tests. Evidencia:
+`build/deps-r3-verificacion.json`. El clúster de 44 queda cerrado:
+**917 → 879 brechas** y **79 → 81 equivalencias**, sin nueva tasa global.
 
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
@@ -177,13 +188,14 @@ documento conserva el resumen y la clasificación.
 ## Conclusión
 
 - **Triaje de inventario:** r3c4 completo, con cierres dirigidos posteriores de
-  `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject` y
-  `_versiones_lock`: **917 brechas + 79 equivalencias**.
-- **Equivalentes demostrados:** 79 (49 en preflight y 29 en el evaluador), todos
-  con prueba; no se cuentan como muertos.
+  `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`,
+  `_versiones_lock` y `_dependencias`: **879 brechas + 81 equivalencias**.
+- **Equivalentes demostrados:** 81 (49 en preflight y 32 en el evaluador,
+  incluidas las 2 de `_dependencias`), todos con prueba; no se cuentan como
+  muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **917 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **879 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

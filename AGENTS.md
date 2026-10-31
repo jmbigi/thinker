@@ -322,8 +322,10 @@ mejora de código (`code_design_improvement_tools.py`).
   muertos y 14 equivalencias demostradas**; clúster 33 → 0. Después,
   `licencias_no_runtime`: **120/120 muertos**; clúster 37 → 0. Después,
   `_dependencias_pyproject`: **258 muertos + 1 equivalencia**; clúster 48 → 0.
-  Finalmente, `_versiones_lock`: **201 muertos + 2 equivalencias**; clúster 32
-  → 0. R3 queda en **917 brechas + 79 equivalencias**, sin una nueva tasa global.
+  Después, `_versiones_lock`: **201 muertos + 2 equivalencias**; clúster 32 → 0.
+  Por último en este lote, `_dependencias`: **136 muertos + 2 equivalencias**;
+  clúster 44 → 0. R3 queda en **879 brechas + 81 equivalencias**, sin una nueva
+  tasa global.
 - Plataformas verificadas: Linux con Python **3.11.9**: **1230/1230 en la suite
   Linux** (2026-10-31; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado

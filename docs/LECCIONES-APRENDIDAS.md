@@ -3882,3 +3882,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   32 queda cerrado: R3 baja de **949 a 917 brechas** y sube de 77 a **79
   equivalencias**. Suite **1230/1230** y tres demos offline correctas. Evidencia:
   `build/lock-r3-verificacion.json` y E11.
+
+### Hallazgo 171: `_dependencias` cierra con 136 muertos y 2 equivalentes
+
+- **Medición (2026-10-31)**: Thinker midió la función en 47 líneas y complejidad
+  9. La campaña acotada declaró 138/138 muertos; no se aceptó sin verificación
+  directa, siguiendo el criterio del Hallazgo 143.
+- **Equivalencias demostradas**: el mutante 2 usa `vistos_req=None`, que
+  `_leer_requirements` ya convierte en conjunto; un include compartido con
+  duplicados produce la misma salida. El mutante 6 admite directorios con nombre
+  de manifiesto, pero sus lectores devuelven vacío. Se probaron esos cinco tipos
+  de ruta y el fuente quedó restaurado.
+- **Verificación y contabilidad**: diez muertes no equivalentes (1, 3–5 y 7–12)
+  fueron detectadas por `tests.test_evaluar_proyecto`,
+  `tests.test_evaluador_corpus` y `tests.test_evaluador_precision` al aplicar
+  sus diffs. Resultado: **136 muertos + 2 equivalencias, 0 brechas**, sin
+  cambios de producción ni nuevos tests. El clúster de 44 queda cerrado: R3 baja
+  de **917 a 879 brechas** y sube de 79 a **81 equivalencias**. No se recalcula
+  la tasa global histórica. Evidencia: `build/deps-r3-verificacion.json` y E12.

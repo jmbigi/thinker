@@ -802,3 +802,13 @@ El clúster de 32 queda cerrado: R3 baja de **949 a 917 brechas** y sube de 77 a
 **79 equivalencias**, sin recalcular la tasa global histórica.
 Suite **1230/1230** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta con las demás funciones pendientes. Hallazgo 170.
+
+**Actualización 2026-10-31** (cierre R3 de `_dependencias`): 138 mutantes,
+**136 muertos + 2 equivalencias, 0 brechas**. El conjunto inicial `None` y el
+filtro que admite directorios como manifiestos no cambian la salida (E12). Diez
+muertes no equivalentes fueron confirmadas aplicando los diffs y ejecutando la
+selección real, con el fuente restaurado. El clúster de 44 queda cerrado sin
+cambios de producción ni nuevos tests: R3 baja de **917 a 879 brechas** y sube
+de 79 a **81 equivalencias**, sin recalcular la tasa global histórica.
+Suite **1230/1230** en Linux (Python 3.11.9). R3 permanece abierta con las demás
+funciones pendientes. Hallazgo 171.
