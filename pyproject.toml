@@ -45,6 +45,7 @@ evaluate-project = "evaluar_proyecto:main"
 # el repo: `python3 -m tests.benchmarks.run_bench` (Hallazgo 83).
 [tool.setuptools]
 py-modules = [
+    "citation_verifier",
     "code_design_improvement_tools",
     "concept_ncm",
     "deep_research_system",
@@ -59,6 +60,7 @@ py-modules = [
     "privacy",
     "research_cli",
     "research_state",
+    "source_quality",
     "thinking_engine",
     "web_search",
 ]

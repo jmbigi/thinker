@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1249/1249** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1287/1287** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -929,3 +929,39 @@ por separado los históricos de mutación del núcleo (95,2%), preflight (95,18%
 y evaluador (80,98%): no prueban calidad del LLM ni de producción.
 Suite **1249/1249** en Linux (Python 3.11.9). Evidencia:
 `docs/informe-calidad.json` y resumen Mermaid en `README.md`. Hallazgo 183.
+
+**Actualización 2026-10-31** (verificación de citas, fuentes, RAG y holdout del
+evaluador): se añadieron dos módulos de análisis y tres instrumentos de medida,
+sin presentar heurísticas como verdad. `citation_verifier.py` separa existencia
+de la cita (`EXACT_MATCH`/`FOUND`/`NOT_FOUND`/`UNVERIFIABLE`) de soporte del
+claim (`SUPPORTED`/`PARTIALLY_SUPPORTED`/`CONTRADICTED`/`UNVERIFIABLE`), detecta
+fragmentos inexistentes y duplica URLs normalizadas; es una comprobación léxica
+determinista, **no** una prueba semántica. `source_quality.py` publica
+dimensiones separadas (autoridad, independencia, actualidad, relevancia,
+soporte y trazabilidad) y evita una nota única que mezcle reputación con
+respaldo. El pipeline envuelve snippets y claims en `<untrusted_source>` y
+declara que son DATOS: mitiga inyección de instrucciones de forma estructural,
+pero no garantiza que un modelo las obedezca.
+
+Medición offline (Linux, Python 3.11.9, venv aislado con `pypdf` para el doctor):
+**1287/1287 tests**, ruff 0, preflight 0, holdout 4/4 y docs-check OK. El
+benchmark sintético del evaluador mantiene **F1 1.000** en 57 fixtures y 26
+criterios; el holdout nuevo de 6 proyectos sintéticos discrimina las 9/9
+relaciones de orden (completo > deficiente, completo > README engañoso,
+pequeño completo > grande vacío, tests reales > tests no-op), con **global
+0.889/0.362/0.446/0.529/0.889/0.856**. La recuperación léxica BM25+coseno, sin
+embeddings, obtiene en 10 pasajes y 16 consultas **Recall@1 0.875, Recall@5
+0.938, MRR 0.906 y nDCG@10 0.914**; las paráfrasis sin términos exactos son el
+límite visible. La calibración simulada de 16 casos da **Brier 0.1166 y ECE
+0.1437**, y sigue declarada **no calibrada**: no hay etiquetas humanas
+suficientes. Cobertura de líneas **82,57%** y de ramas **82,42%** (2382/2890),
+medida con `coverage --branch`.
+
+Estos números son **sintéticos y del propio proyecto**: no sustituyen una
+campaña de 100 repositorios con evaluación humana independiente, ni una prueba
+semántica de citas, ni una validación en Windows/macOS en esta sesión. El
+benchmark del evaluador y el holdout comparten autor; sirven para detectar
+regresiones y confundir documentación con calidad, no para afirmar validez
+externa. Suite **1287/1287** en Linux (Python 3.11.9). Evidencia:
+`docs/metricas-calidad.json`, `tests/benchmarks/rag_retrieval.py` y
+`tests/benchmarks/evaluador_holdout.py`. Hallazgo 184.

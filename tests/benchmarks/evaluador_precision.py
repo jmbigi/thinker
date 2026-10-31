@@ -518,17 +518,24 @@ def cobertura_de_criterios(casos=None):
 
 
 def calcular_metricas(esperados, predichos):
-    """TP/FP/FN y precision/recall; ``None`` si no hay denominador."""
+    """TP/FP/FN, precision, recall, F1 y accuracy; ``None`` sin denominador."""
+    total = len(esperados)
     tp = sum(1 for esperado, predicho in zip(esperados, predichos)
              if esperado and predicho)
     fp = sum(1 for esperado, predicho in zip(esperados, predichos)
              if not esperado and predicho)
     fn = sum(1 for esperado, predicho in zip(esperados, predichos)
              if esperado and not predicho)
+    tn = total - tp - fp - fn
     precision = tp / (tp + fp) if tp + fp else None
     recall = tp / (tp + fn) if tp + fn else None
-    return {"tp": tp, "fp": fp, "fn": fn,
-            "precision": precision, "recall": recall}
+    f1 = (2 * precision * recall / (precision + recall)
+          if precision is not None and recall is not None
+          and precision + recall else None)
+    accuracy = (tp + tn) / total if total else None
+    return {"tp": tp, "fp": fp, "fn": fn, "tn": tn,
+            "precision": precision, "recall": recall,
+            "f1": f1, "accuracy": accuracy}
 
 
 def _tiene_hallazgo(informe, criterio):
@@ -612,18 +619,23 @@ def main(argv=None):
     print(f"BENCHMARK EVALUADOR: {resultado['casos']} casos, "
           f"{resultado['criterios']} criterios")
     print(f"{'criterio':35} {'TP':>3} {'FP':>3} {'FN':>3} "
-          f"{'precision':>10} {'recall':>8}")
+          f"{'precision':>10} {'recall':>8} {'F1':>6} {'acc':>6}")
     for criterio, metrica in resultado["por_criterio"].items():
         precision = "-" if metrica["precision"] is None \
             else f"{metrica['precision']:.2f}"
         recall = "-" if metrica["recall"] is None \
             else f"{metrica['recall']:.2f}"
+        f1 = "-" if metrica["f1"] is None else f"{metrica['f1']:.2f}"
+        accuracy = "-" if metrica["accuracy"] is None \
+            else f"{metrica['accuracy']:.2f}"
         print(f"{criterio:35} {metrica['tp']:>3} {metrica['fp']:>3} "
-              f"{metrica['fn']:>3} {precision:>10} {recall:>8}")
+              f"{metrica['fn']:>3} {precision:>10} {recall:>8} "
+              f"{f1:>6} {accuracy:>6}")
     global_ = resultado["global"]
     print(f"{'GLOBAL':35} {global_['tp']:>3} {global_['fp']:>3} "
           f"{global_['fn']:>3} "
-          f"{global_['precision']:.2f} {global_['recall']:.2f}")
+          f"{global_['precision']:.2f} {global_['recall']:.2f} "
+          f"{global_['f1']:.2f} {global_['accuracy']:.2f}")
     print("Cobertura:", resultado["cobertura"])
     return 0
 

@@ -218,8 +218,10 @@ class TestReportGeneratorComportamiento(unittest.TestCase):
         informe = ReportGenerator(llm).decide(ctx)
         self.assertEqual(informe, "# Uno\n## Dos\n### Tres\n#### Cuatro")
         self.assertTrue(ctx.conclusions)
-        self.assertEqual(ctx.decision_log[-1]["step"], "report_generation")
-        self.assertIn("conclusion sections", ctx.decision_log[-1]["rationale"])
+        generacion = [d for d in ctx.decision_log
+                      if d["step"] == "report_generation"]
+        self.assertEqual(len(generacion), 1)
+        self.assertIn("conclusion sections", generacion[0]["rationale"])
 
     def test_clasifica_soportados_y_contradichos(self):
         llm = StubLLM(lambda p: "# informe")

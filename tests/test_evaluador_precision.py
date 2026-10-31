@@ -24,8 +24,11 @@ class TestEvaluadorPrecision(unittest.TestCase):
         self.assertEqual(metrica["tp"], 1)
         self.assertEqual(metrica["fp"], 1)
         self.assertEqual(metrica["fn"], 1)
+        self.assertEqual(metrica["tn"], 1)
         self.assertEqual(metrica["precision"], 0.5)
         self.assertEqual(metrica["recall"], 0.5)
+        self.assertEqual(metrica["f1"], 0.5)
+        self.assertEqual(metrica["accuracy"], 0.5)
 
     def test_corpus_balanceado_y_sin_falsos(self):
         criterios = {caso["criterio"] for caso in CASOS}

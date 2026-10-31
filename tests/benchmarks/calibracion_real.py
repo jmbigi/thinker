@@ -21,6 +21,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from deep_research_system import EvidenceEvaluator, ResearchContext  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 from llm_providers import OpenRouterLLM  # noqa: E402
+from tests.benchmarks.calibracion_confianza import calcular_ece  # noqa: E402
 
 
 CASOS = [
@@ -208,6 +209,7 @@ def ejecutar():
     return {
         "n": len(CASOS),
         "brier": round(calcular_brier(confianzas, aciertos), 4),
+        "ece": round(calcular_ece(list(zip(confianzas, aciertos))), 4),
         "intervalo": brier_con_intervalo(confianzas, aciertos),
         "tabla_fiabilidad": tabla_fiabilidad(confianzas, aciertos),
         "calibrada": False,

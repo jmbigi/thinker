@@ -77,7 +77,7 @@ class TestEvidenceEvaluatorDetalles(unittest.TestCase):
         EvidenceEvaluator(llm).decide(ctx, {"claim": "CL", "source_url": "u1"})
         prompt = llm.prompts[0]
         # Sólo la fuente que coincide por URL, con el snippet truncado a 200
-        self.assertIn("Source 1: T1: " + "A" * 200, prompt)
+        self.assertIn("Source 1: T1: <untrusted_source>\n" + "A" * 200, prompt)
         self.assertNotIn("A" * 201, prompt)
         self.assertNotIn("Source 2", prompt)
         self.assertIn("Claim: CL", prompt)

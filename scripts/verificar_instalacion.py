@@ -33,8 +33,8 @@ RAIZ = Path(__file__).resolve().parent.parent
 # Contrato con pyproject.toml ([tool.setuptools] py-modules y packages): si
 # cambia allí, debe cambiar aquí; el test de humo del script lo contrasta.
 MODULOS_STDLIB = ("evidence", "thinking_engine", "llm_providers",
-                  "code_design_improvement_tools", "plugins.registry",
-                  "scripts.preflight")
+                  "code_design_improvement_tools", "citation_verifier",
+                  "source_quality", "plugins.registry", "scripts.preflight")
 MODULOS_CON_DEPS = ("web_search", "deep_research_system", "documents", "efficiency",
                     "concept_ncm", "mcp_client", "neural_concepts", "privacy",
                     "research_state", "research_cli", "pensamiento_layer",

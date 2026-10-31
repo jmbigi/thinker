@@ -175,7 +175,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `python3 scripts/verificar_instalacion.py` — construye el wheel sin red, lo
   instala en un venv temporal y lo comprueba desde un CWD ajeno; offline
   verifica la forma del paquete (`--no-deps`) y `--con-red` además las
-  dependencias, los 16 módulos públicos y los console scripts (Hallazgo 82
+  dependencias, los 18 módulos públicos y los console scripts (Hallazgo 82
   hecho reproducible).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
@@ -348,8 +348,9 @@ mejora de código (`code_design_improvement_tools.py`).
   Después, `investigar_preguntas`: **43/43 muertos**, incluidos 14 antiguos
   supervivientes y 10/10 controles directos. Estas funciones no se descuentan del
   inventario histórico porque su distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1249/1249 en la suite
-  Linux** (2026-10-31; openai 3.40.0 en el entorno actual) y **3.12.3**
+- Plataformas verificadas: Linux con Python **3.11.9**: **1287/1287 en la suite
+  Linux** (2026-10-31; openai 3.40.0 en el entorno actual, venv aislado con
+  `pypdf` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
@@ -401,11 +402,12 @@ mejora de código (`code_design_improvement_tools.py`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,
-  `code-design`. Módulos públicos importables: los 16 del núcleo
+  `code-design`. Módulos públicos importables: los 18 del núcleo
   (`deep_research_system`, `pensamiento_layer`, `code_design_improvement_tools`,
   `thinking_engine`, `llm_providers`, `web_search`, `evaluar_proyecto`,
   `evidence`, `documents`, `research_state`, `research_cli`, `mcp_client`,
-  `concept_ncm`, `privacy`, `efficiency`, `neural_concepts`) + paquetes
+  `concept_ncm`, `privacy`, `efficiency`, `neural_concepts`,
+  `citation_verifier`, `source_quality`) + paquetes
   `plugins` y `scripts` (este último porque el evaluador importa
   `scripts.preflight`). `tests` no se instala (colisión de nombre raíz en
   site-packages): el benchmark se ejecuta desde el repo con
@@ -447,6 +449,14 @@ mejora de código (`code_design_improvement_tools.py`).
   registro cargado y emite los hooks de investigación; no carga proveedores ni
   hace fallback implícito. Checkpoints reanudables, paralelismo acotado con
   fusión determinista y routing/poda adaptativos.
+- `citation_verifier.py` — verificación de citas separada en existencia
+  (`EXACT_MATCH`/`FOUND`/`NOT_FOUND`/`UNVERIFIABLE`) y soporte
+  (`SUPPORTED`/`PARTIALLY_SUPPORTED`/`CONTRADICTED`/`UNVERIFIABLE`), con
+  duplicados por URL normalizada. Es léxica y determinista: no prueba respaldo
+  semántico ni verdad.
+- `source_quality.py` — dimensiones **separadas** de autoridad, independencia,
+  actualidad, relevancia, soporte y trazabilidad; no calcula una nota única ni
+  mezcla calidad de fuente con confianza del claim. Heurísticas declaradas.
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
   Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
   Ollama y Mock no reintentan. `BudgetLLM` acota llamadas entre hilos.

@@ -4073,3 +4073,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   brechas R3 bajaron **458 (-40,5%)** desde 1131. El README enlaza el detalle y
   aclara que las tasas históricas no se mezclan ni prueban calidad de producción.
   Evidencia: `docs/informe-calidad.json` y `docs/EVALUACIONES.md`.
+
+### Hallazgo 184: medir citas, fuentes, RAG y discriminación sin fingir validez externa
+
+- **Problema (2026-10-31)**: el informe declaraba citas, pero no comprobaba si
+  el fragmento existía en la fuente, si el claim estaba respaldado o si varias
+  fuentes eran la misma página. La recuperación RAG no tenía métricas
+  reproducibles y el evaluador solo se medía con fixtures sintéticas que ya
+  conocía. Presentar esos resultados como validación independiente habría sido
+  deshonesto.
+- **Solución**: `citation_verifier.py` separa existencia y soporte, detecta
+  fragmentos ausentes y agrupa URLs normalizadas; `source_quality.py` publica
+  dimensiones separadas sin nota única; `tests/benchmarks/rag_retrieval.py` mide
+  Recall@k, MRR y nDCG@k sobre 10 pasajes/16 consultas; `evaluador_holdout.py`
+  fija 6 proyectos sintéticos y 9 relaciones de orden; `calibracion_confianza.py`
+  añade ECE. El pipeline envuelve contenido externo en `<untrusted_source>` y
+  declara la mitigación como estructural, no como garantía.
+- **Evidencia**: 1287/1287 tests; holdout 9/9; evaluador F1 1.000 (57 fixtures);
+  RAG Recall@1 0.875, Recall@5 0.938, MRR 0.906, nDCG@10 0.914; calibración
+  simulada Brier 0.1166/ECE 0.1437, **no calibrada**; cobertura 82,57% líneas y
+  82,42% ramas. Registro: `docs/metricas-calidad.json`.
+- **Límites**: el soporte de citas es léxico, no semántico; el holdout y las
+  fixtures son sintéticos y del mismo autor; no hubo 100 repositorios reales,
+  evaluación humana independiente ni re-medición Windows/macOS en esta sesión.
+  Esos puntos quedan como validación externa pendiente, no como éxito.

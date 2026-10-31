@@ -635,3 +635,16 @@ make verify-install
 python3 -m tests.benchmarks.external --dataset query.jsonl --kind drb \
   --provider mock --max-tasks 1 --json
 ```
+
+## 11. Validación de citas, fuentes y recuperación (2026-10-31)
+
+| ID | Alcance | Estado y criterio de aceptación |
+|---|---|---|
+| **R18** | Verificación de citas y calidad de fuentes | **Hecho**: `citation_verifier.py` separa existencia y soporte, detecta fragmentos ausentes y duplica URLs; `source_quality.py` publica dimensiones separadas sin nota única. Aceptación: tests offline y límites declarados. |
+| **R19** | Medición RAG y calibración | **Hecho**: Recall@1/3/5/10, MRR y nDCG@10 sobre 10 pasajes/16 consultas; ECE añadido al Brier simulado. Aceptación: `python3 -m tests.benchmarks.rag_retrieval` y `tests/test_calibracion_confianza.py`. |
+| **R20** | Discriminación del evaluador | **Hecho**: holdout sintético de 6 proyectos y 9 relaciones de orden; evita confundir README con calidad y tamaño con calidad. Aceptación: 9/9 y `tests/test_evaluador_holdout.py`. |
+| **R21** | Validación externa real | **Pendiente declarada**: 100 repositorios reales con evaluación humana independiente y re-medición Windows/macOS. No se sustituye con fixtures sintéticas ni se presenta como hecho. |
+
+Evidencia: **1287/1287 tests**, holdout 9/9, RAG Recall@5 0.938/MRR 0.906,
+calibración simulada Brier 0.1166/ECE 0.1437 (**no calibrada**), cobertura
+82,57% líneas/82,42% ramas. Registro: `docs/metricas-calidad.json`.

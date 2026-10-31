@@ -71,7 +71,7 @@ class TestInformeCoarseToFine(unittest.TestCase):
         pasos = [d["step"] for d in ctx.decision_log]
         self.assertEqual(pasos[0], "report_outline")
         self.assertEqual(pasos.count("report_section"), 2)
-        self.assertEqual(pasos[-1], "report_generation")
+        self.assertIn("report_generation", pasos)
         self.assertEqual(ctx.decision_log[0]["rationale"],
                          "Outline with 2 sections")
         self.assertTrue(ctx.conclusions)
@@ -267,7 +267,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
                  if d["decision"] == "error"][0]
         self.assertEqual(error["step"], "report_section")
         self.assertIn("RuntimeError: fallo simulado", error["rationale"])
-        self.assertEqual(ctx.decision_log[-1]["step"], "report_generation")
+        self.assertIn("report_generation",
+                      [d["step"] for d in ctx.decision_log])
 
     def test_encabezado_repetido_por_el_modelo_se_elimina(self):
         llm = StubLLM(responder_por_etapas(

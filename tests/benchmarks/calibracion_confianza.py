@@ -55,16 +55,38 @@ def tabla_fiabilidad(casos):
     return tabla
 
 
+def calcular_ece(casos):
+    """Expected Calibration Error: media de |confianza - frecuencia| por tramo.
+
+    Se pondera por el número de casos de cada tramo. Con muestras pequeñas es
+    muy ruidoso; no se presenta como prueba de calibración general.
+    """
+    if not casos:
+        return None
+    total = len(casos)
+    ece = 0.0
+    for fila in tabla_fiabilidad(casos):
+        if not fila["n"]:
+            continue
+        ece += (fila["n"] / total) * abs(
+            fila["confianza_media"] - fila["frecuencia"])
+    return ece
+
+
+
 def evaluar(casos=None):
     casos = CASOS_SIMULADOS if casos is None else casos
     return {
         "casos": len(casos),
         "brier": round(calcular_brier(casos), 4)
         if calcular_brier(casos) is not None else None,
+        "ece": round(calcular_ece(casos), 4)
+        if calcular_ece(casos) is not None else None,
         "tabla_fiabilidad": tabla_fiabilidad(casos),
         "calibrada": False,
-        "nota": ("confianzas simuladas; el Brier no prueba calibración real. "
-                 "La declaración «no calibrada» sigue vigente (R14)."),
+        "nota": ("confianzas simuladas; el Brier y el ECE no prueban "
+                 "calibración real. La declaración «no calibrada» sigue "
+                 "vigente (R14)."),
     }
 
 
@@ -78,6 +100,7 @@ def main(argv=None):
         return 0
     print(f"Brier offline (simulado): {resultado['brier']:.4f} "
           f"en {resultado['casos']} casos")
+    print(f"ECE offline (simulado): {resultado['ece']:.4f}")
     print(f"{'tramo':10} {'n':>3} {'confianza':>10} {'frecuencia':>10}")
     for fila in resultado["tabla_fiabilidad"]:
         conf = "-" if fila["confianza_media"] is None \

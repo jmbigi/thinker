@@ -16,6 +16,8 @@ herramientas de análisis estático de código.
 | Módulo | Función |
 |---|---|
 | `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, claims, evaluación y reporte. CoVe, consenso, checkpoints reanudables, paralelismo determinista y routing/poda adaptativos. |
+| `citation_verifier.py` | Verificación determinista de citas: existencia y fragmento (`EXACT_MATCH`/`FOUND`/`NOT_FOUND`/`UNVERIFIABLE`) separados del soporte (`SUPPORTED`/`PARTIALLY_SUPPORTED`/`CONTRADICTED`/`UNVERIFIABLE`) y duplicados por URL normalizada. Léxica, no semántica. |
+| `source_quality.py` | Dimensiones separadas de autoridad, independencia, actualidad, relevancia, soporte y trazabilidad. Sin nota única que mezcle calidad de fuente con confianza del claim. Heurísticas declaradas. |
 | `documents.py` | Contenido completo HTML/PDF/TXT/Markdown/CSV y Office Open XML, pasajes con hash/localización, RAG local BM25+coseno y full-text web. |
 | `research_cli.py` | CLI real `research`: proveedores, buscadores, documentos, Markdown/JSON, estado, presupuestos y opciones opt-in. Sin argumentos conserva la demo. |
 | `research_state.py` | Checkpoints idempotentes con esquema versionado, caché de recuperación y escritura atómica 0600. |
@@ -365,6 +367,9 @@ python3 evaluar_proyecto.py RUTA              # evaluación externa (6 dimension
 python3 evaluar_proyecto.py RUTA --requisitos requisitos.md   # requisitos (opt-in)
 python3 scripts/audit_changes.py --base origin/main           # audita cambios de agentes
 python3 scripts/run_holdout.py                # holdout (hashes + tests)
+python3 scripts/metricas_calidad.py --con-cobertura  # métricas + cobertura de ramas
+python3 citation_verifier.py --report informe.md --sources fuentes.json
+python3 source_quality.py --sources fuentes.json --query "..."
 python3 scripts/probe_model.py --samples 5    # sonda de latencia del modelo (opt-in)
 ```
 
@@ -381,8 +386,13 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1249/1249** | 1128 → 1232 → 1249 tests (**+10,7%**) |
+| Suite Linux | **1287/1287** | 1128 → 1232 → 1249 → 1287 tests (**+14,1%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
+| Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
+| Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
+| RAG léxico | **Recall@5 0.938** | 10 pasajes, 16 consultas; MRR 0.906, nDCG@10 0.914 |
+| Calibración simulada | **Brier 0.1166 / ECE 0.1437** | 16 casos; **no calibrada**, no es probabilidad |
+| Cobertura | **82,57% líneas / 82,42% ramas** | 2382/2890 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | R3 | **673 brechas + 84 equivalencias** | 1131 → 673 brechas (**−40,5%**); equivalencias 62 → 84 |
@@ -395,9 +405,25 @@ xychart-beta
     line [1131, 949, 767, 673]
 ```
 
+```mermaid
+xychart-beta
+    title "Línea base RAG léxico (10 pasajes, 16 consultas)"
+    x-axis ["Recall@1", "Recall@5", "MRR", "nDCG@10"]
+    y-axis "Valor" 0 --> 1
+    bar [0.875, 0.938, 0.906, 0.914]
+```
+
 La tendencia muestra mejor detección de defectos, no calidad del LLM ni preparación
 para producción. No se recalculan tasas históricas al cerrar clústeres ni se
 mezclan denominadores. Inventario y equivalencias: [`docs/TRIAGE-R3.md`](docs/TRIAGE-R3.md).
+
+Las cifras nuevas de evaluador, holdout, RAG y calibración son **sintéticas y
+del propio proyecto**: detectan regresiones y confunden documentación con
+calidad, pero no son una campaña de 100 repositorios reales ni una evaluación
+humana independiente. El soporte de citas es léxico, no semántico; la calidad de
+fuente es una heurística por dominio; la calibración sigue **no calibrada**.
+Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
+[`docs/EVALUACIONES.md`](docs/EVALUACIONES.md).
 
 ## Limitaciones conocidas (sin adornos)
 
@@ -412,6 +438,17 @@ mezclan denominadores. Inventario y equivalencias: [`docs/TRIAGE-R3.md`](docs/TR
   la cuantización de esos vectores no es cuantización de pesos del LLM. La poda
   puede eliminar contexto necesario y las opciones de draft, consenso, CoVe y
   NCM pueden aumentar llamadas y latencia: no hay ahorro ni calidad garantizados.
+- El verificador de citas y la calidad de fuentes son **heurísticas léxicas y de
+  dominio**: detectan fragmentos ausentes, duplicados y solapamiento, pero no
+  prueban que una cita respalde semánticamente un claim ni que una fuente sea
+  veraz. El benchmark RAG, el holdout del evaluador y los casos del evaluador
+  son sintéticos y del mismo autor; no sustituyen validación humana externa.
+- La envoltura `<untrusted_source>` declara el contenido externo como DATOS y
+  escapa su cierre, pero **no garantiza** que un modelo ignore instrucciones
+  inyectadas; es una mitigación estructural, no una barrera de seguridad.
+- La suite verde de esta entrega se midió en un venv aislado con `pypdf`
+  instalado porque el intérprete base no lo tenía; sin esa dependencia,
+  `doctor` falla correctamente y no se oculta el fallo.
 - `local-only`/`private-documents` no son un *air gap*: el código acota endpoints
   y resultados, pero no sustituye firewall/contenedor. MCP se considera contenido
   no confiable y queda fuera de esos modos.
