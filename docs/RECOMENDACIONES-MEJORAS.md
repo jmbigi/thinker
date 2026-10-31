@@ -16,7 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 90 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`, `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`, `_es_no_codigo`, `_es_lock_python` y `_es_test` (Hallazgos 167-198), 0 timeouts | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 95 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`, `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`, `_es_no_codigo`, `_es_lock_python`, `_es_test` y `_es_lock` (Hallazgos 167-199), 0 timeouts | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -29,7 +29,7 @@ pendiente.
 
 **Estado de decisiones (2026-10-26; R3 actualizado el 2026-10-31):** R5-A,
 R6-C, R13-B/C y R14-B/C implementadas; R3-C en ejecución (preflight 49: 49
-equivalencias y 0 brechas; evaluador **673 brechas + 43 equivalencias**; 0
+equivalencias y 0 brechas; evaluador **673 brechas + 48 equivalencias**; 0
 timeouts). **R4 se cierra por alcance offline**: 26/29 criterios medidos y 3 N/A
 declaradas, no una validación global. R3 es la deuda P1 y sigue abierta.
 R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
@@ -54,7 +54,7 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1297/1297** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **1298/1298** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 2 N/A: `v4`, `h5`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |

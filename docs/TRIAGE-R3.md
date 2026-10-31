@@ -1,4 +1,4 @@
-# Triaje R3 — 673 brechas, 90 equivalencias y 0 timeouts
+# Triaje R3 — 673 brechas, 95 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,8 +30,8 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **673** | **43** | **0** | **0** |
-| **Total** | **673** | **90** | **0** | **0** |
+| Evaluador | **673** | **48** | **0** | **0** |
+| **Total** | **673** | **95** | **0** | **0** |
 
 Los **673** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
@@ -293,6 +293,16 @@ restaurado pasó, sin cambios de producción. Evidencias:
 La contabilidad permanece en **673 brechas** y sube a **90 equivalencias** por
 falta de distribución histórica.
 
+Cierre acotado de `_es_lock` (2026-10-31): **51 mutantes objetivo, 46 muertos +
+5 equivalencias (E19), 0 supervivientes**. La campaña generó 135 mutantes
+incluyendo helpers; el clúster tiene 51. Una regresión con 27 comprobaciones fija
+mayoría estricta, hashes, comentarios y directivas. Los casos 24, 29 y 32 murieron
+con las dos nuevas fronteras; 15–17 y 23/26 son equivalentes demostradas. El
+original restaurado pasó, sin cambios de producción. Evidencias:
+`build/es-lock-r3-verificacion.json` y `build/es-lock-e19-verificacion.json`.
+La contabilidad permanece en **673 brechas** y sube a **95 equivalencias** por
+falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -359,9 +369,9 @@ documento conserva el resumen y la clasificación.
   `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`,
   `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`,
   `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`,
-  `_es_no_codigo`, `_es_lock_python` y `_es_test`: **673 brechas + 90
-  equivalencias**.
-- **Equivalentes demostrados:** 90 (49 en preflight y 43 en el evaluador), todos
+  `_es_no_codigo`, `_es_lock_python`, `_es_test` y `_es_lock`: **673 brechas +
+  95 equivalencias**.
+- **Equivalentes demostrados:** 95 (49 en preflight y 48 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.

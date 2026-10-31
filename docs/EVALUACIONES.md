@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1297/1297** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1298/1298** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1104,3 +1104,15 @@ falta de distribución histórica.
 Suite **1297/1297** en Linux (Python 3.11.9). Evidencias:
 `build/es-test-r3-verificacion.json` y `build/es-test-e18-verificacion.json`.
 Hallazgo 198.
+
+**Actualización 2026-10-31** (cierre acotado de `_es_lock`): la campaña generó
+135 mutantes incluyendo helpers; el clúster tiene **51 objetivo, 46 muertos +
+5 equivalencias (E19), 0 supervivientes**. Un contrato con 27 comprobaciones
+fija mayoría estricta, hashes, comentarios, `.in`, directorios y directivas.
+Los casos 24, 29 y 32 murieron con las dos nuevas fronteras; 15–17 son
+redundantes con el filtro `.txt` y 23/26 conservan el primer segmento.
+El original restaurado pasó, sin cambios de producción. R3 permanece en **673
+brechas** y sube a **95 equivalencias** por falta de distribución histórica.
+Suite **1298/1298** en Linux (Python 3.11.9). Evidencias:
+`build/es-lock-r3-verificacion.json` y `build/es-lock-e19-verificacion.json`.
+Hallazgo 199.

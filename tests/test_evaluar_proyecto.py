@@ -478,6 +478,48 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         self.assertTrue(_es_lock(raiz / "requirements" / "exacto.txt"))
         self.assertTrue(_es_lock(raiz / "requirements" / "hash.txt"))
 
+    def test_es_lock_contrato_exacto(self):
+        archivos = {nombre: "" for nombre in evaluar_proyecto.LOCKS_NOMBRES}
+        archivos["UV.LOCK"] = ""
+        archivos.update({
+            "requirements/mayoria.txt": "requests==2.31.0\nclick==8.1.7\nflask>=2\n",
+            "requirements/mitad.txt": "requests==2.31.0\nclick>=8\n",
+            "requirements/rangos.txt": "requests>=2\nclick>=8\n",
+            "requirements/vacio.txt": "",
+            "requirements/comentarios.txt": "# comentario\n-r base.txt\n--index-url x\n",
+            "requirements/hash.txt": "requests>=2 --hash=sha256:abcd\n",
+            "requirements/base.in": "requests==2.31.0\n",
+            "requirements/exacto.toml": "requests==2.31.0\n",
+            "other/exacto.txt": "requests==2.31.0\n",
+            "Requirements/MAYORIA.TXT": "requests==2.31.0\n",
+            "requirements/comodin.txt": "requests==2.*\n",
+            "requirements/hash_comentario.txt": "# --hash=sha256:abcd\n",
+            "requirements/hash_en_comentario.txt": (
+                "requests>=2 # --hash=sha256:abcd # nota\n"),
+            "requirements/con_directiva.txt": "requests==2.31.0\n-r base.txt\n",
+        })
+        raiz = crear_proyecto(self, archivos)
+        for nombre in set(evaluar_proyecto.LOCKS_NOMBRES) | {"UV.LOCK"}:
+            with self.subTest(nombre=nombre):
+                self.assertIs(evaluar_proyecto._es_lock(raiz / nombre), True)
+        for nombre, esperado in (
+                ("requirements/mayoria.txt", True),
+                ("requirements/mitad.txt", False),
+                ("requirements/rangos.txt", False),
+                ("requirements/vacio.txt", False),
+                ("requirements/comentarios.txt", False),
+                ("requirements/hash.txt", True),
+                ("requirements/base.in", False),
+                ("requirements/exacto.toml", False),
+                ("other/exacto.txt", False),
+                ("Requirements/MAYORIA.TXT", True),
+                ("requirements/comodin.txt", False),
+                ("requirements/hash_comentario.txt", False),
+                ("requirements/hash_en_comentario.txt", False),
+                ("requirements/con_directiva.txt", True)):
+            with self.subTest(nombre=nombre):
+                self.assertIs(evaluar_proyecto._es_lock(raiz / nombre), esperado)
+
     def test_es_lock_python_contrato_exacto(self):
         casos = {
             "requirements.lock": True, "REQUIREMENTS.LOCK": True,

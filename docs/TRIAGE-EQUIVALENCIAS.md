@@ -502,3 +502,24 @@ regresión Java; los otros 36 mutantes fueron detectados. Evidencia:
 **Contabilidad:** 39 mutantes: **36 muertos + 2 equivalentes, 0 brechas**. R3
 permanece en **673 brechas** y sube de 88 a **90 equivalencias** por falta de
 distribución histórica detallada; no se recalcula la tasa global.
+
+### E19. Filtros redundantes y primer segmento en `_es_lock` (5)
+
+Mutantes 15–17: cambian `archivo.name.lower().endswith(".in")` por formas que
+usan `upper()`, `XX.inXX` o `.IN`. Mutantes 23 y 26: omiten el límite de `split`
+o lo cambian a 2 al extraer el texto antes del primer `#`.
+
+**Prueba:** antes de la condición `.in`, el filtro `archivo.suffix.lower() !=
+".txt"` ya devuelve `False`; solo llega ahí un archivo `.txt`, que nunca termina
+en `.in`. Por tanto 15–17 no alteran salida. En 23 y 26, dividir por todos los
+`#` o por dos conserva exactamente el mismo primer segmento que dividir por uno.
+
+**Verificación (2026-10-31):** los cinco conservan salida con el contrato de 27
+comprobaciones. Los casos 24 (`rsplit`), 29 (`or` en el filtro) y 32 (prefijo de
+directiva alterado) sí cambian comportamiento y mueren con las nuevas fronteras
+`# --hash=... # nota` y `-r base.txt`. Evidencia:
+`build/es-lock-e19-verificacion.json`.
+
+**Contabilidad:** 51 mutantes objetivo: **46 muertos + 5 equivalentes, 0 brechas**.
+R3 permanece en **673 brechas** y sube de 90 a **95 equivalencias** por falta de
+distribución histórica detallada; no se recalcula la tasa global.

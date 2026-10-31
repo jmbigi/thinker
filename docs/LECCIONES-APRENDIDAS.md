@@ -4302,3 +4302,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   permanece en **673 brechas** y sube a **90 equivalencias** por falta de
   distribución histórica. Suite **1297/1297**. Evidencias:
   `build/es-test-r3-verificacion.json` y `build/es-test-e18-verificacion.json`.
+
+### Hallazgo 199: `_es_lock` cierra tres brechas sin confundir equivalencias
+
+- **Medición (2026-10-31)**: Thinker midió 23 líneas/complejidad 5 y no señaló
+  estilo. La campaña produjo 135 mutantes incluyendo `leer` y
+  `_parsear_requisito`; el clúster `_es_lock` tiene 51, con 43 muertos y ocho
+  supervivientes iniciales. No se mezclan los denominadores.
+- **Brechas**: 24 cambia `split` por `rsplit`, 29 cambia `and` por `or` al filtrar
+  líneas y 32 altera el prefijo de directiva. Dos casos adicionales, hash dentro
+  de un comentario y `-r` junto a un paquete fijado, matan los tres sin tocar
+  producción.
+- **Equivalencias**: 15–17 no tienen efecto porque el filtro de sufijo `.txt` ya
+  excluye `.in`; 23/26 conservan el primer segmento antes de `#`. Los cinco pasan
+  con salida idéntica y son E19, no brechas ocultas.
+- **Contabilidad**: **46 muertos + 5 equivalencias, 0 supervivientes**, con 27
+  comprobaciones y original restaurado verde. R3 permanece en **673 brechas** y
+  sube a **95 equivalencias**. Suite **1298/1298**. Evidencias:
+  `build/es-lock-r3-verificacion.json` y `build/es-lock-e19-verificacion.json`.
