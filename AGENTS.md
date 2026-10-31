@@ -352,9 +352,10 @@ mejora de código (`code_design_improvement_tools.py`).
   supervivientes cubiertos y 10/10 controles directos en total. Después,
   `plan_texto`: **39 muertos + 3 equivalencias**. Después,
   `_registro_decisiones`: **57/57 muertos**, con cuatro antiguos supervivientes
-  cubiertos. Estas funciones no se descuentan del inventario histórico porque su
+  cubiertos. Después, `_normalizar_release`: **20/20 muertos**, todos verificados
+  directamente. Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1290/1290 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1291/1291 en la suite
   Linux** (2026-10-31; openai 3.40.0 en el entorno actual, venv aislado con
   `pypdf` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado

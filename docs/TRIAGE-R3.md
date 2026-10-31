@@ -251,6 +251,14 @@ restaurado pasó. Evidencia: `build/decisiones-r3-verificacion.json`. La
 contabilidad permanece en **673 brechas + 86 equivalencias** por falta de
 distribución histórica.
 
+Cierre acotado de `_normalizar_release` (2026-10-31): **20 mutantes, 20 muertos
+y 0 supervivientes**. Una regresión fija entradas no numéricas, prefijos y
+sufijos, separadores y eliminación de ceros finales. Los 20 diffs fueron
+detectados al aplicarlos al módulo real y el original restaurado pasó. No fueron
+necesarios cambios de producción. Evidencia: `build/release-r3-verificacion.json`.
+La contabilidad permanece en **673 brechas + 86 equivalencias** por falta de
+distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

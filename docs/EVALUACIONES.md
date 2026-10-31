@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1290/1290** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1291/1291** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1005,3 +1005,12 @@ murieron y el original restaurado pasó. No hubo cambios de producción ni
 equivalencias. R3 permanece en **673 brechas + 86 equivalencias** por falta de
 distribución histórica detallada. Suite **1290/1290** en Linux (Python 3.11.9).
 Evidencia: `build/decisiones-r3-verificacion.json`. Hallazgo 188.
+
+**Actualización 2026-10-31** (cierre acotado de `_normalizar_release`): 20
+mutantes, **20 muertos y 0 supervivientes**. Una regresión con 15 casos fija
+valores no textuales, formatos no numéricos, separadores y ceros finales. Los
+20/20 diffs fueron detectados al aplicarlos al módulo real; el original
+restaurado pasó. No hubo cambios de producción ni equivalencias. R3 permanece
+en **673 brechas + 86 equivalencias** por falta de distribución histórica.
+Suite **1291/1291** en Linux (Python 3.11.9). Evidencia:
+`build/release-r3-verificacion.json`. Hallazgo 189.

@@ -2718,6 +2718,19 @@ class TestVigenciaContrato(unittest.TestCase):
                 self.assertFalse(any("Dependencia atrasada" in h.descripcion
                                      for h in dimension.hallazgos))
 
+    def test_normalizar_release_contrato_exacto(self):
+        casos = (
+            (None, None), (3, 3), ("", ""), ("v1.2", "v1.2"),
+            ("1.2rc1", "1.2rc1"), (".1", ".1"), ("1.", "1."),
+            ("1..0", "1..0"), ("0", "0"), ("0.0", "0"),
+            ("10", "10"), ("1.0.0", "1"), ("2.31.0.0", "2.31"),
+            ("1.0.1", "1.0.1"), ("00.010.0", "00.010"),
+        )
+        for entrada, esperada in casos:
+            with self.subTest(entrada=entrada):
+                self.assertEqual(
+                    evaluar_proyecto._normalizar_release(entrada), esperada)
+
     def test_v4_pypi_no_verificable(self):
         """Errores de PyPI: hallazgo UNVERIFIED con la lista exacta unida."""
         raiz = crear_proyecto(self, {

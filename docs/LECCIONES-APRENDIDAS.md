@@ -4149,3 +4149,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Contabilidad**: **57/57 muertos**, sin equivalencias. R3 permanece en
   **673 brechas + 86 equivalencias** por falta de distribución histórica.
   Suite **1290/1290**. Evidencia: `build/decisiones-r3-verificacion.json`.
+
+### Hallazgo 189: `_normalizar_release` fija su contrato de bordes
+
+- **Medición (2026-10-31)**: Thinker midió 7 líneas, complejidad 2 y ninguna
+  incidencia de estilo. La campaña aislada generó 20 mutantes, todos detectados
+  por la nueva regresión. La medición usa la función aislada y el mismo contrato;
+  no es una nueva tasa global del evaluador.
+- **Regresión y verificación**: quince casos fijan entradas no textuales,
+  versiones con prefijo/sufijo, separadores incompletos y ceros finales. Los
+  **20/20 diffs** aplicados al módulo real fallaron; el original restaurado pasó
+  las 235 pruebas del evaluador. No se cambió producción.
+- **Contabilidad**: R3 permanece en **673 brechas + 86 equivalencias** por falta
+  de distribución histórica. Suite **1291/1291**. Evidencia:
+  `build/release-r3-verificacion.json`.
