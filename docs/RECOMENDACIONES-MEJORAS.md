@@ -54,8 +54,8 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1295/1295** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
-| CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
+| Suite completa | **1296/1296** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
+| CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 2 N/A: `v4`, `h5`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.42.0** con hashes (2026-10-31) | `requirements.lock` |

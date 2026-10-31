@@ -4258,3 +4258,16 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Verificación**: suite **1295/1295** en Linux (Python 3.11.9). La publicación
   de `0.1.16` se validará por separado con wheel, sdist e instalación desde los
   índices; este hallazgo no declara esa disponibilidad anticipadamente.
+
+### Hallazgo 196: la CI no debe depender de un comando prohibido
+
+- **Problema (2026-10-31)**: `make ci` exportaba `HEAD` correctamente, pero su
+  `trap` ejecutaba `rm -rf`, prohibido por P0.3. No se ejecutó esa versión.
+- **Solución**: `limpiar_temporal` usa Python, resuelve la ruta generada por
+  `mktemp`, exige directorio con prefijo `tmp` y solo entonces aplica
+  `shutil.rmtree`. No recibe una ruta del proyecto ni contenido externo.
+- **Verificación**: `bash -n` y 3/3 pruebas de `test_guardrails`; una regresión
+  exige ausencia de `rm -rf` y presencia de la limpieza validada. Thinker analizó
+  la guarda antes del cambio y descartó fijar `/tmp` porque el entorno usa otro
+  `TMPDIR`. Suite **1296/1296**. La CI real se comprueba desde el commit antes
+  de crear el tag de `0.1.16`.

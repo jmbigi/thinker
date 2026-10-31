@@ -99,8 +99,9 @@ Paquete `thinker-research 0.1.16` (wheel y sdist). Cambios desde 0.1.15:
 - El verificador de instalación reconoce `packaging`, calcula el recuento real
   de módulos y separa el extra opcional `ml`: no exige `torch` en la instalación
   normal ni confunde su ausencia con un paquete roto.
+- La CI local limpia su temporal con Python y validación de ruta, sin `rm -rf`.
 
-Métricas: suite **1295/1295**, 7/7 gates PASS y R3 **673 brechas + 88
+Métricas: suite **1296/1296**, 7/7 gates PASS y R3 **673 brechas + 88
 equivalencias**. Estado: publicada en TestPyPI y PyPI el 2026-10-31, con
 artefactos construidos desde el tag anotado `v0.1.16`, hashes e instalaciones
 verificados en ambos índices. Los hashes se registran en un commit documental

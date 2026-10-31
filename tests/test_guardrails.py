@@ -36,6 +36,14 @@ class TestCadenaDeSalvaguardas(unittest.TestCase):
         self.assertIn("check: lint preflight docs-check test secrets ci", texto)
         self.assertIn("scripts/hooks/pre-commit", texto)
 
+    def test_ci_limpia_su_temporal_sin_rm_rf(self):
+        texto = (RAIZ / "scripts" / "ci.sh").read_text(encoding="utf-8")
+
+        self.assertNotIn("rm -rf", texto)
+        self.assertIn("limpiar_temporal", texto)
+        self.assertIn("shutil.rmtree(ruta)", texto)
+        self.assertIn('ruta.name.startswith("tmp")', texto)
+
 
 if __name__ == "__main__":
     unittest.main()

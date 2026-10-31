@@ -17,7 +17,19 @@ if ! destino=$(mktemp -d); then
     echo "[ci] mktemp falló; reintentando con TMPDIR=/tmp" >&2
     destino=$(TMPDIR=/tmp mktemp -d)
 fi
-trap 'rm -rf "$destino"' EXIT
+limpiar_temporal() {
+    python3 - "$destino" <<'PY'
+import shutil
+import sys
+from pathlib import Path
+
+ruta = Path(sys.argv[1]).resolve()
+if not ruta.is_dir() or not ruta.name.startswith("tmp"):
+    raise ValueError(f"Destino temporal inválido: {ruta}")
+shutil.rmtree(ruta)
+PY
+}
+trap limpiar_temporal EXIT
 
 echo "[ci] exportando HEAD a copia limpia: $destino"
 git archive HEAD | tar -x -C "$destino"

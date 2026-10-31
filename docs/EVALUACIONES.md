@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1295/1295** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1296/1296** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1075,3 +1075,10 @@ Suite **1295/1295** en Linux (Python 3.11.9). La publicación queda condicionada
 a la validación del
 wheel/sdist y a la instalación desde TestPyPI y PyPI; no se declara aquí antes
 de comprobarla. Evidencia de gates: `docs/informe-calidad.json`. Hallazgo 195.
+
+**Actualización 2026-10-31** (CI sin `rm -rf`): la limpieza temporal de
+`scripts/ci.sh` usaba un comando prohibido por las reglas. Se sustituye por
+Python con validación del directorio generado por `mktemp`; una regresión impide
+reintroducirlo. `bash -n` y 3/3 pruebas de salvaguarda pasan.
+Suite **1296/1296** en Linux (Python 3.11.9). La CI estándar se ejecuta sobre
+el commit que contiene esta corrección antes del tag `v0.1.16`. Hallazgo 196.
