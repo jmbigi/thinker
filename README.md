@@ -84,11 +84,11 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.15   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.15            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.16   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.16            # desde PyPI
 ```
 
-La versión `0.1.15` está publicada en TestPyPI y PyPI. La instalación por tag
+La versión `0.1.16` está publicada en TestPyPI y PyPI. La instalación por tag
 sigue disponible y no requiere PyPI ni claves. Estado de la publicación:
 `docs/PUBLICACION.md`.
 
@@ -386,7 +386,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1294/1294** | 1128 → 1232 → 1249 → 1294 tests (**+14,7%** desde 1128) |
+| Suite Linux | **1295/1295** | 1128 → 1232 → 1249 → 1295 tests (**+14,8%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |

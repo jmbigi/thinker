@@ -13,8 +13,9 @@ con `--no-index --no-deps` y comprueba, desde un CWD ajeno al repo:
   SOLO por esa dependencia ausente — es decir, el paquete está bien formado
   y lo que falta es la dependencia declarada, no código del paquete.
 
-Nivel 2 (`--con-red`, opt-in): instala además las dependencias declaradas e
-importa los 8 módulos públicos y ejecuta los console scripts con `--help`.
+Nivel 2 (`--con-red`, opt-in): instala además las dependencias declaradas,
+importa los módulos obligatorios, verifica el extra `ml` por separado y ejecuta
+los console scripts con `--help`.
 
 Read-only sobre el repo: todo se construye en temporales que se limpian.
 Exit 0 si todas las comprobaciones pasan, 1 en caso contrario.
@@ -39,11 +40,13 @@ MODULOS_CON_DEPS = ("web_search", "deep_research_system", "documents", "efficien
                     "concept_ncm", "mcp_client", "neural_concepts", "privacy",
                     "research_state", "research_cli", "pensamiento_layer",
                     "evaluar_proyecto")
+MODULOS_ML_OPCIONALES = ("neural_concepts",)
 CONSOLE_SCRIPTS = ("evaluate-project", "think", "research", "code-design")
 # Dependencias de terceros que el venv sin deps no tiene: su ImportError es lo
 # ESPERADO en el nivel offline; cualquier otro ImportError es un defecto del
 # paquete.
-DEPS_TERCEROS = ("requests", "openai", "yaml", "dotenv", "ollama", "torch")
+DEPS_TERCEROS = ("requests", "openai", "yaml", "dotenv", "ollama", "torch",
+                 "packaging")
 
 
 def _bin_dir(venv_dir: Path) -> Path:
@@ -151,12 +154,22 @@ def _verificar_imports(venv_dir: Path, con_red: bool, v: _Verificador,
                        cwd: Path) -> None:
     python = _python_venv(venv_dir)
     if con_red:
-        modulos = MODULOS_STDLIB + MODULOS_CON_DEPS
+        modulos = tuple(modulo for modulo in MODULOS_STDLIB + MODULOS_CON_DEPS
+                        if modulo not in MODULOS_ML_OPCIONALES)
         proc = _ejecutar([str(python), "-c",
                           "import " + ", ".join(modulos)], cwd=cwd)
         v.check(proc.returncode == 0,
-                "los 8 módulos públicos + paquetes importan con deps",
+                f"{len(modulos)} módulos obligatorios importan con deps",
                 proc.stderr.strip()[:200] if proc.returncode else "")
+        for modulo in MODULOS_ML_OPCIONALES:
+            proc = _ejecutar([str(python), "-c", f"import {modulo}"], cwd=cwd)
+            if proc.returncode == 0:
+                v.check(True, f"import {modulo} (extra ml presente)")
+                continue
+            ultimo = proc.stderr.strip().splitlines()[-1] if proc.stderr else ""
+            v.check("ModuleNotFoundError" in ultimo and "'torch'" in ultimo,
+                    f"import {modulo} declara la ausencia del extra ml",
+                    ultimo[:150])
         return
     for modulo in MODULOS_STDLIB:
         proc = _ejecutar([str(python), "-c", f"import {modulo}"], cwd=cwd)

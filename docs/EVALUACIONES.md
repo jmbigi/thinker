@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1294/1294** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1295/1295** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1064,3 +1064,14 @@ cambios de producción ni equivalencias. R3 permanece en **673 brechas + 88
 equivalencias** por falta de distribución histórica.
 Suite **1294/1294** en Linux (Python 3.11.9). Evidencia:
 `build/lock-python-r3-verificacion.json`. Hallazgo 194.
+
+**Actualización 2026-10-31** (preparación de `0.1.16`): se añade `packaging`
+al contrato offline de `scripts/verificar_instalacion.py` y se elimina el texto
+obsoleto «8 módulos» en favor del recuento real y se separa el extra opcional
+`ml`: la instalación normal no exige `torch`, pero cualquier otro ImportError
+sigue fallando. Una regresión impide omitir la nueva dependencia en instalaciones
+sin dependencias.
+Suite **1295/1295** en Linux (Python 3.11.9). La publicación queda condicionada
+a la validación del
+wheel/sdist y a la instalación desde TestPyPI y PyPI; no se declara aquí antes
+de comprobarla. Evidencia de gates: `docs/informe-calidad.json`. Hallazgo 195.

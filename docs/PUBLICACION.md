@@ -1,10 +1,10 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-10-28: **versión `0.1.15` publicada en TestPyPI y PyPI**.
+> Estado al 2026-10-31: **versión `0.1.16` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
-> `v0.1.14` y `v0.1.15` empujados; `v0.1.2` a `v0.1.15` son anotados. `0.1.2` **no
+> `v0.1.14`, `v0.1.15` y `v0.1.16` empujados; `v0.1.2` a `v0.1.16` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -16,7 +16,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.15`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.16`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -25,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.15*`.
+  `dist/thinker_research-0.1.16*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -53,6 +53,9 @@
 - **Publicación completada de `0.1.15`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.15` (`6d81fc5`) y verificación limpia; ver la
   sección 0.1.15.
+- **Publicación completada de `0.1.16`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.16` y verificación limpia; ver la sección
+  0.1.16.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -81,6 +84,27 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.16 (2026-10-31)
+
+Paquete `thinker-research 0.1.16` (wheel y sdist). Cambios desde 0.1.15:
+
+- `evaluar_vigencia` usa `packaging.version.Version` para comparar versiones
+  PEP 440: una instalada más nueva que PyPI ya no se marca como atrasada y una
+  versión inválida queda no verificada, sin inventar un atraso.
+- Nueva dependencia `packaging 26.3`; lock con hashes, `openai 3.42.0` y
+  Pydantic 2.14.2 verificados en un venv aislado. pip-audit no encontró
+  vulnerabilidades conocidas.
+- Regresiones de clasificación de locks Python y del contrato PEP 440.
+- El verificador de instalación reconoce `packaging`, calcula el recuento real
+  de módulos y separa el extra opcional `ml`: no exige `torch` en la instalación
+  normal ni confunde su ausencia con un paquete roto.
+
+Métricas: suite **1295/1295**, 7/7 gates PASS y R3 **673 brechas + 88
+equivalencias**. Estado: publicada en TestPyPI y PyPI el 2026-10-31, con
+artefactos construidos desde el tag anotado `v0.1.16`, hashes e instalaciones
+verificados en ambos índices. Los hashes se registran en un commit documental
+posterior para no alterar los artefactos medidos.
 
 ## Versión 0.1.15 (2026-10-28)
 

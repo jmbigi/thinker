@@ -361,7 +361,7 @@ mejora de código (`code_design_improvement_tools.py`).
   Después, `_es_lock_python`: **12/12 muertos**, todos verificados directamente.
   Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1294/1294 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1295/1295 en la suite
   Linux** (2026-10-31; openai 3.42.0 y `packaging 26.3` en venv aislado desde el
   lock, con `ruff` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
@@ -406,10 +406,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.15` publicado en TestPyPI y PyPI; tags
-  `v0.1.0` a `v0.1.15` empujados, `v0.1.2` a `v0.1.15` anotados; instalación
-  `pip install thinker-research==0.1.15` o por tag con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.15`; sin
+  (`thinker-research 0.1.16` publicado en TestPyPI y PyPI; tags
+  `v0.1.0` a `v0.1.16` empujados, `v0.1.2` a `v0.1.16` anotados; instalación
+  `pip install thinker-research==0.1.16` o por tag con
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.16`; sin
   GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
   cuentas de GitHub (regla 12).
 - Paquete instalable (desde 2026-10-20): `pip install .` o

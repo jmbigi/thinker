@@ -39,10 +39,15 @@ class TestContratoVerificadorInstalacion(unittest.TestCase):
         _, _, scripts = _listas_pyproject()
         self.assertEqual(set(vi.CONSOLE_SCRIPTS), scripts)
 
+    def test_dependencias_externas_y_extra_ml_son_explicitos(self):
+        self.assertIn("packaging", vi.DEPS_TERCEROS)
+        self.assertEqual(set(vi.MODULOS_ML_OPCIONALES), {"neural_concepts"})
+        self.assertLess(set(vi.MODULOS_ML_OPCIONALES), set(vi.MODULOS_CON_DEPS))
+
     def test_modulos_stdlib_no_importan_terceros_en_cabecera(self):
         # La lista MODULOS_STDLIB promete importar sin dependencias: sus
         # imports de nivel módulo deben ser stdlib o internos del proyecto.
-        terceros = {"requests", "openai", "yaml", "dotenv", "ollama"}
+        terceros = {"requests", "openai", "yaml", "dotenv", "ollama", "packaging"}
         for modulo in vi.MODULOS_STDLIB:
             ruta = RAIZ / (modulo.replace(".", "/") + ".py")
             if not ruta.exists():

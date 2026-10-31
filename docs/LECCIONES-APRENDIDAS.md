@@ -4243,3 +4243,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   el original restaurado pasó 238 pruebas del evaluador. R3 permanece en **673
   brechas + 88 equivalencias** por falta de distribución histórica. Suite
   **1294/1294**. Evidencia: `build/lock-python-r3-verificacion.json`.
+
+### Hallazgo 195: el verificador de instalación debe seguir las dependencias reales
+
+- **Problema (2026-10-31)**: al añadir `packaging`, el nivel offline del
+  verificador no la declaraba como dependencia externa esperada y el nivel con
+  red seguía anunciando «8 módulos» aunque su contrato ya cubría más módulos.
+- **Solución**: `DEPS_TERCEROS` incluye `packaging`, el mensaje calcula el
+  recuento real y el docstring deja de fijar una cifra obsoleta. La instalación
+  normal verifica los módulos obligatorios y `neural_concepts` por separado:
+  puede tener `torch` o declarar la ausencia del extra `ml`; otros errores siguen
+  fallando. Una regresión fija ambos contratos y la comprobación AST reconoce
+  `packaging`.
+- **Verificación**: suite **1295/1295** en Linux (Python 3.11.9). La publicación
+  de `0.1.16` se validará por separado con wheel, sdist e instalación desde los
+  índices; este hallazgo no declara esa disponibilidad anticipadamente.
