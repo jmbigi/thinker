@@ -4124,3 +4124,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Contabilidad**: **90/90 muertos**, sin equivalencias. R3 permanece en
   **673 brechas + 85 equivalencias** por falta de distribución histórica.
   Suite **1288/1288**. Evidencia: `build/entry-r3-verificacion.json`.
+
+### Hallazgo 187: `plan_texto` cierra con 39 muertos y 3 equivalencias
+
+- **Medición (2026-10-31)**: Thinker comparó tres candidatos y eligió esta función
+  de 13 líneas/complejidad 2. La campaña produjo 42 mutantes: 33 muertos y 9
+  supervivientes.
+- **Regresión y equivalencias**: una prueba fija el mensaje vacío y el resumen
+  exacto con `media` antes de `alta`. Esto mata 35 por orden estable. Los casos
+  3/5 (`None` frente a `[]`) y 41 (`baja=3` sin cambiar el orden) demostraron ser
+  equivalentes con salidas idénticas (E16).
+- **Contabilidad**: **39 muertos + 3 equivalencias, 0 supervivientes**. Los otros
+  seis supervivientes murieron y diez controles fueron confirmados; el original
+  restaurado pasó. R3 permanece en **673 brechas** y sube a **86 equivalencias**.
+  Suite **1289/1289**. Evidencia: `build/plan-r3-verificacion.json`.

@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `1c9705b`
+**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `711e541`
 más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -16,8 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 85 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado` y
-`_tiene_punto_entrada` (Hallazgos 167-186), 0 timeouts | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 86 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`, `_tiene_punto_entrada` y `plan_texto` (Hallazgos 167-187), 0 timeouts | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -30,7 +29,7 @@ pendiente.
 
 **Estado de decisiones (2026-10-26; R3 actualizado el 2026-10-31):** R5-A,
 R6-C, R13-B/C y R14-B/C implementadas; R3-C en ejecución (preflight 49: 49
-equivalencias y 0 brechas; evaluador **673 brechas + 36 equivalencias**; 0
+equivalencias y 0 brechas; evaluador **673 brechas + 39 equivalencias**; 0
 timeouts). **R4 se cierra por alcance offline**: 26/29 criterios medidos y 3 N/A
 declaradas, no una validación global. R3 es la deuda P1 y sigue abierta.
 R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
@@ -489,6 +488,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | Regla 16 (2026-10-31, métricas y resumen de calidad) | `evaluar_proyecto`, `scripts/informe_calidad.py` y `check_docs` | La autoevaluación real corrigió el estado offline a **1.000 (27/29; 2 N/A)**; los deltas guiaron el resumen: +121 tests y −458 brechas R3 | **7/7 gates PASS**, 1249/1249 tests y holdout 4/4; evolución y gráfico breve publicados en README; detalle y límites enlazados |
 | R3 (2026-10-31, cierre `_linter_configurado`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos y eligió 22 líneas/complejidad 7; la muestra directa detectó 60/70 vivos pese al 79/79 inicial | E15 demostrada en seis variantes; regresión de `eslint.config.js` mata 70; otros ocho controles y original verdes; **78 muertos + 1 equivalencia**; R3: **673 brechas + 85 equivalencias** |
 | R3 (2026-10-31, cierre `_tiene_punto_entrada`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 32 líneas/complejidad 11; la muestra directa detectó 60 y 80 vivos pese al 90/90 de campaña | Una regresión con `console_scripts`, solo `bin` y solo `main` mata ambos; otros ocho controles y original verdes; **90/90 muertos**; R3 permanece en **673 brechas + 85 equivalencias**; suite **1288/1288** |
+| R3 (2026-10-31, cierre `plan_texto`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos y eligió 13 líneas/complejidad 2; la campaña produjo 33 muertos y 9 supervivientes | Una regresión mata 35 por orden estable; 3/5/41 son E16 con salidas idénticas; otros seis supervivientes y diez controles mueren; **39 muertos + 3 equivalencias**; R3: **673 brechas + 86 equivalencias**; suite **1289/1289** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -552,7 +552,9 @@ declaradas). **Pendiente de ejecución:**
    `_linter_configurado` cerró con **78 muertos + 1 equivalencia (E15)** y una
    regresión de `eslint.config.js` (Hallazgo 185): **673 brechas + 85
    equivalencias**. `_tiene_punto_entrada` añadió después una regresión y confirmó
-   **90/90 muertos** (Hallazgo 186), con la suite en **1288/1288**.
+   **90/90 muertos** (Hallazgo 186), con la suite en **1288/1288**. `plan_texto`
+   cerró después con **39 muertos + 3 equivalencias (E16)** y suite **1289/1289**
+   (Hallazgo 187): R3 queda en **673 brechas + 86 equivalencias**.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
@@ -624,7 +626,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1288/1288 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1289/1289 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

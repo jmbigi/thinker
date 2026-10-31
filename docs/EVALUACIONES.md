@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1288/1288** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1289/1289** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -986,3 +986,13 @@ cambios de producción ni equivalencias. R3 permanece en **673 brechas + 85
 equivalencias** por falta de distribución histórica detallada.
 Suite **1288/1288** en Linux (Python 3.11.9). Evidencia:
 `build/entry-r3-verificacion.json`. Hallazgo 186.
+
+**Actualización 2026-10-31** (cierre acotado de `plan_texto`): 42 mutantes,
+**39 muertos + 3 equivalencias (E16), 0 supervivientes**. La campaña produjo 33
+muertos y 9 brechas. Una regresión fija el mensaje vacío y el orden exacto con
+`media` antes de `alta`, matando 35 por orden estable. Los casos 3/5 y 41 conservan
+salidas idénticas y son equivalentes; los otros seis supervivientes y diez
+controles murieron, con el original restaurado verde. R3 permanece en
+**673 brechas** y sube a **86 equivalencias** por falta de distribución histórica.
+Suite **1289/1289** en Linux (Python 3.11.9). Evidencia:
+`build/plan-r3-verificacion.json`. Hallazgo 187.

@@ -444,3 +444,22 @@ Evidencia: `build/linter-r3-verificacion.json`.
 **Contabilidad:** 79 mutantes: **78 muertos + 1 equivalente, 0 supervivientes**.
 R3 permanece en **673 brechas** y sube de 84 a **85 equivalencias** por falta de
 distribución histórica detallada; no se recalcula la tasa global.
+
+### E16. Defaults falsy y orden estable no alteran `plan_texto` (3)
+
+Mutantes 3 y 5: `informe.get("mejoras", [])` pasa a `None` o elimina el default.
+Mutante 41: el peso de `baja` cambia de 2 a 3.
+
+**Prueba:** en 3/5, `None` y `[]` son falsy y producen el mismo mensaje de plan
+vacío. En 41, la prioridad `baja` sigue después de `alta` y `media`, por lo que el
+orden no cambia. Original y mutantes devuelven exactamente las mismas líneas en
+ambos contratos.
+
+**Verificación (2026-10-31):** los tres mutantes pasan la selección y sus salidas
+son idénticas al original. El mutante 35, que da el mismo peso a `alta` y `media`,
+sí cambia el orden estable cuando `media` aparece antes que `alta`; la regresión lo
+detecta. El original restaurado pasó. Evidencia: `build/plan-r3-verificacion.json`.
+
+**Contabilidad:** 42 mutantes: **39 muertos + 3 equivalentes, 0 supervivientes**.
+R3 permanece en **673 brechas** y sube de 85 a **86 equivalencias** por falta de
+distribución histórica detallada; no se recalcula la tasa global.

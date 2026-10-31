@@ -118,6 +118,20 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertIn("Plan de mejora:", resumen)
         self.assertIn("alta", resumen)
 
+    def test_plan_texto_vacio_y_orden_exacto(self):
+        from evaluar_proyecto import plan_texto
+
+        self.assertEqual(plan_texto({}), [
+            "Plan de mejora: nada que proponer (todos los criterios cumplen)."])
+        informe = {"mejoras": [
+            {"prioridad": "media"}, {"prioridad": "baja"},
+            {"prioridad": "alta"}, {"prioridad": "alta"},
+        ]}
+
+        self.assertEqual(plan_texto(informe), [
+            "Plan de mejora: 4 propuestas (2 alta, 1 media, 1 baja); "
+            "ordenadas por prioridad, secuencia y esfuerzo."])
+
     def test_sintesis_llm_marca_el_respaldo_de_cada_propuesta(self):
         from evaluar_proyecto import sintetizar_con_llm
         from tests.helpers import StubLLM
