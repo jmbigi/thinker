@@ -227,6 +227,14 @@ murieron y el original restaurado pasó. Evidencia:
 `build/linter-r3-verificacion.json`. La contabilidad permanece en **673 brechas**
 y sube a **85 equivalencias** por falta de distribución histórica.
 
+Cierre acotado de `_tiene_punto_entrada` (2026-10-31): **90 mutantes, 90
+muertos y 0 supervivientes**. La muestra directa detectó 60 y 80 vivos pese al
+90/90 inicial: faltaban `setup.cfg` con `console_scripts` y `package.json` con
+solo `bin` o solo `main`. Una regresión con tres subcasos mata ambos; otros ocho
+controles murieron y el original restaurado pasó. Evidencia:
+`build/entry-r3-verificacion.json`. La contabilidad permanece en
+**673 brechas + 85 equivalencias** por falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

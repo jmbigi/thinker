@@ -4112,3 +4112,15 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   cambios de producción ni nuevos tests. R3 permanece en **673 brechas** y sube
   a **85 equivalencias** por falta de distribución histórica. Suite **1287/1287**.
   Evidencia: `build/linter-r3-verificacion.json`.
+
+### Hallazgo 186: `_tiene_punto_entrada` cierra dos brechas con una regresión
+
+- **Medición y anomalía (2026-10-31)**: Thinker midió 32 líneas/complejidad 11,
+  sin incidencias. La campaña declaró 90/90 muertos, pero la muestra directa
+  encontró 60 y 80 vivos; otros ocho murieron y el original restaurado pasó.
+- **Regresiones**: 60 elimina la detección de `setup.cfg` y 80 exige `bin` y
+  `main` a la vez. Una prueba con `console_scripts`, solo `bin` y solo `main`
+  fija los tres contratos y mata ambos, sin cambios de producción.
+- **Contabilidad**: **90/90 muertos**, sin equivalencias. R3 permanece en
+  **673 brechas + 85 equivalencias** por falta de distribución histórica.
+  Suite **1288/1288**. Evidencia: `build/entry-r3-verificacion.json`.

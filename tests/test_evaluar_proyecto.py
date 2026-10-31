@@ -3343,6 +3343,22 @@ class TestPuntosDeEntradaYMain(unittest.TestCase):
             "Main.java", "app.py", "main.go", "package.json (bin/main)",
             "pkg/__main__.py", "pyproject.toml ([project.scripts])"])
 
+    def test_puntos_de_entrada_setup_cfg_y_bin_o_main_independientes(self):
+        casos = [
+            ({"setup.cfg": "[options.entry_points]\nconsole_scripts=x=pkg:main\n"},
+             ["setup.cfg (console_scripts)"]),
+            ({"package.json": '{"bin": "cli.js"}'},
+             ["package.json (bin/main)"]),
+            ({"package.json": '{"main": "index.js"}'},
+             ["package.json (bin/main)"]),
+        ]
+        for archivos, esperado in casos:
+            with self.subTest(archivos=archivos):
+                raiz = crear_proyecto(self, archivos)
+                perfil = evaluar_proyecto.analizar_perfil(raiz)
+                self.assertEqual(
+                    evaluar_proyecto._tiene_punto_entrada(raiz, perfil), esperado)
+
     def test_sin_puntos_de_entrada(self):
         raiz = crear_proyecto(self, {"lib.py": "def f():\n    return 1\n"})
         perfil = evaluar_proyecto.analizar_perfil(raiz)

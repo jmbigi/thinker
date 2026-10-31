@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1287/1287** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1288/1288** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -976,3 +976,13 @@ producción ni nuevos tests. R3 permanece en **673 brechas** y sube a
 **85 equivalencias** por falta de distribución histórica detallada.
 Suite **1287/1287** en Linux (Python 3.11.9). Evidencia:
 `build/linter-r3-verificacion.json`. Hallazgo 185.
+
+**Actualización 2026-10-31** (cierre acotado de `_tiene_punto_entrada`): 90
+mutantes, **90 muertos y 0 supervivientes**. La muestra directa detectó 60 y 80
+vivos pese al 90/90 inicial: faltaban `setup.cfg` con `console_scripts` y
+`package.json` con solo `bin` o solo `main`. Una regresión con tres subcasos mata
+ambos; otros ocho controles murieron y el original restaurado pasó. No hubo
+cambios de producción ni equivalencias. R3 permanece en **673 brechas + 85
+equivalencias** por falta de distribución histórica detallada.
+Suite **1288/1288** en Linux (Python 3.11.9). Evidencia:
+`build/entry-r3-verificacion.json`. Hallazgo 186.
