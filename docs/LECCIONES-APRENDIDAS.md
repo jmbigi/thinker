@@ -3992,3 +3992,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   disponible. Por tanto R3 permanece en **673 brechas + 84 equivalencias** y la
   suite en **1241/1241**: el resultado actual es evidencia de detección, no un
   descuento histórico inventado.
+
+### Hallazgo 178: `_digesto` cierra 13 brechas con tres regresiones
+
+- **Medición (2026-10-31)**: Thinker comparó tres candidatos y eligió `_digesto`
+  por su alcance acotado: 21 líneas, 1 función y complejidad 3, sin incidencias.
+  La campaña produjo 68 mutantes: 55 muertos y 13 supervivientes.
+- **Regresiones**: tres pruebas fijan el límite por defecto de 20 hallazgos, la
+  cobertura ausente con interrogantes y el marcador `—` cuando no hay fallos.
+  No se cambió producción.
+- **Verificación y contabilidad**: los **13/13 supervivientes** y una muestra de
+  **10/10 mutantes ya muertos** fueron detectados; el original restaurado pasó.
+  Resultado actual: **68/68 muertos**, sin equivalencias. R3 permanece en
+  **673 brechas + 84 equivalencias** por falta de distribución histórica; no se
+  inventa un descuento. Suite **1244/1244**. Evidencia:
+  `build/digesto-r3-verificacion.json`.

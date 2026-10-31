@@ -4069,6 +4069,45 @@ class TestDigestoCalidadErrorYH5(unittest.TestCase):
             "    [VERIFIED-REAL] (alta) " + "x" * 110 + " — a.py:1",
             "    · n1"]))
 
+    def test_digesto_limita_a_veinte_hallazgos_por_defecto(self):
+        informe = {
+            "ruta": "/p", "archivos_python": 0, "lineas_python": 0,
+            "cobertura": {},
+            "dimensiones": {"calidad": {
+                "puntuacion": 1.0, "criterios": {},
+                "hallazgos": [{"tipo_evidencia": "verified-real",
+                               "severidad": "baja", "descripcion": f"h{i}",
+                               "evidencia": f"a.py:{i}"} for i in range(21)],
+                "notas": []}},
+        }
+
+        lineas = [linea for linea in evaluar_proyecto._digesto(informe).splitlines()
+                  if "[VERIFIED-REAL]" in linea]
+
+        self.assertEqual(len(lineas), 20)
+        self.assertTrue(lineas[-1].endswith("— a.py:19"))
+        self.assertNotIn("a.py:20", "\n".join(lineas))
+
+    def test_digesto_cobertura_ausente_usa_interrogantes(self):
+        informe = {"ruta": "/p", "archivos_python": 0, "lineas_python": 0,
+                   "dimensiones": {}}
+
+        self.assertEqual(evaluar_proyecto._digesto(informe), "\n".join([
+            "ruta: /p", "python: 0 archivos / 0 líneas",
+            "cobertura: ? criterios evaluados, ? N/A (nivel ?)"]))
+
+    def test_digesto_sin_fallos_usa_guion_largo(self):
+        informe = {
+            "ruta": "/p", "archivos_python": 0, "lineas_python": 0,
+            "cobertura": {},
+            "dimensiones": {"calidad": {
+                "puntuacion": 1.0, "criterios": {"c1": True},
+                "hallazgos": [], "notas": []}},
+        }
+
+        self.assertIn("- calidad: 1.00 | fallos: —",
+                      evaluar_proyecto._digesto(informe))
+
     def test_calidad_error_ejecutado_y_sin_ejecutar(self):
         raiz = crear_proyecto(self, {"app.py": "def f():\n    return 1\n"})
         perfil = evaluar_proyecto.analizar_perfil(raiz)

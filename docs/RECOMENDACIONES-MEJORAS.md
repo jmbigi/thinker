@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `8f0fbf7`
+**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `11b6c54`
 más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -480,6 +480,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-31, cierre `evaluar_inteligencia`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 36 líneas, 1 función y complejidad 4, sin incidencias; la muestra directa detectó dos supervivientes pese al 139/139 de campaña | Una regresión de contrato mata 130/139; otras siete muertes directas y original restaurado; **732→702 brechas**, 84 equivalencias intactas; suite **1234/1234** |
 | R3 (2026-10-31, cierre `sintetizar_con_llm`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 44 líneas, 1 función y complejidad 5; la campaña reprodujo 110 muertos y 29 brechas | Siete regresiones nuevas; **29/29 supervivientes y 10/10 controles detectados**, original restaurado; **702→673 brechas**, 84 equivalencias intactas; suite **1241/1241** |
 | R3 (2026-10-31, re-medición `evaluar_eficiencia`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 66 líneas, 1 función y complejidad 10; la campaña produjo 190 mutantes y 0 supervivientes | 10/10 muertes directas, original restaurado; sin cambios de producción ni tests; R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución histórica |
+| R3 (2026-10-31, cierre `_digesto`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos y eligió `_digesto`: 21 líneas/complejidad 3; la campaña produjo 55 muertos y 13 supervivientes | Tres regresiones nuevas; **13/13 supervivientes y 10/10 controles detectados**, original restaurado; **68/68 muertos**; R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución histórica; suite **1244/1244** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -529,7 +530,9 @@ declaradas). **Pendiente de ejecución:**
    (tasa histórica: 4846/5984; 80,98%); no cerrar hasta 0 brechas.
    La re-medición de `evaluar_eficiencia` confirmó **190/190 muertos** y 10/10
    controles directos (Hallazgo 177), sin cambiar el conteo por falta de
-   distribución histórica detallada.
+   distribución histórica detallada. El cierre de `_digesto` añadió tres
+   regresiones y confirmó **68/68 muertos** (13 antiguos supervivientes y 10/10
+   controles; Hallazgo 178), con el mismo límite de contabilidad.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
@@ -601,7 +604,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1241/1241 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1244/1244 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

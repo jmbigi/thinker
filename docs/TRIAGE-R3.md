@@ -181,6 +181,14 @@ producción ni tests. Evidencia: `build/eficiencia-r3-verificacion.json`. La
 contabilidad permanece en **673 brechas + 84 equivalencias**: sin la distribución
 histórica detallada no se asigna un descuento.
 
+Cierre acotado de `_digesto` (2026-10-31): **68 mutantes, 68 muertos y 0
+supervivientes**. La campaña inicial produjo 55 muertos y 13 brechas. Tres
+regresiones fijan el límite de 20 hallazgos, los defaults de cobertura y el
+marcador sin fallos. Los 13 supervivientes y diez controles fueron detectados al
+aplicar sus diffs, con el original restaurado verde. Evidencia:
+`build/digesto-r3-verificacion.json`. La contabilidad permanece en **673 brechas
++ 84 equivalencias** por falta de distribución histórica detallada.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

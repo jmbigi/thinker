@@ -331,9 +331,11 @@ mejora de código (`code_design_improvement_tools.py`).
   lote, `sintetizar_con_llm`: **139/139 muertos**; clúster 29 → 0.
   R3 queda en **673 brechas + 84 equivalencias**, sin una nueva tasa global.
   Re-medición acotada adicional de `evaluar_eficiencia`: **190/190 muertos**,
-  con 10/10 muertes de una muestra directa; no se descuenta del inventario
-  histórico porque su distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1241/1241 en la suite
+  con 10/10 muertes de una muestra directa. Después, `_digesto`: **68/68
+  muertos**, incluidos 13 antiguos supervivientes y 10/10 controles directos.
+  Estas dos funciones no se descuentan del inventario histórico porque su
+  distribución detallada no está disponible.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1244/1244 en la suite
   Linux** (2026-10-31; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con

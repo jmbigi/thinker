@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1241/1241** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1244/1244** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -871,3 +871,13 @@ tests. Suite **1241/1241** en Linux (Python 3.11.9). R3 se mantiene en
 **673 brechas + 84 equivalencias** porque la distribución histórica detallada no
 está disponible y no se inventa un descuento. Evidencia:
 `build/eficiencia-r3-verificacion.json`. Hallazgo 177.
+
+**Actualización 2026-10-31** (cierre acotado de `_digesto`): campaña de 68
+mutantes, inicialmente 55 muertos y 13 supervivientes. Tres regresiones fijan el
+límite por defecto de 20 hallazgos, los interrogantes de cobertura ausente y el
+marcador `—` sin fallos. Los **13/13 supervivientes** y diez controles fueron
+detectados directamente; el original restaurado pasó. Resultado: **68/68
+muertos**, sin equivalencias ni cambios de producción. R3 permanece en
+**673 brechas + 84 equivalencias** por falta de distribución histórica detallada.
+Suite **1244/1244** en Linux (Python 3.11.9). Evidencia:
+`build/digesto-r3-verificacion.json`. Hallazgo 178.
