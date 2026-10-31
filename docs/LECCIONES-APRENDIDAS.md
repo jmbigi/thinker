@@ -3784,3 +3784,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mutaciones dirigidas** pasan (sin validación, coerción y `True` descartado).
   Suite **1225/1225** y tres demos offline correctas. El inventario oficial R3
   no cambia sin una re-medición fiable.
+
+### Hallazgo 165: una duración debe ser finita además de no negativa
+
+- **Defecto reproducido (2026-10-30)**: `duration_seconds=NaN` o infinito
+  positivo atravesaba la validación y generaba un `start_time` no finito.
+  Infinito negativo ya se rechazaba por la comprobación de signo.
+- **Dogfooding y corrección**: `analyze_python_source` midió el módulo en 144
+  líneas/complejidad 14 y guió revisar las invariantes del estado. Se añadió
+  `math.isfinite(duracion)` a la validación existente, sin cambiar el esquema.
+- **Regresión y evidencia**: la prueba falló antes para `NaN` e infinito;
+  ahora ambos y `-inf` elevan `RuntimeError`, mientras una duración válida `0.0`
+  conserva un `start_time` positivo. Las 8 pruebas de persistencia y **3/3
+  mutaciones dirigidas** pasan (sin validación, sin finiteza y `isnan` en lugar
+  de `isfinite`). Suite **1226/1226** y tres demos offline correctas. El
+  inventario oficial R3 no cambia sin una re-medición fiable.

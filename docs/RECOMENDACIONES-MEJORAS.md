@@ -463,6 +463,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-30, relleno de ceros PEP 440) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió `evaluar_vigencia` (104 líneas/complejidad 19); `2.31` frente a PyPI `2.31.0` daba falso «atrasada» | Normalización solo de releases numéricas; regresión en ambos sentidos y compatibilidad con `None`; **3/3 mutaciones detectadas**; suite **1223/1223** y demos OK |
 | R15 (2026-10-30, iteration inválida) | `code_design_improvement_tools` y `research_state` | Thinker midió el módulo (136 líneas/7 funciones/complejidad 12); `context_from_state` aceptaba `iteration="0"`, booleanos y negativos | Regresión con 4 valores inválidos, roja antes y verde después; esquema intacto; **3/3 mutaciones detectadas**; suite **1224/1224** y demos OK |
 | R15 (2026-10-30, decomposed no booleano) | `code_design_improvement_tools` y `research_state` | Thinker midió el módulo actualizado (140 líneas/complejidad 13); `decomposed="false"` se restauraba como `True` por `bool(...)` | Regresión con 4 inválidos y controles `True`/`False`; validación estricta, **3/3 mutaciones detectadas**; suite **1225/1225** y demos OK |
+| R15 (2026-10-30, duración no finita) | `code_design_improvement_tools` y `research_state` | Thinker midió el módulo (144 líneas/complejidad 14); `NaN` e infinito producían `start_time` no finito | `math.isfinite` en `duration_seconds`; regresión con NaN/±inf y control válido, **3/3 mutaciones detectadas**; suite **1226/1226** y demos OK |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -572,7 +573,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1225/1225 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1226/1226 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

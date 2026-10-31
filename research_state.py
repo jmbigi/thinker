@@ -4,6 +4,7 @@
 import copy
 import hashlib
 import json
+import math
 import os
 import tempfile
 import time
@@ -96,7 +97,8 @@ def context_from_state(state: Dict[str, Any]) -> ResearchContext:
     contexto.processed_source_keys = list(state["processed_source_keys"])
     contexto.evaluated_claim_keys = list(state["evaluated_claim_keys"])
     duracion = state.get("duration_seconds", 0.0)
-    if not isinstance(duracion, (int, float)) or isinstance(duracion, bool) or duracion < 0:
+    if not isinstance(duracion, (int, float)) or isinstance(duracion, bool) \
+            or not math.isfinite(duracion) or duracion < 0:
         raise RuntimeError("Campo de estado inválido: duration_seconds")
     contexto.start_time = time.time() - duracion
     return contexto

@@ -107,6 +107,18 @@ class TestEstado(unittest.TestCase):
                 state["decomposed"] = valor
                 self.assertIs(context_from_state(state).decomposed, valor)
 
+    def test_duration_seconds_debe_ser_finita(self):
+        for valor in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(valor=valor):
+                state = context_to_state(ResearchContext("pregunta"))
+                state["duration_seconds"] = valor
+                with self.assertRaisesRegex(
+                        RuntimeError, "Campo de estado inválido: duration_seconds"):
+                    context_from_state(state)
+        state = context_to_state(ResearchContext("pregunta"))
+        state["duration_seconds"] = 0.0
+        self.assertGreater(context_from_state(state).start_time, 0)
+
     def test_estado_completado_no_repite_llamadas(self):
         llm = _ContadorLLM()
         report, _ = ResearchOrchestrator(

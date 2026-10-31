@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1225/1225** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1226/1226** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -750,3 +750,10 @@ La regresión cubre cuatro entradas inválidas, falló antes y detecta 3/3
 mutaciones dirigidas; el esquema no cambia.
 Suite **1225/1225** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 164.
+
+**Actualización 2026-10-30** (duración finita): `duration_seconds` rechaza
+`NaN` e infinitos mediante `math.isfinite`, evitando un `start_time` inválido.
+La regresión incluye NaN/±inf y una duración válida, falló en los dos casos
+nuevos y detecta 3/3 mutaciones dirigidas.
+Suite **1226/1226** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 165.
