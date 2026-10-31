@@ -174,6 +174,13 @@ aplicar sus diffs, con el original restaurado verde. Evidencia:
 de producción: **702 → 673 brechas**, con **84 equivalencias** intactas y sin
 nueva tasa global.
 
+Re-medición acotada de `evaluar_eficiencia` (2026-10-31): **190 mutantes, 190
+muertos y 0 supervivientes**. Diez diffs representativos fueron detectados al
+aplicarlos y el original restaurado pasó. No fueron necesarios cambios de
+producción ni tests. Evidencia: `build/eficiencia-r3-verificacion.json`. La
+contabilidad permanece en **673 brechas + 84 equivalencias**: sin la distribución
+histórica detallada no se asigna un descuento.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

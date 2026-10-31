@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `12530ae`
+**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `8f0fbf7`
 más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -479,6 +479,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-31, cierre `parsear_requisitos`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 122 líneas, 2 funciones y complejidad 21; la muestra directa corrigió el 218/218 inicial a **217 muertos + 1 equivalencia** | Una regresión mata el mutante 218; E14 demostrada, otras ocho muertes directas y original restaurado; **767→732 brechas, 83→84 equivalencias**; suite **1233/1233** |
 | R3 (2026-10-31, cierre `evaluar_inteligencia`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 36 líneas, 1 función y complejidad 4, sin incidencias; la muestra directa detectó dos supervivientes pese al 139/139 de campaña | Una regresión de contrato mata 130/139; otras siete muertes directas y original restaurado; **732→702 brechas**, 84 equivalencias intactas; suite **1234/1234** |
 | R3 (2026-10-31, cierre `sintetizar_con_llm`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 44 líneas, 1 función y complejidad 5; la campaña reprodujo 110 muertos y 29 brechas | Siete regresiones nuevas; **29/29 supervivientes y 10/10 controles detectados**, original restaurado; **702→673 brechas**, 84 equivalencias intactas; suite **1241/1241** |
+| R3 (2026-10-31, re-medición `evaluar_eficiencia`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 66 líneas, 1 función y complejidad 10; la campaña produjo 190 mutantes y 0 supervivientes | 10/10 muertes directas, original restaurado; sin cambios de producción ni tests; R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución histórica |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -526,6 +527,9 @@ declaradas). **Pendiente de ejecución:**
    `evaluar_inteligencia` (30 → 0: 30 muertos, Hallazgo 175) y
    `sintetizar_con_llm` (29 → 0: 29 muertos, Hallazgo 176): quedan **673**
    (tasa histórica: 4846/5984; 80,98%); no cerrar hasta 0 brechas.
+   La re-medición de `evaluar_eficiencia` confirmó **190/190 muertos** y 10/10
+   controles directos (Hallazgo 177), sin cambiar el conteo por falta de
+   distribución histórica detallada.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,

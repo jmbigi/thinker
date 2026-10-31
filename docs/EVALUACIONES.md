@@ -862,3 +862,12 @@ detectados directamente, con el original restaurado verde. El clúster de 29 que
 cerrado sin cambios de producción: R3 baja de **702 a 673 brechas**, con
 **84 equivalencias** intactas y sin recalcular la tasa global histórica.
 Suite **1241/1241** en Linux (Python 3.11.9). R3 permanece abierta. Hallazgo 176.
+
+**Actualización 2026-10-31** (re-medición acotada de `evaluar_eficiencia`):
+campaña de 190 mutantes, **190 muertos y 0 supervivientes**. Diez diffs
+representativos (1–5, 50, 100, 150, 180 y 190) fueron detectados al aplicarlos
+y el original restaurado pasó. No fueron necesarios cambios de producción ni
+tests. Suite **1241/1241** en Linux (Python 3.11.9). R3 se mantiene en
+**673 brechas + 84 equivalencias** porque la distribución histórica detallada no
+está disponible y no se inventa un descuento. Evidencia:
+`build/eficiencia-r3-verificacion.json`. Hallazgo 177.

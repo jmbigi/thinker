@@ -3978,3 +3978,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   El clúster de 29 queda cerrado: R3 baja de **702 a 673 brechas** y mantiene
   **84 equivalencias**. Suite **1241/1241**. Evidencia:
   `build/sintesis-r3-verificacion.json`.
+
+### Hallazgo 177: `evaluar_eficiencia` confirma 190/190 sin alterar el inventario
+
+- **Medición (2026-10-31)**: Thinker midió 66 líneas, 1 función y complejidad 10,
+  sin incidencias estáticas. La campaña acotada produjo **190 mutantes y 0
+  supervivientes**.
+- **Verificación directa**: diez diffs (1–5, 50, 100, 150, 180 y 190) fueron
+  detectados por la selección real; el original restaurado pasó. No hicieron
+  falta cambios de producción ni nuevas regresiones. Evidencia:
+  `build/eficiencia-r3-verificacion.json`.
+- **Límite de contabilidad**: la distribución detallada de r3c4 no está
+  disponible. Por tanto R3 permanece en **673 brechas + 84 equivalencias** y la
+  suite en **1241/1241**: el resultado actual es evidencia de detección, no un
+  descuento histórico inventado.
