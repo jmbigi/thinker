@@ -401,3 +401,25 @@ Evidencia: `build/main-r3-verificacion.json`.
 clúster de 65 queda cerrado con dos regresiones nuevas y sin cambios de
 producción: R3 pasa de 879 a **814 brechas** y de 81 a **83 equivalencias**. No
 se recalcula la tasa global histórica.
+
+### E14. La excepción de lectura de `parsear_requisitos` es inalcanzable (1)
+
+Mutante 3 de `parsear_requisitos`: el mensaje de `ValueError` al capturar
+`(OSError, UnicodeDecodeError)` cambia a `ValueError(None)`.
+
+**Prueba:** la única llamada posible es `leer(archivo)`. Esa función captura
+`OSError` y devuelve `""`, y llama a `Path.read_text` con `errors="replace"`, por
+lo que bytes UTF-8 inválidos se sustituyen en vez de elevar `UnicodeDecodeError`.
+Con cualquier archivo real, la rama mutada no se ejecuta; el archivo ausente o
+vacío llega al error común de «no se encontró ningún requisito». No hay cambio
+observable en el programa real.
+
+**Verificación (2026-10-31):** la primera muestra directa detectó que 3 y 218
+sobrevivían pese al 218/218 de campaña. Tras añadir una regresión exacta del
+mensaje de archivo vacío, 218 falla y 3 sigue pasando la selección. El original
+restaurado también pasa. Evidencia: `build/requisitos-r3-verificacion.json`.
+
+**Contabilidad:** 218 mutantes: **217 muertos + 1 equivalente, 0 brechas**. El
+clúster de 35 queda cerrado con una regresión nueva y sin cambios de producción:
+R3 pasa de 767 a **732 brechas** y de 83 a **84 equivalencias**. No se recalcula
+la tasa global histórica.

@@ -1356,6 +1356,18 @@ class TestRequisitos(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicado"):
             parsear_requisitos(raiz / "requisitos.md")
 
+    def test_sin_requisitos_error_con_formato_guiado(self):
+        raiz = crear_proyecto(self, {"requisitos.md": "# Solo un título\n"})
+        archivo = raiz / "requisitos.md"
+
+        with self.assertRaises(ValueError) as exc:
+            parsear_requisitos(archivo)
+
+        self.assertEqual(
+            str(exc.exception),
+            f"{archivo}: no se encontró ningún requisito "
+            "('## ID: título' + '- Enunciado:' + '- Criterio de aceptación:')")
+
     def test_test_inexistente_es_no_cumple(self):
         raiz = self._proyecto(
             "## R1: Logout\n- Enunciado: Debe existir logout.\n"

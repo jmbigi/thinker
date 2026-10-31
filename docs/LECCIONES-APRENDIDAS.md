@@ -3934,3 +3934,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   nuevos tests; la suite permanece en **1232/1232**. El clúster de 47 queda
   cerrado: R3 baja de **814 a 767 brechas** y mantiene **83 equivalencias**.
   No se recalcula la tasa global histórica ni se atribuyen IDs ausentes.
+
+### Hallazgo 174: `parsear_requisitos` cierra con 217 muertos y 1 equivalente
+
+- **Medición y anomalía (2026-10-31)**: Thinker midió 122 líneas, 2 funciones y
+  complejidad 21. La campaña declaró 218/218 muertos, pero la muestra directa
+  encontró que 3 y 218 sobrevivían; no se aceptó la cifra inicial.
+- **Equivalencia y regresión**: el 3 modifica una excepción inalcanzable porque
+  `leer` captura `OSError` y usa `errors="replace"` (E14). El 218 cambia el
+  mensaje de archivo sin requisitos: la nueva regresión exige el texto exacto con
+  el formato `## ID: título` y lo mata. El original restaurado pasó la selección.
+- **Contabilidad**: **217 muertos + 1 equivalencia, 0 brechas**. El clúster de
+  35 queda cerrado sin cambios de producción: R3 baja de **767 a 732 brechas**
+  y sube de 83 a **84 equivalencias**. Suite **1233/1233**. Evidencia:
+  `build/requisitos-r3-verificacion.json`.

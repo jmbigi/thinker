@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1232/1232** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1233/1233** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -832,3 +832,13 @@ cerrado sin cambios de producción ni nuevos tests: R3 baja de **814 a 767
 brechas**, con **83 equivalencias** intactas y sin recalcular la tasa global
 histórica. Suite **1232/1232** en Linux (Python 3.11.9). R3 permanece abierta
 con las demás funciones pendientes. Hallazgo 173.
+
+**Actualización 2026-10-31** (cierre R3 de `parsear_requisitos`): 218 mutantes,
+**217 muertos + 1 equivalencia, 0 brechas**. La campaña declaró 218/218, pero la
+muestra directa encontró dos supervivientes: 3 es equivalencia por una excepción
+inalcanzable (E14) y 218 quedó cubierto por una regresión exacta del mensaje de
+archivo sin requisitos. Otras ocho muertes fueron confirmadas y el original
+restaurado pasó. El clúster de 35 queda cerrado sin cambios de producción: R3
+baja de **767 a 732 brechas** y sube de 83 a **84 equivalencias**, sin recalcular
+la tasa global histórica. Suite **1233/1233** en Linux (Python 3.11.9). R3
+permanece abierta con las demás funciones pendientes. Hallazgo 174.
