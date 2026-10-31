@@ -21,7 +21,7 @@ Exit 0 si todas las comprobaciones pasan, 1 en caso contrario.
 """
 
 import argparse
-import importlib.util
+import importlib.metadata
 import subprocess
 import sys
 import tempfile
@@ -72,18 +72,20 @@ class _Verificador:
 
 
 def _setuptools_disponible() -> bool:
-    # find_spec inspecciona sin importar: setuptools no es dependencia del
-    # proyecto, solo la pregunta de cómo construir el wheel.
-    return importlib.util.find_spec("setuptools") is not None
+    try:
+        version = importlib.metadata.version("setuptools")
+    except importlib.metadata.PackageNotFoundError:
+        return False
+    return int(version.split(".", 1)[0]) >= 77
 
 
 def _comando_wheel() -> list:
     """Comando de construcción sin instalación de red.
 
     Python 3.12+ ya no incluye setuptools en los venv (PEP 632): con
-    `--no-build-isolation` la construcción falla. Si setuptools no está en el
-    intérprete actual, se usa **aislamiento de build** (requiere red) y se
-    declara en la salida. Función pura para poder testearla.
+    `--no-build-isolation` la construcción falla. Si setuptools falta o no
+    cumple el mínimo 77 de pyproject, se usa **aislamiento de build**
+    (requiere red) y se declara en la salida. Función pura para testearla.
     """
     comando = [sys.executable, "-m", "pip", "wheel", ".", "--no-deps"]
     if _setuptools_disponible():

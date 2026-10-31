@@ -3799,3 +3799,22 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mutaciones dirigidas** pasan (sin validación, sin finiteza y `isnan` en lugar
   de `isfinite`). Suite **1226/1226** y tres demos offline correctas. El
   inventario oficial R3 no cambia sin una re-medición fiable.
+
+### Hallazgo 166: setuptools presente no equivale a setuptools compatible
+
+- **Defecto reproducido (2026-10-30)**: `make verify-install` falló al preparar
+  metadata con setuptools 65.5.0 porque `project.license` usa PEP 639. El
+  `pyproject.toml` exige `setuptools>=77`, pero `_setuptools_disponible` solo
+  comprobaba presencia y elegía `--no-build-isolation`.
+- **Dogfooding y corrección**: `analyze_python_source` midió el verificador en
+  209 líneas/complejidad 13 y guió aislar la guarda. Ahora `importlib.metadata`
+  exige el mínimo 77; una versión menor selecciona aislamiento de build. No se
+  cambió el manifiesto ni se instaló una dependencia nueva.
+- **Verificación y límites**: la regresión con 65.5.0 y 77.0.0 falló antes por
+  aceptar la versión antigua y ahora comprueba también el comando. Las 7 pruebas
+  del verificador y **3/3 mutaciones dirigidas** pasan. Ruff detectó un import
+  indirecto en la nueva prueba; se corrigió el parche para usar
+  `importlib.metadata` directamente. Suite **1227/1227**, tres demos y
+  `make verify-install` con setuptools 82.0.1 correctos. Con 65.5.0 se verificó
+  la selección de aislamiento, no una construcción con red. El inventario R3 no
+  cambia sin una re-medición fiable.

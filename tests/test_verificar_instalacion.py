@@ -6,6 +6,7 @@ La verificación real (venv + wheel) se ejecuta bajo demanda con
 """
 
 import ast
+import importlib.metadata
 import unittest
 from pathlib import Path
 
@@ -80,6 +81,18 @@ class TestContratoVerificadorInstalacion(unittest.TestCase):
             self.assertNotIn("--no-build-isolation", vi._comando_wheel())
         finally:
             vi._setuptools_disponible = original
+
+    def test_setuptools_debe_cumplir_minimo_build(self):
+        original = importlib.metadata.version
+        try:
+            importlib.metadata.version = lambda _nombre: "65.5.0"
+            self.assertFalse(vi._setuptools_disponible())
+            self.assertNotIn("--no-build-isolation", vi._comando_wheel())
+            importlib.metadata.version = lambda _nombre: "77.0.0"
+            self.assertTrue(vi._setuptools_disponible())
+            self.assertIn("--no-build-isolation", vi._comando_wheel())
+        finally:
+            importlib.metadata.version = original
 
     def test_wheel_dir_queda_junto_al_destino(self):
         original = vi._setuptools_disponible

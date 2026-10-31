@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1226/1226** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1227/1227** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -757,3 +757,11 @@ La regresión incluye NaN/±inf y una duración válida, falló en los dos casos
 nuevos y detecta 3/3 mutaciones dirigidas.
 Suite **1226/1226** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 165.
+
+**Actualización 2026-10-30** (setuptools mínimo): el verificador de instalación
+exige ahora `setuptools>=77`, coherente con `pyproject.toml`; una versión menor
+selecciona aislamiento en vez de fallar con `--no-build-isolation`. Regresión
+65.5/77 y 3/3 mutaciones detectadas.
+Suite **1227/1227** en Linux (Python 3.11.9), tres demos y `make verify-install`
+con 82.0.1 correctos. Con 65.5.0 solo se verificó la selección de aislamiento.
+R3 permanece abierta. Hallazgo 166.
