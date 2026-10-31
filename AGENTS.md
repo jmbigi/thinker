@@ -122,6 +122,14 @@ mejora de código (`code_design_improvement_tools.py`).
   prometen ahorro, aceleración ni calidad sin una medición concreta; la salida
   simulada se declara y el hardware/framework real se valida antes de afirmar
   funcionamiento.
+16. **Registro, análisis y resumen de calidad** (regla del programador,
+  2026-10-31): registrar todas las métricas de calidad disponibles y su
+  evolución con fecha, commit, alcance y evidencia reproducible. Analizar y
+  resumir sus tendencias sin mezclar denominadores ni confundir gates verdes con
+  calidad del modelo o de producción. Mantener el detalle en
+  `docs/EVALUACIONES.md` y los gates en `docs/informe-calidad.json`, y publicar
+  en `README.md` un resumen **gráfico, breve y actualizado** cuando cambien las
+  métricas.
 
 ## Entorno y verificación (comandos del proyecto)
 

@@ -1,6 +1,6 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `4cefc4d`
+**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `0820a75`
 más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
@@ -485,6 +485,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-31, re-medición `detectar_comando_tests`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 78 líneas/complejidad 16; la campaña produjo 235 mutantes y 0 supervivientes | 10/10 muertes directas, original restaurado; sin cambios de producción ni tests; R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución histórica |
 | R3 (2026-10-31, verificación `_puntuacion_texto`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 2 líneas/complejidad 0; solo se generaron cuatro mutantes | **4/4 diffs detectados directamente**, original restaurado; sin cambios de producción ni tests; R3 permanece en **673 brechas + 84 equivalencias** |
 | R3 (2026-10-31, cierre `investigar_preguntas`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 23 líneas/complejidad 2; la campaña produjo 29 muertos y 14 supervivientes | Cuatro regresiones nuevas; **14/14 supervivientes y 10/10 controles detectados**, original restaurado; **43/43 muertos**; R3 permanece en **673 brechas + 84 equivalencias**; suite **1249/1249** |
+| Regla 16 (2026-10-31, métricas y resumen de calidad) | `evaluar_proyecto`, `scripts/informe_calidad.py` y `check_docs` | La autoevaluación real corrigió el estado offline a **1.000 (27/29; 2 N/A)**; los deltas guiaron el resumen: +121 tests y −458 brechas R3 | **7/7 gates PASS**, 1249/1249 tests y holdout 4/4; evolución y gráfico breve publicados en README; detalle y límites enlazados |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se

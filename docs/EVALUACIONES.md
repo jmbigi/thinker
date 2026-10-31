@@ -50,7 +50,7 @@ lleva tope oculto.
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
-**Sin red**: 1.000 (25/29; 4 N/A: `v4`, `h5`, `e1`, `e2`). Suite **750/750** en
+**Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). Suite **750/750** en
 Windows 11 (Python 3.12.7/3.14.3) y **778/778** en Linux (3.11/3.12, 2026-10-23);
 ruff 0, preflight 0, docs-check OK.
 
@@ -917,3 +917,15 @@ sin equivalencias ni cambios de producción. R3 permanece en
 **673 brechas + 84 equivalencias** por falta de distribución histórica.
 Suite **1249/1249** en Linux (Python 3.11.9). Evidencia:
 `build/investigar-r3-verificacion.json`. Hallazgo 182.
+
+**Actualización 2026-10-31** (regla 16: métricas, análisis y resumen de calidad):
+se incorporó la obligación de registrar todas las métricas disponibles y su
+evolución, analizar la calidad y publicar un resumen gráfico breve en el README.
+Medición actual: **7/7 gates PASS**, **1249/1249 tests**, holdout 4/4 y
+autoevaluación offline **1.000 (27/29; 2 N/A: v4/h5; cobertura 93,1%)**.
+La suite creció **121 tests (+10,7%)** desde 1128; R3 bajó **458 brechas
+(-40,5%)** desde 1131 y las equivalencias subieron de 62 a **84**. Se conservan
+por separado los históricos de mutación del núcleo (95,2%), preflight (95,18%)
+y evaluador (80,98%): no prueban calidad del LLM ni de producción.
+Suite **1249/1249** en Linux (Python 3.11.9). Evidencia:
+`docs/informe-calidad.json` y resumen Mermaid en `README.md`. Hallazgo 183.

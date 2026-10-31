@@ -1,6 +1,6 @@
 {
-  "generado": "2026-10-28T22:48:57+00:00",
-  "commit": "0bf0663edb92af3e93f34b22363c4f64e08330e5",
+  "generado": "2026-10-31T17:15:32+00:00",
+  "commit": "0820a755db5c5b5463abc221a31244beaaa080d3",
   "python": "3.11.9",
   "so": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
   "controles": {
@@ -14,19 +14,19 @@
       "estado": "PASS",
       "codigo": 0,
       "resumen": "PREFLIGHT: OK (0 hallazgos, 0 warnings)",
-      "duracion_s": 1.4
+      "duracion_s": 1.7
     },
     "docs-check": {
       "estado": "PASS",
       "codigo": 0,
       "resumen": "DOCS: OK (cifras y pines de estado presente cuadran)",
-      "duracion_s": 0.2
+      "duracion_s": 0.3
     },
     "tests": {
       "estado": "PASS",
       "codigo": 0,
-      "resumen": "Ran 1128 tests in 39.265s | OK",
-      "duracion_s": 40.0
+      "resumen": "Ran 1249 tests in 45.703s | OK",
+      "duracion_s": 48.1
     },
     "holdout": {
       "estado": "PASS",

@@ -4058,3 +4058,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   **43/43 muertos**, sin equivalencias. R3 permanece en **673 brechas + 84
   equivalencias** por falta de distribución histórica. Suite **1249/1249**.
   Evidencia: `build/investigar-r3-verificacion.json`.
+
+### Hallazgo 183: la calidad y su evolución deben quedar visibles en el README
+
+- **Regla nueva (2026-10-31)**: registrar todas las métricas disponibles con su
+  evolución, analizar y resumir la calidad de Thinker y publicar un resumen
+  gráfico breve en el README. Se incorporó como regla propia 16, sin crear un
+  sistema paralelo de métricas.
+- **Dogfooding y medición**: `evaluar_proyecto` midió **1.000 (27/29; 2 N/A:
+  v4/h5)** offline y `scripts/informe_calidad.py` verificó **7/7 gates PASS**,
+  1249 tests y holdout. La cobertura real es 93,1% y comparable dentro de ese
+  alcance; no se reutilizó el 25/29 antiguo.
+- **Análisis publicado**: la suite creció **121 tests (+10,7%)** desde 1128 y las
+  brechas R3 bajaron **458 (-40,5%)** desde 1131. El README enlaza el detalle y
+  aclara que las tasas históricas no se mezclan ni prueban calidad de producción.
+  Evidencia: `docs/informe-calidad.json` y `docs/EVALUACIONES.md`.

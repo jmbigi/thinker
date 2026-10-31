@@ -372,6 +372,33 @@ El hook `.git/hooks/pre-commit` (instalado con `make hook`) ejecuta ruff, el
 escaneo de secretos, `py_compile`, el preflight, `docs-check`, la suite, el
 auditor de cambios y el holdout antes de cada commit.
 
+## Calidad medida y evolución
+
+Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
+[`docs/EVALUACIONES.md`](docs/EVALUACIONES.md) y
+[`docs/informe-calidad.json`](docs/informe-calidad.json).
+
+| Señal | Estado | Evolución y alcance |
+|---|---:|---|
+| Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
+| Suite Linux | **1249/1249** | 1128 → 1232 → 1249 tests (**+10,7%**) |
+| Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
+| Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
+| Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
+| R3 | **673 brechas + 84 equivalencias** | 1131 → 673 brechas (**−40,5%**); equivalencias 62 → 84 |
+
+```mermaid
+xychart-beta
+    title "Brechas R3 pendientes (menos es mejor)"
+    x-axis ["r3c4", "H169", "H173", "H176"]
+    y-axis "Brechas" 0 --> 1200
+    line [1131, 949, 767, 673]
+```
+
+La tendencia muestra mejor detección de defectos, no calidad del LLM ni preparación
+para producción. No se recalculan tasas históricas al cerrar clústeres ni se
+mezclan denominadores. Inventario y equivalencias: [`docs/TRIAGE-R3.md`](docs/TRIAGE-R3.md).
+
 ## Limitaciones conocidas (sin adornos)
 
 - El pipeline con `MockSearchAPI` **no hace investigación real**: las fuentes son
