@@ -354,9 +354,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `_registro_decisiones`: **57/57 muertos**, con cuatro antiguos supervivientes
   cubiertos. Después, `_normalizar_release`: **20/20 muertos**, todos verificados
   directamente. Después, `_es_manifiesto`: **24 muertos + 2 equivalencias (E17)**.
+  Después, `_es_no_codigo`: **7/7 muertos**, todos verificados directamente.
   Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1292/1292 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1293/1293 en la suite
   Linux** (2026-10-31; openai 3.40.0 en el entorno actual, venv aislado con
   `pypdf` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado

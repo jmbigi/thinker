@@ -495,6 +495,23 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
             with self.subTest(nombre=nombre):
                 self.assertIs(evaluar_proyecto._es_manifiesto(Path(nombre)), esperado)
 
+    def test_es_no_codigo_solo_excluye_directorios_declarados(self):
+        raiz = Path("/proyecto")
+        casos = {
+            "docs/app.py": True, "DOCS/guia.py": True, "doc/a.py": True,
+            "documentation/a.py": True, "examples/a.py": True,
+            "example/a.py": True, "samples/a.py": True, "docs_src/a.py": True,
+            "benchmarks/a.py": True, "benchmark/a.py": True,
+            "website/a.py": True, "site/a.py": True, "tutorials/a.py": True,
+            "src/tutorials/a.py": True, "src/docs.py": False,
+            "src/documentation.py": False, "src/app.py": False,
+            "requirements/base.txt": False, "docs": False,
+        }
+        for nombre, esperado in casos.items():
+            with self.subTest(nombre=nombre):
+                self.assertIs(
+                    evaluar_proyecto._es_no_codigo(raiz, raiz / nombre), esperado)
+
 
 class TestCriteriosAnadidos(unittest.TestCase):
     """h6 (imports declarados), c5 (tests con aserciones) y h7 (decisiones)."""

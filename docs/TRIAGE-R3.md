@@ -268,6 +268,14 @@ producción. Evidencias: `build/manifiestos-r3-verificacion.json` y
 `build/manifiestos-e17-verificacion.json`. La contabilidad permanece en **673
 brechas** y sube a **88 equivalencias** por falta de distribución histórica.
 
+Cierre acotado de `_es_no_codigo` (2026-10-31): **7 mutantes, 7 muertos y 0
+supervivientes**. Una regresión con 19 rutas fija los directorios excluidos y
+archivos con nombres parecidos. Los siete diffs fueron detectados al aplicarlos
+al módulo real y el original restaurado pasó. No fueron necesarios cambios de
+producción. Evidencia: `build/no-codigo-r3-verificacion.json`. La contabilidad
+permanece en **673 brechas + 88 equivalencias** por falta de distribución
+histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -333,8 +341,8 @@ documento conserva el resumen y la clasificación.
   `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`,
   `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`,
   `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`,
-  `_registro_decisiones`, `_normalizar_release` y `_es_manifiesto`: **673
-  brechas + 88 equivalencias**.
+  `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto` y
+  `_es_no_codigo`: **673 brechas + 88 equivalencias**.
 - **Equivalentes demostrados:** 88 (49 en preflight y 41 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se

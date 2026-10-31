@@ -4182,3 +4182,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   distribución histórica. Suite **1292/1292**. Evidencias:
   `build/manifiestos-r3-verificacion.json` y
   `build/manifiestos-e17-verificacion.json`.
+
+### Hallazgo 191: `_es_no_codigo` fija la frontera entre directorios y archivos
+
+- **Medición (2026-10-31)**: Thinker midió 3 líneas, complejidad 0 y ninguna
+  incidencia. Una primera campaña temporal no fue válida: al extraer el método,
+  `ast.get_source_segment` desindentó su primera línea. El fallo de recolección
+  se diagnosticó y el extractor se corrigió con indentación explícita y una
+  prueba previa; no fue un defecto de Thinker ni se publicó como medición.
+- **Regresión y verificación**: 19 rutas fijan directorios de documentación y
+  ejemplos, mayúsculas, anidamiento y archivos con nombres similares. La campaña
+  aislada válida generó **7 mutantes, todos detectados** también al aplicarlos
+  al módulo real. El original restaurado pasó las 237 pruebas del evaluador.
+- **Contabilidad**: no se cambió producción ni hubo equivalencias. R3 permanece
+  en **673 brechas + 88 equivalencias** por falta de distribución histórica.
+  Suite **1293/1293**. Evidencia: `build/no-codigo-r3-verificacion.json`.
