@@ -1445,6 +1445,11 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
                 warnings.warn(f"{archivo}: lock JSON inválido ({exc})",
                               RuntimeWarning, stacklevel=2)
                 continue
+            if not isinstance(datos, dict):
+                warnings.warn(f"{archivo}: lock JSON inválido "
+                              "(raíz no es un objeto)",
+                              RuntimeWarning, stacklevel=2)
+                continue
             for seccion in ("default", "develop"):
                 contenido = datos.get(seccion) or {}
                 if not isinstance(contenido, dict):
@@ -1462,6 +1467,11 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
                 datos = json.loads(leer(archivo))
             except json.JSONDecodeError as exc:
                 warnings.warn(f"{archivo}: lock JSON inválido ({exc})",
+                              RuntimeWarning, stacklevel=2)
+                continue
+            if not isinstance(datos, dict):
+                warnings.warn(f"{archivo}: lock JSON inválido "
+                              "(raíz no es un objeto)",
                               RuntimeWarning, stacklevel=2)
                 continue
             paquetes = datos.get("packages") or {}

@@ -1621,6 +1621,21 @@ class TestCoberturaDeRamasDelEvaluador(unittest.TestCase):
         self.assertIn("sección packages no es un objeto",
                       str(capturados[0].message))
 
+    def test_versiones_lock_avisa_raiz_json_no_objeto(self):
+        for nombre in ("Pipfile.lock", "package-lock.json"):
+            with self.subTest(nombre=nombre), tempfile.TemporaryDirectory() as tmp:
+                ruta = Path(tmp)
+                (ruta / nombre).write_text(
+                    json.dumps(["no-es-un-mapa"]), encoding="utf-8")
+
+                with warnings.catch_warnings(record=True) as capturados:
+                    warnings.simplefilter("always")
+                    versiones = evaluar_proyecto._versiones_lock(ruta)
+
+                self.assertEqual(versiones, {})
+                self.assertEqual(len(capturados), 1)
+                self.assertIn("raíz no es un objeto", str(capturados[0].message))
+
     def test_parsear_requisito_y_ambito_requirements(self):
         from evaluar_proyecto import _ambito_requirements, _parsear_requisito
 

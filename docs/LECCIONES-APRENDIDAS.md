@@ -3658,3 +3658,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `packages`. Las 11 pruebas del grupo y **3/3 mutaciones dirigidas** pasan;
   suite **1217/1217** y tres demos offline correctas. El inventario oficial R3
   no cambia sin una re-medición fiable.
+
+### Hallazgo 157: la raíz de un lock JSON debe ser un objeto
+
+- **Defecto reproducido (2026-10-30)**: `Pipfile.lock` y `package-lock.json`
+  con una lista como raíz, aunque fuese JSON válido, provocaban `AttributeError`
+  en `datos.get()` dentro de `_versiones_lock`.
+- **Dogfooding y corrección**: `analyze_python_source` midió 76 líneas y
+  complejidad 22; se eligió solo el contrato común de raíz, sin refactorizar los
+  demás formatos. Ambos parsers ahora avisan `raíz no es un objeto` y omiten el
+  archivo cuando la raíz no es un diccionario.
+- **Regresión y evidencia**: una prueba con dos subcasos falló antes en ambos y
+  ahora devuelve `{}` con un aviso por archivo. Las 12 pruebas del grupo y **3/3
+  mutaciones dirigidas** pasan (guarda de Pipfile, de package-lock y avisos).
+  Suite **1218/1218** y tres demos offline correctas. El inventario oficial R3
+  no cambia sin una re-medición fiable.
