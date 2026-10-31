@@ -4022,3 +4022,16 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución
   histórica detallada. Suite **1245/1245**. Evidencia:
   `build/funcionalidades-r3-verificacion.json`.
+
+### Hallazgo 180: `detectar_comando_tests` confirma 235/235 mutantes muertos
+
+- **Medición (2026-10-31)**: Thinker midió 78 líneas, 1 función y complejidad 16,
+  sin incidencias estáticas. La campaña acotada produjo **235 mutantes y 0
+  supervivientes**.
+- **Verificación directa**: diez diffs (1–5, 50, 100, 150, 200 y 235) fueron
+  detectados por la selección real; el original restaurado pasó. No hicieron
+  falta cambios de producción ni nuevas regresiones. Evidencia:
+  `build/runner-r3-verificacion.json`.
+- **Contabilidad**: R3 permanece en **673 brechas + 84 equivalencias** por falta
+  de distribución histórica detallada; no se inventa un descuento. La suite se
+  mantiene en **1245/1245**.

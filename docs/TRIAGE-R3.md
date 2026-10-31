@@ -197,6 +197,13 @@ ambos; otros ocho controles murieron y el original restaurado pasó. Evidencia:
 `build/funcionalidades-r3-verificacion.json`. La contabilidad permanece en
 **673 brechas + 84 equivalencias** por falta de distribución histórica.
 
+Re-medición acotada de `detectar_comando_tests` (2026-10-31): **235 mutantes,
+235 muertos y 0 supervivientes**. Diez diffs representativos fueron detectados
+al aplicarlos y el original restaurado pasó. No fueron necesarios cambios de
+producción ni tests. Evidencia: `build/runner-r3-verificacion.json`. La
+contabilidad permanece en **673 brechas + 84 equivalencias** por falta de
+distribución histórica detallada.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

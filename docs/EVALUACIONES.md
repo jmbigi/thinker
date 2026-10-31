@@ -891,3 +891,11 @@ pasó. No hubo equivalencias ni cambios de producción. R3 permanece en
 **673 brechas + 84 equivalencias** por falta de distribución histórica detallada.
 Suite **1245/1245** en Linux (Python 3.11.9). Evidencia:
 `build/funcionalidades-r3-verificacion.json`. Hallazgo 179.
+
+**Actualización 2026-10-31** (re-medición de `detectar_comando_tests`): campaña
+de 235 mutantes, **235 muertos y 0 supervivientes**. Diez diffs representativos
+(1–5, 50, 100, 150, 200 y 235) fueron detectados al aplicarlos y el original
+restaurado pasó. No fueron necesarios cambios de producción ni tests.
+Suite **1245/1245** en Linux (Python 3.11.9). R3 permanece en
+**673 brechas + 84 equivalencias** por falta de distribución histórica detallada.
+Evidencia: `build/runner-r3-verificacion.json`. Hallazgo 180.
