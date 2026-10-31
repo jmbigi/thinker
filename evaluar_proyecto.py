@@ -2512,7 +2512,7 @@ def _resolver_evidencia(ruta: Path, texto: str) -> Optional[Path]:
     try:
         candidato = candidato.resolve()
         candidato.relative_to(ruta.resolve())
-    except (OSError, ValueError):
+    except (OSError, RuntimeError, ValueError):
         return None
     return candidato
 

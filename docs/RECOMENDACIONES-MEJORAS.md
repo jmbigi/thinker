@@ -16,7 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 98 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`, `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`, `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock` y `_parsear_requisito` (Hallazgos 167-200), 0 timeouts | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 98 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`, `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`, `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock`, `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo` y `_verificar_formal` (Hallazgos 167-201), 0 timeouts | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -54,7 +54,7 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1299/1299** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **1303/1303** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 2 N/A: `v4`, `h5`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -490,6 +490,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-31, cierre `_tiene_punto_entrada`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 32 líneas/complejidad 11; la muestra directa detectó 60 y 80 vivos pese al 90/90 de campaña | Una regresión con `console_scripts`, solo `bin` y solo `main` mata ambos; otros ocho controles y original verdes; **90/90 muertos**; R3 permanece en **673 brechas + 85 equivalencias**; suite **1288/1288** |
 | R3 (2026-10-31, cierre `plan_texto`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos y eligió 13 líneas/complejidad 2; la campaña produjo 33 muertos y 9 supervivientes | Una regresión mata 35 por orden estable; 3/5/41 son E16 con salidas idénticas; otros seis supervivientes y diez controles mueren; **39 muertos + 3 equivalencias**; R3: **673 brechas + 86 equivalencias**; suite **1289/1289** |
 | R3 (2026-10-31, cierre `_registro_decisiones`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 17 líneas/complejidad 5; la muestra directa detectó 2, 3, 15 y 25 vivos pese al 57/57 inicial | Una regresión con ADR, release notes y AsciiDoc mata los cuatro; otros seis controles y original verdes; **57/57 muertos**; R3 permanece en **673 brechas + 86 equivalencias**; suite **1290/1290** |
+| R3 (2026-10-31, evidencia no resoluble) | `code_design_improvement_tools` y documentación oficial de `pathlib` | Thinker acotó cuatro funciones; un bucle real de symlinks reveló `RuntimeError`, no señalado por el análisis estático | Regresión roja antes del arreglo; 71/71 mutantes detectados, candidato a equivalencia refutado por `XXapp.pyXX`; R3 permanece en **673 brechas + 98 equivalencias**; suite **1303/1303** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se

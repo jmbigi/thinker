@@ -4336,3 +4336,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   permanece en **673 brechas** y sube a **98 equivalencias** por falta de
   distribución histórica. Suite **1299/1299**. Evidencias:
   `build/parser-r3-verificacion.json` y `build/parser-e20-verificacion.json`.
+
+### Hallazgo 201: un bucle de symlinks no debe abortar la evidencia
+
+- **Diagnóstico (2026-10-31)**: `code_design_improvement_tools` acotó cuatro
+  funciones de requisitos. Su análisis no señaló defectos; la documentación de
+  `pathlib.Path.resolve` y una prueba real mostraron que Python 3.11 eleva
+  `RuntimeError` ante un bucle de enlaces simbólicos. `_resolver_evidencia`
+  capturaba `OSError`/`ValueError`, pero no ese caso.
+- **Corrección**: la regresión con un enlace que apunta a sí mismo falló antes
+  del arreglo. Ahora la ruta se declara no verificable, sin leer contenido ni
+  detener el informe. Se añadieron fronteras de contención, archivos ausentes,
+  evidencia vacía y contratos exactos de `_verificar_archivo`/`_verificar_formal`.
+- **Mutación**: 71 mutantes verificados directamente por AST, sin depender de la
+  campaña global. La salida completa inicial fue 62 muertos y 9 supervivientes;
+  ocho se mataron con las nuevas aserciones. El mutante 3 de `strip()` no era
+  equivalente: `XXapp.pyXX` demuestra que añadir `X` al conjunto recortado cambia
+  la ruta. El último mutante murió con ese contracaso; no se creó E21.
+- **Contabilidad**: **71/71 muertos**, original restaurado verde, R3 sigue en
+  **673 brechas + 98 equivalencias** sin distribución histórica que permita
+  descontarlos. Suite **1303/1303**. Evidencias:
+  `build/diagnostico-requisitos.json`, `build/requisitos-verificacion-directa.json`,
+  `build/requisitos-verificacion-cierre.json` y
+  `build/resolver-mutante3-cierre.json`. Fuente:
+  <https://docs.python.org/3/library/pathlib.html#pathlib.Path.resolve>.

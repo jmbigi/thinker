@@ -313,6 +313,19 @@ restaurado pasó, sin cambios de producción. Evidencias:
 La contabilidad permanece en **673 brechas** y sube a **98 equivalencias** por
 falta de distribución histórica.
 
+Cierre acotado de `_resolver_evidencia`, `_verificar_archivo` y
+`_verificar_formal` (2026-10-31): **71 mutantes, 71 muertos y 0 supervivientes**.
+La verificación directa inicial detectó 62; las pruebas exactas de mensajes,
+procedencia y evidencia externa mataron ocho más. El caso 3 de
+`_resolver_evidencia` parecía equivalente, pero `XXapp.pyXX` demostró que añadir
+`X` al argumento de `strip()` cambia el resultado; una regresión lo mató. No se
+registró una equivalencia. Un bucle de symlinks producía `RuntimeError` en
+Python 3.11: ahora se declara evidencia no verificable en vez de interrumpir el
+análisis. Evidencias: `build/requisitos-verificacion-directa.json`,
+`build/requisitos-verificacion-cierre.json` y
+`build/resolver-mutante3-cierre.json`. La contabilidad permanece en **673
+brechas + 98 equivalencias** por falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -379,8 +392,9 @@ documento conserva el resumen y la clasificación.
   `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`,
   `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`,
   `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`,
-  `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock` y
-  `_parsear_requisito`: **673 brechas + 98 equivalencias**.
+  `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock`,
+  `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo` y
+  `_verificar_formal`: **673 brechas + 98 equivalencias**.
 - **Equivalentes demostrados:** 98 (49 en preflight y 51 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se

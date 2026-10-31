@@ -1615,8 +1615,17 @@ class TestRequisitos(unittest.TestCase):
 
         informe = self._evaluar(raiz)
 
-        self.assertEqual(self._item(informe, 0)["veredicto"], "CUBIERTO")
-        self.assertEqual(self._item(informe, 1)["veredicto"], "CUBIERTO")
+        esperados = [
+            ("archivo presente; no prueba comportamiento", "app.py"),
+            ("artefacto formal declarado; no re-ejecutado", "prueba.lean"),
+        ]
+        for indice, (motivo, observada) in enumerate(esperados):
+            with self.subTest(evidencia=observada):
+                item = self._item(informe, indice)
+                self.assertEqual(item["veredicto"], "CUBIERTO")
+                self.assertEqual(item["motivo"], motivo)
+                self.assertEqual(item["evidencia_observada"], observada)
+                self.assertEqual(item["tipo_evidencia"], "verified-real")
 
     def test_evidencia_fuera_del_proyecto_no_se_lee(self):
         with tempfile.TemporaryDirectory() as fuera:
@@ -1635,6 +1644,90 @@ class TestRequisitos(unittest.TestCase):
             self.assertIn("fuera del proyecto", item["motivo"])
             self.assertNotIn("SECRETO-QUE-NO-DEBE-SALIR",
                              json.dumps(informe, ensure_ascii=False))
+
+    def test_formal_fuera_del_proyecto_es_no_verificable(self):
+        raiz = self._proyecto(
+            "## R1: Formal fuera\n- Enunciado: Prueba formal.\n"
+            "- Criterio de aceptación: La evidencia queda dentro del proyecto.\n"
+            "- Verificación: formal\n- Evidencia: ../prueba.lean\n")
+
+        item = self._item(self._evaluar(raiz))
+
+        self.assertEqual(item["veredicto"], "NO VERIFICABLE")
+        self.assertEqual(item["motivo"],
+                         "evidencia fuera del proyecto o no resoluble")
+        self.assertEqual(item["evidencia_observada"], "../prueba.lean")
+        self.assertEqual(item["tipo_evidencia"], "unverified")
+
+    def test_resolver_evidencia_contiene_y_normaliza_rutas(self):
+        raiz = crear_proyecto(self, {"docs/app.py": "# app\n"})
+        aceptadas = {
+            ".": raiz.resolve(),
+            "docs/app.py": (raiz / "docs/app.py").resolve(),
+            "docs/../docs/app.py": (raiz / "docs/app.py").resolve(),
+            "`docs/app.py`": (raiz / "docs/app.py").resolve(),
+            "'docs/app.py'": (raiz / "docs/app.py").resolve(),
+            str(raiz / "docs/app.py"): (raiz / "docs/app.py").resolve(),
+            "docs/pendiente.py": (raiz / "docs/pendiente.py").resolve(),
+            "XXapp.pyXX": (raiz / "XXapp.pyXX").resolve(),
+        }
+        for texto, esperado in aceptadas.items():
+            with self.subTest(aceptada=texto):
+                self.assertEqual(
+                    evaluar_proyecto._resolver_evidencia(raiz, texto), esperado)
+        for texto in ("", "   ", "`'", "../fuera.py",
+                      str(raiz.parent / "fuera.py")):
+            with self.subTest(rechazada=texto):
+                self.assertIsNone(
+                    evaluar_proyecto._resolver_evidencia(raiz, texto))
+
+    def test_archivo_y_formal_ausentes_o_sin_evidencia(self):
+        raiz = self._proyecto(
+            "## R1: Archivo ausente\n- Enunciado: Módulo.\n"
+            "- Criterio de aceptación: falta.py existe.\n"
+            "- Verificación: archivo\n- Evidencia: falta.py\n\n"
+            "## R2: Formal ausente\n- Enunciado: Prueba.\n"
+            "- Criterio de aceptación: falta.lean existe.\n"
+            "- Verificación: formal\n- Evidencia: falta.lean\n\n"
+            "## R3: Sin archivo\n- Enunciado: Módulo.\n"
+            "- Criterio de aceptación: app.py existe.\n"
+            "- Verificación: archivo\n\n"
+            "## R4: Sin formal\n- Enunciado: Prueba.\n"
+            "- Criterio de aceptación: prueba.lean existe.\n"
+            "- Verificación: formal\n")
+
+        informe = self._evaluar(raiz)
+
+        for indice, observada in ((0, "falta.py"), (1, "falta.lean")):
+            with self.subTest(ausente=indice):
+                item = self._item(informe, indice)
+                self.assertEqual(item["veredicto"], "NO CUMPLE")
+                self.assertEqual(item["motivo"],
+                                 "la evidencia declarada no es un archivo")
+                self.assertEqual(item["evidencia_observada"], observada)
+                self.assertEqual(item["tipo_evidencia"], "verified-real")
+        for indice, metodo in ((2, "archivo"), (3, "formal")):
+            with self.subTest(sin_evidencia=metodo):
+                item = self._item(informe, indice)
+                self.assertEqual(item["veredicto"], "NO VERIFICABLE")
+                self.assertEqual(item["motivo"],
+                                 f"método {metodo!r} sin evidencia declarada")
+                self.assertEqual(item["evidencia_observada"], "")
+                self.assertEqual(item["tipo_evidencia"], "unverified")
+
+    def test_bucle_de_symlink_es_no_verificable(self):
+        raiz = self._proyecto(
+            "## R1: Bucle\n- Enunciado: Evidencia válida.\n"
+            "- Criterio de aceptación: No se lee fuera del proyecto.\n"
+            "- Verificación: archivo\n- Evidencia: bucle\n")
+        (raiz / "bucle").symlink_to("bucle")
+
+        self.assertIsNone(evaluar_proyecto._resolver_evidencia(raiz, "bucle"))
+        item = self._item(self._evaluar(raiz))
+        self.assertEqual(item["veredicto"], "NO VERIFICABLE")
+        self.assertEqual(item["motivo"],
+                         "evidencia fuera del proyecto o no resoluble")
+        self.assertEqual(item["tipo_evidencia"], "unverified")
 
     def test_no_afecta_al_global_y_la_suite_se_ejecuta_una_vez(self):
         raiz = self._proyecto(self.REQ_BASE)

@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1299/1299** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1303/1303** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1128,3 +1128,15 @@ equivalencias** por falta de distribución histórica.
 Suite **1299/1299** en Linux (Python 3.11.9). Evidencias:
 `build/parser-r3-verificacion.json` y `build/parser-e20-verificacion.json`.
 Hallazgo 200.
+
+**Actualización 2026-10-31** (evidencia no resoluble y cierre de tres contratos):
+un bucle de enlaces simbólicos interrumpía `_resolver_evidencia` con
+`RuntimeError` en Python 3.11. La regresión roja anterior al arreglo ahora exige
+`NO VERIFICABLE`. Se fijaron contención de rutas, procedencia y mensajes de
+`_verificar_archivo`/`_verificar_formal`. Los 71 mutantes del clúster fueron
+aplicados directamente y detectados; un candidato a equivalencia se descartó con
+`XXapp.pyXX`. R3 permanece en **673 brechas + 98 equivalencias**, sin nueva tasa
+global ni descuento del inventario histórico. Suite **1303/1303** en Linux
+(Python 3.11.9). Evidencias: `build/requisitos-verificacion-directa.json`,
+`build/requisitos-verificacion-cierre.json` y
+`build/resolver-mutante3-cierre.json`. Hallazgo 201.

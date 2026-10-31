@@ -361,10 +361,12 @@ mejora de código (`code_design_improvement_tools.py`).
   Después, `_es_lock_python`: **12/12 muertos**, todos verificados directamente.
   Después, `_es_test`: **36 muertos + 2 equivalencias (E18)**. Después,
   `_es_lock`: **46 muertos + 5 equivalencias (E19)**. Después,
-  `_parsear_requisito`: **72 muertos + 3 equivalencias (E20)**.
+  `_parsear_requisito`: **72 muertos + 3 equivalencias (E20)**. Después,
+  `_resolver_evidencia`, `_verificar_archivo` y `_verificar_formal`: **71/71
+  muertos**; un bucle de symlinks ya no interrumpe la verificación.
   Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1299/1299 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1303/1303 en la suite
   Linux** (2026-10-31; openai 3.42.0 y `packaging 26.3` en venv aislado desde el
   lock, con `ruff` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
@@ -400,7 +402,9 @@ mejora de código (`code_design_improvement_tools.py`).
   añadió 77 tests y dejó la suite en **1211/1211**. La regresión acotada de
   licencias no runtime (Hallazgo 151) añadió 1 test y dejó la suite en
   **1212/1212**. La regresión de locks ignorados (Hallazgo 152) añadió 1 test
-  y dejó la suite en **1213/1213**. El auditor de cambios de `scripts/` añadió
+  y dejó la suite en **1213/1213**. El contrato de evidencia no resoluble y el
+  cierre de tres verificadores (Hallazgo 201) añadió 4 tests y dejó la suite en
+  **1303/1303**. El auditor de cambios de `scripts/` añadió
   28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
