@@ -4007,3 +4007,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   **673 brechas + 84 equivalencias** por falta de distribución histórica; no se
   inventa un descuento. Suite **1244/1244**. Evidencia:
   `build/digesto-r3-verificacion.json`.
+
+### Hallazgo 179: `evaluar_funcionalidades` cierra con 224/224 mutantes muertos
+
+- **Medición y anomalía (2026-10-31)**: Thinker midió 75 líneas, 1 función y
+  complejidad 14, sin incidencias. La campaña declaró 224/224 muertos, pero la
+  muestra directa encontró que 50 y 100 sobrevivían; los otros ocho murieron y
+  el original restaurado pasó.
+- **Brecha y regresión**: el 50 cambia `README.txt` a mayúsculas y el 100 elimina
+  la severidad alta de un módulo prometido inexistente. Una regresión con
+  `README.txt` y `faltante.py` exige el criterio falso y el hallazgo exacto;
+  mata ambos sin cambios de producción ni equivalencias.
+- **Contabilidad**: **224/224 muertos** y 10/10 controles directos en total.
+  R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución
+  histórica detallada. Suite **1245/1245**. Evidencia:
+  `build/funcionalidades-r3-verificacion.json`.

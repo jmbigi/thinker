@@ -189,6 +189,14 @@ aplicar sus diffs, con el original restaurado verde. Evidencia:
 `build/digesto-r3-verificacion.json`. La contabilidad permanece en **673 brechas
 + 84 equivalencias** por falta de distribución histórica detallada.
 
+Cierre acotado de `evaluar_funcionalidades` (2026-10-31): **224 mutantes, 224
+muertos y 0 supervivientes**. La campaña declaró 224/224, pero la muestra directa
+encontró dos supervivientes: 50 (`README.txt`) y 100 (severidad del módulo
+prometido). Una regresión con `README.txt` y una referencia inexistente mata
+ambos; otros ocho controles murieron y el original restaurado pasó. Evidencia:
+`build/funcionalidades-r3-verificacion.json`. La contabilidad permanece en
+**673 brechas + 84 equivalencias** por falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

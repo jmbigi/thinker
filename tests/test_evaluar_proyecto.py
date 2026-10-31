@@ -3999,6 +3999,25 @@ class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
                  "criterio": "f4_tests_de_varios_modulos"}],
             "notas": ["0 archivos de test (sin tests)"]})
 
+    def test_funcionalidades_readme_txt_con_modulo_prometido_inexistente(self):
+        raiz = crear_proyecto(self, {
+            "pkg/__init__.py": "",
+            "README.txt": "Usa `faltante.py` para la integración.\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil)
+        datos = dimension.a_dict()
+        hallazgos = [h for h in datos["hallazgos"]
+                     if h["criterio"] == "f2_readme_vs_realidad"]
+
+        self.assertFalse(datos["criterios"]["f2_readme_vs_realidad"])
+        self.assertEqual(hallazgos, [{
+            "severidad": "alta",
+            "descripcion": "El README promete faltante.py y no existe",
+            "evidencia": "README.md", "tipo_evidencia": "verified-real",
+            "criterio": "f2_readme_vs_realidad"}])
+
     def test_ejecutar_tests_oserror(self):
         raiz = crear_proyecto(self, {"README.md": "# x\n"})
         with patch("evaluar_proyecto.detectar_comando_tests",

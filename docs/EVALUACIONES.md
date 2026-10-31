@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1244/1244** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1245/1245** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -881,3 +881,13 @@ muertos**, sin equivalencias ni cambios de producción. R3 permanece en
 **673 brechas + 84 equivalencias** por falta de distribución histórica detallada.
 Suite **1244/1244** en Linux (Python 3.11.9). Evidencia:
 `build/digesto-r3-verificacion.json`. Hallazgo 178.
+
+**Actualización 2026-10-31** (cierre acotado de `evaluar_funcionalidades`):
+campaña de 224 mutantes, **224 muertos y 0 supervivientes**. La muestra directa
+detectó dos supervivientes pese al 224/224 inicial: 50 cambia `README.txt` y 100
+la severidad de un módulo prometido inexistente. Una regresión con `README.txt`
+y `faltante.py` mata ambos; otros ocho controles murieron y el original restaurado
+pasó. No hubo equivalencias ni cambios de producción. R3 permanece en
+**673 brechas + 84 equivalencias** por falta de distribución histórica detallada.
+Suite **1245/1245** en Linux (Python 3.11.9). Evidencia:
+`build/funcionalidades-r3-verificacion.json`. Hallazgo 179.
