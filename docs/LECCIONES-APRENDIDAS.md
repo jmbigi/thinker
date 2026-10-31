@@ -3735,3 +3735,22 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   requisito con hash. Las 9 pruebas del grupo y **3/3 mutaciones dirigidas**
   pasan. Suite **1222/1222** y tres demos offline correctas. El inventario
   oficial R3 no cambia sin una re-medición fiable.
+
+### Hallazgo 162: el relleno de ceros no significa dependencia atrasada
+
+- **Defecto reproducido (2026-10-30)**: con `requests==2.31` y PyPI simulada en
+  `2.31.0`, `v4` devolvía falso y «Dependencia atrasada». PEP 440 permite el
+  relleno de ceros en la comparación estricta; la comparación textual era
+  incorrecta para releases numéricas.
+- **Dogfooding y corrección**: `analyze_python_source` midió `evaluar_vigencia`
+  en 104 líneas/complejidad 19 y ayudó a aislar la comparación.
+  `_normalizar_release` elimina solo ceros finales de versiones numéricas y deja
+  intactos los demás formatos; no cambia criterios ni umbrales.
+- **Lecciones de verificación**: una mutación que normalizaba un solo lado
+  sobrevivió al primer test; se añadió el caso inverso y entonces fue detectada.
+  La suite completa también detectó `TypeError` con un mock existente que usa
+  `version=None`; se limitó la normalización a cadenas y ese caso volvió a pasar.
+- **Evidencia final**: la regresión exige equivalencia `2.31 ↔ 2.31.0`, sin
+  hallazgo de atraso, y las 15 pruebas de vigencia pasan. **3/3 mutaciones
+  dirigidas** detectadas; suite **1223/1223** y tres demos offline correctas.
+  El inventario oficial R3 no cambia sin una re-medición fiable.

@@ -1508,6 +1508,15 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
     return versiones
 
 
+def _normalizar_release(version: Optional[str]) -> Optional[str]:
+    if not isinstance(version, str) or not re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", version):
+        return version
+    partes = version.split(".")
+    while len(partes) > 1 and partes[-1] == "0":
+        partes.pop()
+    return ".".join(partes)
+
+
 def ultima_version_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
     """Última versión publicada; si falla, el MOTIVO va en `error` (no se oculta)."""
     try:
@@ -1608,7 +1617,7 @@ def evaluar_vigencia(ruta: Path, perfil: Perfil,
         if consulta["error"]:
             no_verificadas.append(f"{d['nombre']} ({consulta['error']})")
             continue
-        if consulta["version"] != version:
+        if _normalizar_release(consulta["version"]) != _normalizar_release(version):
             atrasadas.append(f"{d['nombre']} {version} -> {consulta['version']}")
     if verificadas == 0:
         # Cero comparaciones no es "al día": el bucle no consultó PyPI. Un

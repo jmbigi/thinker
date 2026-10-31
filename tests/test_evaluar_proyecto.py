@@ -2660,6 +2660,23 @@ class TestVigenciaContrato(unittest.TestCase):
                       "comparadas 2/3 dependencias: las que no tienen versión "
                       "no se pueden comparar"]})
 
+    def test_v4_relleno_ceros_es_equivalente(self):
+        for declarada, publicada in (("2.31", "2.31.0"), ("2.31.0", "2.31")):
+            with self.subTest(declarada=declarada, publicada=publicada):
+                raiz = crear_proyecto(self, {
+                    "requirements.txt": f"requests=={declarada}\n"})
+                perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+                with patch("evaluar_proyecto.ultima_version_pypi",
+                           return_value={"version": publicada, "error": ""}) as pypi:
+                    dimension = evaluar_proyecto.evaluar_vigencia(
+                        raiz, perfil, con_red=True)
+
+                pypi.assert_called_once_with("requests")
+                self.assertTrue(dimension.criterios["v4_dependencias_al_dia"])
+                self.assertFalse(any("Dependencia atrasada" in h.descripcion
+                                     for h in dimension.hallazgos))
+
     def test_v4_pypi_no_verificable(self):
         """Errores de PyPI: hallazgo UNVERIFIED con la lista exacta unida."""
         raiz = crear_proyecto(self, {
