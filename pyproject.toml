@@ -17,6 +17,7 @@ dependencies = [
     "PyYAML>=6.0",
     "pypdf>=6.0,<7",
     "cryptography>=43,<51",
+    "packaging>=26.3,<27",
 ]
 
 [project.optional-dependencies]

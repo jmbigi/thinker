@@ -2735,9 +2735,10 @@ class TestVigenciaContrato(unittest.TestCase):
                       "comparadas 2/3 dependencias: las que no tienen versión "
                       "no se pueden comparar"]})
 
-    def test_v4_relleno_ceros_es_equivalente(self):
+    def test_v4_versiones_pep440_equivalentes(self):
         for declarada, publicada in (("2.31", "2.31.0"), ("2.31.0", "2.31"),
-                                     ("01.0", "1.0"), ("1.0", "01.0")):
+                                     ("01.0", "1.0"), ("1.0", "01.0"),
+                                     ("1.0-1", "1.0.post1")):
             with self.subTest(declarada=declarada, publicada=publicada):
                 raiz = crear_proyecto(self, {
                     "requirements.txt": f"requests=={declarada}\n"})
@@ -2753,18 +2754,32 @@ class TestVigenciaContrato(unittest.TestCase):
                 self.assertFalse(any("Dependencia atrasada" in h.descripcion
                                      for h in dimension.hallazgos))
 
-    def test_normalizar_release_contrato_exacto(self):
+    def test_v4_no_inventa_atraso_en_version_mayor_o_invalida(self):
         casos = (
-            (None, None), (3, 3), ("", ""), ("v1.2", "v1.2"),
-            ("1.2rc1", "1.2rc1"), (".1", ".1"), ("1.", "1."),
-            ("1..0", "1..0"), ("0", "0"), ("0.0", "0"),
-            ("10", "10"), ("1.0.0", "1"), ("2.31.0.0", "2.31"),
-            ("1.0.1", "1.0.1"), ("00.010.0", "0.10"),
+            ("2.0", "1.0", True, []),
+            ("1.0", "no-version", False,
+             ["No se pudo comprobar en PyPI: requests "
+              "(versión no PEP 440: 1.0 -> no-version)"]),
+            ("1.0", None, False,
+             ["No se pudo comprobar en PyPI: requests "
+              "(versión no PEP 440: 1.0 -> None)"]),
         )
-        for entrada, esperada in casos:
-            with self.subTest(entrada=entrada):
-                self.assertEqual(
-                    evaluar_proyecto._normalizar_release(entrada), esperada)
+        for declarada, publicada, esperado, errores in casos:
+            with self.subTest(declarada=declarada, publicada=publicada):
+                raiz = crear_proyecto(self, {
+                    "requirements.txt": f"requests=={declarada}\n"})
+                perfil = evaluar_proyecto.analizar_perfil(raiz)
+                with patch("evaluar_proyecto.ultima_version_pypi",
+                           return_value={"version": publicada, "error": ""}):
+                    dimension = evaluar_proyecto.evaluar_vigencia(
+                        raiz, perfil, con_red=True)
+
+                self.assertIs(dimension.criterios["v4_dependencias_al_dia"], esperado)
+                self.assertEqual([h.descripcion for h in dimension.hallazgos
+                                  if "No se pudo comprobar en PyPI" in h.descripcion],
+                                 errores)
+                self.assertFalse(any("Dependencia atrasada" in h.descripcion
+                                     for h in dimension.hallazgos))
 
     def test_v4_pypi_no_verificable(self):
         """Errores de PyPI: hallazgo UNVERIFIED con la lista exacta unida."""

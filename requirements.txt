@@ -10,6 +10,8 @@ PyYAML==6.0.3
 pypdf>=6.0,<7
 # Cifrado Fernet de checkpoints sensibles (Apache-2.0/BSD)
 cryptography>=43,<51
+# Comparación PEP 440 de dependencias (Apache-2.0/BSD-2-Clause)
+packaging==26.3
 
 # Opcional: solo si se usa Ollama local como proveedor LLM
 # ollama==0.3.0

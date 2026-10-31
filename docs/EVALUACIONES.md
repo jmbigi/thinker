@@ -55,7 +55,7 @@ Windows 11 (Python 3.12.7/3.14.3) y **778/778** en Linux (3.11/3.12, 2026-10-23)
 ruff 0, preflight 0, docs-check OK.
 
 `no_verificado`: **vacío** (2026-10-25). Migración de `openai` a rango
-`>=1.0,<4` completada (lock en 3.40.0); `v4_dependencias_al_dia` al día con
+`>=1.0,<4` completada (lock en 3.42.0); `v4_dependencias_al_dia` al día con
 hashes `requirements.lock`. No hay hallazgos pendientes de verificación.
 
 **Actualización 2026-10-17** (tras corregir 6 bugs ALTA —Hallazgo 71— y aplicar
@@ -1045,3 +1045,13 @@ sufijos. Las dos direcciones `01.0 ↔ 1.0` pasan en el evaluador real con PyPI
 simulada. Suite **1293/1293** en Linux (Python 3.11.9), sin nuevas pruebas:
 se ampliaron dos contratos existentes. Evidencia:
 `build/versiones-enteras-verificacion.json`. Hallazgo 192.
+
+**Actualización 2026-10-31** (comparación PEP 440 completa en `v4`): el evaluador
+marcaba `2.0` como atrasado frente a `1.0` por comparar desigualdad textual.
+Se sustituye el normalizador parcial por `packaging.version.Version`; las versiones
+inválidas se reportan como no verificadas, nunca como atrasos. Se comprueban
+`2.0 → 1.0` sin falso hallazgo, equivalencias de ceros y `1.0-1 = 1.0.post1`.
+Nueva dependencia `packaging 26.3` (Apache-2.0/BSD-2-Clause), lock con hashes y
+`openai 3.42.0`; evaluador 237/237 en venv aislado y pip-audit sin vulnerabilidades
+conocidas. Suite **1293/1293** en Linux (Python 3.11.9). Evidencia:
+`build/pep440-versiones-verificacion.json`. Hallazgo 193.

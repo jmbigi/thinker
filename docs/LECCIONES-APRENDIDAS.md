@@ -4213,3 +4213,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   sentidos y `00.010.0 → 0.10`. Evaluador: **237 pruebas + 124 subpruebas**;
   suite total **1293/1293**, sin cambiar el recuento. Evidencia reproducible:
   `build/versiones-enteras-verificacion.json`.
+
+### Hallazgo 193: una desigualdad de textos no ordena versiones PEP 440
+
+- **Defecto (2026-10-31)**: `evaluar_vigencia` marcaba `requests==2.0` como
+  atrasado frente a PyPI `1.0`. El normalizador parcial anterior solo trataba
+  releases numéricas; no implementaba el orden completo de PEP 440.
+- **Decisión verificada**: Thinker no señaló estilo, así que se investigó la
+  semántica. La documentación oficial de `packaging` demuestra `1.0a5 < 1.0` y
+  `InvalidVersion`; PyPI declara 26.3, Python ≥3.9, sin dependencias y licencia
+  Apache-2.0/BSD-2-Clause. Se usa `Version` y se elimina el comparador parcial.
+- **Contrato**: `2.0 → 1.0` no es atraso; `1.0-1` equivale a `1.0.post1`; una
+  versión remota inválida o ausente pasa a `UNVERIFIED`, nunca a atraso inventado.
+  Se actualizan `requirements.txt`, `pyproject.toml` y el lock con hashes.
+- **Verificación**: 237/237 del evaluador con `packaging 26.3` y `openai 3.42.0`.
+  `make lock` actualizó también Pydantic; se instaló el lock completo en un venv.
+  pip-audit con `--disable-pip` (lock con hashes, sin resolver en Python 3.10)
+  informó «No known vulnerabilities found». Evidencia:
+  `build/pep440-versiones-verificacion.json`.

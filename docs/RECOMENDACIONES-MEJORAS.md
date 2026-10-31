@@ -1,7 +1,7 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `bd241bc`
-más las decisiones del programador del 2026-10-25, la release `0.1.11` publicada
+**Fecha:** 2026-10-22, actualizado el **2026-10-31**. **Base:** commit `6d20a4c`
+más las decisiones del programador del 2026-10-25, la release `0.1.15` publicada
 y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
@@ -16,8 +16,7 @@ pendiente.
 | **Hecho** | R11. [Cerrada 2026-10-23] Gate documental `scripts/check_docs.py` | Las cifras de docs derivaban en cada auditoría; ahora fallan si no cuadran | Bajo | Bajo |
 | **Hecho** | R12. [Cerrada 2026-10-23] Corpus adversario del evaluador | 4 regresiones de la auditoría (Poetry, locks, prosa/runner) como contrato | Bajo | Bajo |
 | **Hecho** | R2. [Cerrada 2026-10-25] Subir la cobertura de `evaluar_proyecto.py` y `preflight.py` | 91% / 93% actual (91% combinado); ramas de error cubiertas | Medio | Bajo |
-| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 86 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`,
-`_tiene_punto_entrada`, `plan_texto` y `_registro_decisiones` (Hallazgos 167-188), 0 timeouts | Medio-alto | Medio |
+| **Parcial** | R3. [Parcial 2026-10-26; decisión C] Medir mutación del evaluador y preflight | Preflight: 967/1016, 49 equivalencias y 0 brechas; evaluador: 4846/5984 histórico, **673 brechas + 88 equivalencias** tras cerrar también `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`, `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`, `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`, `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`, `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto` y `_es_no_codigo` (Hallazgos 167-191), 0 timeouts | Medio-alto | Medio |
 | **Hecho** | R9. [Cerrada 2026-10-24] Publicar 0.1.4 | Publicada en TestPyPI y PyPI; tag `v0.1.4`; 842/842 | Medio | Medio |
 | **Hecho** | R4. [Cerrada 2026-10-26, alcance offline] Benchmark de precisión/recall del evaluador | 57 casos/26 criterios con 5 trampas y 1,00/1,00; 3 N/A declaradas (red/PyPI/entrada real) | Medio | Bajo |
 | **Hecho** | R5. [Cerrada 2026-10-25, A] Alcance Python explícito y bloqueo de comparabilidad | `cobertura.comparable`; Java/JS no comparable; 2 tests | Alto | Alto |
@@ -30,7 +29,7 @@ pendiente.
 
 **Estado de decisiones (2026-10-26; R3 actualizado el 2026-10-31):** R5-A,
 R6-C, R13-B/C y R14-B/C implementadas; R3-C en ejecución (preflight 49: 49
-equivalencias y 0 brechas; evaluador **673 brechas + 39 equivalencias**; 0
+equivalencias y 0 brechas; evaluador **673 brechas + 41 equivalencias**; 0
 timeouts). **R4 se cierra por alcance offline**: 26/29 criterios medidos y 3 N/A
 declaradas, no una validación global. R3 es la deuda P1 y sigue abierta.
 R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
@@ -55,18 +54,18 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1029/1029** en Linux 3.11.9 (2026-10-28) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **1293/1293** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); `make ci` usa `rm -rf` en el temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
-| Autoevaluación con red | **1.000** (28/30; 93% de cobertura; N/A `e1`/`e2`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
-| Lock `openai` | **3.37.0** con hashes (2026-10-22) | `requirements.lock` |
-| Autoevaluación sin red | **1.000** (25/29; N/A `v4`, `h5`, `e1`, `e2`) | `python3 evaluar_proyecto.py . --sin-red --json` |
+| Autoevaluación con red | **1.000** (28/30; 2 N/A: `v4`, `h5`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
+| Lock `openai` | **3.42.0** con hashes (2026-10-31) | `requirements.lock` |
+| Autoevaluación sin red | **1.000** (27/29; N/A `v4`, `h5`) | `python3 evaluar_proyecto.py . --sin-red --json` |
 | Cobertura `evaluar_proyecto.py` | **91%** (145/1571 sentencias sin ejecutar) | comando de la sección 8 |
 | Cobertura `scripts/preflight.py` | **93%** (26/425) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Mutación preflight | **95,18%** (967/1016; 49 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo preflight` |
 | Mutación evaluador | **80,98%** (4846/5984; 1138 supervivientes: 1131 brechas + 7 equivalencias, 0 timeouts; 2026-10-28) | `python3 scripts/mutacion.py --objetivo evaluar` |
-| Paquete publicado | **0.1.13** (2026-10-28; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.15** (2026-10-28; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda principal que queda es la **mutación** de esos dos
