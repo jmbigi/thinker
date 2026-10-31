@@ -451,6 +451,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-28, herramientas) | `triaje_mutantes` (JSON r3c4) y `evaluar_proyecto` | 70 supervivientes de `evaluar_herramientas` con su diff; el experimento blanco de mutmut del Hallazgo 143 guió el método (verificación diff a diff, no campaña masiva) | 16 tests de contrato nuevos (`TestHerramientasContrato`); **64/70 mueren** en verificación manual; 6 equivalencias demostradas (E6-E8); contabilidad 1131 → **1067 brechas + 62 equivalencias**; suite **1107/1107** |
 | R3 (2026-10-30, licencias no runtime) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó candidatos R3: `licencias_no_runtime`, 40 líneas/complejidad 6; se eligió por alcance pequeño. Sin JSON r3c4 no se inventaron IDs | 1 test de contrato; **4/4 mutaciones dirigidas detectadas**; suite **1212/1212** y demos OK. Avance local: R3 y su inventario oficial no cambian sin re-medición |
 | R3 (2026-10-30, locks ignorados) | `code_design_improvement_tools` y `evaluar_proyecto` | `_versiones_lock`: 62 líneas/complejidad 20, sin issues; se acotó el trabajo a la guarda de directorios excluidos, sin refactor | 1 test de contrato; **3/3 mutaciones dirigidas detectadas**; suite **1213/1213** y demos OK. R3 y su inventario oficial no cambian sin re-medición |
+| R3 (2026-10-30, ámbito junto a manifiestos) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos; `_ambito_requirements` fue el más acotado: 27 líneas/complejidad 8, sin issues. Se eligió la rama de manifiestos anidados | 1 test de contrato para `pyproject.toml` y `setup.py`; **3/3 mutaciones dirigidas detectadas**; suite **1214/1214** y demos OK. R3 y su inventario oficial no cambian sin re-medición |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -560,7 +561,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1213/1213 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1214/1214 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

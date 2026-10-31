@@ -3599,3 +3599,17 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   ubicación del entorno, no el test. Con el entorno externo: suite **1213/1213**
   y tres demos offline correctas. R3 sigue abierta y su inventario oficial no
   cambia sin una re-medición fiable.
+
+### Hallazgo 153: requirements junto a un manifiesto, un paso acotado de R3
+
+- **Dogfooding (2026-10-30)**: `analyze_python_source` comparó tres candidatos
+  R3. `_ambito_requirements` fue el más pequeño: 27 líneas y complejidad 8, sin
+  issues; se eligió su rama de manifiestos anidados y no un refactor general.
+- **Regresión añadida**: `test_ambito_requirements_junto_a_manifiesto_es_runtime`
+  fija que un `requirements.txt` anidado junto a `pyproject.toml` o `setup.py`
+  se clasifica como `runtime`. No cambia el evaluador ni sus criterios.
+- **Verificación**: la prueba aislada pasa y detecta **3/3 mutaciones
+  dirigidas** (pérdida de `pyproject.toml`, de `setup.py` y del retorno
+  `runtime`). Con el entorno temporal externo: suite **1214/1214** y tres demos
+  offline correctas. R3 sigue abierta y su inventario oficial no cambia sin una
+  re-medición fiable.

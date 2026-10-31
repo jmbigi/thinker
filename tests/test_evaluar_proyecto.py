@@ -3402,6 +3402,21 @@ class TestAmbitoVerificarYCobertura(unittest.TestCase):
                     evaluar_proyecto._ambito_requirements(
                         raiz / nombre, raiz), ambito)
 
+    def test_ambito_requirements_junto_a_manifiesto_es_runtime(self):
+        raiz = crear_proyecto(self, {
+            "paquete-pyproject/pyproject.toml": "[project]\nname='x'\n",
+            "paquete-pyproject/requirements.txt": "requests==2\n",
+            "paquete-setup/setup.py": "from setuptools import setup\n",
+            "paquete-setup/requirements.txt": "requests==2\n",
+        })
+
+        for relativo in ("paquete-pyproject/requirements.txt",
+                         "paquete-setup/requirements.txt"):
+            with self.subTest(relativo=relativo):
+                self.assertEqual(
+                    evaluar_proyecto._ambito_requirements(
+                        raiz / relativo, raiz), "runtime")
+
     def test_verificar_test_ramas(self):
         raiz = crear_proyecto(self, {
             "tests/test_x.py": "def test_x():\n    assert True\n",
