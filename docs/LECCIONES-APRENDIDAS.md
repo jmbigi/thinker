@@ -3643,3 +3643,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   Detecta **3/3 mutaciones dirigidas** (reversión, aviso eliminado y contenido
   válido descartado). Suite **1216/1216** y tres demos offline correctas. No se
   altera el inventario oficial R3 sin re-medición.
+
+### Hallazgo 156: `packages` debe ser un objeto en package-lock
+
+- **Defecto reproducido (2026-10-30)**: un `package-lock.json` con `packages`
+  como lista no vacía provocaba `AttributeError` en `.items()` dentro de
+  `_versiones_lock`. El evaluador no puede dar por válida la estructura solo por
+  ser JSON sintácticamente correcto.
+- **Dogfooding y corrección**: `analyze_python_source` midió la función ya
+  acotada en 69 líneas/complejidad 21 y guió limitar el cambio a esta rama. Una
+  sección `packages` que no es objeto ahora emite `RuntimeWarning` y se omite.
+- **Regresión y evidencia**: `test_versiones_lock_avisa_packages_no_objeto`
+  falló antes con `AttributeError`; después devuelve `{}` y un aviso que nombra
+  `packages`. Las 11 pruebas del grupo y **3/3 mutaciones dirigidas** pasan;
+  suite **1217/1217** y tres demos offline correctas. El inventario oficial R3
+  no cambia sin una re-medición fiable.

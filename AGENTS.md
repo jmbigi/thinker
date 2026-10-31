@@ -318,7 +318,7 @@ mejora de código (`code_design_improvement_tools.py`).
   denominador se mezcla con el 95,2% del núcleo.
   Comando:
   `python3 scripts/mutacion.py --objetivo preflight|evaluar`.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1216/1216 en la suite
+- Plataformas verificadas: Linux con Python **3.11.9**: **1217/1217 en la suite
   Linux** (2026-10-30; openai 3.40.0 en el entorno actual) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
