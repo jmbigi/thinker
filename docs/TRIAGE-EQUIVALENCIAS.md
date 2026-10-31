@@ -463,3 +463,22 @@ detecta. El original restaurado pasó. Evidencia: `build/plan-r3-verificacion.js
 **Contabilidad:** 42 mutantes: **39 muertos + 3 equivalentes, 0 supervivientes**.
 R3 permanece en **673 brechas** y sube de 85 a **86 equivalencias** por falta de
 distribución histórica detallada; no se recalcula la tasa global.
+
+### E17. Filtros redundantes de `.lock` y normalización de nombres (2)
+
+Mutantes 6 y 7 de `_es_manifiesto`: el primero cambia `.lock` por `XX.lockXX`;
+el segundo usa `.LOCK` en `nombre.endswith` después de `archivo.name.lower()`.
+
+**Prueba:** `nombre` ya está en minúsculas, por lo que 7 es literalmente la misma
+condición. Para 6, todo nombre `.lock` que no sea un manifiesto conocido (ninguno
+lo es) tampoco cumple la regex de `.txt`/`.in` ni el filtro de directorio
+`requirements`: el retorno es `False` con o sin salida anticipada.
+
+**Verificación (2026-10-31):** ambos supervivientes produjeron exactamente las
+mismas salidas que el original en 20 rutas, incluidos locks en raíz y en
+`requirements/`. Los otros 24 mutantes fueron detectados al aplicarlos; el
+original restaurado pasó. Evidencia: `build/manifiestos-e17-verificacion.json`.
+
+**Contabilidad:** 26 mutantes: **24 muertos + 2 equivalentes, 0 brechas**. R3
+permanece en **673 brechas** y sube de 86 a **88 equivalencias** por falta de
+distribución histórica detallada; no se recalcula la tasa global.

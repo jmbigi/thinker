@@ -4163,3 +4163,22 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Contabilidad**: R3 permanece en **673 brechas + 86 equivalencias** por falta
   de distribución histórica. Suite **1291/1291**. Evidencia:
   `build/release-r3-verificacion.json`.
+
+### Hallazgo 190: `_es_manifiesto` cubre rutas y demuestra dos equivalencias
+
+- **Medición (2026-10-31)**: Thinker midió 11 líneas, complejidad 3 y ninguna
+  incidencia de estilo. La campaña aislada generó 26 mutantes: 24 muertos y dos
+  supervivientes, sin timeouts ni casos sin tests.
+- **Regresión**: 23 rutas fijan nombres de manifiestos, `requirements*` con
+  sufijos `.txt`/`.in`, locks, mayúsculas y directorios no admitidos. La primera
+  versión esperaba erróneamente que `requirementsprod.txt` fuera rechazado; se
+  corrigió la expectativa para reflejar `requirements.*`, sin tocar producción.
+- **Verificación**: los 24 mutantes no equivalentes fueron detectados al
+  aplicarlos al módulo real. Los casos 6 y 7 dieron salidas idénticas en 20 rutas:
+  uno adelanta el `False` de cualquier `.lock` y el otro cambia mayúsculas tras
+  `lower()`. Son E17, no brechas. El original restaurado pasó.
+- **Contabilidad**: **24 muertos + 2 equivalencias, 0 supervivientes**. R3
+  permanece en **673 brechas** y sube a **88 equivalencias** por falta de
+  distribución histórica. Suite **1292/1292**. Evidencias:
+  `build/manifiestos-r3-verificacion.json` y
+  `build/manifiestos-e17-verificacion.json`.

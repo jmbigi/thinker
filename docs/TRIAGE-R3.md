@@ -1,4 +1,4 @@
-# Triaje R3 — 673 brechas, 86 equivalencias y 0 timeouts
+# Triaje R3 — 673 brechas, 88 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,8 +30,8 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **673** | **39** | **0** | **0** |
-| **Total** | **673** | **86** | **0** | **0** |
+| Evaluador | **673** | **41** | **0** | **0** |
+| **Total** | **673** | **88** | **0** | **0** |
 
 Los **673** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
@@ -259,6 +259,15 @@ necesarios cambios de producción. Evidencia: `build/release-r3-verificacion.jso
 La contabilidad permanece en **673 brechas + 86 equivalencias** por falta de
 distribución histórica.
 
+Cierre acotado de `_es_manifiesto` (2026-10-31): **26 mutantes, 24 muertos + 2
+equivalencias (E17), 0 supervivientes**. Una regresión fija 23 rutas de
+manifiestos, locks y `requirements/*`. Los 24 diffs no equivalentes fueron
+detectados directamente; 6 y 7 produjeron salidas idénticas al original en 20
+rutas y tienen prueba en E17. El original restaurado pasó, sin cambios de
+producción. Evidencias: `build/manifiestos-r3-verificacion.json` y
+`build/manifiestos-e17-verificacion.json`. La contabilidad permanece en **673
+brechas** y sube a **88 equivalencias** por falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -323,9 +332,10 @@ documento conserva el resumen y la clasificación.
   `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`,
   `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`,
   `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`,
-  `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto` y
-  `_registro_decisiones`: **673 brechas + 86 equivalencias**.
-- **Equivalentes demostrados:** 86 (49 en preflight y 39 en el evaluador), todos
+  `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`,
+  `_registro_decisiones`, `_normalizar_release` y `_es_manifiesto`: **673
+  brechas + 88 equivalencias**.
+- **Equivalentes demostrados:** 88 (49 en preflight y 41 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.

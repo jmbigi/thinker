@@ -478,6 +478,23 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
         self.assertTrue(_es_lock(raiz / "requirements" / "exacto.txt"))
         self.assertTrue(_es_lock(raiz / "requirements" / "hash.txt"))
 
+    def test_es_manifiesto_contrato_exacto(self):
+        casos = {
+            "pyproject.toml": True, "SETUP.PY": True, "setup.cfg": True,
+            "Pipfile": True, "package.json": True, "build.gradle": True,
+            "build.gradle.kts": True, "pom.xml": True, "Cargo.toml": True,
+            "go.mod": True, "requirements.txt": True,
+            "REQUIREMENTS-DEV.IN": True, "requirements_dev.txt": True,
+            "requirementsprod.txt": True, "myrequirements.txt": False,
+            "requirements.txt.bak": False, "requirements/base.TXT": True,
+            "Requirements/test.in": True, "requirements/custom.lock": False,
+            "requirements/base.toml": False, "other/base.txt": False,
+            "notrequirements/base.txt": False, "README.md": False,
+        }
+        for nombre, esperado in casos.items():
+            with self.subTest(nombre=nombre):
+                self.assertIs(evaluar_proyecto._es_manifiesto(Path(nombre)), esperado)
+
 
 class TestCriteriosAnadidos(unittest.TestCase):
     """h6 (imports declarados), c5 (tests con aserciones) y h7 (decisiones)."""

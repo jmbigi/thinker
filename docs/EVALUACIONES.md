@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1291/1291** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1292/1292** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1014,3 +1014,14 @@ restaurado pasó. No hubo cambios de producción ni equivalencias. R3 permanece
 en **673 brechas + 86 equivalencias** por falta de distribución histórica.
 Suite **1291/1291** en Linux (Python 3.11.9). Evidencia:
 `build/release-r3-verificacion.json`. Hallazgo 189.
+
+**Actualización 2026-10-31** (cierre acotado de `_es_manifiesto`): 26 mutantes,
+**24 muertos + 2 equivalencias (E17), 0 supervivientes**. Una regresión con 23
+rutas fija nombres conocidos, sufijos, mayúsculas, locks y `requirements/*`.
+Los 24 diffs no equivalentes fueron detectados directamente; los mutantes 6 y 7
+produjeron salidas idénticas al original en 20 rutas, con demostración adicional
+en E17. El original restaurado pasó. No hubo cambios de producción. R3 permanece
+en **673 brechas** y sube a **88 equivalencias** por falta de distribución
+histórica detallada. Suite **1292/1292** en Linux (Python 3.11.9). Evidencias:
+`build/manifiestos-r3-verificacion.json` y
+`build/manifiestos-e17-verificacion.json`. Hallazgo 190.
