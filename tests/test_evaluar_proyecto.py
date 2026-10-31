@@ -2299,6 +2299,21 @@ class TestDimensionesContrato(unittest.TestCase):
                       "suite NO ejecutada (sin --ejecutar-tests): no verificado"]})
 
 
+class TestRegistroDecisionesContrato(unittest.TestCase):
+    """Contrato de descubrimiento de ADR, changelogs y AsciiDoc."""
+
+    def test_documentos_adr_release_notes_y_adoc(self):
+        raiz = crear_proyecto(self, {
+            "docs/ADR-001.md": "# Decisión\n",
+            "releasenotes.md": "# Cambios\n",
+            "decision.adoc": "= Decisión\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        self.assertEqual(evaluar_proyecto._registro_decisiones(raiz, perfil), [
+            "decision.adoc", "docs/ADR-001.md", "releasenotes.md"])
+
+
 class TestDependenciasPyprojectContrato(unittest.TestCase):
     """Contrato exacto de ámbitos y versiones del parser de pyproject."""
 

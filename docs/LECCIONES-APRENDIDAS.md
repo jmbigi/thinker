@@ -4138,3 +4138,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   seis supervivientes murieron y diez controles fueron confirmados; el original
   restaurado pasó. R3 permanece en **673 brechas** y sube a **86 equivalencias**.
   Suite **1289/1289**. Evidencia: `build/plan-r3-verificacion.json`.
+
+### Hallazgo 188: `_registro_decisiones` cubre ADR y AsciiDoc con una regresión
+
+- **Medición y anomalía (2026-10-31)**: Thinker midió 17 líneas/complejidad 5,
+  sin incidencias. La campaña declaró 57/57 muertos, pero la muestra directa
+  encontró 2, 3, 15 y 25 vivos; otros seis murieron y el original restaurado pasó.
+- **Regresión**: un fixture con `ADR-001.md`, `releasenotes.md` y `decision.adoc`
+  fija los tres formatos y mata los cuatro mutantes, sin cambios de producción.
+- **Contabilidad**: **57/57 muertos**, sin equivalencias. R3 permanece en
+  **673 brechas + 86 equivalencias** por falta de distribución histórica.
+  Suite **1290/1290**. Evidencia: `build/decisiones-r3-verificacion.json`.

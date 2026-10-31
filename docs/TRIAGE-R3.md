@@ -243,6 +243,14 @@ supervivientes y diez controles murieron, con el original restaurado verde.
 Evidencia: `build/plan-r3-verificacion.json`. La contabilidad permanece en
 **673 brechas** y sube a **86 equivalencias** por falta de distribución histórica.
 
+Cierre acotado de `_registro_decisiones` (2026-10-31): **57 mutantes, 57
+muertos y 0 supervivientes**. La muestra directa detectó 2, 3, 15 y 25 vivos pese
+al 57/57 inicial. Una regresión con `ADR-001.md`, `releasenotes.md` y
+`decision.adoc` mata los cuatro; otros seis controles murieron y el original
+restaurado pasó. Evidencia: `build/decisiones-r3-verificacion.json`. La
+contabilidad permanece en **673 brechas + 86 equivalencias** por falta de
+distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -307,8 +315,8 @@ documento conserva el resumen y la clasificación.
   `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`,
   `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`,
   `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm`,
-  `_linter_configurado`, `_tiene_punto_entrada` y `plan_texto`: **673 brechas +
-  86 equivalencias**.
+  `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto` y
+  `_registro_decisiones`: **673 brechas + 86 equivalencias**.
 - **Equivalentes demostrados:** 86 (49 en preflight y 39 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se

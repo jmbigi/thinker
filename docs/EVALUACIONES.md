@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1289/1289** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1290/1290** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -996,3 +996,12 @@ controles murieron, con el original restaurado verde. R3 permanece en
 **673 brechas** y sube a **86 equivalencias** por falta de distribución histórica.
 Suite **1289/1289** en Linux (Python 3.11.9). Evidencia:
 `build/plan-r3-verificacion.json`. Hallazgo 187.
+
+**Actualización 2026-10-31** (cierre acotado de `_registro_decisiones`): 57
+mutantes, **57 muertos y 0 supervivientes**. La muestra directa detectó 2, 3, 15
+y 25 vivos pese al 57/57 inicial. Una regresión con `ADR-001.md`,
+`releasenotes.md` y `decision.adoc` mata los cuatro; otros seis controles
+murieron y el original restaurado pasó. No hubo cambios de producción ni
+equivalencias. R3 permanece en **673 brechas + 86 equivalencias** por falta de
+distribución histórica detallada. Suite **1290/1290** en Linux (Python 3.11.9).
+Evidencia: `build/decisiones-r3-verificacion.json`. Hallazgo 188.
