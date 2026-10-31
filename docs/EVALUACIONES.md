@@ -965,3 +965,14 @@ regresiones y confundir documentación con calidad, no para afirmar validez
 externa. Suite **1287/1287** en Linux (Python 3.11.9). Evidencia:
 `docs/metricas-calidad.json`, `tests/benchmarks/rag_retrieval.py` y
 `tests/benchmarks/evaluador_holdout.py`. Hallazgo 184.
+
+**Actualización 2026-10-31** (cierre acotado de `_linter_configurado`): 79
+mutantes, **78 muertos + 1 equivalencia (E15), 0 supervivientes**. La muestra
+directa encontró dos supervivientes: 60 solo cambia mayúsculas bajo `re.I` y
+conserva idéntica salida en seis variantes; 70 cambia el glob de
+`eslint.config.js`. Se añadió ese archivo a la regresión existente y 70 murió;
+otros ocho controles murieron y el original restaurado pasó. No hubo cambios de
+producción ni nuevos tests. R3 permanece en **673 brechas** y sube a
+**85 equivalencias** por falta de distribución histórica detallada.
+Suite **1287/1287** en Linux (Python 3.11.9). Evidencia:
+`build/linter-r3-verificacion.json`. Hallazgo 185.

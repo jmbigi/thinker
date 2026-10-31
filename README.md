@@ -395,7 +395,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Cobertura | **82,57% líneas / 82,42% ramas** | 2382/2890 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
-| R3 | **673 brechas + 84 equivalencias** | 1131 → 673 brechas (**−40,5%**); equivalencias 62 → 84 |
+| R3 | **673 brechas + 85 equivalencias** | 1131 → 673 brechas (**−40,5%**); equivalencias 62 → 85 |
 
 ```mermaid
 xychart-beta

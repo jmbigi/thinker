@@ -1,4 +1,4 @@
-# Triaje R3 — 673 brechas, 84 equivalencias y 0 timeouts
+# Triaje R3 — 673 brechas, 85 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,8 +30,8 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **673** | **35** | **0** | **0** |
-| **Total** | **673** | **84** | **0** | **0** |
+| Evaluador | **673** | **36** | **0** | **0** |
+| **Total** | **673** | **85** | **0** | **0** |
 
 Los **673** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
@@ -218,6 +218,15 @@ aplicar sus diffs, con el original restaurado verde. Evidencia:
 `build/investigar-r3-verificacion.json`. La contabilidad permanece en
 **673 brechas + 84 equivalencias** por falta de distribución histórica.
 
+Cierre acotado de `_linter_configurado` (2026-10-31): **79 mutantes, 78 muertos
++ 1 equivalencia (E15), 0 supervivientes**. La muestra directa detectó 60 y 70
+vivos pese al 79/79 inicial. El 60 solo cambia mayúsculas bajo `re.I` y conserva
+idéntica salida en seis variantes; el 70 cambia el glob `eslint.config.*` y muere
+al añadir `eslint.config.js` a la regresión existente. Otros ocho controles
+murieron y el original restaurado pasó. Evidencia:
+`build/linter-r3-verificacion.json`. La contabilidad permanece en **673 brechas**
+y sube a **85 equivalencias** por falta de distribución histórica.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -281,9 +290,9 @@ documento conserva el resumen y la clasificación.
 - **Triaje de inventario:** r3c4 completo, con cierres dirigidos posteriores de
   `_ambito_requirements`, `licencias_no_runtime`, `_dependencias_pyproject`,
   `_versiones_lock`, `_dependencias`, `main`, `evaluar_calidad`,
-  `parsear_requisitos`, `evaluar_inteligencia` y `sintetizar_con_llm`: **673
-  brechas + 84 equivalencias**.
-- **Equivalentes demostrados:** 84 (49 en preflight y 35 en el evaluador), todos
+  `parsear_requisitos`, `evaluar_inteligencia`, `sintetizar_con_llm` y
+  `_linter_configurado`: **673 brechas + 85 equivalencias**.
+- **Equivalentes demostrados:** 85 (49 en preflight y 36 en el evaluador), todos
   con prueba; no se cuentan como muertos.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.

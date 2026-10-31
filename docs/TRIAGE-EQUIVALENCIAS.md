@@ -423,3 +423,24 @@ restaurado también pasa. Evidencia: `build/requisitos-r3-verificacion.json`.
 clúster de 35 queda cerrado con una regresión nueva y sin cambios de producción:
 R3 pasa de 767 a **732 brechas** y de 83 a **84 equivalencias**. No se recalcula
 la tasa global histórica.
+
+### E15. Mayúsculas bajo `re.I` no cambian la detección de linter (1)
+
+Mutante 60 de `_linter_configurado`: convierte las alternativas
+`checkstyle|spotless|pmd|spotbugs|eslint` a mayúsculas en una regex que conserva
+`re.I`.
+
+**Prueba:** el modificador hace que la coincidencia sea insensible a mayúsculas;
+no hay ningún otro cambio semántico. Original y mutante devuelven exactamente la
+misma tupla en seis variantes: `checkstyle`, `CheckStyle`, `SPOTLESS`, `pmd`,
+`SpotBugs` y `EsLint`.
+
+**Verificación (2026-10-31):** el mutante 60 pasó la selección y las seis salidas
+fueron idénticas. El mutante 70, que cambia el glob `eslint.config.*` a
+mayúsculas, sí altera el comportamiento en Linux y murió al añadir
+`eslint.config.js` a la regresión existente. El original restaurado pasó.
+Evidencia: `build/linter-r3-verificacion.json`.
+
+**Contabilidad:** 79 mutantes: **78 muertos + 1 equivalente, 0 supervivientes**.
+R3 permanece en **673 brechas** y sube de 84 a **85 equivalencias** por falta de
+distribución histórica detallada; no se recalcula la tasa global.

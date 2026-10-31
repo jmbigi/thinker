@@ -4097,3 +4097,18 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   fixtures son sintéticos y del mismo autor; no hubo 100 repositorios reales,
   evaluación humana independiente ni re-medición Windows/macOS en esta sesión.
   Esos puntos quedan como validación externa pendiente, no como éxito.
+
+### Hallazgo 185: `_linter_configurado` distingue una equivalencia de una brecha real
+
+- **Medición y anomalía (2026-10-31)**: Thinker comparó tres candidatos y eligió
+  esta función de 22 líneas/complejidad 7. La campaña declaró 79/79 muertos,
+  pero la muestra directa encontró 60 y 70 vivos; otros ocho murieron y el
+  original restaurado pasó.
+- **Equivalencia y regresión**: 60 solo cambia mayúsculas en una regex con
+  `re.I`; original y mutante devuelven lo mismo en seis variantes (E15). El 70
+  cambia `eslint.config.*` a mayúsculas y sí altera el comportamiento en Linux.
+  Se añadió `eslint.config.js` a los casos existentes y el mutante murió.
+- **Contabilidad**: **78 muertos + 1 equivalencia, 0 supervivientes**, sin
+  cambios de producción ni nuevos tests. R3 permanece en **673 brechas** y sube
+  a **85 equivalencias** por falta de distribución histórica. Suite **1287/1287**.
+  Evidencia: `build/linter-r3-verificacion.json`.

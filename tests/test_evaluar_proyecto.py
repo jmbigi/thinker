@@ -3309,6 +3309,7 @@ class TestParsersDependenciasYLinter(unittest.TestCase):
             "setup.cfg": "[flake8]\nmax-line-length=100\n",
             ".ruff.toml": "line-length = 100\n",
             ".eslintrc.json": '{"extends": "eslint:recommended"}\n',
+            "eslint.config.js": "export default {};\n",
         }
         for nombre, contenido in casos.items():
             with self.subTest(nombre=nombre):
