@@ -457,6 +457,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-30, packages inválido) | `code_design_improvement_tools` y `evaluar_proyecto` | Tras aislar Pipfile, Thinker midió 69 líneas/complejidad 21 y se eligió solo `package-lock`: una lista no vacía en `packages` causaba `AttributeError` | 1 regresión roja antes y verde después; salida `{}` y aviso explícito; **3/3 mutaciones detectadas**; suite **1217/1217** y demos OK. Inventario oficial sin re-medición |
 | R3 (2026-10-30, raíz JSON no objeto) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió `_versiones_lock` (76 líneas/complejidad 22); ambos parsers reproducían `AttributeError` con raíz lista | 1 regresión con dos subcasos, roja antes y verde después; aviso y salida `{}`; **3/3 mutaciones detectadas**; suite **1218/1218** y demos OK |
 | R3 (2026-10-30, grupo Poetry inválido) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió `_dependencias_pyproject` (77 líneas/complejidad 20); un grupo con `dependencies` lista rompía `.items()` | 1 regresión roja antes y verde después; aviso para `dev` y grupo `test` conservado; **3/3 mutaciones detectadas**; suite **1219/1219** y demos OK |
+| R3 (2026-10-30, comodín PEP 440) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió `_parsear_requisito` (29 líneas/complejidad 5); `==2.*` producía `fijada=True`, `v1=True` y comparación literal en PyPI | PEP 440 confirma coincidencia por prefijo; parser, v1 y v4 usan `fijada`; regresión sin llamada PyPI, **3/3 mutaciones detectadas**; suite **1220/1220** y demos OK |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -566,7 +567,7 @@ offline**, no una promesa de calidad de producción.
 | **R16** | Conectores, NCM, paralelismo y privacidad | **Hecho**: SearXNG/arXiv/PubMed/Semantic Scholar; MCP stdio con allowlist/timeouts; NCM residual con hashes y paralelismo determinista; presupuestos; políticas de egreso y estado Fernet. |
 | **R17** | Routing, poda, caché y subsistema neural opt-in | **Hecho**: routing heurístico declarado, poda con métricas, caché exacta/semántica opt-in, vectores INT4/INT8; destilación, LoRA, cuantización/poda de pesos, MoE, speculative decoding y VQ con modelos pequeños reales. |
 
-**Evidencia común:** **1219/1219 tests**, ruff 0, preflight 0, docs-check OK;
+**Evidencia común:** **1220/1220 tests**, ruff 0, preflight 0, docs-check OK;
 `pypdf 6.21.4` y `cryptography 50.0.2` en `requirements.lock`;
 `torch==2.15.0` en el extra `ml` y su lock; `pip-audit` no encontró
 vulnerabilidades conocidas en ese lock. Las pruebas reales de Ollama se

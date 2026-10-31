@@ -2392,6 +2392,23 @@ class TestVigenciaContrato(unittest.TestCase):
             "notas": ["locks: ninguno", "sin git: actividad no evaluable",
                       "comprobación PyPI OMITIDA (--sin-red): no verificado"]})
 
+    def test_comodin_no_es_version_fijada(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "requests==2.*\n"})
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        self.assertFalse(perfil.deps_runtime_python[0]["fijada"])
+        with patch.object(evaluar_proyecto, "ultima_version_pypi",
+                          return_value={"version": "2.32.5", "error": ""}) as consulta:
+            dimension = evaluar_proyecto.evaluar_vigencia(
+                raiz, perfil, con_red=True)
+
+        consulta.assert_not_called()
+        self.assertFalse(dimension.criterios["v1_dependencias_fijadas"])
+        self.assertFalse(dimension.criterios["v4_dependencias_al_dia"])
+        self.assertIn("sin versiones (== o lock) que comparar: no verificado",
+                      dimension.notas)
+
     def test_v1_rangos_cubiertos_por_lock(self):
         """v1 es True con rangos si el lock los cubre; la nota lo declara."""
         raiz = crear_proyecto(self, {

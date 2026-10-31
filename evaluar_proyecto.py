@@ -1110,7 +1110,8 @@ def _parsear_requisito(linea: str, origen: str = "",
             "operador": operador, "version": version,
             "origen": origen, "ambito": ambito,
             "ecosistema": ecosistema,
-            "fijada": operador == "==" and bool(version)}
+            "fijada": (operador == "==" and bool(version)
+                       and not version.endswith(".*"))}
 
 
 def _ambito_requirements(archivo: Path, ruta: Path) -> str:
@@ -1534,7 +1535,7 @@ def evaluar_vigencia(ruta: Path, perfil: Perfil,
 
     if deps_python:
         sin_fijar = [d["nombre"] for d in deps_python
-                     if d.get("operador") != "==" or not d.get("version")]
+                     if not d.get("fijada")]
         dim.criterios["v1_dependencias_fijadas"] = not sin_fijar or bool(locks_python)
         if sin_fijar and not locks_python:
             dim.hallazgos.append(Hallazgo(
@@ -1594,7 +1595,7 @@ def evaluar_vigencia(ruta: Path, perfil: Perfil,
     atrasadas, no_verificadas = [], []
     verificadas = 0
     for d in deps_python:
-        version = d["version"] if d.get("operador") == "==" and d.get("version") \
+        version = d["version"] if d.get("fijada") \
             else perfil.versiones_lock.get(_clave_nombre(d["nombre"]), "")
         if not version:
             continue

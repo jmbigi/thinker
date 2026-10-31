@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1219/1219** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1220/1220** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -710,3 +710,10 @@ grupos. La regresión conserva `tox` de `test`, falló antes y detecta 3/3
 mutaciones dirigidas.
 Suite **1219/1219** en Linux (Python 3.11.9), con tres demos offline correctas.
 R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 158.
+
+**Actualización 2026-10-30** (comodín PEP 440): `==2.*` ya no cuenta como
+versión exacta. Parser, `v1` y `v4` usan el campo `fijada`; el comodín no se
+consulta literalmente en PyPI. La regresión falló antes y detecta 3/3
+mutaciones dirigidas, sin cambiar criterios ni umbrales.
+Suite **1220/1220** en Linux (Python 3.11.9), con tres demos offline correctas.
+R3 permanece abierta sin cambiar su inventario oficial. Hallazgo 159.

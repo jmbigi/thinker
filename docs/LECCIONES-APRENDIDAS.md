@@ -3688,3 +3688,20 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   objeto`. Detecta **3/3 mutaciones dirigidas** (reversión, sin aviso y grupo
   válido descartado). Suite **1219/1219** y tres demos offline correctas. El
   inventario oficial R3 no cambia sin una re-medición fiable.
+
+### Hallazgo 159: `==2.*` no fija una versión exacta
+
+- **Defecto reproducido (2026-10-30)**: `requests==2.*` producía
+  `fijada=True` y `v1_dependencias_fijadas=True`; además, `v4` podía consultar
+  PyPI con la cadena literal `2.*`. Era un falso positivo de reproducibilidad.
+- **Evidencia externa y dogfooding**: [PEP 440, Version matching](https://peps.python.org/pep-0440/#version-matching)
+  define el sufijo `.*` como coincidencia por prefijo, no igualdad estricta.
+  `analyze_python_source` midió `_parsear_requisito` en 29 líneas/complejidad 5
+  y ayudó a acotar la corrección. No se cambió el tratamiento documentado de
+  `===` ni ningún umbral.
+- **Corrección y regresión**: `fijada` excluye versiones terminadas en `.*`;
+  `v1` y la selección de versión de `v4` reutilizan ese campo en vez de repetir
+  una comprobación incompleta. La prueba falló antes y después exige `v1=False`,
+  `v4=False` y cero llamadas a PyPI. Las 14 pruebas de vigencia y **3/3
+  mutaciones dirigidas** pasan; suite **1220/1220** y tres demos offline
+  correctas. El inventario oficial R3 no cambia sin re-medición.
