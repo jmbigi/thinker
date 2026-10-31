@@ -204,6 +204,12 @@ producción ni tests. Evidencia: `build/runner-r3-verificacion.json`. La
 contabilidad permanece en **673 brechas + 84 equivalencias** por falta de
 distribución histórica detallada.
 
+Verificación acotada de `_puntuacion_texto` (2026-10-31): **4 mutantes, 4
+muertos y 0 supervivientes**. Los cuatro diffs fueron detectados al aplicarlos
+directamente y el original restaurado pasó. No fueron necesarios cambios de
+producción ni tests. Evidencia: `build/puntuacion-r3-verificacion.json`. La
+contabilidad permanece en **673 brechas + 84 equivalencias**.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas

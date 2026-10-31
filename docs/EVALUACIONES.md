@@ -899,3 +899,11 @@ restaurado pasó. No fueron necesarios cambios de producción ni tests.
 Suite **1245/1245** en Linux (Python 3.11.9). R3 permanece en
 **673 brechas + 84 equivalencias** por falta de distribución histórica detallada.
 Evidencia: `build/runner-r3-verificacion.json`. Hallazgo 180.
+
+**Actualización 2026-10-31** (verificación de `_puntuacion_texto`): la campaña
+solo generó cuatro mutantes. Los **4/4 fueron detectados al aplicarlos
+directamente** y el original restaurado pasó la selección. No fueron necesarios
+cambios de producción ni tests. Suite **1245/1245** en Linux (Python 3.11.9).
+R3 permanece en **673 brechas + 84 equivalencias** por falta de distribución
+histórica detallada. Evidencia: `build/puntuacion-r3-verificacion.json`.
+Hallazgo 181.

@@ -336,6 +336,7 @@ mejora de código (`code_design_improvement_tools.py`).
   Después, `evaluar_funcionalidades`: **224/224 muertos**, con dos antiguos
   supervivientes cubiertos y 10/10 controles directos en total. Después,
   `detectar_comando_tests`: **235/235 muertos**, con 10/10 controles directos.
+  Después, `_puntuacion_texto`: **4/4 mutantes verificados directamente**.
   Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
 - Plataformas verificadas: Linux con Python **3.11.9**: **1245/1245 en la suite

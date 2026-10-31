@@ -4035,3 +4035,13 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Contabilidad**: R3 permanece en **673 brechas + 84 equivalencias** por falta
   de distribución histórica detallada; no se inventa un descuento. La suite se
   mantiene en **1245/1245**.
+
+### Hallazgo 181: `_puntuacion_texto` tiene sus cuatro mutantes cubiertos
+
+- **Medición (2026-10-31)**: Thinker midió 2 líneas, 1 función y complejidad 0,
+  sin incidencias. La campaña solo generó cuatro mutantes y los declaró muertos.
+- **Verificación directa**: los **4/4 diffs** fueron detectados por la selección
+  real y el original restaurado pasó. No hicieron falta nuevas regresiones ni
+  cambios de producción. Evidencia: `build/puntuacion-r3-verificacion.json`.
+- **Contabilidad**: R3 permanece en **673 brechas + 84 equivalencias** por falta
+  de distribución histórica; la suite se mantiene en **1245/1245**.
