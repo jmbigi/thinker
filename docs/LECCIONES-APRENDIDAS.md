@@ -4542,3 +4542,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/r3-100-lote1-bordes.json`, `build/r3-100-80-verificacion.json`,
   `build/r3-100-22-verificacion.json`, `build/r3-100-setup-cierre.json` y
   `build/r3-100-equivalencias-normalizadas.json`.
+
+### Hallazgo 211: aplicar el diff del mutante, no reintroducir el histórico completo
+
+- **Medición (2026-11-01)**: Thinker priorizó helpers con análisis estático. Las
+  campañas r3c4 reprodujeron el artefacto 5644/355 ya descartado, por lo que no
+  se usaron sus conteos para cerrar deuda. Se sustituyó por verificación directa
+  pareada: supervivencia en r3c4 y fallo con las pruebas actuales.
+- **Corrección del arnés**: aplicar una función histórica completa también podía
+  reintroducir arreglos posteriores y producir falsos descuentos. El arnés final
+  aplica solo las líneas mutadas, conserva el resto del código actual y descarta
+  lo que no puede aplicar limpiamente. La base 87 fue revalidada con este método.
+- **Resultado**: exactamente **200 muertes** seleccionadas; tres excedentes no se
+  descuentan. R3 baja de 568 a **368 brechas**. Otras **10 equivalencias** con
+  salidas idénticas (E28-E31) elevan el total a **126**, no se contaron como
+  muertes. Se añadieron 14 pruebas; suite **1342/1342**. Solo cambiaron pruebas
+  y documentación, no corresponde release.
+- **Restauración**: todos los originales quedaron restaurados. Las copias de los
+  tres procesos detenidos al superar el objetivo se restauraron y comprobaron por
+  SHA-256 antes de consolidar.
+- **Evidencias**: `build/r3-200-final.json`,
+  `build/r3-200-local-base87.json`, `build/r3-200-equivalencias-nuevas.json`,
+  `build/r3-200-equivalencias-setup.json` y
+  `build/r3-200-restauracion-manual.json`.

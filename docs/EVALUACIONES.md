@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1328/1328** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1342/1342** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1250,3 +1250,16 @@ Suite **1328/1328** en Linux (Python 3.11.9). Evidencias:
 `build/r3-100-80-verificacion.json`, `build/r3-100-22-verificacion.json`,
 `build/r3-100-setup-cierre.json` y `build/r3-100-equivalencias-normalizadas.json`.
 Hallazgo 210.
+
+**Actualización 2026-11-01** (200 brechas R3 resueltas): verificación directa
+r3c4/actual con solo el diff de cada mutante. Cada descuento exige supervivencia
+en r3c4 y fallo con las pruebas actuales, evitando el artefacto de Mutmut y la
+reintroducción de arreglos posteriores. Se seleccionaron exactamente **200
+muertes**; tres excedentes no se descuentan. Se añadieron 14 contratos y se
+reforzaron bordes de runner, entrypoints, linter, funcionalidades y eficiencia.
+R3 queda en **368 brechas + 126 equivalencias** (49 preflight + 77 evaluador);
+las 10 equivalencias nuevas E28-E31 no se cuentan como muertes.
+Suite **1342/1342** en Linux (Python 3.11.9). Evidencias:
+`build/r3-200-final.json`, `build/r3-200-local-base87.json`,
+`build/r3-200-equivalencias-nuevas.json` y
+`build/r3-200-equivalencias-setup.json`. Hallazgo 211.

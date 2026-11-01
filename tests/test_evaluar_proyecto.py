@@ -124,7 +124,7 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         self.assertEqual(plan_texto({}), [
             "Plan de mejora: nada que proponer (todos los criterios cumplen)."])
         informe = {"mejoras": [
-            {"prioridad": "media"}, {"prioridad": "baja"},
+            {"prioridad": "baja"}, {"prioridad": "media"},
             {"prioridad": "alta"}, {"prioridad": "alta"},
         ]}
 
@@ -2394,6 +2394,351 @@ class TestContratosR3Complemento(unittest.TestCase):
             ])
 
 
+class TestContratosR3Doscientos(unittest.TestCase):
+    def test_silencios_y_excepciones_contrato_exacto(self):
+        fuente = (
+            "try:\n    import opcional\nexcept ImportError:\n    pass\n"
+            "try:\n    1 / 0\nexcept (ValueError, TypeError):\n    ...\n"
+            "try:\n    import otro\nexcept ValueError:\n    pass\n"
+            "try:\n    pass\nexcept Exception:  # noqa: silent: limpieza\n    pass\n"
+            "try:\n    pass\nexcept Exception:  # noqa: silent: x\n    pass\n")
+        arbol = evaluar_proyecto.ast.parse(fuente)
+        self.assertEqual(evaluar_proyecto.lineas_silenciosas(arbol), [7, 11, 15, 19])
+        self.assertEqual(evaluar_proyecto.clasificar_silencios(arbol, fuente),
+                         ([7, 11, 19], [(15, "limpieza")]))
+        intentos = [nodo for nodo in arbol.body
+                    if isinstance(nodo, evaluar_proyecto.ast.Try)]
+        manejadores = [nodo for nodo in evaluar_proyecto.ast.walk(arbol)
+                       if isinstance(nodo, evaluar_proyecto.ast.ExceptHandler)]
+        self.assertEqual(evaluar_proyecto._nombre_excepcion(manejadores[0].type),
+                         "ImportError")
+        self.assertEqual(evaluar_proyecto._nombre_excepcion(manejadores[1].type),
+                         "ValueError,TypeError")
+        self.assertEqual(evaluar_proyecto._nombre_excepcion(
+            evaluar_proyecto.ast.Attribute()), "")
+        self.assertIs(evaluar_proyecto._try_contiene_imports(intentos[0]), True)
+        self.assertIs(evaluar_proyecto._try_contiene_imports(intentos[1]), False)
+        self.assertIs(evaluar_proyecto._cuerpo_silencio(manejadores[1].body), True)
+        self.assertIs(evaluar_proyecto._cuerpo_silencio([]), False)
+        documentacion = evaluar_proyecto.ast.parse("def f():\n    'doc'\n").body[0]
+        self.assertIs(evaluar_proyecto._cuerpo_silencio(documentacion.body), False)
+
+    def test_descubrimiento_y_tests_noop(self):
+        fuente = (
+            "def test_modulo():\n    pass\n"
+            "async def test_async():\n    pass\n"
+            "def helper():\n    pass\n"
+            "class TestVisible:\n"
+            "    def test_metodo(self):\n        pass\n"
+            "    def setUp(self):\n        pass\n"
+            "class Otra(unittest.TestCase):\n"
+            "    async def test_async(self):\n        pass\n"
+            "class Ignorada:\n"
+            "    def test_no(self):\n        pass\n")
+        arbol = evaluar_proyecto.ast.parse(fuente)
+        encontrados = [(nodo.name, clase.name if clase else None)
+                       for nodo, clase in evaluar_proyecto._funciones_test(arbol)]
+        self.assertEqual(encontrados, [
+            ("test_modulo", None), ("test_async", None),
+            ("test_metodo", "TestVisible"), ("test_async", "Otra"),
+        ])
+        aserciones = {
+            "def test_a():\n    assert valor": True,
+            "def test_a(self):\n    self.assertEqual(a, b)": True,
+            "def test_a():\n    with pytest.raises(ValueError):\n        pass": True,
+            "def test_a():\n    with pytest.warns(UserWarning):\n        pass": True,
+            "def test_a():\n    print(valor)": False,
+        }
+        for codigo, esperado in aserciones.items():
+            with self.subTest(codigo=codigo):
+                funcion = evaluar_proyecto.ast.parse(codigo).body[0]
+                self.assertIs(evaluar_proyecto._tiene_asercion(funcion), esperado)
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "a.py").write_text(
+                "def test_vacio():\n    print(1 + 1)\n", encoding="utf-8")
+            (raiz / "b.py").write_text(
+                "def test_helper():\n    helper()\n", encoding="utf-8")
+            (raiz / "c.py").write_text(
+                "class TestConSetup:\n"
+                "    def setUp(self):\n        preparar()\n"
+                "    def test_vacio(self):\n        pass\n", encoding="utf-8")
+            (raiz / "bad.py").write_text("def broken(:\n", encoding="utf-8")
+            archivos = [raiz / nombre for nombre in ("a.py", "b.py", "c.py", "bad.py")]
+            self.assertEqual(evaluar_proyecto.tests_sin_aserciones(raiz, archivos),
+                             (["a.py:1"], ["bad.py:1"]))
+
+    def test_aserciones_debiles_constantes_y_archivos(self):
+        casos = {
+            "self.assertTrue(True)": True, "self.assertTrue(False)": False,
+            "self.assertFalse(False)": True, "self.assertFalse(True)": False,
+            "self.assertEqual(1, 1)": True, "self.assertEqual(1, 2)": False,
+            "self.assertEqual(valor, valor)": False,
+            "self.assertIsNone(None)": True, "self.assertIsNone(1)": False,
+            "self.assertIsNotNone(1)": True, "self.assertIsNotNone(None)": False,
+            "self.assertTrue()": False, "helper()": False,
+        }
+        for expresion, esperado in casos.items():
+            with self.subTest(expresion=expresion):
+                nodo = evaluar_proyecto.ast.parse(expresion, mode="eval").body
+                self.assertIs(evaluar_proyecto._llamada_aserion_debil(nodo), esperado)
+        self.assertTrue(evaluar_proyecto._nodo_aserion_debil(
+            evaluar_proyecto.ast.parse("assert 1 <= 1").body[0]))
+        self.assertFalse(evaluar_proyecto._nodo_aserion_debil(
+            evaluar_proyecto.ast.parse("assert 1 < 2 < 3").body[0]))
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            archivo = raiz / "test_debil.py"
+            archivo.write_text(
+                "def test_constante():\n    assert 1 == 1\n"
+                "def test_llamada():\n    self.assertFalse(False)\n"
+                "def test_real(valor):\n    assert valor == 1\n"
+                "def test_multiple():\n    assert 1 < 2 < 3\n    assert True\n",
+                encoding="utf-8")
+            (raiz / "bad.py").write_text("def broken(:\n", encoding="utf-8")
+            self.assertEqual(
+                evaluar_proyecto.aserciones_debiles(raiz, [archivo, raiz / "bad.py"]),
+                (["test_debil.py:2", "test_debil.py:4", "test_debil.py:9"],
+                 ["bad.py:1"]))
+
+    def test_perfil_modulos_y_detectores(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            for nombre in ("app.py", "pkg/__init__.py", "pkg/mod.py",
+                           "src/otro/__init__.py", "src/suelto/helper.py",
+                           "tests/test_app.py", "web/index.js", "docs/omitido.py",
+                           ".venv/omitido.py"):
+                archivo = raiz / nombre
+                archivo.parent.mkdir(parents=True, exist_ok=True)
+                archivo.write_text("", encoding="utf-8")
+            (raiz / "requirements.txt").write_text(
+                "openai>=1\nflask==3.0\npandas\n", encoding="utf-8")
+            (raiz / "requirements.lock").write_text(
+                "requests==2.31.0\n", encoding="utf-8")
+            python = evaluar_proyecto.archivos_python(raiz)
+            self.assertEqual([p.relative_to(raiz).as_posix() for p in python], [
+                "app.py", "docs/omitido.py", "pkg/__init__.py", "pkg/mod.py",
+                "src/otro/__init__.py", "src/suelto/helper.py", "tests/test_app.py",
+            ])
+            propios = {"app", "pkg", "otro", "suelto", "docs", "tests"}
+            self.assertEqual(evaluar_proyecto._modulos_propios(raiz, python), propios)
+            perfil = evaluar_proyecto.analizar_perfil(raiz)
+            self.assertEqual(perfil.lenguajes, {"JavaScript": 1, "Python": 6})
+            self.assertEqual(perfil.first_party, propios)
+            self.assertTrue(perfil.es_llm)
+            self.assertTrue(perfil.es_web)
+            self.assertEqual(perfil.pesadas, ["pandas"])
+            self.assertEqual(perfil.versiones_lock, {"requests": "2.31.0"})
+            self.assertEqual(evaluar_proyecto.leer(raiz / "app.py"), "")
+            with patch("pathlib.Path.read_text", side_effect=OSError("ilegible")):
+                self.assertEqual(evaluar_proyecto.leer(raiz / "app.py"), "")
+        self.assertTrue(evaluar_proyecto._detectar_llm([
+            {"nombre": "OpenAI", "ambito": "runtime"}]))
+        self.assertFalse(evaluar_proyecto._detectar_llm([
+            {"nombre": "openai", "ambito": "dev"}]))
+        self.assertFalse(evaluar_proyecto._detectar_llm([
+            {"nombre": "openai", "ambito": "runtime", "ecosistema": "npm"}]))
+        self.assertTrue(evaluar_proyecto._detectar_web([
+            {"nombre": "Flask", "ambito": "runtime"}]))
+        self.assertFalse(evaluar_proyecto._detectar_web([
+            {"nombre": "myflask", "ambito": "runtime"}]))
+        self.assertFalse(evaluar_proyecto._detectar_web([
+            {"nombre": "flask", "ambito": "dev"}]))
+
+    def test_setup_py_literales_y_agregado(self):
+        nodo = evaluar_proyecto.ast.parse("('requests', 3, variable)", mode="eval").body
+        self.assertEqual(evaluar_proyecto._literales_lista(nodo), ["requests"])
+        self.assertEqual(evaluar_proyecto._literales_lista(
+            evaluar_proyecto.ast.parse("{'requests'}", mode="eval").body), [])
+        deps = []
+        self.assertIsNone(evaluar_proyecto._agregar_items(deps, {}, "setup.py", "dev"))
+        evaluar_proyecto._agregar_items(
+            deps, ["requests==2.0", 3, ""], "setup.py", "dev")
+        self.assertEqual([(d["nombre"], d["ambito"], d["origen"]) for d in deps],
+                         [("requests", "dev", "setup.py")])
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            archivo = raiz / "setup.py"
+            archivo.write_text("def broken(:\n", encoding="utf-8")
+            self.assertEqual(evaluar_proyecto._dependencias_setup_py(archivo, raiz), [])
+            archivo.write_text(
+                "setup(install_requires=('requests==2.0', 3, variable),\n"
+                "      tests_require=['pytest'],\n"
+                "      extras_require={'docs': ['sphinx'], 'dev': variable},\n"
+                "      **opciones)\n"
+                "otra(install_requires=['ignorada'])\n", encoding="utf-8")
+            deps = evaluar_proyecto._dependencias_setup_py(archivo, raiz)
+            self.assertEqual([(d["nombre"], d["ambito"], d["origen"]) for d in deps], [
+                ("requests", "runtime", "setup.py"), ("pytest", "dev", "setup.py"),
+                ("sphinx", "opcional", "setup.py"),
+            ])
+            archivo.write_text("setup(extras_require='sphinx')\n", encoding="utf-8")
+            self.assertEqual(evaluar_proyecto._dependencias_setup_py(archivo, raiz), [])
+
+    def test_ultima_version_pypi_contrato_exacto_sin_red(self):
+        class Respuesta(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.close()
+
+        cuerpo = json.dumps({"info": {"version": "2.35.0"}}).encode("utf-8")
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   return_value=Respuesta(cuerpo)) as consulta:
+            self.assertEqual(evaluar_proyecto.ultima_version_pypi("paquete"),
+                             {"version": "2.35.0", "error": ""})
+        consulta.assert_called_once_with("https://pypi.org/pypi/paquete/json", timeout=15)
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   side_effect=evaluar_proyecto.urllib.error.URLError("sin red")):
+            self.assertEqual(evaluar_proyecto.ultima_version_pypi("paquete"), {
+                "version": None, "error": "URLError: <urlopen error sin red>"})
+
+    def test_plan_mejoras_datos_orden_y_bordes(self):
+        self.assertEqual([evaluar_proyecto._esfuerzo(n) for n in (-1, 0, 1, 2, 10, 11)],
+                         ["bajo", "bajo", "bajo", "medio", "medio", "alto"])
+        informe = {"dimensiones": {
+            "vigencia": {
+                "criterios": {"v1_dependencias_fijadas": False,
+                              "v2_lockfile": False, "desconocido": False, "v3": True},
+                "hallazgos": [
+                    {"criterio": "v1_dependencias_fijadas", "evidencia": "a"},
+                    {"criterio": "v1_dependencias_fijadas", "evidencia": "b"},
+                    {"criterio": "v1_dependencias_fijadas", "evidencia": ""},
+                    {"criterio": "otro", "evidencia": "no corresponde"},
+                    {"criterio": "v2_lockfile", "evidencia": "lock"},
+                ],
+            },
+            "herramientas": {
+                "criterios": {"h2_licencia": False},
+                "hallazgos": [{"criterio": "h2_licencia", "evidencia": f"e{n}"}
+                              for n in range(11)],
+            },
+        }}
+        propuestas = evaluar_proyecto.proponer_mejoras(informe)
+        self.assertEqual([p["criterio"] for p in propuestas],
+                         ["h2_licencia", "v1_dependencias_fijadas", "v2_lockfile"])
+        self.assertEqual((propuestas[0]["sitios"], propuestas[0]["esfuerzo"],
+                          len(propuestas[0]["evidencia"])), (11, "alto", 5))
+        self.assertEqual((propuestas[1]["sitios"], propuestas[1]["esfuerzo"],
+                          propuestas[1]["datos_medidos"]),
+                         (2, "medio", {"hallazgos": 2, "evidencias": 2}))
+        self.assertEqual((propuestas[1]["secuencia"], propuestas[2]["secuencia"]), (1, 2))
+        self.assertEqual(propuestas[1]["evidencia"], ["a", "b"])
+        self.assertEqual(propuestas[1]["propuesta"],
+                         "Fijar las versiones runtime (==) o cubrirlas con un lock")
+
+    def test_git_texto_y_existencia_de_tests(self):
+        raiz = Path("proyecto")
+        proceso = SimpleNamespace(returncode=0, stdout="  salida\n")
+        with patch("evaluar_proyecto.subprocess.run", return_value=proceso) as ejecutar:
+            self.assertEqual(evaluar_proyecto._git(raiz, "log", "-1"), "salida")
+        ejecutar.assert_called_once_with(["git", "-C", "proyecto", "log", "-1"],
+                                         capture_output=True, text=True, timeout=20)
+        for error in (OSError("sin git"),
+                      evaluar_proyecto.subprocess.TimeoutExpired("git", 20)):
+            with self.subTest(error=type(error).__name__), \
+                    patch("evaluar_proyecto.subprocess.run", side_effect=error):
+                self.assertIsNone(evaluar_proyecto._git(raiz))
+        with patch("evaluar_proyecto.subprocess.run",
+                   return_value=SimpleNamespace(returncode=1, stdout="error")):
+            self.assertIsNone(evaluar_proyecto._git(raiz))
+        self.assertEqual(evaluar_proyecto._normalizar_texto("  ÁÉÍÓÚÜÑ   rápido\n"),
+                         "aeiouun rapido")
+        self.assertEqual(evaluar_proyecto._clave_nombre(" Foo_.--Bar "), "foo-bar")
+        self.assertEqual(evaluar_proyecto._avisos_criterio("corto"),
+                         ["criterio demasiado corto para ser medible"])
+        self.assertEqual(evaluar_proyecto._avisos_criterio("  Fácil   y ROBUSTO "),
+                         ["criterio con términos vagos: facil, robusto"])
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            archivo = base / "test_x.py"
+            archivo.write_text(
+                "async def test_remoto():\n    pass\n"
+                "class X:\n    def test_otro(self):\n        pass\n", encoding="utf-8")
+            self.assertTrue(evaluar_proyecto._test_existe(archivo, "test_remoto[param]"))
+            self.assertTrue(evaluar_proyecto._test_existe(archivo, "x.py::X::test_otro"))
+            self.assertFalse(evaluar_proyecto._test_existe(archivo, "test_ausente"))
+            archivo.write_text("def broken(:\n", encoding="utf-8")
+            self.assertIsNone(evaluar_proyecto._test_existe(archivo, "broken"))
+            self.assertEqual(evaluar_proyecto._texto_legible(base, base / "a.py"), "a.py")
+            externo = base.parent / "externo.py"
+            self.assertEqual(evaluar_proyecto._texto_legible(base, externo), str(externo))
+
+    @staticmethod
+    def _req(metodo, identificador="R"):
+        return evaluar_proyecto.Requisito(
+            id=identificador, titulo="t", enunciado="e", criterio="corto",
+            origen="test", verificacion=metodo, evidencia="app.py", tags=[],
+            avisos=["base"])
+
+    def test_verificar_requisito_dispatch_y_fallbacks(self):
+        raiz = Path("proyecto")
+        perfil = SimpleNamespace()
+        sin_metodo = self._req("")
+        self.assertEqual(evaluar_proyecto._verificar_requisito(raiz, perfil, sin_metodo, None),
+                         ("NO VERIFICABLE", "sin método de verificación declarado", "",
+                          evaluar_proyecto.EvidenceKind.UNVERIFIED))
+        self.assertEqual(evaluar_proyecto._verificar_requisito(
+            raiz, perfil, self._req("manual"), None)[1],
+            "verificación manual: requiere revisión humana")
+        self.assertEqual(evaluar_proyecto._verificar_requisito(
+            raiz, perfil, self._req("desconocido"), None)[1],
+            "método no soportado: desconocido")
+        for metodo, helper in (("test", "_verificar_test"),
+                               ("archivo", "_verificar_archivo"),
+                               ("tag", "_verificar_tag"),
+                               ("formal", "_verificar_formal")):
+            with self.subTest(metodo=metodo):
+                req = self._req(metodo)
+                esperado = ("CUBIERTO", "motivo", "observada",
+                            evaluar_proyecto.EvidenceKind.VERIFIED_REAL)
+                with patch(f"evaluar_proyecto.{helper}", return_value=esperado) as despachado:
+                    self.assertIs(evaluar_proyecto._verificar_requisito(
+                        raiz, perfil, req, {"ok": True}), esperado)
+                if metodo == "test":
+                    despachado.assert_called_once_with(raiz, req, {"ok": True})
+                elif metodo == "tag":
+                    despachado.assert_called_once_with(perfil, req)
+                else:
+                    despachado.assert_called_once_with(raiz, req)
+
+    def test_verificar_requisitos_agregacion_exacta(self):
+        requisitos = [self._req("manual", f"R{n}") for n in range(4)]
+        resultados = [
+            ("CUMPLE", "m1", "o1", evaluar_proyecto.EvidenceKind.VERIFIED_REAL),
+            ("CUBIERTO", "m2", "o2", evaluar_proyecto.EvidenceKind.VERIFIED_REAL),
+            ("NO CUMPLE", "m3", "o3", evaluar_proyecto.EvidenceKind.VERIFIED_REAL),
+            ("NO VERIFICABLE", "m4", "o4", evaluar_proyecto.EvidenceKind.UNVERIFIED),
+        ]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("evaluar_proyecto._verificar_requisito", side_effect=resultados) as verificar:
+            raiz = Path(tmp)
+            informe = evaluar_proyecto.verificar_requisitos(
+                raiz, SimpleNamespace(), requisitos, raiz / "req.md")
+        self.assertEqual(verificar.call_count, 4)
+        self.assertEqual(informe["archivo"], "req.md")
+        self.assertEqual(informe["total"], 4)
+        self.assertEqual(informe["resumen"], {
+            "cumple": 1, "cubierto": 1, "no_cumple": 1, "no_verificable": 1})
+        self.assertFalse(informe["afecta_global"])
+        self.assertEqual([item["veredicto"] for item in informe["items"]],
+                         ["CUMPLE", "CUBIERTO", "NO CUMPLE", "NO VERIFICABLE"])
+        self.assertEqual([item["tipo_evidencia"] for item in informe["items"]],
+                         ["verified-real", "verified-real", "verified-real", "unverified"])
+        self.assertEqual(informe["items"][0]["avisos"],
+                         ["base", "criterio demasiado corto para ser medible"])
+        self.assertEqual(informe["no_verificado"], [
+            "1 requisito(s) CUBIERTO(S): evidencia estática declarada, "
+            "no comportamiento verificado",
+            "1 requisito(s) NO VERIFICABLE(S): revisar criterio o método",
+        ])
+        self.assertEqual(informe["nota"],
+                         "CUMPLE exige suite verde; CUBIERTO es solo evidencia "
+                         "estática; no afecta al GLOBAL")
+        self.assertTrue(all(req.avisos == ["base"] for req in requisitos))
+
+
 class TestComparabilidadR5(unittest.TestCase):
     """R5: una cobertura baja no se presenta como GLOBAL comparable."""
 
@@ -2633,6 +2978,9 @@ class TestDetectarComandoTestsContrato(unittest.TestCase):
             ({"scripts/pruebas.sh": "python3 -m pytest -q\n"},
              {"comando": [interprete, "-m", "pytest", "-q"],
               "origen": "scripts/pruebas.sh"}),
+            ({"scripts/pruebas.sh": "python -m pytest -q\n"},
+             {"comando": [interprete, "-m", "pytest", "-q"],
+              "origen": "scripts/pruebas.sh"}),
             ({"README.md": "```\npytest -q\n```\n"},
              {"comando": ["pytest", "-q"], "origen": "README.md"}),
             ({"AGENTS.md": "npm test\n"},
@@ -2643,6 +2991,9 @@ class TestDetectarComandoTestsContrato(unittest.TestCase):
              {"comando": ["npm", "test"],
               "origen": "package.json (scripts.test)"}),
             ({"gradlew": "", "build.gradle": ""},
+             {"comando": ["./gradlew", "test"],
+              "origen": "gradlew + build.gradle"}),
+            ({"gradlew": "", "build.gradle.kts": ""},
              {"comando": ["./gradlew", "test"],
               "origen": "gradlew + build.gradle"}),
             ({"pom.xml": "<project/>"},
@@ -2673,6 +3024,9 @@ class TestDetectarComandoTestsContrato(unittest.TestCase):
             {"package.json": '{"scripts": {"test": "ECHO hola"}}'},
             {"package.json": "{}"},
             {"package.json": "{roto"},
+            {"build.gradle": ""},
+            {"build.gradle.kts": ""},
+            {"tests/otro.py": "x = 1\n"},
         ]
         for archivos in casos:
             with self.subTest(archivos=archivos):
@@ -3907,6 +4261,8 @@ class TestParsersDependenciasYLinter(unittest.TestCase):
         casos = {
             "pyproject.toml": "[tool.ruff]\n",
             "setup.cfg": "[flake8]\nmax-line-length=100\n",
+            ".flake8": "[flake8]\n",
+            ".pylintrc": "[pylint]\n",
             ".ruff.toml": "line-length = 100\n",
             ".eslintrc.json": '{"extends": "eslint:recommended"}\n',
             "eslint.config.js": "export default {};\n",
@@ -3918,10 +4274,17 @@ class TestParsersDependenciasYLinter(unittest.TestCase):
                 self.assertEqual(evaluar_proyecto._linter_configurado(perfil),
                                  (True, nombre))
 
-        raiz = crear_proyecto(self, {"README.md": "# x\n"})
-        perfil = evaluar_proyecto.analizar_perfil(raiz)
-        self.assertEqual(evaluar_proyecto._linter_configurado(perfil),
-                         (False, ""))
+        negativos = {
+            "README.md": "# x\n",
+            "setup.cfg": "[options]\n",
+            "requirements.txt": '"eslint"\n',
+        }
+        for nombre, contenido in negativos.items():
+            with self.subTest(nombre=nombre):
+                raiz = crear_proyecto(self, {nombre: contenido})
+                perfil = evaluar_proyecto.analizar_perfil(raiz)
+                self.assertEqual(evaluar_proyecto._linter_configurado(perfil),
+                                 (False, ""))
 
 
 class TestPuntosDeEntradaYMain(unittest.TestCase):
@@ -3960,10 +4323,37 @@ class TestPuntosDeEntradaYMain(unittest.TestCase):
                     evaluar_proyecto._tiene_punto_entrada(raiz, perfil), esperado)
 
     def test_sin_puntos_de_entrada(self):
-        raiz = crear_proyecto(self, {"lib.py": "def f():\n    return 1\n"})
+        raiz = crear_proyecto(self, {
+            "lib.py": "def f():\n    return 1\n",
+            "not_go.py": "func main() {}\n",
+            "package.json": '{"console_scripts": "x"}',
+        })
         perfil = evaluar_proyecto.analizar_perfil(raiz)
 
         self.assertEqual(evaluar_proyecto._tiene_punto_entrada(raiz, perfil), [])
+
+    def test_punto_entrada_package_json_invalido_avisa_exactamente(self):
+        import inspect
+        raiz = crear_proyecto(self, {
+            "package.json": "{",
+            "pyproject.toml": '[project.scripts]\nx="x:main"\n',
+        })
+        archivo = raiz / "package.json"
+        perfil = SimpleNamespace(
+            codigo_py=[], codigo=[],
+            manifiestos=[archivo, raiz / "pyproject.toml"])
+        with warnings.catch_warnings(record=True) as capturados:
+            warnings.simplefilter("always")
+            linea = inspect.currentframe().f_lineno + 1
+            resultado = evaluar_proyecto._tiene_punto_entrada(raiz, perfil)
+        self.assertEqual(resultado, ["pyproject.toml ([project.scripts])"])
+        self.assertEqual(len(capturados), 1)
+        aviso = capturados[0]
+        self.assertEqual(str(aviso.message),
+                         f"{archivo}: JSON inválido (Expecting property name enclosed in "
+                         "double quotes: line 1 column 2 (char 1)); no se inspecciona")
+        self.assertIs(aviso.category, RuntimeWarning)
+        self.assertEqual((aviso.filename, aviso.lineno), (__file__, linea))
 
     def test_main_json_llama_evaluar_y_serializa(self):
         salida = io.StringIO()
@@ -4055,6 +4445,20 @@ class TestEficienciaLLMContrato(unittest.TestCase):
                       "llamadas de carga de modelo: 0",
                       "sin medición en vivo: no se ejecuta código del proyecto "
                       "evaluado (P0.8)"]})
+
+    def test_eficiencia_api_llm_sin_modelo_local_no_aplica_e2(self):
+        raiz = crear_proyecto(self, {
+            "pyproject.toml": ('[project]\nname="x"\nversion="0.1.0"\n'
+                               'dependencies=["openai"]\n'),
+            "app.py": "import openai\n",
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        datos = evaluar_proyecto.evaluar_eficiencia(raiz, perfil).a_dict()
+
+        self.assertIn({"criterio": "e2_carga_unica_de_modelos",
+                       "motivo": "el proyecto usa API LLM, no carga modelos locales"},
+                      datos["no_aplica"])
 
 
 class TestSintesisContrato(unittest.TestCase):
@@ -4676,6 +5080,38 @@ class TestLocksDepsFuncionalidadesRunner(unittest.TestCase):
                  "tipo_evidencia": "verified-real",
                  "criterio": "f4_tests_de_varios_modulos"}],
             "notas": ["0 archivos de test (sin tests)"]})
+
+    def test_funcionalidades_deuda_sin_espacio_y_con_segundo_numeral(self):
+        raiz = crear_proyecto(self, {
+            "app.py": (
+                "#TODO\n# TODO # nota\n# FIXME: tres\n# XXX: cuatro\n"
+                "# TODO: cinco\n# TODO: seis\n"),
+        })
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        dimension = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil)
+        datos = dimension.a_dict()
+
+        self.assertFalse(datos["criterios"]["f3_sin_deuda_declarada"])
+        self.assertEqual([h["evidencia"] for h in datos["hallazgos"]
+                          if h["criterio"] == "f3_sin_deuda_declarada"],
+                         ["app.py:1, app.py:2, app.py:3, app.py:4, app.py:5"])
+
+    def test_funcionalidades_notas_limitan_entradas_y_unen_sufijos(self):
+        archivos = {f"{letra}.py": "if __name__ == '__main__':\n    pass\n"
+                    for letra in "abcdef"}
+        archivos.update({
+            "tests/test_a.py": "def test_a():\n    assert True\n",
+            "tests/test_b.js": "test('b', () => {});\n",
+        })
+        raiz = crear_proyecto(self, archivos)
+        perfil = evaluar_proyecto.analizar_perfil(raiz)
+
+        datos = evaluar_proyecto.evaluar_funcionalidades(raiz, perfil).a_dict()
+
+        self.assertIn("6 puntos de entrada: a.py, b.py, c.py, d.py, e.py",
+                      datos["notas"])
+        self.assertIn("2 archivos de test (.js, .py)", datos["notas"])
 
     def test_funcionalidades_readme_txt_con_modulo_prometido_inexistente(self):
         raiz = crear_proyecto(self, {

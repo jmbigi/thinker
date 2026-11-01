@@ -618,4 +618,47 @@ y muere con una configuración sin `tests_require`. Evidencia:
 `build/r3-100-setup-cierre.json`.
 
 **Contabilidad conjunta E22-E27:** **14 equivalencias** en el lote de 100 brechas.
-R3 queda en **568 brechas + 116 equivalencias** (49 preflight + 67 evaluador).
+R3 quedó en **568 brechas + 116 equivalencias** (49 preflight + 67 evaluador).
+
+### E28. `filename` no cambia dependencias de `setup.py` (2)
+
+Mutantes 5 y 7 de `_dependencias_setup_py`: omitir `filename` en `ast.parse` o usar
+`str(None)`. El nombre solo afecta metadatos del error de sintaxis, que la función
+captura y no expone; el AST válido y las dependencias devueltas son idénticos.
+
+**Verificación (2026-11-01):** salidas idénticas con setup válido e inválido.
+Evidencia: `build/r3-200-equivalencias-setup.json`.
+
+### E29. Fallback de linters y alternativa intacta (5)
+
+Mutantes 21–24: los nombres `.flake8` y `.pylintrc` cambian, pero el glob posterior
+ya acepta esos archivos y devuelve el mismo resultado. Mutante 29: la expresión
+`XXruff|flake8|pylintXX` conserva la alternativa `flake8`, por lo que reconoce el
+mismo `setup.cfg` probado.
+
+**Verificación (2026-11-01):** salidas idénticas en `.flake8`, `.pylintrc`,
+`setup.cfg` y un requirements con texto ESLint. Evidencia:
+`build/r3-200-equivalencias-nuevas.json`.
+
+### E30. Directorio `test` ya cubre `src/test/` (1)
+
+Mutante 36 de `_es_test`: la cadena final `src/test/` cambia a `XXsrc/test/XX`.
+Antes de ese retorno, la comprobación de directorios ya incluye `test`, por lo que
+`src/test/Main.java` se clasifica igual sin depender de la cadena mutada.
+
+**Verificación (2026-11-01):** salidas idénticas en 16 rutas de tests, Java y
+directorios parecidos. Evidencia: `build/r3-200-equivalencias-nuevas.json`.
+
+### E31. Primer segmento tras `#` en comentarios (2)
+
+Mutantes 138 y 141 de `evaluar_funcionalidades`: `split("#")` y `split("#", 2)`
+conservan el mismo segmento después del primer numeral que `split("#", 1)`.
+No cambian la detección de deuda ni la evidencia agregada.
+
+**Verificación (2026-11-01):** salidas idénticas con seis comentarios TODO/FIXME/XXX,
+incluidos texto sin espacio y un segundo numeral. Evidencia:
+`build/r3-200-equivalencias-nuevas.json`.
+
+**Contabilidad conjunta E28-E31:** **10 equivalencias** nuevas en el lote de 200
+brechas, no contadas como muertes. R3 queda en **368 brechas + 126 equivalencias**
+(49 preflight + 77 evaluador).

@@ -1,9 +1,9 @@
-# Triaje R3 — 568 brechas, 116 equivalencias y 0 timeouts
+# Triaje R3 — 368 brechas, 126 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
-> medición global: 2026-10-28 (batch r3c4); cierres acotados de Poetry y de 100
-> brechas adicionales: 2026-11-01.
+> medición global: 2026-10-28 (batch r3c4); cierres acotados de Poetry, 100 y
+> 200 brechas adicionales: 2026-11-01.
 
 ## Método
 
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **568** | **67** | **0** | **0** |
-| **Total** | **568** | **116** | **0** | **0** |
+| Evaluador | **368** | **77** | **0** | **0** |
+| **Total** | **368** | **126** | **0** | **0** |
 
-Los **568** casos de brecha son aserciones que faltan: sus funciones se
+Los **368** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -409,13 +409,18 @@ documento conserva el resumen y la clasificación.
   `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock`,
   `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo`,
   `_verificar_formal` y `_requisito_poetry`, más las 100 brechas del Hallazgo
-  210: **568 brechas + 116 equivalencias**.
-- **Equivalentes demostrados:** 116 (49 en preflight y 67 en el evaluador), todos
-  con prueba; no se cuentan como muertos. El total corrige el desfase de E16,
-  que había sumado tres equivalencias como una.
+  210 y las 200 del Hallazgo 211: **368 brechas + 126 equivalencias**.
+- **Cierre del Hallazgo 211:** exactamente **200 muertes** demostradas aplicando
+  solo el diff de cada mutante a r3c4 y al código actual. Cada descuento exige
+  supervivencia en r3c4 y fallo actual; no se reintroducen arreglos posteriores.
+  Base 87 revalidada más 113 nuevas; tres muertes adicionales quedan fuera del
+  conteo. Fuentes restauradas y hashes verificados. Evidencia:
+  `build/r3-200-final.json`. Suite **1342/1342**.
+- **Equivalentes demostrados:** 126 (49 en preflight y 77 en el evaluador), todos
+  con prueba; no se cuentan como muertos. E28-E31 añaden 10 al lote de 200.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **568 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **368 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/
