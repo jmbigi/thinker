@@ -20,20 +20,32 @@ def crear_proyecto(caso, archivos):
     return raiz
 
 
+def entorno_git(extra=None):
+    """Entorno sin GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE para repos de prueba.
+
+    Git exporta GIT_INDEX_FILE al ejecutar hooks; si un fixture lo hereda,
+    ``git add`` escribe en el índice del repositorio anfitrión y lo corrompe.
+    """
+    limpio = {clave: valor for clave, valor in os.environ.items()
+              if clave not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
+    if extra:
+        limpio.update(extra)
+    return limpio
+
+
 def crear_historial_git(raiz, dias):
     """Un commit sintético con fecha relativa (v3 medible sin depender del reloj)."""
     fecha = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
-    entorno = {
-        **os.environ,
+    entorno = entorno_git({
         "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
         "GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
         "GIT_COMMITTER_NAME": "Test",
         "GIT_COMMITTER_EMAIL": "test@example.invalid",
-    }
+    })
     subprocess.run(["git", "init", "-q"], cwd=raiz, check=True,
-                   capture_output=True)
+                   capture_output=True, env=entorno_git())
     subprocess.run(["git", "add", "-A"], cwd=raiz, check=True,
-                   capture_output=True)
+                   capture_output=True, env=entorno_git())
     subprocess.run(["git", "commit", "-qm", "inicio"], cwd=raiz, check=True,
                    capture_output=True, env=entorno)
     return fecha[:10]

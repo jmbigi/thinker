@@ -2401,11 +2401,11 @@ class TestContratosR3Doscientos(unittest.TestCase):
             "try:\n    1 / 0\nexcept (ValueError, TypeError):\n    ...\n"
             "try:\n    import otro\nexcept ValueError:\n    pass\n"
             "try:\n    pass\nexcept Exception:  # noqa: silent: limpieza\n    pass\n"
-            "try:\n    pass\nexcept Exception:  # noqa: silent: x\n    pass\n")
+            "try:\n    pass\nexcept Exception:  # noqa: silent: abc\n    pass\n")
         arbol = evaluar_proyecto.ast.parse(fuente)
         self.assertEqual(evaluar_proyecto.lineas_silenciosas(arbol), [7, 11, 15, 19])
         self.assertEqual(evaluar_proyecto.clasificar_silencios(arbol, fuente),
-                         ([7, 11, 19], [(15, "limpieza")]))
+                         ([7, 11], [(15, "limpieza"), (19, "abc")]))
         intentos = [nodo for nodo in arbol.body
                     if isinstance(nodo, evaluar_proyecto.ast.Try)]
         manejadores = [nodo for nodo in evaluar_proyecto.ast.walk(arbol)
@@ -2433,6 +2433,10 @@ class TestContratosR3Doscientos(unittest.TestCase):
             "    def setUp(self):\n        pass\n"
             "class Otra(unittest.TestCase):\n"
             "    async def test_async(self):\n        pass\n"
+            "class IgnoradaMedia:\n"
+            "    def test_no(self):\n        pass\n"
+            "class OtraImportada(TestCase):\n"
+            "    def test_importado(self):\n        pass\n"
             "class Ignorada:\n"
             "    def test_no(self):\n        pass\n")
         arbol = evaluar_proyecto.ast.parse(fuente)
@@ -2441,6 +2445,7 @@ class TestContratosR3Doscientos(unittest.TestCase):
         self.assertEqual(encontrados, [
             ("test_modulo", None), ("test_async", None),
             ("test_metodo", "TestVisible"), ("test_async", "Otra"),
+            ("test_importado", "OtraImportada"),
         ])
         aserciones = {
             "def test_a():\n    assert valor": True,
@@ -2472,7 +2477,9 @@ class TestContratosR3Doscientos(unittest.TestCase):
         casos = {
             "self.assertTrue(True)": True, "self.assertTrue(False)": False,
             "self.assertFalse(False)": True, "self.assertFalse(True)": False,
-            "self.assertEqual(1, 1)": True, "self.assertEqual(1, 2)": False,
+            "self.assertEqual(1, 1)": True, "assertEqual(1, 1)": True,
+            "self.assertEqual(1, 2)": False,
+            "self.assertEqual(1, 1, valor)": True,
             "self.assertEqual(valor, valor)": False,
             "self.assertIsNone(None)": True, "self.assertIsNone(1)": False,
             "self.assertIsNotNone(1)": True, "self.assertIsNotNone(None)": False,
@@ -2534,6 +2541,8 @@ class TestContratosR3Doscientos(unittest.TestCase):
                 self.assertEqual(evaluar_proyecto.leer(raiz / "app.py"), "")
         self.assertTrue(evaluar_proyecto._detectar_llm([
             {"nombre": "OpenAI", "ambito": "runtime"}]))
+        self.assertTrue(evaluar_proyecto._detectar_llm([
+            {"nombre": "my-openai", "ambito": "runtime"}]))
         self.assertFalse(evaluar_proyecto._detectar_llm([
             {"nombre": "openai", "ambito": "dev"}]))
         self.assertFalse(evaluar_proyecto._detectar_llm([
@@ -2556,6 +2565,10 @@ class TestContratosR3Doscientos(unittest.TestCase):
             deps, ["requests==2.0", 3, ""], "setup.py", "dev")
         self.assertEqual([(d["nombre"], d["ambito"], d["origen"]) for d in deps],
                          [("requests", "dev", "setup.py")])
+        mixtos = []
+        evaluar_proyecto._agregar_items(
+            mixtos, [3, "flask==3.0"], "setup.py", "runtime")
+        self.assertEqual([d["nombre"] for d in mixtos], ["flask"])
         with tempfile.TemporaryDirectory() as tmp:
             raiz = Path(tmp)
             archivo = raiz / "setup.py"
@@ -2599,8 +2612,9 @@ class TestContratosR3Doscientos(unittest.TestCase):
                          ["bajo", "bajo", "bajo", "medio", "medio", "alto"])
         informe = {"dimensiones": {
             "vigencia": {
-                "criterios": {"v1_dependencias_fijadas": False,
-                              "v2_lockfile": False, "desconocido": False, "v3": True},
+                "criterios": {"desconocido": False,
+                              "v1_dependencias_fijadas": False,
+                              "v2_lockfile": False, "v3": True},
                 "hallazgos": [
                     {"criterio": "v1_dependencias_fijadas", "evidencia": "a"},
                     {"criterio": "v1_dependencias_fijadas", "evidencia": "b"},
@@ -2633,8 +2647,13 @@ class TestContratosR3Doscientos(unittest.TestCase):
         proceso = SimpleNamespace(returncode=0, stdout="  salida\n")
         with patch("evaluar_proyecto.subprocess.run", return_value=proceso) as ejecutar:
             self.assertEqual(evaluar_proyecto._git(raiz, "log", "-1"), "salida")
-        ejecutar.assert_called_once_with(["git", "-C", "proyecto", "log", "-1"],
-                                         capture_output=True, text=True, timeout=20)
+        argumentos = ejecutar.call_args.kwargs
+        self.assertEqual(ejecutar.call_args.args[0],
+                         ["git", "-C", "proyecto", "log", "-1"])
+        self.assertEqual((argumentos["capture_output"], argumentos["text"],
+                          argumentos["timeout"]), (True, True, 20))
+        self.assertFalse({"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"}
+                         & set(argumentos["env"]))
         for error in (OSError("sin git"),
                       evaluar_proyecto.subprocess.TimeoutExpired("git", 20)):
             with self.subTest(error=type(error).__name__), \
@@ -2648,6 +2667,7 @@ class TestContratosR3Doscientos(unittest.TestCase):
         self.assertEqual(evaluar_proyecto._clave_nombre(" Foo_.--Bar "), "foo-bar")
         self.assertEqual(evaluar_proyecto._avisos_criterio("corto"),
                          ["criterio demasiado corto para ser medible"])
+        self.assertEqual(evaluar_proyecto._avisos_criterio("abcdefghij"), [])
         self.assertEqual(evaluar_proyecto._avisos_criterio("  Fácil   y ROBUSTO "),
                          ["criterio con términos vagos: facil, robusto"])
         with tempfile.TemporaryDirectory() as tmp:
@@ -2737,6 +2757,103 @@ class TestContratosR3Doscientos(unittest.TestCase):
                          "CUMPLE exige suite verde; CUBIERTO es solo evidencia "
                          "estática; no afecta al GLOBAL")
         self.assertTrue(all(req.avisos == ["base"] for req in requisitos))
+        requisitos2 = [self._req("manual", f"S{n}") for n in range(2)]
+        no_verificable = (
+            "NO VERIFICABLE", "m", "o",
+            evaluar_proyecto.EvidenceKind.UNVERIFIED,
+        )
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "evaluar_proyecto._verificar_requisito",
+                side_effect=[no_verificable, no_verificable]):
+            raiz = Path(tmp)
+            informe2 = evaluar_proyecto.verificar_requisitos(
+                raiz, SimpleNamespace(), requisitos2, raiz / "req.md")
+        self.assertEqual(informe2["resumen"]["no_verificable"], 2)
+
+    def test_bordes_observables_lote2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "CHANGES.md").write_text("# cambios\n", encoding="utf-8")
+            (raiz / "app.py").write_text("decision_log = []\n", encoding="utf-8")
+            perfil = evaluar_proyecto.analizar_perfil(raiz)
+            self.assertEqual(evaluar_proyecto._registro_decisiones(raiz, perfil),
+                             ["CHANGES.md", "decision_log en código"])
+            self.assertFalse(perfil.es_web)
+        funcion = evaluar_proyecto.ast.parse(
+            "def test_a():\n    assertEqual(a, b)\n").body[0]
+        self.assertIs(evaluar_proyecto._tiene_asercion(funcion), True)
+        fuente = (
+            "try:\n    import optional\nexcept ModuleNotFoundError:\n    pass\n"
+            "try:\n    import optional2\nexcept (ImportError, ValueError):\n    pass\n"
+            "try:\n    pass\nexcept ValueError:\n    pass\n")
+        self.assertEqual(
+            evaluar_proyecto.lineas_silenciosas(evaluar_proyecto.ast.parse(fuente)),
+            [11])
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "bad.py").write_text("def broken(:\n", encoding="utf-8")
+            (raiz / "test_debil.py").write_text(
+                "def test_debil():\n    assert True\n", encoding="utf-8")
+            self.assertEqual(evaluar_proyecto.aserciones_debiles(
+                raiz, [raiz / "bad.py", raiz / "test_debil.py"]),
+                (["test_debil.py:2"], ["bad.py:1"]))
+        raiz = Path("proyecto")
+        perfil = SimpleNamespace()
+        self.assertEqual(evaluar_proyecto._verificar_requisito(
+            raiz, perfil, self._req("manual"), None),
+            ("NO VERIFICABLE",
+             "verificación manual: requiere revisión humana", "",
+             evaluar_proyecto.EvidenceKind.UNVERIFIED))
+        self.assertEqual(evaluar_proyecto._verificar_requisito(
+            raiz, perfil, self._req("desconocido"), None),
+            ("NO VERIFICABLE", "método no soportado: desconocido", "",
+             evaluar_proyecto.EvidenceKind.UNVERIFIED))
+
+    def test_ejecutar_tests_timeout_default_y_resumen_vacio(self):
+        import inspect
+        self.assertEqual(
+            inspect.signature(evaluar_proyecto.ejecutar_tests)
+            .parameters["timeout"].default, 900)
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "Makefile").write_text(
+                "test:\n\tpython -m unittest\n", encoding="utf-8")
+            proceso = SimpleNamespace(
+                returncode=0, stdout="salida sin resumen\n", stderr="")
+            with patch("evaluar_proyecto.shutil.which", return_value="/usr/bin/make"), \
+                    patch("evaluar_proyecto._preexec_limites", return_value=None), \
+                    patch("evaluar_proyecto.subprocess.run", return_value=proceso) as ejecutar, \
+                    patch("evaluar_proyecto.time.monotonic", side_effect=[1.0, 2.0]):
+                resultado = evaluar_proyecto.ejecutar_tests(raiz)
+            argumentos = ejecutar.call_args.kwargs
+            self.assertIs(argumentos["capture_output"], True)
+            self.assertIs(argumentos["text"], True)
+            self.assertEqual(argumentos["timeout"], 900)
+            self.assertIs(argumentos["shell"], False)
+            error = OSError("x" * 250)
+            with patch("evaluar_proyecto.shutil.which", return_value="/usr/bin/make"), \
+                    patch("evaluar_proyecto._preexec_limites", return_value=None), \
+                    patch("evaluar_proyecto.subprocess.run", side_effect=error), \
+                    patch("evaluar_proyecto.time.monotonic", side_effect=[1.0, 2.0]):
+                fallo = evaluar_proyecto.ejecutar_tests(raiz)
+            proceso_ok = SimpleNamespace(
+                returncode=0, stdout="Ran 2 tests in 0.1s\nOK\n", stderr="")
+            with patch("evaluar_proyecto.shutil.which", return_value="/usr/bin/make"), \
+                    patch("evaluar_proyecto._preexec_limites", return_value=None), \
+                    patch("evaluar_proyecto.subprocess.run", return_value=proceso_ok), \
+                    patch("evaluar_proyecto.time.monotonic", side_effect=[1.0, 2.13]):
+                medido = evaluar_proyecto.ejecutar_tests(raiz)
+            proceso_stderr = SimpleNamespace(
+                returncode=0, stdout="", stderr="Ran 2 tests in 0.1s\nOK\n")
+            with patch("evaluar_proyecto.shutil.which", return_value="/usr/bin/make"), \
+                    patch("evaluar_proyecto._preexec_limites", return_value=None), \
+                    patch("evaluar_proyecto.subprocess.run", return_value=proceso_stderr), \
+                    patch("evaluar_proyecto.time.monotonic", side_effect=[1.0, 2.0]):
+                desde_stderr = evaluar_proyecto.ejecutar_tests(raiz)
+        self.assertEqual(resultado["resumen"], "")
+        self.assertEqual(len(fallo["detalle"]), 200)
+        self.assertEqual(medido["duracion_s"], 1.1)
+        self.assertEqual((desde_stderr["tests"], desde_stderr["resumen"]), (2, "OK"))
 
 
 class TestComparabilidadR5(unittest.TestCase):

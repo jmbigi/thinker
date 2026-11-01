@@ -4583,3 +4583,37 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección de propagación**: los JSON de ambos índices publicaron los hashes
   antes que el índice simple; el primer `pip install` falló y solo se reintentó
   tras comprobar que ambos índices ofrecían `0.1.20`. El fallo quedó registrado.
+
+### Hallazgo 213: separar candidatos limpios de los clústeres ya cerrados
+
+- **Problema**: para el segundo lote de 200 brechas se intentó partir de la
+  lista de supervivientes del run completo (290). Esa lista mezcla mutantes de
+  clústeres ya cerrados y funciones que cambiaron desde r3c4: el arnés marcaba
+  «resuelta» por drift de código, no por una aserción nueva. Se descartaron esas
+  6 muestras y se excluyó el archivo del conteo.
+- **Criterio**: solo se contaron mutantes de funciones no cerradas, con
+  supervivencia comprobada en r3c4 y fallo con las pruebas actuales. La cola de
+  1.794 históricos y el resto no procesado aportaron **205 muertes**; se
+  seleccionaron exactamente **200** y 4 excedentes quedaron fuera.
+- **Equivalencia refutada**: `_llamada_aserion_debil` 42, antes clasificado
+  equivalente, muere con el contrato del tercer argumento de `assertEqual`. Se
+  dejó **fuera del conteo** y se anota como revisión pendiente: una equivalencia
+  solo se mantiene mientras ninguna prueba la refute.
+- **Defecto de aislamiento**: el primer intento de commit quedó sin efecto y el
+  índice del worktree apareció con dos entradas de un fixture (`demo.py` y
+  `pyproject.toml`). Causa: git exporta `GIT_INDEX_FILE` al hook pre-commit y los
+  fixtures de git lo heredaban, así que `git add -A` escribía en el índice del
+  repositorio anfitrión. Se añadió `entorno_git()` en `tests/helpers.py` y se usó
+  en los tres fixtures; `evaluar_proyecto._git` también sanea `GIT_DIR`,
+  `GIT_WORK_TREE` y `GIT_INDEX_FILE` para inspeccionar solo el repo objetivo.
+  Regresión `test_no_hereda_el_indice_del_hook`.
+- **Resultado**: R3 baja de 368 a **168 brechas**; las **126 equivalencias** no
+  se tocan. Tres métodos nuevos (dos contratos y la regresión de git) y bordes
+  reforzados; suite **1346/1346**. Solo cambiaron pruebas y documentación, no
+  corresponde release.
+- **Restauración**: los dos workers detenidos al alcanzar el objetivo se
+  restauraron copiando los originales actual y r3c4, con SHA-256 antes/después
+  en `build/r3-200-b2-restauracion-manual.json`.
+- **Evidencias**: `build/r3-400-final.json`, `build/r3-200-b2-resto.json`,
+  `build/r3-200-b2-worker0.json`, `build/r3-200-b2-worker2.json` y
+  `build/r3-200-b2-restauracion-manual.json`.

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -23,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from evaluar_proyecto import evaluar
+from tests.helpers import entorno_git
 
 BASE_COMPLETA = {
     "demo.py": (
@@ -131,13 +131,12 @@ CASOS = [
 
 def _crear_git(raiz: Path) -> None:
     fecha = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    entorno = {
-        **os.environ,
+    entorno = entorno_git({
         "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
         "GIT_AUTHOR_NAME": "Holdout", "GIT_AUTHOR_EMAIL": "holdout@example.invalid",
         "GIT_COMMITTER_NAME": "Holdout",
         "GIT_COMMITTER_EMAIL": "holdout@example.invalid",
-    }
+    })
     for comando in (["git", "init", "-q"], ["git", "add", "-A"],
                     ["git", "commit", "-qm", "inicio"]):
         subprocess.run(comando, cwd=raiz, check=True, capture_output=True,

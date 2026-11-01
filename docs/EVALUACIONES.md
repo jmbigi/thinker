@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1343/1343** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1346/1346** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1272,3 +1272,24 @@ añadida en `tests/test_audit_changes.py`. R3 permanece en **368 brechas + 126
 equivalencias**. Suite **1343/1343** en Linux (Python 3.11.9). Cambio
 distribuible: release `0.1.20` publicada en TestPyPI y PyPI, tag `v0.1.20`.
 Hallazgo 212.
+
+**Actualización 2026-11-01** (otras 200 brechas R3 resueltas): segundo lote con
+el mismo arnés pareado r3c4/actual; solo cuenta una muerte si el mutante
+sobrevive a la selección de r3c4 y falla con las pruebas actuales. Se
+seleccionaron exactamente **200 muertes** de 204 candidatas válidas; cuatro
+excedentes no se descuentan. Un mutante antes clasificado equivalente
+(`_llamada_aserion_debil` 42) muere ahora con el contrato del tercer argumento
+de `assertEqual`: se deja **fuera del conteo** hasta revisar esa equivalencia.
+Se añadieron 3 métodos de prueba (dos contratos y una regresión de aislamiento
+de git) y se reforzaron bordes de descubrimiento,
+aserciones, silencios, perfiles, runner y requisitos. La regresión
+`test_no_hereda_el_indice_del_hook` corrige un defecto real: durante el hook,
+git exporta `GIT_INDEX_FILE` y los fixtures lo heredaban, sobrescribiendo el
+índice del repositorio anfitrión; `evaluar_proyecto._git` también sanea
+`GIT_DIR`/`GIT_WORK_TREE`/`GIT_INDEX_FILE` para inspeccionar solo el repo
+objetivo. R3 queda en **168 brechas
++ 126 equivalencias** (49 preflight + 77 evaluador). Suite **1346/1346** en Linux
+(Python 3.11.9). Evidencias: `build/r3-400-final.json`,
+`build/r3-200-b2-resto.json`, `build/r3-200-b2-worker0.json`,
+`build/r3-200-b2-worker2.json` y `build/r3-200-b2-restauracion-manual.json`.
+Hallazgo 213.

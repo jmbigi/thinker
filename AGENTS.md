@@ -380,8 +380,9 @@ mejora de código (`code_design_improvement_tools.py`).
   resueltas con 13 contratos nuevos y bordes reforzados; otras **14 equivalencias
   demostradas**. Después, 200 brechas históricas resueltas mediante diffs
   localizados y verificación directa r3c4/actual; otras **10 equivalencias
-  demostradas**. R3 queda en **368 brechas + 126 equivalencias** (49+77).
-- Plataformas verificadas: Linux con Python **3.11.9**: **1343/1343 en la suite
+  demostradas**. Después, otras 200 brechas históricas resueltas por el mismo
+  método pareado; R3 queda en **168 brechas + 126 equivalencias** (49+77).
+- Plataformas verificadas: Linux con Python **3.11.9**: **1346/1346 en la suite
   Linux** (2026-11-01; openai 3.40.0 y `packaging 26.3` en el venv de validación,
   con `ruff` para el doctor; lock en openai 3.42.0) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
@@ -425,7 +426,9 @@ mejora de código (`code_design_improvement_tools.py`).
   **1315/1315**. Las 100 brechas R3 del Hallazgo 210 añadieron 13 tests y dejaron
   la suite en **1328/1328**. Las 200 brechas del Hallazgo 211 añadieron 14 tests
   y dejaron la suite en **1342/1342**. La regresión del falso positivo del auditor
-  (Hallazgo 212) añadió 1 test y dejó la suite en **1343/1343**. El auditor de
+  (Hallazgo 212) añadió 1 test y dejó la suite en **1343/1343**. Las otras 200
+  brechas R3 del Hallazgo 213 añadieron 3 tests (dos contratos y la regresión de
+  aislamiento de git) y dejaron la suite en **1346/1346**. El auditor de
   cambios de `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

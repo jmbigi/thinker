@@ -661,9 +661,12 @@ def aserciones_debiles(ruta: Path,
 
 def _git(ruta: Path, *args: str) -> Optional[str]:
     """Ejecuta git SOLO con argumentos de fecha/recuento (nunca autores)."""
+    entorno = {clave: valor for clave, valor in os.environ.items()
+               if clave not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
     try:
         salida = subprocess.run(["git", "-C", str(ruta), *args],
-                                capture_output=True, text=True, timeout=20)
+                                capture_output=True, text=True, timeout=20,
+                                env=entorno)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return salida.stdout.strip() if salida.returncode == 0 else None
