@@ -662,3 +662,27 @@ incluidos texto sin espacio y un segundo numeral. Evidencia:
 **Contabilidad conjunta E28-E31:** **10 equivalencias** nuevas en el lote de 200
 brechas, no contadas como muertes. R3 queda en **368 brechas + 126 equivalencias**
 (49 preflight + 77 evaluador).
+
+## E32 — 13 defaults y comentarios sin efecto (2026-11-01)
+
+Casos del cierre parcial R3 (Hallazgo 214), **no contados como muertes**. Todos
+se verificaron con la suite actual: los 13 sobreviven y el original pasa.
+
+- `_dependencias_setup_cfg` 13: `ConfigParser` normaliza las claves de opción a
+  minúsculas; `TESTS_REQUIRE` y `tests_require` son la misma clave y `get`
+  devuelve el mismo valor.
+- `_es_licencia_libre` 4: con `texto=None`, `"XXXX"` no es licencia conocida ni
+  `LicenseRef-`; ambos caminos devuelven `False`.
+- `_leer_requirements` 23 y 26: `split("#")[0]` y `split("#", 2)[0]` devuelven
+  el mismo primer segmento que `split("#", 1)[0]`.
+- `_leer_requirements` 24 y 25: el comentario que queda en la línea no cambia la
+  dependencia que extrae el parser (nombre y versión son los mismos).
+- `_puede_fallar` 3 y 6: `ast.FunctionDef.decorator_list` siempre existe; el
+  default de `getattr` no se evalúa.
+- `informe_texto` 150, 152, 177 y 179: con la clave ausente, `None` y `[]` son
+  falsos y el bloque solo itera si es verdadero; no hay salida distinta.
+- `licencia_pypi` 43: `next(..., None)` y `next(..., "")` son falsos; el flujo
+  cae al campo `license` en ambos casos.
+
+**Verificación:** `build/r3-300-final.json`; los 13 quedaron como
+`actual_superviviente` en `build/r3-200-b3-sup26.json` y no se descontaron.
