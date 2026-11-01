@@ -88,19 +88,24 @@ def _texto_fuente(source: Dict[str, Any]) -> str:
 
 
 def _normalizar_url(url: str) -> str:
-    """Normaliza host, esquema y parámetros de seguimiento para agrupar duplicados."""
+    """Agrupa duplicados sin descartar partes que pueden identificar el recurso."""
     if not isinstance(url, str) or not url.strip():
         return ""
-    parsed = urlparse(url.strip())
-    host = (parsed.hostname or "").lower()
-    if host.startswith("www."):
-        host = host[4:]
-    ruta = parsed.path.rstrip("/")
-    parametros = [
-        (clave, valor) for clave, valor in parse_qsl(parsed.query)
-        if not clave.lower().startswith(("utm_", "ref", "fbclid", "gclid"))
-    ]
-    return urlunparse((parsed.scheme.lower(), host, ruta, "", urlencode(parametros), ""))
+    try:
+        parsed = urlparse(url.strip())
+        autoridad = parsed.netloc.rsplit("@", 1)[-1]
+        if autoridad.lower().startswith("www."):
+            autoridad = autoridad[4:]
+        parametros = [
+            (clave, valor)
+            for clave, valor in parse_qsl(parsed.query, keep_blank_values=True)
+            if not (clave.lower().startswith("utm_")
+                    or clave.lower() in ("ref", "fbclid", "gclid"))
+        ]
+        return urlunparse((parsed.scheme.lower(), autoridad.lower(),
+                           parsed.path.rstrip("/"), "", urlencode(parametros), ""))
+    except ValueError:
+        return ""
 
 
 def extraer_citas(texto: str) -> List[int]:

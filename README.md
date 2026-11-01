@@ -16,8 +16,8 @@ herramientas de análisis estático de código.
 | Módulo | Función |
 |---|---|
 | `deep_research_system.py` | Pipeline de investigación: descomposición, recuperación, claims, evaluación y reporte. CoVe, consenso, checkpoints reanudables, paralelismo determinista y routing/poda adaptativos. |
-| `citation_verifier.py` | Verificación determinista de citas: existencia y fragmento (`EXACT_MATCH`/`FOUND`/`NOT_FOUND`/`UNVERIFIABLE`) separados del soporte (`SUPPORTED`/`PARTIALLY_SUPPORTED`/`CONTRADICTED`/`UNVERIFIABLE`) y duplicados por URL normalizada. Léxica, no semántica. |
-| `source_quality.py` | Dimensiones separadas de autoridad, independencia, actualidad, relevancia, soporte y trazabilidad. Sin nota única que mezcle calidad de fuente con confianza del claim. Heurísticas declaradas. |
+| `citation_verifier.py` | Verificación determinista de citas: existencia y fragmento (`EXACT_MATCH`/`FOUND`/`NOT_FOUND`/`UNVERIFIABLE`) separados del soporte (`SUPPORTED`/`PARTIALLY_SUPPORTED`/`CONTRADICTED`/`UNVERIFIABLE`) y duplicados por URL normalizada sin descartar puertos ni parámetros de contenido. Léxica, no semántica. |
+| `source_quality.py` | Dimensiones separadas de autoridad, independencia, actualidad, relevancia, soporte y trazabilidad. Sin nota única; una fecha futura o un claim sin fuente asociada queda no evaluable. Heurísticas declaradas. |
 | `documents.py` | Contenido completo HTML/PDF/TXT/Markdown/CSV y Office Open XML, pasajes con hash/localización, RAG local BM25+coseno y full-text web. |
 | `research_cli.py` | CLI real `research`: proveedores, buscadores, documentos, Markdown/JSON, estado, presupuestos y opciones opt-in. Sin argumentos conserva la demo. |
 | `research_state.py` | Checkpoints idempotentes con esquema versionado, caché de recuperación y escritura atómica 0600. |
@@ -386,7 +386,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1303/1303** | 1128 → 1232 → 1249 → 1299 → 1303 tests (**+15,5%** desde 1128) |
+| Suite Linux | **1313/1313** | 1128 → 1232 → 1249 → 1299 → 1313 tests (**+16,4%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -395,6 +395,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Cobertura | **82,57% líneas / 82,42% ramas** | 2382/2890 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
+| Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
 | R3 | **673 brechas + 98 equivalencias** | 1131 → 673 brechas (**−40,5%**); equivalencias 62 → 98 |
 
 ```mermaid

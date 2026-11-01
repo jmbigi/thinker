@@ -54,7 +54,7 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1303/1303** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **1313/1313** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (28/30; 2 N/A: `v4`, `h5`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -491,6 +491,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-10-31, cierre `plan_texto`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker comparó tres candidatos y eligió 13 líneas/complejidad 2; la campaña produjo 33 muertos y 9 supervivientes | Una regresión mata 35 por orden estable; 3/5/41 son E16 con salidas idénticas; otros seis supervivientes y diez controles mueren; **39 muertos + 3 equivalencias**; R3: **673 brechas + 86 equivalencias**; suite **1289/1289** |
 | R3 (2026-10-31, cierre `_registro_decisiones`) | `code_design_improvement_tools` y `evaluar_proyecto` | Thinker midió 17 líneas/complejidad 5; la muestra directa detectó 2, 3, 15 y 25 vivos pese al 57/57 inicial | Una regresión con ADR, release notes y AsciiDoc mata los cuatro; otros seis controles y original verdes; **57/57 muertos**; R3 permanece en **673 brechas + 86 equivalencias**; suite **1290/1290** |
 | R3 (2026-10-31, evidencia no resoluble) | `code_design_improvement_tools` y documentación oficial de `pathlib` | Thinker acotó cuatro funciones; un bucle real de symlinks reveló `RuntimeError`, no señalado por el análisis estático | Regresión roja antes del arreglo; 71/71 mutantes detectados, candidato a equivalencia refutado por `XXapp.pyXX`; R3 permanece en **673 brechas + 98 equivalencias**; suite **1303/1303** |
+| Integridad de fuentes (2026-10-31) | `code_design_improvement_tools`, autoevaluación y campaña Mutmut aislada | El análisis acotó los candidatos sin señalar estilo; las reproducciones mostraron URLs fusionadas, claim mal asociado, fecha futura con valor 1.0 y asociación por IDs ausentes | 10 regresiones y contratos de bordes; 198 mutantes en cuatro funciones: **193 muertos + 5 equivalencias demostradas**, originales restaurados; suite **1313/1313**; R3 intacto en 673 brechas + 98 equivalencias |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se

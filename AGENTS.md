@@ -366,7 +366,12 @@ mejora de código (`code_design_improvement_tools.py`).
   muertos**; un bucle de symlinks ya no interrumpe la verificación.
   Estas funciones no se descuentan del inventario histórico porque su
   distribución detallada no está disponible.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1303/1303 en la suite
+  Campaña separada de `citation_verifier`/`source_quality` (2026-10-31): 1314
+  mutantes; primera pasada 629 muertos, 515 supervivientes y 170 sin tests;
+  segunda 695/449/170, siempre con 0 timeouts. En las cuatro funciones
+  modificadas (198 mutantes), el cierre directo deja **193 muertos + 5
+  equivalencias demostradas**. No se mezcla con R3 ni se recalcula una tasa global.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1313/1313 en la suite
   Linux** (2026-10-31; openai 3.42.0 y `packaging 26.3` en venv aislado desde el
   lock, con `ruff` para el doctor) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
@@ -404,7 +409,8 @@ mejora de código (`code_design_improvement_tools.py`).
   **1212/1212**. La regresión de locks ignorados (Hallazgo 152) añadió 1 test
   y dejó la suite en **1213/1213**. El contrato de evidencia no resoluble y el
   cierre de tres verificadores (Hallazgo 201) añadió 4 tests y dejó la suite en
-  **1303/1303**. El auditor de cambios de `scripts/` añadió
+  **1303/1303**. La integridad de URLs y asociaciones de fuentes (Hallazgo 204)
+  añadió 10 tests y dejó la suite en **1313/1313**. El auditor de cambios de `scripts/` añadió
   28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
@@ -472,11 +478,12 @@ mejora de código (`code_design_improvement_tools.py`).
 - `citation_verifier.py` — verificación de citas separada en existencia
   (`EXACT_MATCH`/`FOUND`/`NOT_FOUND`/`UNVERIFIABLE`) y soporte
   (`SUPPORTED`/`PARTIALLY_SUPPORTED`/`CONTRADICTED`/`UNVERIFIABLE`), con
-  duplicados por URL normalizada. Es léxica y determinista: no prueba respaldo
-  semántico ni verdad.
+  duplicados por URL normalizada sin descartar puertos ni parámetros de
+  contenido. Es léxica y determinista: no prueba respaldo semántico ni verdad.
 - `source_quality.py` — dimensiones **separadas** de autoridad, independencia,
   actualidad, relevancia, soporte y trazabilidad; no calcula una nota única ni
-  mezcla calidad de fuente con confianza del claim. Heurísticas declaradas.
+  mezcla calidad de fuente con confianza del claim. Heurísticas declaradas:
+  fechas futuras y claims sin fuente asociada son no evaluables.
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
   Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
   Ollama y Mock no reintentan. `BudgetLLM` acota llamadas entre hilos.

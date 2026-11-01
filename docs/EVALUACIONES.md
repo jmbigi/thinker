@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1303/1303** en Linux (Python 3.11.9), ruff 0, preflight 0,
+`h5`). Suite **1313/1313** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1159,3 +1159,22 @@ verificable. El extra `ml` no se exige en la instalación base.
 Suite **1303/1303** en Linux (Python 3.11.9); CI limpia OK. `main` y tag anotado
 `v0.1.17` (`760e5f4`) empujados. Evidencia:
 `build/release17-verificacion.json`. Hallazgo 203.
+
+**Actualización 2026-10-31** (integridad de fuentes y citas): la normalización
+ya no descarta puertos ni parámetros de contenido al agrupar duplicados o
+asociar claims; solo elimina rastreadores conocidos. URLs malformadas quedan
+sin host evaluable en vez de interrumpir el análisis. Una fecha futura ya no
+recibe actualidad máxima y un claim sin fuente no se asocia por identificadores
+ausentes. Diez regresiones nuevas: siete rojas antes de las correcciones y tres
+de contrato exacto para bordes y asociaciones. Suite **1313/1313** en Linux
+(Python 3.11.9), ruff/preflight y tres demos offline verificados. La campaña
+aislada de 1314 mutantes pasó de 629 muertos/515 supervivientes/170 sin tests a
+695/449/170, con 0 timeouts. En las cuatro funciones modificadas (198 mutantes)
+quedan **193 muertos + 5 equivalencias demostradas** tras el cierre directo;
+no se recalcula la tasa global ni se altera R3. Evidencias:
+`build/diagnostico-url.json`, `build/diagnostico-asociacion.json`,
+`build/regresiones-url-rojo.log`, `build/regresion-asociacion-rojo.log`,
+`build/regresiones-fuentes-verde.log`, `build/mutacion-fuentes.json`,
+`build/mutacion-fuentes-cierre.json`, `build/mutacion-fuentes-cierre-objetivo.json`,
+`build/mutacion-fuentes-verificacion-final.json` y
+`build/userinfo-equivalencias.json`. Hallazgo 204.

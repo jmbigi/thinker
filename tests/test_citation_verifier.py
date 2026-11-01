@@ -2,7 +2,7 @@
 
 import unittest
 
-from citation_verifier import (extraer_citas, verificar_cita,
+from citation_verifier import (_normalizar_url, extraer_citas, verificar_cita,
                                verificar_informe)
 
 
@@ -13,6 +13,44 @@ class TestExtraerCitas(unittest.TestCase):
     def test_no_confunde_anios_ni_corchetes_vacios(self):
         self.assertEqual(extraer_citas("En [2026] y [] no hay cita."), [])
         self.assertEqual(extraer_citas("Cita [0] fuera de rango."), [0])
+
+
+class TestNormalizarURL(unittest.TestCase):
+    def test_conserva_recurso_y_puerto_al_quitar_rastreadores(self):
+        casos = {
+            "https://www.EXAMPLE.org:8443/a/?utm_source=x&ref=home&fbclid=a&gclid=b#f":
+                "https://example.org:8443/a",
+            "https://example.org/a?reference=alpha":
+                "https://example.org/a?reference=alpha",
+            "https://example.org/a?id=": "https://example.org/a?id=",
+            "https://[2001:DB8::1]:8443/a": "https://[2001:db8::1]:8443/a",
+            "https://example.org/aXX/": "https://example.org/aXX",
+            "https://u@localhost/a": "https://localhost/a",
+        }
+        for original, esperado in casos.items():
+            with self.subTest(original=original):
+                self.assertEqual(_normalizar_url(original), esperado)
+        for invalido in (None, 0, "", " "):
+            with self.subTest(invalido=invalido):
+                self.assertEqual(_normalizar_url(invalido), "")
+
+    def test_url_malformada_no_interrumpe_normalizacion(self):
+        self.assertEqual(_normalizar_url("https://[::1"), "")
+
+    def test_no_funde_fuentes_ni_asigna_claim_de_otro_recurso(self):
+        sources = [
+            {"url": "https://example.org/doc?reference=alpha",
+             "snippet": "La energía solar es renovable."},
+            {"url": "https://example.org/doc?reference=beta",
+             "snippet": "El motor diésel usa gasóleo."},
+        ]
+        claims = [{"claim": "El motor diésel usa gasóleo.",
+                   "source_url": sources[1]["url"]}]
+        informe = verificar_informe("Primero [1]; después [2].", sources, claims)
+        self.assertEqual(informe["duplicadas"], [])
+        self.assertEqual(informe["checks"][0]["claim"], "")
+        self.assertEqual(informe["checks"][0]["soporte"], "UNVERIFIABLE")
+        self.assertEqual(informe["checks"][1]["soporte"], "SUPPORTED")
 
 
 class TestVerificarCita(unittest.TestCase):

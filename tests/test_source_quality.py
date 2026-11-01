@@ -2,8 +2,16 @@
 
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
-from source_quality import evaluar_fuentes
+from source_quality import (_actualidad, _claims_para_fuente, _host,
+                            evaluar_fuentes)
+
+
+class _DateTimeFijo(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return cls(2026, 10, 31, 12, tzinfo=tz)
 
 
 class TestAutoridad(unittest.TestCase):
@@ -95,6 +103,110 @@ class TestDimensionesSeparadas(unittest.TestCase):
                      "source_url": "https://example.org/c"}])
         soporte = resultado["fuentes"][0]["dimensiones"]["soporte"]
         self.assertEqual(len(soporte["posible_contradiccion"]), 1)
+
+
+class TestRobustezFuentes(unittest.TestCase):
+    def test_fecha_futura_no_recibe_actualidad_maxima(self):
+        fecha = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+        actualidad = evaluar_fuentes([{
+            "url": "https://example.org", "snippet": "x", "published_at": fecha,
+        }])["fuentes"][0]["dimensiones"]["actualidad"]
+        self.assertIsNone(actualidad["valor"])
+        self.assertLess(actualidad["dias"], 0)
+        self.assertIn("fecha futura", actualidad["detalle"])
+
+    def test_url_malformada_no_interrumpe_evaluacion(self):
+        resultado = evaluar_fuentes([{"url": "https://[::1", "snippet": "texto"}])
+        self.assertEqual(resultado["total"], 1)
+        self.assertIsNone(resultado["fuentes"][0]["dimensiones"]["autoridad"]["valor"])
+
+    def test_claim_sin_fuente_no_se_asocia_por_identificadores_ausentes(self):
+        resultado = evaluar_fuentes(
+            [{"url": "https://example.org/doc", "snippet": "Motor diésel."}],
+            claims=[{"claim": "Motor diésel."}],
+        )
+        soporte = resultado["fuentes"][0]["dimensiones"]["soporte"]
+        self.assertIsNone(soporte["valor"])
+        self.assertNotIn("claims_evaluados", soporte)
+
+        asociado = evaluar_fuentes(
+            [{"id": 7, "url": "https://example.org/doc", "snippet": "Motor diésel."}],
+            claims=[{"claim": "Motor diésel.", "source_id": 7}],
+        )
+        self.assertEqual(
+            asociado["fuentes"][0]["dimensiones"]["soporte"]["claims_evaluados"], 1)
+
+    def test_parametros_de_contenido_no_son_rastreadores(self):
+        sources = [
+            {"url": "https://example.org/doc?reference=alpha", "snippet": "Energía solar."},
+            {"url": "https://example.org/doc?reference=beta", "snippet": "Motor diésel."},
+        ]
+        resultado = evaluar_fuentes(sources, claims=[{
+            "claim": "Motor diésel.", "source_url": sources[1]["url"],
+        }])
+        self.assertEqual(resultado["grupos_duplicados"], [])
+        self.assertIsNone(resultado["fuentes"][0]["dimensiones"]["soporte"]["valor"])
+        self.assertEqual(resultado["fuentes"][1]["dimensiones"]["soporte"]["valor"], 1.0)
+
+    def test_contrato_actualidad_en_bordes(self):
+        self.assertEqual(_actualidad({}), {
+            "valor": None, "dias": None, "metodo": "fecha declarada",
+            "detalle": "sin fecha legible: no evaluable",
+        })
+        with patch("source_quality.datetime", _DateTimeFijo):
+            self.assertEqual(_actualidad({"published_at": "2026-11-01T12:00:00Z"}), {
+                "valor": None, "dias": -1, "metodo": "fecha declarada",
+                "detalle": "fecha futura: no evaluable como vigencia",
+            })
+            casos = [
+                (0, 1.0, "<= 30 días"), (30, 1.0, "<= 30 días"),
+                (31, 0.8, "<= 1 año"), (365, 0.8, "<= 1 año"),
+                (366, 0.5, "<= 5 años"), (1825, 0.5, "<= 5 años"),
+                (1826, 0.2, "> 5 años"),
+            ]
+            for dias, valor, detalle in casos:
+                with self.subTest(dias=dias):
+                    fecha = (datetime(2026, 10, 31, 12, tzinfo=timezone.utc)
+                             - timedelta(days=dias)).isoformat()
+                    self.assertEqual(_actualidad({"published_at": fecha}), {
+                        "valor": valor, "dias": dias, "metodo": "fecha declarada",
+                        "detalle": detalle,
+                    })
+
+    def test_contrato_asociacion_claims(self):
+        source = {"id": 7, "url": "https://example.org/doc?x=1"}
+        claims = [
+            "no es un mapa",
+            {"claim": ""},
+            {"claim": "por URL alternativa",
+             "url": "https://www.example.org/doc/?x=1&utm_source=a"},
+            {"claim": "por ID URL", "source_id": "https://example.org/doc?x=1"},
+            {"claim": "por ID numérico", "source_id": 7},
+            {"claim": "URL distinta", "source_url": "https://other.invalid/doc"},
+            {"claim": "ID URL distinto", "source_id": "https://other.invalid/doc"},
+            {"claim": "sin asociación"},
+        ]
+        self.assertEqual(_claims_para_fuente(source, claims), [
+            "por URL alternativa", "por ID URL", "por ID numérico",
+        ])
+        self.assertEqual(_claims_para_fuente({"id": 0}, [
+            {"claim": "cero", "source_id": 0},
+        ]), ["cero"])
+        self.assertEqual(_claims_para_fuente(source, None), [])
+        self.assertEqual(_claims_para_fuente({}, [
+            {"claim": "ID relativo", "source_id": "XXXX"},
+        ]), [])
+        self.assertEqual(_claims_para_fuente({"id": 7}, [
+            {"claim": "", "source_id": 7},
+        ]), [])
+        self.assertEqual(_claims_para_fuente({"url": "XXXX"}, [
+            {"claim": "sin ID"},
+        ]), [])
+
+    def test_host_invalido_o_relativo_no_se_inventa(self):
+        for url in (None, 0, "", " ", "ruta/relativa"):
+            with self.subTest(url=url):
+                self.assertEqual(_host(url), "")
 
 
 if __name__ == "__main__":

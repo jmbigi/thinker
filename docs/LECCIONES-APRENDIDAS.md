@@ -4388,3 +4388,38 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Identidad**: `v0.1.17` anotado apunta a `760e5f4`; `origin/main` y el tag
   fueron confirmados con `git ls-remote`. Evidencia completa:
   `build/release17-verificacion.json`.
+
+### Hallazgo 204: normalizar una URL no debe cambiar el recurso identificado
+
+- **Diagnóstico (2026-10-31)**: `code_design_improvement_tools` midió las
+  funciones candidatas sin hallar problemas de estilo; la reproducción sí mostró
+  que dos URLs con puertos y parámetros `reference` distintos se fusionaban y un
+  claim se asociaba a la fuente equivocada. Otra reproducción dio actualidad 1.0
+  a una fecha futura y soporte 1.0 a un claim sin fuente por comparar IDs `None`.
+  La documentación de `urllib.parse` distingue `hostname` de `netloc` (que incluye
+  puerto); RFC 3986 conserva la consulta como parte identificativa del recurso.
+- **Corrección**: una única normalización compartida conserva autoridad/puerto,
+  IPv6, valores vacíos y parámetros no identificados como rastreadores; elimina
+  solo `utm_*`, `ref`, `fbclid` y `gclid`. URLs malformadas no interrumpen el
+  análisis. Fechas futuras y claims sin asociación quedan no evaluables; un ID
+  debe existir antes de compararlo. No hay cambios de esquema ni de GLOBAL.
+- **Pruebas**: diez regresiones nuevas (siete rojas antes de corregir) y
+  aserciones tabuladas para bordes 0/30/365/1825 días, metadata, rastreadores,
+  IPv6, URLs inválidas y asociaciones por URL/ID. Un fixture con forma de correo
+  fue retirado porque el escáner de datos personales lo rechazó; no se relajó el
+  gate. Suite **1313/1313** en Linux (Python 3.11.9).
+- **Mutación**: campaña aislada de 1314 mutantes: 629 muertos/515
+  supervivientes/170 sin tests; segunda pasada 695/449/170, 0 timeouts. Las
+  cuatro funciones modificadas suman 198: **193 muertos + 5 equivalencias**.
+  Tres equivalencias de `userinfo` producen salida idéntica en URLs válidas;
+  RFC 3986 §3.2.1 excluye `@` sin codificar dentro de `userinfo`, así que hay un
+  único separador. Las otras dos son defaults `None`/`""` absorbidos por `or ""`,
+  con igualdad comprobada en cinco casos. No se generaliza esa equivalencia a
+  entradas inválidas ni se altera el inventario R3.
+- **Evidencias**: `build/diagnostico-url.json`,
+  `build/diagnostico-asociacion.json`, `build/mutacion-fuentes.json`,
+  `build/mutacion-fuentes-cierre.json`, `build/mutacion-fuentes-cierre-objetivo.json`,
+  `build/mutacion-fuentes-verificacion-final.json` y
+  `build/userinfo-equivalencias.json`. Fuentes:
+  <https://docs.python.org/3/library/urllib.parse.html> y
+  <https://www.rfc-editor.org/rfc/rfc3986#section-3.2.1>.

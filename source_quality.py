@@ -25,7 +25,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import urlparse
+
+from citation_verifier import _normalizar_url
 
 _TOKEN_RE = re.compile(r"[a-záéíóúüñ0-9]+", re.IGNORECASE)
 _STOPWORDS = {
@@ -81,24 +83,11 @@ def _tiene_negacion(texto: str) -> bool:
 def _host(url: str) -> str:
     if not isinstance(url, str) or not url.strip():
         return ""
-    host = (urlparse(url).hostname or "").lower()
-    return host[4:] if host.startswith("www.") else host
-
-
-def _normalizar_url(url: str) -> str:
-    """Normaliza host, esquema y parámetros de seguimiento."""
-    if not isinstance(url, str) or not url.strip():
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
         return ""
-    parsed = urlparse(url.strip())
-    host = (parsed.hostname or "").lower()
-    if host.startswith("www."):
-        host = host[4:]
-    ruta = parsed.path.rstrip("/")
-    parametros = [
-        (clave, valor) for clave, valor in parse_qsl(parsed.query)
-        if not clave.lower().startswith(("utm_", "ref", "fbclid", "gclid"))
-    ]
-    return urlunparse((parsed.scheme.lower(), host, ruta, "", urlencode(parametros), ""))
+    return host[4:] if host.startswith("www.") else host
 
 
 def _coincide(host: str, sufijos: Sequence[str]) -> bool:
@@ -111,7 +100,7 @@ def _autoridad(url: str) -> Dict[str, Any]:
     host = _host(url)
     if not host:
         return {"valor": None, "metodo": "heurística de dominio",
-                "detalle": "sin URL: no evaluable"}
+                "detalle": "sin host válido: no evaluable"}
     if _coincide(host, _AUTORIDAD_ALTA):
         return {"valor": 0.9, "metodo": "heurística de dominio",
                 "detalle": f"dominio institucional/académico: {host}"}
@@ -153,8 +142,8 @@ def _actualidad(source: Dict[str, Any]) -> Dict[str, Any]:
                 "detalle": "sin fecha legible: no evaluable"}
     dias = (datetime.now(timezone.utc) - fecha).days
     if dias < 0:
-        return {"valor": 1.0, "dias": dias, "metodo": "fecha declarada",
-                "detalle": "fecha futura: se declara y no se usa como vigencia"}
+        return {"valor": None, "dias": dias, "metodo": "fecha declarada",
+                "detalle": "fecha futura: no evaluable como vigencia"}
     if dias <= 30:
         valor, detalle = 1.0, "<= 30 días"
     elif dias <= 365:
@@ -194,7 +183,8 @@ def _claims_para_fuente(source: Dict[str, Any],
         claim_id = _normalizar_url(str(claim.get("source_id") or ""))
         if ((claim_url and url and claim_url == url)
                 or (claim_id and url and claim_id == url)
-                or (not claim_url and claim.get("source_id") == source.get("id"))):
+                or (not claim_url and source.get("id") is not None
+                    and claim.get("source_id") == source.get("id"))):
             propios.append(texto)
     return propios
 
