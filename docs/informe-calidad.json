@@ -1,6 +1,6 @@
 {
-  "generado": "2026-11-01T19:12:29+00:00",
-  "commit": "7354590c1d74847ebad959c31ed10b358a2dd64d",
+  "generado": "2026-11-01T22:23:14+00:00",
+  "commit": "7243b8412402f670e9f3e22f87a4398cb78f3608",
   "python": "3.11.9",
   "so": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
   "controles": {
@@ -25,8 +25,8 @@
     "tests": {
       "estado": "PASS",
       "codigo": 0,
-      "resumen": "Ran 1346 tests in 46.942s | OK",
-      "duracion_s": 49.5
+      "resumen": "Ran 1350 tests in 46.703s | OK",
+      "duracion_s": 49.1
     },
     "holdout": {
       "estado": "PASS",
