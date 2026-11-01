@@ -294,6 +294,104 @@
           "comando": "python3 -m coverage run --branch --source=. -m unittest discover -s tests"
         }
       }
+    },
+    {
+      "generado": "2026-11-01T04:08:42+00:00",
+      "commit": "0339b077880e0c395c5ddbd51a45e077485307b8",
+      "python": "3.11.9",
+      "so": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+      "metricas": {
+        "tests_estaticos": {
+          "valor": 1315,
+          "metodo": "conteo AST de métodos test_* en TestCase",
+          "no_prueba": "que los tests sean fuertes o que el producto sea correcto"
+        },
+        "evaluador_precision": {
+          "casos": 57,
+          "criterios_objetivo": 26,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "accuracy": 1.0,
+          "cobertura": "26 criterios objetivo de 29 posibles; no es una campaña sobre proyectos reales",
+          "metodo": "fixtures sintéticas etiquetadas, offline",
+          "no_prueba": "precisión sobre repositorios reales ni independencia humana"
+        },
+        "evaluador_holdout": {
+          "casos": 6,
+          "aprobadas": 9,
+          "total": 9,
+          "exactitud": 1.0,
+          "metodo": "holdout sintético con relaciones de orden; no sustituye una evaluación humana independiente ni repositorios reales",
+          "no_prueba": "validez externa: fixtures creadas por el mismo proyecto"
+        },
+        "rag": {
+          "corpus": 10,
+          "consultas": 16,
+          "metricas": {
+            "recall@1": 0.875,
+            "recall@3": 0.938,
+            "recall@5": 0.938,
+            "recall@10": 0.938,
+            "mrr": 0.906,
+            "ndcg@10": 0.914
+          },
+          "metodo": "BM25 + coseno léxico, sin embeddings; relevancia binaria y corpus pequeño",
+          "no_prueba": "calidad semántica ni rendimiento sobre corpus reales; solo línea base reproducible"
+        },
+        "calibracion": {
+          "casos": 16,
+          "brier": 0.1166,
+          "ece": 0.1437,
+          "calibrada": false,
+          "metodo": "confianzas simuladas; instrumento de medida",
+          "no_prueba": "calibración real: no hay etiquetas humanas suficientes"
+        },
+        "rendimiento": {
+          "escenarios": [
+            {
+              "escenario": "simple",
+              "max_iterations": 1,
+              "latencia_s": 0.001,
+              "llamadas_llm": 4,
+              "fuentes": 1,
+              "caracteres_informe": 539,
+              "iteraciones_contexto": 0
+            },
+            {
+              "escenario": "media",
+              "max_iterations": 3,
+              "latencia_s": 0.001,
+              "llamadas_llm": 8,
+              "fuentes": 3,
+              "caracteres_informe": 539,
+              "iteraciones_contexto": 0
+            },
+            {
+              "escenario": "compleja",
+              "max_iterations": 5,
+              "latencia_s": 0.001,
+              "llamadas_llm": 8,
+              "fuentes": 3,
+              "caracteres_informe": 539,
+              "iteraciones_contexto": 0
+            }
+          ],
+          "modo": "simulado (MockLLM/MockSearchAPI): no mide calidad ni tokens",
+          "metodo": "tres escenarios con MockLLM/MockSearchAPI",
+          "no_prueba": "latencia ni coste con proveedores reales"
+        },
+        "cobertura_ramas": {
+          "estado": "PASS",
+          "porcentaje_lineas": 82.80547057764981,
+          "porcentaje_ramas": 82.87,
+          "lineas": 8212,
+          "ramas": 2902,
+          "ramas_cubiertas": 2405,
+          "faltantes": 1414,
+          "comando": "python3 -m coverage run --branch --source=. -m unittest discover -s tests"
+        }
+      }
     }
   ]
 }

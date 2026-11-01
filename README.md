@@ -84,11 +84,11 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.18   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.18            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.19   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.19            # desde PyPI
 ```
 
-La versión `0.1.18` está publicada en TestPyPI y PyPI. La instalación por tag
+La versión `0.1.19` está publicada en TestPyPI y PyPI. La instalación por tag
 sigue disponible y no requiere PyPI ni claves. Estado de la publicación:
 `docs/PUBLICACION.md`.
 
@@ -392,7 +392,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
 | RAG léxico | **Recall@5 0.938** | 10 pasajes, 16 consultas; MRR 0.906, nDCG@10 0.914 |
 | Calibración simulada | **Brier 0.1166 / ECE 0.1437** | 16 casos; **no calibrada**, no es probabilidad |
-| Cobertura | **82,74% líneas / 82,78% ramas** | 2389/2886 ramas; `coverage --branch` |
+| Cobertura | **82,81% líneas / 82,87% ramas** | 2405/2902 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |

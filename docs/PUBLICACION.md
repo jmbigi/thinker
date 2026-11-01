@@ -1,10 +1,10 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-01: **versión `0.1.18` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-01: **versión `0.1.19` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
-> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17` y `v0.1.18` empujados; `v0.1.2` a `v0.1.18` son anotados. `0.1.2` **no
+> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18` y `v0.1.19` empujados; `v0.1.2` a `v0.1.19` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -16,7 +16,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.18`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.19`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -25,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.18*`.
+  `dist/thinker_research-0.1.19*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -90,6 +90,19 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.19 (2026-11-01)
+
+Release de mantenimiento **en preparación** para traducir restricciones Poetry
+`^`/`~` a PEP 508, conservar `*` sin restricción y advertir formas inválidas.
+Cierra cinco brechas históricas de `_requisito_poetry` y corrige el desfase de
+equivalencias de E16.
+
+Validación del commit funcional `0339b07`: suite **1315/1315**, 7/7 gates PASS,
+CI limpia OK, cobertura 82,81% líneas/82,87% ramas y R3 **668 brechas + 102
+equivalencias**. La función actual cierra con **85 muertos + 2 equivalencias**
+en 87 mutantes; los cinco históricos también mueren. El empaquetado, hashes,
+índices e instalación limpia se registrarán solo después de verificarlos.
 
 ## Versión 0.1.18 (2026-11-01)
 

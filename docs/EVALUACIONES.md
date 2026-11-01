@@ -1218,3 +1218,12 @@ además estaba desfasado: E16 demuestra 3 pero solo sumó 1; 49+51=100. Evidenci
 `build/poetry-verificacion-directa.json`,
 `build/poetry-historicos-verificacion.json` y
 `build/poetry-pep508-validacion.json`. Hallazgo 207.
+
+**Actualización 2026-11-01** (preparación de `0.1.19`): la versión distribuye
+la traducción de restricciones Poetry y el cierre histórico R3. Commit funcional
+`0339b07` en `origin/main`. Suite **1315/1315** en Linux (Python 3.11.9), 7/7
+gates PASS, tres demos offline y CI limpia OK. Cobertura 82,81% líneas/82,87%
+ramas (2405/2902). R3: **668 brechas + 102 equivalencias**. **No se declara
+publicada** antes de verificar tag, artefactos, hashes e instalación limpia.
+Evidencias: `build/ci-0339b07.log`, `build/metricas-0339b07.log`,
+`build/informe-0339b07.log` y `docs/informe-calidad.json`. Hallazgo 208.

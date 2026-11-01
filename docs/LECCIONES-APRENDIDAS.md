@@ -4488,3 +4488,14 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/poetry-pep508-validacion.json`. Fuentes:
   <https://python-poetry.org/docs/dependency-specification/> y
   <https://packaging.python.org/en/latest/specifications/version-specifiers/>.
+
+### Hallazgo 208: preparar la distribución sin anticipar su publicación
+
+- **Decisión (2026-11-01)**: la traducción Poetry cambia el comportamiento del
+  evaluador instalado y justifica una release de mantenimiento; no se prepara
+  para alterar una nota. `0339b07` quedó en `origin/main` tras hook y CI limpia.
+- **Validación previa**: suite **1315/1315**, 7/7 gates, tres demos, cobertura
+  82,81% líneas/82,87% ramas y R3 en **668 brechas + 102 equivalencias**.
+- **Límite**: `0.1.19` queda en preparación hasta comprobar tag, wheel/sdist,
+  hashes, subida e instalación limpia real desde TestPyPI y PyPI. La versión
+  `0.1.18` sigue siendo la última publicada mientras se construye la nueva.
