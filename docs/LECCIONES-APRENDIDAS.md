@@ -4439,3 +4439,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   versión `0.1.18` se prepara con suite **1313/1313**, 7/7 gates, cobertura
   82,74%/82,78% y R3 intacto en 673 brechas + 98 equivalencias. La publicación
   se afirmará solo tras comprobar tag, hashes, índices e instalación limpia.
+
+### Hallazgo 206: una release se cierra con índice, hash e instalación
+
+- **Build (2026-11-01)**: `0.1.18` se construyó desde una copia limpia del tag
+  `v0.1.18` (`5c2e304`) con build aislado y `twine check` PASSED. No se usó el
+  `dist/` del árbol principal ni se rebajó `setuptools>=77`.
+- **Publicación comprobada**: TestPyPI y PyPI publican exactamente wheel
+  `2b00457c1b0f4932e8fc86f1c3443c97715a3e89a753e7cb93c45e7484ff2f17` y sdist
+  `cd616fddc7b604ff61a052148a049cf1fb8bcea55af59b3e29d6929f394bbdf6`.
+  Los índices simples tardaron unos segundos en ofrecer la versión a `pip`; no se
+  declaró instalación hasta completarla con `--no-cache-dir`.
+- **Instalación**: ambos índices permitieron instalaciones limpias con `pip
+  check`, 20 módulos base, consola absoluta del venv y las regresiones de URL,
+  fecha futura y claim sin fuente. `neural_concepts`/`torch` quedó como extra
+  opcional `ml`, no como fallo de la instalación base.
+- **Identidad**: `origin/main` y el tag apuntan a `5c2e304`; el objeto anotado
+  `v0.1.18` es `5291e12da77cdb51a1d6fe0c082c8b56aa662e86`. Evidencia consolidada:
+  `build/release18-verificacion.json`.

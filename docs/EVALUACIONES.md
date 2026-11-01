@@ -1192,3 +1192,15 @@ artefactos, hashes e instalación limpia. Evidencias:
 `build/ci-3183386.log`, `build/autoevaluacion-final-red-tests-validada.json`,
 `build/autoevaluacion-final-offline.json` y `docs/informe-calidad.json`.
 Hallazgo 205.
+
+**Actualización 2026-11-01** (publicación de `0.1.18`): wheel y sdist construidos
+desde `v0.1.18` con build aislado; `twine check` PASSED y publicados en TestPyPI
+y PyPI. SHA-256:
+`2b00457c1b0f4932e8fc86f1c3443c97715a3e89a753e7cb93c45e7484ff2f17` (wheel) y
+`cd616fddc7b604ff61a052148a049cf1fb8bcea55af59b3e29d6929f394bbdf6` (sdist);
+ambos índices coinciden. Instalaciones limpias desde ambos índices con `pip
+check`, 20 módulos base, consola absoluta del venv y las tres correcciones
+reproducidas; el extra `ml` sigue siendo opcional. Suite **1313/1313** en Linux
+(Python 3.11.9) y CI limpia OK sobre `5c2e304`. `main` y tag anotado `v0.1.18`
+(objeto `5291e12`) empujados y verificados. Evidencia:
+`build/release18-verificacion.json`. Hallazgo 206.

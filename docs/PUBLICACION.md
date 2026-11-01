@@ -59,6 +59,9 @@
 - **Publicación completada de `0.1.17`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.17` (`760e5f4`) y verificación limpia; ver la
   sección 0.1.17.
+- **Publicación completada de `0.1.18`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.18` (`5c2e304`) e instalaciones limpias
+  verificadas; ver la sección 0.1.18.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -90,16 +93,28 @@ verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 
 ## Versión 0.1.18 (2026-11-01)
 
-Release de mantenimiento **en preparación** para conservar la identidad de las
-fuentes: la normalización ya no descarta puertos ni parámetros de contenido,
-las URLs malformadas no abortan el análisis, las fechas futuras no reciben
-máxima actualidad y los claims sin fuente no se asocian por IDs ausentes.
+Paquete `thinker-research 0.1.18` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Conserva la identidad de las fuentes: la normalización no descarta
+puertos ni parámetros de contenido, las URLs malformadas no abortan el análisis,
+las fechas futuras no reciben máxima actualidad y los claims sin fuente no se
+asocian por IDs ausentes.
 
-Validación del commit funcional `3183386`: suite **1313/1313**, 7/7 gates PASS,
-CI limpia OK, cobertura 82,74% líneas/82,78% ramas y autoevaluación con red y
-tests **1.000 (30/30)**. Mutación acotada: **193 muertos + 5 equivalencias**
-en cuatro funciones. El empaquetado, los hashes, los índices y la instalación
-limpia se registrarán solo después de verificarlos.
+Validación: suite **1313/1313**, 7/7 gates PASS, CI limpia OK, cobertura 82,74%
+líneas/82,78% ramas y autoevaluación con red y tests **1.000 (30/30)**. Mutación
+acotada: **193 muertos + 5 equivalencias** en cuatro funciones; R3 permanece en
+673 brechas + 98 equivalencias.
+
+Artefactos construidos desde el tag `v0.1.18` con build aislado (`setuptools>=77`);
+`twine check` PASSED. SHA-256:
+`2b00457c1b0f4932e8fc86f1c3443c97715a3e89a753e7cb93c45e7484ff2f17` (wheel) y
+`cd616fddc7b604ff61a052148a049cf1fb8bcea55af59b3e29d6929f394bbdf6` (sdist).
+Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI y PyPI
+con `pip check`, 20 módulos base, consola absoluta del venv y reproducción de las
+correcciones OK. El extra `ml` no se exige en la instalación base. Los índices
+simples tardaron unos segundos en ofrecer la versión a `pip`; se comprobó con
+`--no-cache-dir`. Tag anotado `v0.1.18` (objeto `5291e12`, commit `5c2e304`)
+empujado y verificado con `git ls-remote`. Evidencia:
+`build/release18-verificacion.json`.
 
 ## Versión 0.1.17 (2026-10-31)
 
