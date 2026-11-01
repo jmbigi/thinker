@@ -8,8 +8,9 @@ puede comprobar (P0.1/P0.2).
 """
 
 import unittest
+import warnings
 
-from evaluar_proyecto import evaluar
+from evaluar_proyecto import _dependencias_pyproject, _requisito_poetry, evaluar
 from tests.helpers import crear_proyecto
 
 
@@ -39,6 +40,49 @@ class TestCorpusAdversario(unittest.TestCase):
             informe["dimensiones"]["vigencia"]["criterios"]["v1_dependencias_fijadas"])
         self.assertFalse(any("requests2.28" in texto
                              for texto in self._textos(informe)))
+
+    def test_poetry_caret_tilde_y_comodin_conservan_restricciones(self):
+        casos = {
+            "^1.2.3": ">=1.2.3,<2.0.0", "^1.2": ">=1.2,<2.0.0",
+            "^1": ">=1,<2.0.0", "^0.2.3": ">=0.2.3,<0.3.0",
+            "^0.0.3": ">=0.0.3,<0.0.4", "^0.0": ">=0.0,<0.1.0",
+            "^0": ">=0,<1.0.0", "~1.2.3": ">=1.2.3,<1.3.0",
+            "~1.2": ">=1.2,<1.3.0", "~1": ">=1,<2.0.0",
+            "~0.0.3": ">=0.0.3,<0.1.0", "2.28.0": "==2.28.0",
+            "1.*": "==1.*", "*": "", ">=1.2,<1.5": ">=1.2,<1.5",
+            "<2.0": "<2.0", "==2.28.0": "==2.28.0", "!=1.2": "!=1.2",
+            "~=1.2": "~=1.2", "^0.0.0": ">=0.0.0,<0.0.1",
+            "^1.2.3a1": ">=1.2.3a1,<2.0.0", "~1.2.3.4": ">=1.2.3.4,<1.2.4.0",
+            " ^1.2 ": ">=1.2,<2.0.0",
+        }
+        for version, esperado in casos.items():
+            with self.subTest(version=version):
+                self.assertEqual(_requisito_poetry("pkg", version), f"pkg{esperado}")
+
+        deps = _dependencias_pyproject(
+            '[tool.poetry.dependencies]\n'
+            'django = "^4.2"\nrich = "~13.7"\ncualquiera = "*"\n')
+        self.assertEqual({
+            d["nombre"]: (d["operador"], d["version"]) for d in deps
+        }, {"django": (">=", "4.2"), "rich": (">=", "13.7"),
+            "cualquiera": ("", "")})
+
+    def test_poetry_restriccion_invalida_advierte(self):
+        for version in ("^abc", "~abc", "^1.2.*"):
+            with self.subTest(version=version):
+                with warnings.catch_warnings(record=True) as capturados:
+                    warnings.simplefilter("always")
+                    self.assertEqual(_requisito_poetry("pkg", version), f"pkg{version}")
+                self.assertEqual(len(capturados), 1)
+                self.assertEqual(
+                    str(capturados[0].message),
+                    f"Restricción Poetry no válida en pkg: {version!r}; "
+                    "se conserva sin traducir")
+                self.assertIs(capturados[0].category, UserWarning)
+        with warnings.catch_warnings(record=True) as validos:
+            warnings.simplefilter("always")
+            self.assertEqual(_requisito_poetry("pkg", "~=1.2"), "pkg~=1.2")
+        self.assertEqual(validos, [])
 
     def test_requirements_sueltos_no_cuentan_como_lock(self):
         informe = self._evaluar({

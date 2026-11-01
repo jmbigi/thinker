@@ -37,7 +37,7 @@ herramientas de análisis estático de código.
 | `docs/RECOMENDACIONES-MEJORAS.md` | Recomendaciones abiertas priorizadas, con evidencia, esfuerzo, riesgo y criterio de aceptación. |
 | `docs/REFERENCIAS-IA.md` | Teoría y práctica de IA (referencias verificadas contra arXiv y guías de ingeniería) con propuestas medidas por el benchmark. |
 | `docs/GUIA-NCM.md` | Las cuatro acepciones de NCM (Next-Concept Modeling, mapas cognitivos neuronales y neutrosóficos, Nearest Class Mean): repositorios, licencias y fuentes verificadas (anexo A). |
-| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Incluye **verificación opt-in de requisitos** (`--requisitos`, ver `docs/REQUISITOS.md`). Informes: `docs/EVALUACIONES.md`. |
+| `evaluar_proyecto.py` | Evaluación estática y **read-only** de un proyecto externo en 6 dimensiones, con perfil de lenguajes/manifiestos/locks y **criterios N/A** que no se cuentan como fallos; declara cobertura y ratio. Evidencia por hallazgo ligada a su criterio, **plan de mejora derivado de las métricas** y, opt-in, síntesis del modelo con control anti-invención y dudas investigadas con fuentes. Traduce rangos Poetry `^`/`~` a PEP 508 y conserva su cota inferior en el informe. Incluye **verificación opt-in de requisitos** (`--requisitos`, ver `docs/REQUISITOS.md`). Informes: `docs/EVALUACIONES.md`. |
 | `AGENTS.md` | Reglas de trabajo para agentes de IA (ruleset P0/P1/P2 + reglas propias). |
 
 ## Requisitos
@@ -386,7 +386,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1313/1313** | 1128 → 1232 → 1249 → 1299 → 1313 tests (**+16,4%** desde 1128) |
+| Suite Linux | **1315/1315** | 1128 → 1232 → 1249 → 1299 → 1315 tests (**+16,6%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -396,14 +396,14 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
-| R3 | **673 brechas + 98 equivalencias** | 1131 → 673 brechas (**−40,5%**); equivalencias 62 → 98 |
+| R3 | **668 brechas + 102 equivalencias** | 1131 → 668 brechas (**−40,9%**); equivalencias 62 → 102 |
 
 ```mermaid
 xychart-beta
     title "Brechas R3 pendientes (menos es mejor)"
-    x-axis ["r3c4", "H169", "H173", "H176"]
+    x-axis ["r3c4", "H169", "H173", "H176", "H207"]
     y-axis "Brechas" 0 --> 1200
-    line [1131, 949, 767, 673]
+    line [1131, 949, 767, 673, 668]
 ```
 
 ```mermaid

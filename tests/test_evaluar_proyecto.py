@@ -2588,10 +2588,10 @@ class TestDependenciasPyprojectContrato(unittest.TestCase):
             ("black", "dev", "", "", False, "pyproject.toml", "python"),
             ("mypy", "test", "", "", False, "pyproject.toml", "python"),
             ("mkdocs", "docs", "", "", False, "pyproject.toml", "python"),
-            ("django", "runtime", "", "", False, "pyproject.toml", "python"),
+            ("django", "runtime", ">=", "4.2", False, "pyproject.toml", "python"),
             ("numpy", "runtime", "==", "1.26", True, "pyproject.toml", "python"),
-            ("ruff", "dev", "", "", False, "pyproject.toml", "python"),
-            ("tox", "test", "", "", False, "pyproject.toml", "python")])
+            ("ruff", "dev", ">=", "0.1", False, "pyproject.toml", "python"),
+            ("tox", "test", ">=", "4", False, "pyproject.toml", "python")])
 
     def test_poetry_grupo_invalido_avisa_y_conserva_otros(self):
         texto = (

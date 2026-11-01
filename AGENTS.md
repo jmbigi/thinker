@@ -201,7 +201,9 @@ mejora de código (`code_design_improvement_tools.py`).
   citadas. Incluye (desde 2026-10-21) h6 limitado al código del paquete
   (tests/docs/scripts y opcionales excluidos), licencias PEP 639
   (`license_expression`), parsers de pyproject/PEP 735/setup.cfg/requirements
-  anidados/package.json y comparación con versiones resueltas por lock; c5 solo
+  anidados/package.json y comparación con versiones resueltas por lock. Los
+  rangos Poetry `^`/`~` se traducen a PEP 508; el informe conserva la cota
+  inferior que su esquema actual representa. c5 solo
   marca tests no-op y c3 excluye tests e imports opcionales. El informe JSON es
   un contrato versionado (`schema_version: 2`) con esquema público en
   `docs/schema-v2.json` (validado en tests). `--ejecutar-tests` ejecuta solo el
@@ -340,7 +342,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `parsear_requisitos`: **217 muertos + 1 equivalencia**; clúster 35 → 0. Después,
   `evaluar_inteligencia`: **139/139 muertos**; clúster 30 → 0. Por último en este
   lote, `sintetizar_con_llm`: **139/139 muertos**; clúster 29 → 0.
-  R3 queda en **673 brechas + 98 equivalencias**, sin una nueva tasa global.
+  R3 queda en **668 brechas + 102 equivalencias**, sin una nueva tasa global.
   Re-medición acotada adicional de `evaluar_eficiencia`: **190/190 muertos**,
   con 10/10 muertes de una muestra directa. Después, `_digesto`: **68/68
   muertos**, incluidos 13 antiguos supervivientes y 10/10 controles directos.
@@ -371,7 +373,11 @@ mejora de código (`code_design_improvement_tools.py`).
   segunda 695/449/170, siempre con 0 timeouts. En las cuatro funciones
   modificadas (198 mutantes), el cierre directo deja **193 muertos + 5
   equivalencias demostradas**. No se mezcla con R3 ni se recalcula una tasa global.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1313/1313 en la suite
+  Cierre histórico de `_requisito_poetry` (2026-11-01): cinco mutantes de r3c4
+  cerrados; la función actual suma **85 muertos + 2 equivalencias** en 87 casos.
+  R3 queda en **668 brechas + 102 equivalencias**, incluyendo la corrección del
+  desfase de E16 (49 preflight + 53 evaluador).
+- Plataformas verificadas: Linux con Python **3.11.9**: **1315/1315 en la suite
   Linux** (2026-10-31; openai 3.40.0 y `packaging 26.3` en el venv de validación,
   con `ruff` para el doctor; lock en openai 3.42.0) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
@@ -410,7 +416,9 @@ mejora de código (`code_design_improvement_tools.py`).
   y dejó la suite en **1213/1213**. El contrato de evidencia no resoluble y el
   cierre de tres verificadores (Hallazgo 201) añadió 4 tests y dejó la suite en
   **1303/1303**. La integridad de URLs y asociaciones de fuentes (Hallazgo 204)
-  añadió 10 tests y dejó la suite en **1313/1313**. El auditor de cambios de `scripts/` añadió
+  añadió 10 tests y dejó la suite en **1313/1313**. El cierre histórico de
+  `_requisito_poetry` (Hallazgo 207) añadió 2 tests y dejó la suite en
+  **1315/1315**. El auditor de cambios de `scripts/` añadió
   28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

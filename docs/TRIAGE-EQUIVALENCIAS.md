@@ -544,3 +544,21 @@ con el contrato de siete formas válidas y 14 entradas rechazadas. Los casos 1,
 **Contabilidad:** 75 mutantes: **72 muertos + 3 equivalentes, 0 brechas**. R3
 permanece en **673 brechas** y sube de 95 a **98 equivalencias** por falta de
 distribución histórica detallada; no se recalcula la tasa global.
+
+### E21. Categoría por defecto de `warnings.warn` (2)
+
+Mutantes 74 y 76 de `_requisito_poetry`: el primero sustituye `UserWarning` por
+`None`; el segundo omite la categoría. Python usa `UserWarning` por defecto en
+ambos casos, sin cambiar el valor devuelto ni la advertencia emitida.
+
+**Verificación (2026-11-01):** original y mutantes devuelven `pkg^abc` y emiten
+exactamente `Restricción Poetry no válida en pkg: '^abc'; se conserva sin
+traducir` con categoría `UserWarning`. La sustitución AST conservó el nombre
+público de la función; un lote anterior que la renombraba fue descartado. Los
+otros seis supervivientes y diez controles murieron; original restaurado.
+Evidencia: `build/poetry-verificacion-directa.json`.
+
+**Contabilidad:** 87 mutantes actuales: **85 muertos + 2 equivalentes, 0 brechas**.
+Los cinco mutantes históricos 5–9 también murieron. R3 queda en **668 brechas +
+102 equivalencias** (49 preflight + 53 evaluador), sin nueva tasa global. El total
+además corrige el desfase de E16: tres equivalencias se habían sumado como una.

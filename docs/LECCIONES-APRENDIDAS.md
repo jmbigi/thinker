@@ -4457,3 +4457,34 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Identidad**: `origin/main` y el tag apuntan a `5c2e304`; el objeto anotado
   `v0.1.18` es `5291e12da77cdb51a1d6fe0c082c8b56aa662e86`. Evidencia consolidada:
   `build/release18-verificacion.json`.
+
+### Hallazgo 207: Poetry necesita traducción y el inventario necesita aritmética
+
+- **Diagnóstico (2026-11-01)**: Thinker comparó helpers pequeños sin señalar
+  estilo. La medición acotada reprodujo cinco supervivientes (5–9) idénticos en
+  el commit r3c4 `5623448` y en el código actual. `_requisito_poetry` conservaba
+  `^` y `~` sin traducir y el parser perdía la versión; `*` terminaba como `==`
+  vacío. Las pruebas antiguas fijaban esa pérdida como comportamiento esperado.
+- **Corrección**: traducción de caret/tilde a rangos PEP 508 según la
+  documentación oficial de Poetry, `*` sin restricción, exactas con `==` y
+  advertencia para formas inválidas. El informe conserva la cota inferior que su
+  esquema actual representa. Se cubren operadores `~`, `>`, `<`, `=`, `!`, `~=`,
+  bordes cero, pre-releases y cuatro segmentos; 23 salidas son aceptadas por
+  `packaging.requirements`. Dos regresiones nuevas; suite **1315/1315**.
+- **Mutación**: la función nueva genera 87 mutantes: campaña 79 muertos y ocho
+  supervivientes; seis mueren tras reforzar aserciones y dos son E21. Resultado:
+  **85 muertos + 2 equivalencias**. Los cinco históricos también mueren en una
+  verificación directa separada. `mutmut show/apply` superó el timeout; se usó
+  sustitución AST conservando el nombre público y se descartó un lote que lo
+  renombraba y causaba ImportError. Original restaurado en todas las ejecuciones.
+- **Contabilidad**: R3 baja de 673 a **668 brechas**. Además se detectó un
+  desfase previo: E16 demuestra 3 equivalencias pero incrementó el total en 1;
+  el desglose correcto era 49+51=100, no 98. Con E21 (2), el estado actual es
+  **102 equivalencias** (49 preflight + 53 evaluador), sin recalcular tasas
+  históricas ni ocultar la corrección.
+- **Evidencias**: `build/poetry-comparativa-r3.json`,
+  `build/poetry-cierre-actual.json`, `build/poetry-verificacion-directa.json`,
+  `build/poetry-historicos-verificacion.json` y
+  `build/poetry-pep508-validacion.json`. Fuentes:
+  <https://python-poetry.org/docs/dependency-specification/> y
+  <https://packaging.python.org/en/latest/specifications/version-specifiers/>.

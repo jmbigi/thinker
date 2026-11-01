@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1313/1313** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1315/1315** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1204,3 +1204,17 @@ reproducidas; el extra `ml` sigue siendo opcional. Suite **1313/1313** en Linux
 (Python 3.11.9) y CI limpia OK sobre `5c2e304`. `main` y tag anotado `v0.1.18`
 (objeto `5291e12`) empujados y verificados. Evidencia:
 `build/release18-verificacion.json`. Hallazgo 206.
+
+**Actualización 2026-11-01** (cierre histórico de `_requisito_poetry`): los
+mutantes 5–9 sobrevivían tanto en r3c4 como en el código actual. La corrección
+traduce rangos Poetry `^`/`~` a PEP 508, conserva `*` sin restricción y avisa
+sobre formas inválidas. Dos regresiones nuevas y una expectativa fortalecida;
+23 salidas validadas con `packaging.requirements`. Suite **1315/1315** en Linux
+(Python 3.11.9). La función actual tiene 87 mutantes: **85 muertos + 2
+equivalencias**; los cinco históricos también mueren. R3 queda en **668 brechas +
+102 equivalencias**: 673→668 por el clúster y 100→102 por E21. El 98 anterior
+además estaba desfasado: E16 demuestra 3 pero solo sumó 1; 49+51=100. Evidencias:
+`build/poetry-comparativa-r3.json`, `build/poetry-cierre-actual.json`,
+`build/poetry-verificacion-directa.json`,
+`build/poetry-historicos-verificacion.json` y
+`build/poetry-pep508-validacion.json`. Hallazgo 207.

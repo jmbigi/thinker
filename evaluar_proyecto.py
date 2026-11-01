@@ -1274,15 +1274,41 @@ def _dependencias_pyproject(texto: str,
 
 
 def _requisito_poetry(nombre: str, version: str) -> str:
-    """Línea PEP 508 aproximada desde una especificación Poetry.
+    """Traduce una especificación Poetry a una línea PEP 508 aproximada.
 
-    Poetry admite la versión exacta a secas (``requests = "2.28.0"``); si se
-    concatenaba tal cual, ``_REQUISITO`` absorbía los dígitos en el nombre e
-    inventaba el paquete ``requests2.28.0`` (P0.2), que con red se consultaba
-    en PyPI. Sin operador conocido al inicio (``^``, ``~``, ``>``, ``<``,
-    ``=``, ``!``) se trata como versión exacta (``==``).
+    Una versión a secas es exacta y ``*`` no impone restricción. Los rangos
+    ``^`` y ``~`` se traducen según Poetry; si no tienen una forma numérica
+    conocida se conservan con una advertencia en vez de descartar la versión.
     """
-    if version and not version.startswith(("^", "~", ">", "<", "=", "!")):
+    version = version.strip()
+    if version == "*":
+        return nombre
+    coincidencia = re.fullmatch(r"([\^~])(\d+(?:\.\d+)*)([^\d].*)?", version)
+    if coincidencia and "*" not in version:
+        operador, numeros, sufijo = coincidencia.groups()
+        partes = [int(parte) for parte in numeros.split(".")]
+        if operador == "^":
+            if any(partes):
+                indice = next(i for i, parte in enumerate(partes) if parte)
+            elif len(partes) == 2:
+                indice = 1
+            else:
+                indice = len(partes) - 1
+        else:
+            indice = 0 if len(partes) == 1 else max(1, len(partes) - 2)
+        techo = partes.copy()
+        techo[indice] += 1
+        for i in range(indice + 1, len(techo)):
+            techo[i] = 0
+        while len(techo) < 3:
+            techo.append(0)
+        limite = ".".join(str(parte) for parte in techo)
+        return f"{nombre}>={numeros}{sufijo or ''},<{limite}"
+    if version.startswith("^") or (version.startswith("~")
+                                    and not version.startswith("~=")):
+        warnings.warn(f"Restricción Poetry no válida en {nombre}: {version!r}; "
+                      "se conserva sin traducir", UserWarning)
+    elif version and not version.startswith(("~=", ">", "<", "=", "!")):
         version = f"=={version}"
     return f"{nombre}{version}"
 

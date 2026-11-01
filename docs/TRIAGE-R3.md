@@ -1,9 +1,9 @@
-# Triaje R3 — 673 brechas, 98 equivalencias y 0 timeouts
+# Triaje R3 — 668 brechas, 102 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
-> medición: 2026-10-28 (batch r3c4; las de 2026-10-26, r3c2 y r3c3 quedan como
-> histórico).
+> medición global: 2026-10-28 (batch r3c4); cierre acotado de Poetry y corrección
+> aritmética del inventario: 2026-11-01.
 
 ## Método
 
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **673** | **51** | **0** | **0** |
-| **Total** | **673** | **98** | **0** | **0** |
+| Evaluador | **668** | **53** | **0** | **0** |
+| **Total** | **668** | **102** | **0** | **0** |
 
-Los **673** casos de brecha son aserciones que faltan: sus funciones se
+Los **668** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -326,6 +326,20 @@ análisis. Evidencias: `build/requisitos-verificacion-directa.json`,
 `build/resolver-mutante3-cierre.json`. La contabilidad permanece en **673
 brechas + 98 equivalencias** por falta de distribución histórica.
 
+Cierre histórico de `_requisito_poetry` (2026-11-01): los mutantes 5–9
+sobrevivían tanto al commit r3c4 `5623448` como al código actual. La traducción
+de rangos Poetry `^`/`~` a PEP 508 y dos regresiones nuevas cierran los cinco.
+La función corregida genera 87 mutantes: 79 muertos en campaña, seis más tras
+reforzar aserciones y dos equivalencias de `UserWarning` por defecto (E21).
+Resultado: **85 muertos + 2 equivalencias, 0 brechas**. Los cinco históricos
+también mueren en verificación directa; original restaurado. Evidencias:
+`build/poetry-comparativa-r3.json`, `build/poetry-cierre-actual.json`,
+`build/poetry-verificacion-directa.json` y
+`build/poetry-historicos-verificacion.json`. R3 pasa de 673 a **668 brechas**.
+El total de equivalencias corrige además el desfase de E16 (tres casos sumados
+como uno): era 49+51=100, no 98; con E21 queda en **102** (49+53), sin nueva
+tasa global.
+
 Re-medición 2026-10-28 (batch r3c3): 5984 mutantes, 4764 muertos, 1220
 supervivientes, 0 sin tests, 0 timeouts, 0 sospechosos; tasa bruta
 79,61% (antes 78,23%). `evaluar_vigencia` pasó de 82 a **2**, ambas
@@ -393,13 +407,14 @@ documento conserva el resumen y la clasificación.
   `_linter_configurado`, `_tiene_punto_entrada`, `plan_texto`,
   `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`,
   `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock`,
-  `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo` y
-  `_verificar_formal`: **673 brechas + 98 equivalencias**.
-- **Equivalentes demostrados:** 98 (49 en preflight y 51 en el evaluador), todos
-  con prueba; no se cuentan como muertos.
+  `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo`,
+  `_verificar_formal` y `_requisito_poetry`: **668 brechas + 102 equivalencias**.
+- **Equivalentes demostrados:** 102 (49 en preflight y 53 en el evaluador), todos
+  con prueba; no se cuentan como muertos. El total corrige el desfase de E16,
+  que había sumado tres equivalencias como una.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **673 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **668 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/
