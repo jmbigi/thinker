@@ -4617,3 +4617,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Evidencias**: `build/r3-400-final.json`, `build/r3-200-b2-resto.json`,
   `build/r3-200-b2-worker0.json`, `build/r3-200-b2-worker2.json` y
   `build/r3-200-b2-restauracion-manual.json`.
+
+### Hallazgo 214: no contar como muerte lo que solo es una equivalencia
+
+- **Punto de partida**: 168 brechas del inventario y la orden de cerrar 200
+  (168 del inventario + 32 nuevas). Se reutilizó el arnés pareado y la lista de
+  355 supervivientes del run completo.
+- **Resultado**: de 113 candidatos de funciones abiertas, **86 ya morían con los
+  contratos existentes**, 13 murieron con 4 contratos nuevos y **13 resultaron
+  equivalentes** (defaults `None` vs `[]`/`""` que nunca se iteran, `ConfigParser`
+  insensible a mayúsculas, comentarios que el parser ya ignora). La cola del plan
+  (201 históricos) dio `historico_killed` y se detuvo: no aportaba muertes nuevas.
+- **Contabilidad**: **99 muertes** descontadas; E32 suma **13 equivalencias**
+  demostradas con salida idéntica. R3 queda en **69 brechas + 139 equivalencias**.
+  No se alcanzaron las 200: faltan **101 muertes**; 0 hallazgos nuevos fuera del
+  inventario.
+- **Decisión honesta**: no se contaron las 13 equivalencias como muertes ni se
+  mezclaron los clústeres ya cerrados. El objetivo de 200 no se declara cumplido.
+- **Contratos**: `informe_texto` con defaults mínimos y sin cobertura, comentario
+  doble en requirements, tag con prefijo `XX` y `setup.cfg` con `tests_require`.
+  Suite **1350/1350**. Solo cambiaron pruebas y documentación; no corresponde
+  release.
+- **Evidencias**: `build/r3-300-final.json`, `build/r3-200-b3-abiertas.json`,
+  `build/r3-200-b3-sup26.json` y `build/r3-200-b3-if35.json`.

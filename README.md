@@ -386,7 +386,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1346/1346** | 1128 → 1232 → 1249 → 1299 → 1343 → 1346 tests (**+19,3%** desde 1128) |
+| Suite Linux | **1350/1350** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 tests (**+19,7%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -396,14 +396,14 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
-| R3 | **168 brechas + 126 equivalencias** | 1131 → 368 → 168 brechas (**−85,1%** desde 1131); equivalencias 62 → 126 |
+| R3 | **69 brechas + 139 equivalencias** | 1131 → 368 → 168 → 69 brechas (**−93,9%** desde 1131); equivalencias 62 → 139 |
 
 ```mermaid
 xychart-beta
     title "Brechas R3 pendientes (menos es mejor)"
-    x-axis ["r3c4", "H169", "H173", "H176", "H207", "H210", "H211", "H213"]
+    x-axis ["r3c4", "H169", "H176", "H210", "H211", "H213", "H214"]
     y-axis "Brechas" 0 --> 1200
-    line [1131, 949, 767, 673, 668, 568, 368, 168]
+    line [1131, 949, 673, 568, 368, 168, 69]
 ```
 
 ```mermaid

@@ -5748,5 +5748,71 @@ class TestEvaluarContrato(unittest.TestCase):
         self.assertIs(llamadas[0][1], busqueda)
 
 
+class TestContratosR3B3(unittest.TestCase):
+    """Cierre de las brechas B3: defaults mínimos y bordes exactos."""
+
+    def test_informe_texto_defaults_minimos(self):
+        informe = {
+            "ruta": "proyecto", "archivos_python": 1, "lineas_python": 2,
+            "dimensiones": {"d": {"puntuacion": 1.0, "criterios": {},
+                                  "hallazgos": [], "notas": []}},
+            "global": 1.0,
+            "cobertura": {"criterios_evaluados": 0,
+                          "criterios_no_aplicables": 0, "nivel": "alta",
+                          "lenguajes": [], "ratio_evaluado": 0.0,
+                          "comparable": False},
+            "evidencia": {}, "mejoras": [], "no_verificado": [],
+            "requisitos": {
+                "archivo": "req.md", "total": 1,
+                "items": [{"veredicto": "CUMPLE", "id": "R1", "titulo": "t",
+                           "criterio": "c", "evidencia_observada": "",
+                           "motivo": "m"}],
+                "resumen": {"cumple": 1, "cubierto": 0, "no_cumple": 0,
+                            "no_verificable": 0},
+                "nota": "n"},
+        }
+        lineas = evaluar_proyecto.informe_texto(informe)
+        self.assertIn("Aviso: ", lineas)
+        self.assertIn("Nota: ", lineas)
+        self.assertIn("      motivo: m", lineas)
+        sin_cobertura = dict(informe)
+        del sin_cobertura["cobertura"]
+        lineas_sin = evaluar_proyecto.informe_texto(sin_cobertura)
+        self.assertIn("Cobertura: ? criterios evaluados, ? N/A (nivel ?)",
+                      lineas_sin[2])
+
+    def test_leer_requirements_comentario_doble(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "requirements.txt").write_text(
+                "flask==3.0  # runtime # nota\n", encoding="utf-8")
+            deps = evaluar_proyecto._leer_requirements(
+                raiz / "requirements.txt", raiz)
+        self.assertEqual([d["nombre"] for d in deps], ["flask"])
+
+    def test_verificar_tag_strip_xx(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "app.py").write_text("XX\n", encoding="utf-8")
+            perfil = evaluar_proyecto.analizar_perfil(raiz)
+            requisito = evaluar_proyecto.Requisito(
+                id="R1", titulo="t", enunciado="e", criterio="c", origen="o",
+                verificacion="tag", evidencia="XX")
+            self.assertEqual(
+                evaluar_proyecto._verificar_tag(perfil, requisito)[0],
+                "CUBIERTO")
+
+    def test_setup_cfg_tests_require_dev(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "setup.cfg").write_text(
+                "[options]\ninstall_requires = requests\n"
+                "tests_require = pytest\n", encoding="utf-8")
+            deps = evaluar_proyecto._dependencias_setup_cfg(
+                raiz / "setup.cfg", raiz)
+        self.assertEqual([(d["nombre"], d["ambito"]) for d in deps],
+                         [("requests", "runtime"), ("pytest", "dev")])
+
+
 if __name__ == "__main__":
     unittest.main()

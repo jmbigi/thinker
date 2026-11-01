@@ -1,4 +1,4 @@
-# Triaje R3 — 168 brechas, 126 equivalencias y 0 timeouts
+# Triaje R3 — 69 brechas, 139 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **168** | **77** | **0** | **0** |
-| **Total** | **168** | **126** | **0** | **0** |
+| Evaluador | **69** | **90** | **0** | **0** |
+| **Total** | **69** | **139** | **0** | **0** |
 
-Los **168** casos de brecha son aserciones que faltan: sus funciones se
+Los **69** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -409,8 +409,8 @@ documento conserva el resumen y la clasificación.
   `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock`,
   `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo`,
   `_verificar_formal` y `_requisito_poetry`, más las 100 brechas del Hallazgo
-  210, las 200 del Hallazgo 211 y las 200 del Hallazgo 213: **168 brechas +
-  126 equivalencias**.
+  210, las 200 del Hallazgo 211, las 200 del Hallazgo 213 y el cierre parcial
+  del Hallazgo 214: **69 brechas + 139 equivalencias**.
 - **Cierre del Hallazgo 211:** exactamente **200 muertes** demostradas aplicando
   solo el diff de cada mutante a r3c4 y al código actual. Cada descuento exige
   supervivencia en r3c4 y fallo actual; no se reintroducen arreglos posteriores.
@@ -425,11 +425,18 @@ documento conserva el resumen y la clasificación.
   publica release en este lote. Evidencias: `build/r3-400-final.json`,
   `build/r3-200-b2-resto.json` y `build/r3-200-b2-restauracion-manual.json`.
   Suite **1346/1346**.
-- **Equivalentes demostrados:** 126 (49 en preflight y 77 en el evaluador), todos
-  con prueba; no se cuentan como muertos. E28-E31 añaden 10 al lote de 200.
+- **Cierre parcial del Hallazgo 214:** **99 muertes** y **13 equivalencias
+  nuevas** (E32) del inventario abierto; 0 hallazgos nuevos fuera del
+  inventario. No se alcanzaron las 200: faltan **101 muertes**. La cola del plan
+  quedó en `historico_killed` y los clústeres cerrados no se mezclan. La cifra de
+  brechas descuenta solo muertes; las 13 equivalencias E32 se registran aparte
+  aunque reduzcan el universo (criterio conservador). Evidencia:
+  `build/r3-300-final.json`. Suite **1350/1350**.
+- **Equivalentes demostrados:** 139 (49 en preflight y 90 en el evaluador), todos
+  con prueba; no se cuentan como muertos. E28-E31 añaden 10 y E32 añade 13.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **168 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **69 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

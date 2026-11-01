@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1346/1346** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1350/1350** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1293,3 +1293,13 @@ objetivo. R3 queda en **168 brechas
 `build/r3-200-b2-resto.json`, `build/r3-200-b2-worker0.json`,
 `build/r3-200-b2-worker2.json` y `build/r3-200-b2-restauracion-manual.json`.
 Hallazgo 213.
+
+**Actualización 2026-11-01** (cierre parcial R3, Hallazgo 214): el lote de 200
+no se alcanzó. Se demostraron **99 muertes** y **13 equivalencias nuevas**
+(E32) sobre el inventario abierto; 0 hallazgos nuevos fuera del inventario.
+R3 queda en **69 brechas + 139 equivalencias** (49 preflight + 90 evaluador).
+Faltan **101 muertes** para las 200 pedidas. Se añadieron 4 contratos de borde
+(`informe_texto` con defaults mínimos, comentarios de requirements, `tag` con
+prefijo `XX` y `setup.cfg`). Suite **1350/1350** en Linux (Python 3.11.9).
+Evidencias: `build/r3-300-final.json`, `build/r3-200-b3-abiertas.json`,
+`build/r3-200-b3-sup26.json` y `build/r3-200-b3-if35.json`. Hallazgo 214.
