@@ -342,7 +342,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `parsear_requisitos`: **217 muertos + 1 equivalencia**; clúster 35 → 0. Después,
   `evaluar_inteligencia`: **139/139 muertos**; clúster 30 → 0. Por último en este
   lote, `sintetizar_con_llm`: **139/139 muertos**; clúster 29 → 0.
-  R3 queda en **668 brechas + 102 equivalencias**, sin una nueva tasa global.
+  R3 queda en **568 brechas + 116 equivalencias**, sin una nueva tasa global.
   Re-medición acotada adicional de `evaluar_eficiencia`: **190/190 muertos**,
   con 10/10 muertes de una muestra directa. Después, `_digesto`: **68/68
   muertos**, incluidos 13 antiguos supervivientes y 10/10 controles directos.
@@ -376,8 +376,10 @@ mejora de código (`code_design_improvement_tools.py`).
   Cierre histórico de `_requisito_poetry` (2026-11-01): cinco mutantes de r3c4
   cerrados; la función actual suma **85 muertos + 2 equivalencias** en 87 casos.
   R3 queda en **668 brechas + 102 equivalencias**, incluyendo la corrección del
-  desfase de E16 (49 preflight + 53 evaluador).
-- Plataformas verificadas: Linux con Python **3.11.9**: **1315/1315 en la suite
+  desfase de E16 (49 preflight + 53 evaluador). Después, 100 brechas históricas
+  resueltas con 13 contratos nuevos y bordes reforzados; otras **14 equivalencias
+  demostradas**. R3 queda en **568 brechas + 116 equivalencias** (49+67).
+- Plataformas verificadas: Linux con Python **3.11.9**: **1328/1328 en la suite
   Linux** (2026-10-31; openai 3.40.0 y `packaging 26.3` en el venv de validación,
   con `ruff` para el doctor; lock en openai 3.42.0) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
@@ -418,7 +420,8 @@ mejora de código (`code_design_improvement_tools.py`).
   **1303/1303**. La integridad de URLs y asociaciones de fuentes (Hallazgo 204)
   añadió 10 tests y dejó la suite en **1313/1313**. El cierre histórico de
   `_requisito_poetry` (Hallazgo 207) añadió 2 tests y dejó la suite en
-  **1315/1315**. El auditor de cambios de `scripts/` añadió
+  **1315/1315**. Las 100 brechas R3 del Hallazgo 210 añadieron 13 tests y dejaron
+  la suite en **1328/1328**. El auditor de cambios de `scripts/` añadió
   28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).

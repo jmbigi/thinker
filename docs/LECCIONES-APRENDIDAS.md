@@ -4517,3 +4517,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Identidad**: `origin/main` y el tag apuntan a `edaed96`; el objeto anotado
   `v0.1.19` es `d345dc2455b8ac647b6851cf7cc394001c402324`. Evidencia consolidada:
   `build/release19-verificacion.json`.
+
+### Hallazgo 210: contar solo muertes reales, no equivalencias ni pasadas
+
+- **Medición (2026-11-01)**: Thinker priorizó helpers abiertos. Las campañas
+  acotadas r3c4/actual midieron 22 supervivientes en aserciones y 120 en la
+  segunda familia. Se eligieron 80 casos de esta última para completar el objetivo
+  de 100 muertes, sin incluir equivalencias ni funciones ya cerradas.
+- **Contratos**: 13 pruebas nuevas cubren operadores, efectos observables,
+  informe, licencias, includes, tags, JSON, ConfigParser, CPU, runner y `.env`.
+  Los bordes `<`/`>`, el fallback sin `tests_require` y el origen de `setup.py`
+  cerraron los últimos casos. No se cambió producción ni una puntuación.
+- **Resultado**: **100 mutantes muertos** y **14 equivalencias demostradas**.
+  R3 baja de 668 a **568 brechas**; equivalencias sube de 102 a **116** (49
+  preflight + 67 evaluador). Suite **1328/1328**. No hay release: solo cambiaron
+  pruebas y documentación.
+- **Lecciones del arnés**: se descartaron falsas equivalencias por rutas
+  temporales y por `__pycache__`; se normalizaron rutas y se limpiaron `.pyc` de
+  evaluador y tests. `enumerate` sin inicio empieza en 0 y `ConfigParser` sí
+  normaliza claves a minúsculas: el mutante 21 de `_buscar_tag` no es equivalente,
+  mientras el 13 de `setup.cfg` sí lo es. Estas diferencias quedaron verificadas
+  por salida, no por inspección.
+- **Evidencias**: `build/r3-100-lote1-verificacion.json`,
+  `build/r3-100-lote1-bordes.json`, `build/r3-100-80-verificacion.json`,
+  `build/r3-100-22-verificacion.json`, `build/r3-100-setup-cierre.json` y
+  `build/r3-100-equivalencias-normalizadas.json`.

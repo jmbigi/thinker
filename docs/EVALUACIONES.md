@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1315/1315** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1328/1328** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1239,3 +1239,14 @@ con `packaging.requirements`; el extra `ml` sigue siendo opcional.
 Suite **1315/1315** en Linux (Python 3.11.9) y CI limpia OK sobre `edaed96`. `main` y
 tag anotado `v0.1.19` (objeto `d345dc2`) empujados y verificados. Evidencia:
 `build/release19-verificacion.json`. Hallazgo 209.
+
+**Actualización 2026-11-01** (100 brechas R3 resueltas): dos familias acotadas de
+aserciones y seis grupos funcionales suman exactamente **100 mutantes históricos
+muertos**, con **14 equivalencias demostradas** aparte. Se añadieron 13 contratos
+nuevos y se reforzaron bordes de comparación, ConfigParser, CPU, runner y `.env`.
+R3 queda en **568 brechas + 116 equivalencias** (49 preflight + 67 evaluador).
+Suite **1328/1328** en Linux (Python 3.11.9). Evidencias:
+`build/r3-100-lote1-verificacion.json`, `build/r3-100-lote1-bordes.json`,
+`build/r3-100-80-verificacion.json`, `build/r3-100-22-verificacion.json`,
+`build/r3-100-setup-cierre.json` y `build/r3-100-equivalencias-normalizadas.json`.
+Hallazgo 210.

@@ -562,3 +562,60 @@ Evidencia: `build/poetry-verificacion-directa.json`.
 Los cinco mutantes históricos 5–9 también murieron. R3 queda en **668 brechas +
 102 equivalencias** (49 preflight + 53 evaluador), sin nueva tasa global. El total
 además corrige el desfase de E16: tres equivalencias se habían sumado como una.
+
+### E22. Defaults de `decorator_list` (2)
+
+Mutantes 3 y 6 de `_puede_fallar`: `getattr(..., "decorator_list", [])` usa `None`
+u omite el default. En nodos `FunctionDef`/`AsyncFunctionDef`, ese atributo ya es
+una lista; `None` y `[]` son falsy y siguen el mismo camino.
+
+**Verificación (2026-11-01):** salida idéntica con función vacía, decorada y con
+llamada posterior. Los otros cinco mutantes del helper murieron. Evidencia:
+`build/r3-100-lote1-verificacion.json`.
+
+### E23. Defaults falsy de `informe_texto` (6)
+
+Mutantes 124/126 (`motivo_no_comparable`), 150/152 (`licencias_no_runtime`) y
+177/179 (`aserciones_debiles`): `None` u omisión del default conserva la rama
+vacía y produce exactamente el mismo informe.
+
+**Verificación (2026-11-01):** salida completa idéntica al original. Las variantes
+con datos sí alteran mensajes y mueren. Evidencia:
+`build/r3-100-80-verificacion.json`.
+
+### E24. Default falsy de clasificador en `licencia_pypi` (1)
+
+Mutante 43: `next(..., "")` cambia a `next(..., None)`. Sin clasificador OSI,
+ambos valores son falsy y siguen al fallback de texto; no cambia el resultado.
+
+**Verificación (2026-11-01):** salidas idénticas para licencia, desconocida, URL y
+`see license`. Evidencia: `build/r3-100-80-verificacion.json`.
+
+### E25. Primer segmento de comentarios en requirements (3)
+
+Mutantes 23, 24 y 26 de `_leer_requirements`: `split("#")`, `rsplit("#", 1)` y
+`split("#", 2)` conservan el primer segmento antes del comentario.
+
+**Verificación (2026-11-01):** salidas idénticas tras normalizar solo la ruta
+temporal externa. Evidencia: `build/r3-100-equivalencias-normalizadas.json`.
+
+### E26. Texto vacío en `_es_licencia_libre` (1)
+
+Mutante 4: `(texto or "")` cambia a `(texto or "XXXX")`. Para entrada vacía o
+`None`, ambos caminos terminan en `libre_conocida=False`; no hay cambio observable.
+
+**Verificación (2026-11-01):** salida idéntica para `""`, `None` y `MIT`.
+Evidencia: `build/r3-100-22-verificacion.json`.
+
+### E27. Clave de opción normalizada por ConfigParser (1)
+
+Mutante 13 de `_dependencias_setup_cfg`: `tests_require` pasa a `TESTS_REQUIRE`.
+`ConfigParser.optionxform` normaliza la clave a minúsculas antes de `get`.
+
+**Verificación (2026-11-01):** salida idéntica con `install_requires`,
+`tests_require` y extras. El mutante 23 sí cambia el fallback cuando falta la clave
+y muere con una configuración sin `tests_require`. Evidencia:
+`build/r3-100-setup-cierre.json`.
+
+**Contabilidad conjunta E22-E27:** **14 equivalencias** en el lote de 100 brechas.
+R3 queda en **568 brechas + 116 equivalencias** (49 preflight + 67 evaluador).

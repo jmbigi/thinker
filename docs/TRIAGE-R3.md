@@ -1,9 +1,9 @@
-# Triaje R3 — 668 brechas, 102 equivalencias y 0 timeouts
+# Triaje R3 — 568 brechas, 116 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
-> medición global: 2026-10-28 (batch r3c4); cierre acotado de Poetry y corrección
-> aritmética del inventario: 2026-11-01.
+> medición global: 2026-10-28 (batch r3c4); cierres acotados de Poetry y de 100
+> brechas adicionales: 2026-11-01.
 
 ## Método
 
@@ -30,10 +30,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **668** | **53** | **0** | **0** |
-| **Total** | **668** | **102** | **0** | **0** |
+| Evaluador | **568** | **67** | **0** | **0** |
+| **Total** | **568** | **116** | **0** | **0** |
 
-Los **668** casos de brecha son aserciones que faltan: sus funciones se
+Los **568** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -408,13 +408,14 @@ documento conserva el resumen y la clasificación.
   `_registro_decisiones`, `_normalizar_release`, `_es_manifiesto`,
   `_es_no_codigo`, `_es_lock_python`, `_es_test`, `_es_lock`,
   `_parsear_requisito`, `_resolver_evidencia`, `_verificar_archivo`,
-  `_verificar_formal` y `_requisito_poetry`: **668 brechas + 102 equivalencias**.
-- **Equivalentes demostrados:** 102 (49 en preflight y 53 en el evaluador), todos
+  `_verificar_formal` y `_requisito_poetry`, más las 100 brechas del Hallazgo
+  210: **568 brechas + 116 equivalencias**.
+- **Equivalentes demostrados:** 116 (49 en preflight y 67 en el evaluador), todos
   con prueba; no se cuentan como muertos. El total corrige el desfase de E16,
   que había sumado tres equivalencias como una.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **668 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **568 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

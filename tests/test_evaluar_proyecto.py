@@ -2093,6 +2093,307 @@ class TestAsercionesDebiles(unittest.TestCase):
                          ["criterios"]["c5_tests_con_aserciones"])
 
 
+class TestContratosAsercionesR3(unittest.TestCase):
+    def test_comparaciones_constantes_cubren_todos_los_operadores(self):
+        casos = {
+            "1 == 1": True, "1 == 2": False, "1 != 2": True,
+            "1 != 1": False, "1 < 2": True, "2 < 1": False,
+            "1 <= 1": True, "2 <= 1": False, "2 > 1": True,
+            "1 > 2": False, "1 >= 1": True, "1 >= 2": False,
+            "1 is 1": False, "1 < 2 < 3": False, "x == 1": False,
+            "1 < 1": False, "1 > 1": False, "None == None": True,
+        }
+        for expresion, esperado in casos.items():
+            with self.subTest(expresion=expresion):
+                nodo = evaluar_proyecto.ast.parse(expresion, mode="eval").body
+                self.assertIs(
+                    evaluar_proyecto._comparacion_constante_verdadera(nodo),
+                    esperado)
+
+    def test_puede_fallar_cubre_efectos_y_llamadas_posteriores(self):
+        casos = {
+            "def test_vacio():\n    pass": False,
+            "def test_puro():\n    print(1 + 1)": False,
+            "def test_puro_y_helper():\n    print(1)\n    helper()": True,
+            "@decorador\ndef test_decorado():\n    pass": True,
+            "def test_atributo():\n    objeto.metodo()": True,
+            "def test_subindice():\n    return datos[0]": True,
+            "async def test_espera():\n    await corutina()": True,
+            "def test_with():\n    with recurso():\n        pass": True,
+            "def test_raise():\n    raise ValueError('x')": True,
+            "def test_yield():\n    yield 1": True,
+            "def test_yield_from():\n    yield from datos": True,
+            "def test_pura_anidada():\n    print(len(datos))": False,
+        }
+        for fuente, esperado in casos.items():
+            with self.subTest(fuente=fuente):
+                funcion = evaluar_proyecto.ast.parse(fuente).body[0]
+                self.assertIs(evaluar_proyecto._puede_fallar(funcion), esperado)
+
+
+class TestContratosR3Cien(unittest.TestCase):
+    def test_informe_texto_mensajes_y_secciones_exactas(self):
+        informe = evaluar(crear_proyecto(self, {
+            "app.py": "def f():\n    return 1\n",
+            "tests/test_app.py": "def test_f():\n    assert f()\n",
+        }), con_red=False)
+        informe["cobertura"].update({
+            "lenguajes": {"Python": 2, "JavaScript": 1}, "comparable": False,
+            "motivo_no_comparable": "motivo de cobertura", "ratio_evaluado": 0.5,
+        })
+        informe["global_nota"] = "nota medida"
+        informe["licencias_no_runtime"] = [{
+            "nombre": "paquete", "ambito": "dev", "licencia": "",
+            "procedencia": "unverified",
+        }]
+        informe["requisitos"] = {
+            "archivo": "req.md", "total": 1,
+            "items": [{"veredicto": "CUBIERTO", "id": "R1", "titulo": "Requisito",
+                       "criterio": "criterio", "evidencia_observada": "app.py",
+                       "motivo": "motivo", "avisos": []}],
+            "resumen": {"cumple": 0, "cubierto": 1, "no_cumple": 0,
+                        "no_verificable": 0},
+            "nota": "nota de requisitos",
+        }
+        informe["sintesis_llm"] = {
+            "modelo": "mock", "sin_respaldo": 0,
+            "propuestas": [{"dimension": "calidad", "propuesta": "Propuesta X",
+                            "con_respaldo": True, "por_que": "porque",
+                            "evidencia": "app.py", "como_verificar": "test"}],
+            "preguntas_abiertas": [],
+        }
+        informe["no_verificado"] = ["primero", "segundo"]
+
+        texto = "\n".join(informe_texto(informe))
+
+        self.assertIn("lenguajes: Python, JavaScript", texto)
+        self.assertIn("Aviso: motivo de cobertura", texto)
+        self.assertIn("Nota: nota medida", texto)
+        self.assertIn("- paquete [dev] no verificable (unverified)", texto)
+        self.assertIn("[calidad] Propuesta X (con respaldo medido)", texto)
+        self.assertIn("No verificado: primero; segundo", texto)
+
+    def test_licencia_pypi_fuentes_limites_y_llamada(self):
+        class Respuesta(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.close()
+
+        largo = "MIT" + "X" * 78
+        desconocida = {"licencia": "desconocida", "libre": None,
+                       "fuente": "", "error": ""}
+        casos = [
+            ({"license_expression": largo, "classifiers": [], "license": ""},
+             {"licencia": largo[:80], "libre": True,
+              "fuente": "license_expression", "error": ""}),
+            ({"license_expression": "", "classifiers": [], "license": largo},
+             {"licencia": largo[:80], "libre": True, "fuente": "license", "error": ""}),
+            ({"license_expression": "", "classifiers": [], "license": "MIT"},
+             {"licencia": "MIT", "libre": True, "fuente": "license", "error": ""}),
+            ({"license_expression": "", "classifiers": [], "license": "http://x.test/a"},
+             desconocida),
+            ({"license_expression": "", "classifiers": [], "license": "https://x.test/a"},
+             desconocida),
+            ({"license_expression": "", "classifiers": [], "license": "none"}, desconocida),
+            ({"license_expression": "", "classifiers": [], "license": "see license"},
+             desconocida),
+            ({"license_expression": "", "classifiers": [], "license": "see license file"},
+             desconocida),
+        ]
+        for info, esperado in casos:
+            with self.subTest(info=info):
+                cuerpo = json.dumps({"info": info}).encode("utf-8")
+                with patch("evaluar_proyecto.urllib.request.urlopen",
+                           return_value=Respuesta(cuerpo)):
+                    self.assertEqual(evaluar_proyecto.licencia_pypi("x"), esperado)
+        with patch("evaluar_proyecto.urllib.request.urlopen",
+                   return_value=Respuesta(b'{"info": {"license_expression": "MIT"}}')) as consulta:
+            evaluar_proyecto.licencia_pypi("x")
+        consulta.assert_called_once_with("https://pypi.org/pypi/x/json", timeout=15)
+
+    def test_leer_requirements_externo_comentarios_y_origen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp) / "proyecto"
+            raiz.mkdir()
+            externo = Path(tmp) / "externo.txt"
+            externo.write_text(
+                "# comentario inicial\nrequests==2.31.0 # versión fijada\n",
+                encoding="utf-8")
+
+            deps = evaluar_proyecto._leer_requirements(externo, raiz)
+
+            self.assertEqual(len(deps), 1)
+            self.assertEqual(deps[0]["origen"], str(externo.resolve()))
+            self.assertEqual(deps[0]["nombre"], "requests")
+            self.assertEqual(deps[0]["version"], "2.31.0")
+            self.assertEqual(evaluar_proyecto._leer_requirements(externo, raiz), deps)
+
+    def test_buscar_tag_errores_duplicados_y_lineas(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            malo = raiz / "malo.py"
+            bueno = raiz / "bueno.py"
+            malo.write_text("no legible\n", encoding="utf-8")
+            bueno.write_text("primera\nNO_TAG\n", encoding="utf-8")
+            perfil = SimpleNamespace(ruta=raiz, codigo=[malo, malo, bueno], tests=[])
+
+            def leer_fallible(archivo):
+                if archivo == malo:
+                    raise OSError("ilegible")
+                return bueno.read_text(encoding="utf-8")
+
+            with patch("evaluar_proyecto.leer", side_effect=leer_fallible):
+                avisos = []
+                ubicacion = evaluar_proyecto._buscar_tag(perfil, "NO_TAG", avisos)
+
+            self.assertEqual(ubicacion, "bueno.py:2")
+            self.assertEqual(avisos, ["no se pudo leer malo.py: OSError"])
+            self.assertEqual(evaluar_proyecto._buscar_tag(perfil, "", []), "")
+
+    def test_verificar_tag_estados_mensajes_y_avisos(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            bueno = raiz / "bueno.py"
+            bueno.write_text("NO_TAG\n", encoding="utf-8")
+            perfil = SimpleNamespace(ruta=raiz, codigo=[bueno], tests=[])
+            vacio = evaluar_proyecto.Requisito(
+                id="R", titulo="t", enunciado="e", criterio="c", origen="test",
+                verificacion="tag", evidencia="", tags=[], avisos=[])
+            self.assertEqual(evaluar_proyecto._verificar_tag(perfil, vacio), (
+                "NO VERIFICABLE", "método 'tag' sin etiqueta declarada", "",
+                evaluar_proyecto.EvidenceKind.UNVERIFIED))
+            presente = evaluar_proyecto.Requisito(
+                id="R", titulo="t", enunciado="e", criterio="c", origen="test",
+                verificacion="tag", evidencia="'NO_TAG'", tags=[], avisos=[])
+            self.assertEqual(evaluar_proyecto._verificar_tag(perfil, presente), (
+                "CUBIERTO", "tag 'NO_TAG' encontrado en código o tests",
+                "bueno.py:1", evaluar_proyecto.EvidenceKind.VERIFIED_REAL))
+
+            malo = raiz / "malo.py"
+            malo.write_text("ilegible\n", encoding="utf-8")
+            perfil.codigo = [malo]
+            with patch("evaluar_proyecto.leer", side_effect=OSError("ilegible")):
+                resultado = evaluar_proyecto._verificar_tag(perfil, presente)
+            self.assertEqual(resultado[0], "NO CUMPLE")
+            self.assertEqual(presente.avisos, ["no se pudo leer malo.py: OSError"])
+
+    def test_dependencias_package_json_y_warning_exacto(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            archivo = raiz / "package.json"
+            archivo.write_text(json.dumps({
+                "dependencies": {"a": "1.2.3", "b": "^1.2", "c": "~2", "d": ">=3",
+                                 "e": "workspace:*"},
+                "devDependencies": {"f": ""}, "peerDependencies": {"g": "x"},
+            }), encoding="utf-8")
+            deps = evaluar_proyecto._dependencias_package_json(archivo, raiz)
+            self.assertEqual(len(deps), 7)
+            self.assertEqual((deps[4]["operador"], deps[4]["version"]), ("", ""))
+            self.assertEqual({d["ambito"] for d in deps}, {"runtime", "dev", "opcional"})
+
+            archivo.write_text("{", encoding="utf-8")
+            import inspect
+            with warnings.catch_warnings(record=True) as capturados:
+                warnings.simplefilter("always")
+                linea = inspect.currentframe().f_lineno + 1
+                invalido = evaluar_proyecto._dependencias_package_json(archivo, raiz)
+            self.assertEqual(invalido, [])
+            self.assertEqual(len(capturados), 1)
+            aviso = capturados[0]
+            self.assertEqual(
+                str(aviso.message),
+                f"{archivo}: JSON inválido (Expecting property name enclosed in double quotes: "
+                "line 1 column 2 (char 1)); dependencias npm no leídas")
+            self.assertIs(aviso.category, RuntimeWarning)
+            self.assertEqual((aviso.filename, aviso.lineno), (__file__, linea))
+
+
+class TestContratosR3Complemento(unittest.TestCase):
+    def test_licencias_libres_mixtas_y_desconocidas(self):
+        casos = {
+            "": False, "unknown": False, "proprietary": False,
+            "MIT": True, "Apache-2.0": True, "LicenseRef-X": False,
+            "MIT AND LicenseRef-X": None,
+            "unknown MIT": False, "proprietary MIT": False,
+        }
+        for texto, esperado in casos.items():
+            with self.subTest(texto=texto):
+                self.assertIs(evaluar_proyecto._es_licencia_libre(texto), esperado)
+
+    def test_preexec_limites_cpu_y_plataforma(self):
+        import resource
+        with patch("evaluar_proyecto.os.name", "nt"):
+            self.assertIsNone(evaluar_proyecto._preexec_limites(30))
+        with patch("evaluar_proyecto.os.name", "posix"), \
+                patch("resource.setrlimit") as limite:
+            aplicar = evaluar_proyecto._preexec_limites(30)
+            aplicar()
+            limite.assert_called_once_with(resource.RLIMIT_CPU, (30, 30))
+            evaluar_proyecto._preexec_limites(None)()
+            limite.assert_called_once()
+
+    def test_cargar_entorno_llm_ruta_por_defecto_y_explicita(self):
+        with patch("dotenv.load_dotenv") as cargar:
+            evaluar_proyecto.cargar_entorno_llm()
+        cargar.assert_called_once_with(Path.cwd() / ".env")
+        with patch("dotenv.load_dotenv") as cargar:
+            evaluar_proyecto.cargar_entorno_llm(Path("custom.env"))
+        cargar.assert_called_once_with(Path("custom.env"))
+
+    def test_ejecutar_tests_propaga_timeout_cpu_y_preexec(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            (raiz / "Makefile").write_text("test:\n\tpython -m unittest discover -s tests -q\n",
+                                          encoding="utf-8")
+            proceso = SimpleNamespace(returncode=0, stdout="Ran 2 tests in 0.1s\nOK\n",
+                                      stderr="")
+            with patch("evaluar_proyecto._preexec_limites", return_value=lambda: None) as limites, \
+                    patch("evaluar_proyecto.subprocess.run", return_value=proceso) as ejecutar:
+                resultado = evaluar_proyecto.ejecutar_tests(raiz, timeout=12)
+
+            limites.assert_called_once_with(72)
+            argumentos = ejecutar.call_args
+            self.assertEqual(argumentos.args[0], ["make", "test"])
+            self.assertEqual(argumentos.kwargs["cwd"], str(raiz))
+            self.assertEqual(argumentos.kwargs["timeout"], 12)
+            self.assertIs(argumentos.kwargs["shell"], False)
+            self.assertIs(argumentos.kwargs["preexec_fn"], limites.return_value)
+            self.assertEqual((resultado["ok"], resultado["tests"], resultado["resumen"]),
+                             (True, 2, "OK"))
+
+    def test_dependencias_setup_cfg_y_setup_py(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            cfg = raiz / "setup.cfg"
+            cfg.write_text(
+                "[options]\n"
+                "install_requires =\n    requests\n"
+                "tests_require =\n    pytest\n"
+                "[options.extras_require]\n"
+                "docs =\n    sphinx\n", encoding="utf-8")
+            deps = evaluar_proyecto._dependencias_setup_cfg(cfg, raiz)
+            self.assertEqual([(d["nombre"], d["ambito"]) for d in deps], [
+                ("requests", "runtime"), ("pytest", "dev"), ("sphinx", "docs"),
+            ])
+            cfg.write_text("[options]\ninstall_requires =\n    requests\n",
+                           encoding="utf-8")
+            self.assertEqual([(d["nombre"], d["ambito"]) for d in
+                              evaluar_proyecto._dependencias_setup_cfg(cfg, raiz)], [
+                ("requests", "runtime"),
+            ])
+
+            setup_py = raiz / "setup.py"
+            setup_py.write_text(
+                "setup(install_requires=['requests'], extras_require={'dev': ['pytest']})\n",
+                encoding="utf-8")
+            deps = evaluar_proyecto._dependencias_setup_py(setup_py, raiz)
+            self.assertEqual([(d["nombre"], d["ambito"], d["origen"]) for d in deps], [
+                ("requests", "runtime", "setup.py"), ("pytest", "opcional", "setup.py"),
+            ])
+
+
 class TestComparabilidadR5(unittest.TestCase):
     """R5: una cobertura baja no se presenta como GLOBAL comparable."""
 
