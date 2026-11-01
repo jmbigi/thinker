@@ -94,6 +94,18 @@ commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
 
+## Versión 0.1.20 (2026-11-01)
+
+Paquete `thinker-research 0.1.20` (wheel y sdist), preparado para TestPyPI y
+PyPI. Corrige un falso positivo de `scripts/audit_changes.py`: una cadena o clave
+literal que contiene el nombre de un matcher ya no se interpreta como una
+aserción floja; las configuraciones JSON siguen evaluándose. Añade la regresión
+correspondiente.
+
+Validación prevista: suite **1343/1343**, gates y CI limpia. R3 permanece en
+**368 brechas + 126 equivalencias**. Artefactos y hashes pendientes de publicación
+en este commit.
+
 ## Versión 0.1.19 (2026-11-01)
 
 Paquete `thinker-research 0.1.19` (wheel y sdist), **publicado en TestPyPI y

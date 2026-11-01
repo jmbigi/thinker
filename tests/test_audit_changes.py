@@ -96,6 +96,17 @@ class TestAuditorDeCambios(unittest.TestCase):
         self.assertEqual(informe["veredicto"], "REVISAR")
         self.assertIn("matcher_flojo", self._reglas(informe))
 
+    def test_nombre_de_matcher_como_dato_no_es_matcher_flojo(self):
+        informe = auditar_diff(_diff("tests/test_app.py", [
+            (" ", "def test_ok():"),
+            ("-", "    self.assertEqual(valor, 1)"),
+            ("+", '    "self.assertTrue(True)": True,'),
+        ]))
+
+        reglas = self._reglas(informe)
+        self.assertNotIn("matcher_flojo", reglas)
+        self.assertIn("asserts_eliminados", reglas)
+
     def test_supresion_global_bloquea(self):
         informe = auditar_diff(_diff("app.py", [
             ("+", "x = 1  # type: ignore"),

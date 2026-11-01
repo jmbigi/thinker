@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1342/1342** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1343/1343** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1263,3 +1263,11 @@ Suite **1342/1342** en Linux (Python 3.11.9). Evidencias:
 `build/r3-200-final.json`, `build/r3-200-local-base87.json`,
 `build/r3-200-equivalencias-nuevas.json` y
 `build/r3-200-equivalencias-setup.json`. Hallazgo 211.
+
+**Actualización 2026-11-01** (auditor de cambios): el auditor confundía una
+cadena o clave de diccionario que contenía `self.assertTrue(True)` con una
+aserción laxa. La detección de literales se limita ahora a aserciones y matchers;
+las demás reglas, incluidas las configuraciones JSON, no cambian. Regresión
+añadida en `tests/test_audit_changes.py`. R3 permanece en **368 brechas + 126
+equivalencias**. Suite **1343/1343** en Linux (Python 3.11.9). Cambio
+distribuible: release `0.1.20` preparada. Hallazgo 212.

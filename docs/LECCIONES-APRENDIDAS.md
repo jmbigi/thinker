@@ -4565,3 +4565,16 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/r3-200-local-base87.json`, `build/r3-200-equivalencias-nuevas.json`,
   `build/r3-200-equivalencias-setup.json` y
   `build/r3-200-restauracion-manual.json`.
+
+### Hallazgo 212: no aplicar un filtro de literales globalmente
+
+- **Problema**: `scripts/audit_changes.py` marcó como `matcher_flojo` una línea
+  de datos `"self.assertTrue(True)": True`, porque buscaba patrones en texto bruto.
+- **Primer intento descartado**: ampliar `_es_fixture` para toda línea que empieza
+  por comilla hizo que las configuraciones JSON dejasen de evaluarse. La regresión
+  existente de `tsconfig` lo detectó antes del commit.
+- **Solución**: un helper `_es_literal` aplicado solo a aserciones y matchers;
+  `_es_fixture` y las demás reglas conservan su alcance. Regresión específica:
+  el literal no genera `matcher_flojo`, pero el assert eliminado sí se reporta.
+- **Resultado**: 29/29 tests del auditor, suite **1343/1343**; R3 no cambia.
+  Cambio distribuible en el paquete `scripts`, preparado como release `0.1.20`.

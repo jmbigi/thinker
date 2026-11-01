@@ -277,6 +277,11 @@ def _es_fixture(texto: str) -> bool:
     return texto.strip().startswith(("(", "[", "{"))
 
 
+def _es_literal(texto: str) -> bool:
+    """Cadena literal, incluida una clave de diccionario de datos."""
+    return texto.strip().startswith(('"', "'"))
+
+
 def _add(hallazgos: List[Hallazgo], regla: str, severidad: str, archivo: str,
          linea: int, descripcion: str, evidencia: str) -> None:
     hallazgos.append(Hallazgo(regla, severidad, archivo, linea, descripcion,
@@ -344,7 +349,7 @@ def _revisar_rutas(ad: ArchivoDiff, opciones: OpcionesAuditoria,
 
 def _es_assert(linea: LineaDiff) -> bool:
     texto = linea.texto.strip()
-    if _es_fixture(texto) or texto.startswith(
+    if _es_fixture(texto) or _es_literal(texto) or texto.startswith(
             ("def ", "async def ", "class ", "#", "//", "*")):
         return False
     return bool(_ASSERT.search(texto))
@@ -373,9 +378,11 @@ def _revisar_tests(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
 
     removed_matcher = [linea for linea in ad.eliminadas
                        if not _es_fixture(linea.texto)
+                       and not _es_literal(linea.texto)
                        and _MATCHER_FUERTE.search(linea.texto)]
     added_loose = [linea for linea in ad.agregadas
                    if not _es_fixture(linea.texto)
+                   and not _es_literal(linea.texto)
                    and _MATCHER_FLOJO.search(linea.texto)]
     if removed_matcher and added_loose:
         _add(hallazgos, "matcher_flojo", "media", ad.ruta,
