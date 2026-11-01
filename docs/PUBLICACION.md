@@ -62,6 +62,9 @@
 - **Publicación completada de `0.1.18`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.18` (`5c2e304`) e instalaciones limpias
   verificadas; ver la sección 0.1.18.
+- **Publicación completada de `0.1.19`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.19` (`edaed96`) e instalaciones limpias
+  verificadas; ver la sección 0.1.19.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -93,16 +96,27 @@ verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 
 ## Versión 0.1.19 (2026-11-01)
 
-Release de mantenimiento **en preparación** para traducir restricciones Poetry
-`^`/`~` a PEP 508, conservar `*` sin restricción y advertir formas inválidas.
-Cierra cinco brechas históricas de `_requisito_poetry` y corrige el desfase de
-equivalencias de E16.
+Paquete `thinker-research 0.1.19` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Traduce restricciones Poetry `^`/`~` a PEP 508, conserva `*` sin
+restricción y advierte formas inválidas. Cierra cinco brechas históricas de
+`_requisito_poetry` y corrige el desfase de equivalencias de E16.
 
-Validación del commit funcional `0339b07`: suite **1315/1315**, 7/7 gates PASS,
-CI limpia OK, cobertura 82,81% líneas/82,87% ramas y R3 **668 brechas + 102
-equivalencias**. La función actual cierra con **85 muertos + 2 equivalencias**
-en 87 mutantes; los cinco históricos también mueren. El empaquetado, hashes,
-índices e instalación limpia se registrarán solo después de verificarlos.
+Validación: suite **1315/1315**, 7/7 gates PASS, CI limpia OK, cobertura 82,81%
+líneas/82,87% ramas y R3 **668 brechas + 102 equivalencias**. La función actual
+cierra con **85 muertos + 2 equivalencias** en 87 mutantes; los cinco históricos
+también mueren.
+
+Artefactos construidos desde el tag `v0.1.19` con build aislado (`setuptools>=77`);
+`twine check` PASSED. SHA-256:
+`e87a04db9a1f7434117bf23422fc135bb4c82a5aa14aa7325f1f9b89093a7b11` (wheel) y
+`d799faef8c577dbc5db4521b4db171a920717e64f1a9bf9afded66804fdb5cfd` (sdist).
+Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI y PyPI
+con `pip check`, 20 módulos base, consola absoluta del venv y traducción Poetry
+validada con `packaging.requirements`. El extra `ml` no se exige en la instalación
+base. Los índices simples tardaron unos segundos en ofrecer la versión a `pip`;
+se comprobó con `--no-cache-dir`. Tag anotado `v0.1.19` (objeto `d345dc2`,
+commit `edaed96`) empujado y verificado con `git ls-remote`. Evidencia:
+`build/release19-verificacion.json`.
 
 ## Versión 0.1.18 (2026-11-01)
 

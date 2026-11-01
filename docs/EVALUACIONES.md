@@ -1227,3 +1227,15 @@ ramas (2405/2902). R3: **668 brechas + 102 equivalencias**. **No se declara
 publicada** antes de verificar tag, artefactos, hashes e instalación limpia.
 Evidencias: `build/ci-0339b07.log`, `build/metricas-0339b07.log`,
 `build/informe-0339b07.log` y `docs/informe-calidad.json`. Hallazgo 208.
+
+**Actualización 2026-11-01** (publicación de `0.1.19`): wheel y sdist construidos
+desde `v0.1.19` con build aislado; `twine check` PASSED y publicados en TestPyPI
+y PyPI. SHA-256:
+`e87a04db9a1f7434117bf23422fc135bb4c82a5aa14aa7325f1f9b89093a7b11` (wheel) y
+`d799faef8c577dbc5db4521b4db171a920717e64f1a9bf9afded66804fdb5cfd` (sdist);
+ambos índices coinciden. Instalaciones limpias desde ambos índices con `pip
+check`, 20 módulos base, consola absoluta del venv y traducción Poetry validada
+con `packaging.requirements`; el extra `ml` sigue siendo opcional.
+Suite **1315/1315** en Linux (Python 3.11.9) y CI limpia OK sobre `edaed96`. `main` y
+tag anotado `v0.1.19` (objeto `d345dc2`) empujados y verificados. Evidencia:
+`build/release19-verificacion.json`. Hallazgo 209.

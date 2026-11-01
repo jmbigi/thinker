@@ -4499,3 +4499,21 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Límite**: `0.1.19` queda en preparación hasta comprobar tag, wheel/sdist,
   hashes, subida e instalación limpia real desde TestPyPI y PyPI. La versión
   `0.1.18` sigue siendo la última publicada mientras se construye la nueva.
+
+### Hallazgo 209: la publicación termina solo con evidencia de instalación
+
+- **Build (2026-11-01)**: `0.1.19` se construyó desde una copia limpia del tag
+  `v0.1.19` (`edaed96`) con build aislado y `twine check` PASSED. No se usó el
+  `dist/` del árbol principal ni se rebajó `setuptools>=77`.
+- **Publicación comprobada**: TestPyPI y PyPI publican exactamente wheel
+  `e87a04db9a1f7434117bf23422fc135bb4c82a5aa14aa7325f1f9b89093a7b11` y sdist
+  `d799faef8c577dbc5db4521b4db171a920717e64f1a9bf9afded66804fdb5cfd`.
+  Los índices simples tardaron unos segundos en ofrecer la versión a `pip`; no se
+  declaró instalación hasta completarla con `--no-cache-dir`.
+- **Instalación**: ambos índices permitieron instalaciones limpias con `pip
+  check`, 20 módulos base, consola absoluta del venv y traducción Poetry validada
+  con `packaging.requirements`. `neural_concepts`/`torch` quedó como extra
+  opcional `ml`, no como fallo de la instalación base.
+- **Identidad**: `origin/main` y el tag apuntan a `edaed96`; el objeto anotado
+  `v0.1.19` es `d345dc2455b8ac647b6851cf7cc394001c402324`. Evidencia consolidada:
+  `build/release19-verificacion.json`.
