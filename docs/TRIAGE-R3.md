@@ -420,8 +420,9 @@ documento conserva el resumen y la clasificación.
 - **Cierre del Hallazgo 213:** segundo lote pareado con **204 muertes válidas**
   (205 halladas menos un mutante antes clasificado equivalente que ahora muere
   con el contrato del tercer argumento de `assertEqual`); se seleccionan
-  exactamente **200** y cuatro excedentes no se descuentan. Solo cambiaron
-  pruebas y documentación. Evidencias: `build/r3-400-final.json`,
+  exactamente **200** y cuatro excedentes no se descuentan. Cambiaron pruebas,
+  documentación y un arreglo acotado de `_git` (saneado del entorno); no se
+  publica release en este lote. Evidencias: `build/r3-400-final.json`,
   `build/r3-200-b2-resto.json` y `build/r3-200-b2-restauracion-manual.json`.
   Suite **1346/1346**.
 - **Equivalentes demostrados:** 126 (49 en preflight y 77 en el evaluador), todos

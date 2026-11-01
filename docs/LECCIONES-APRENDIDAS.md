@@ -4609,8 +4609,8 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   Regresión `test_no_hereda_el_indice_del_hook`.
 - **Resultado**: R3 baja de 368 a **168 brechas**; las **126 equivalencias** no
   se tocan. Tres métodos nuevos (dos contratos y la regresión de git) y bordes
-  reforzados; suite **1346/1346**. Solo cambiaron pruebas y documentación, no
-  corresponde release.
+  reforzados; suite **1346/1346**. Cambiaron pruebas, documentación y un arreglo
+  acotado de `_git` (saneado del entorno); no se publica release en este lote.
 - **Restauración**: los dos workers detenidos al alcanzar el objetivo se
   restauraron copiando los originales actual y r3c4, con SHA-256 antes/después
   en `build/r3-200-b2-restauracion-manual.json`.
