@@ -1,10 +1,10 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-01: **versión `0.1.19` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-01: **versión `0.1.20` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
-> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18` y `v0.1.19` empujados; `v0.1.2` a `v0.1.19` son anotados. `0.1.2` **no
+> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19` y `v0.1.20` empujados; `v0.1.2` a `v0.1.20` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -16,7 +16,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.19`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.20`
   publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -25,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.19*`.
+  `dist/thinker_research-0.1.20*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -65,6 +65,9 @@
 - **Publicación completada de `0.1.19`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.19` (`edaed96`) e instalaciones limpias
   verificadas; ver la sección 0.1.19.
+- **Publicación completada de `0.1.20`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.20` (objeto `3ee09c`, commit `986e719`) e
+  instalaciones limpias verificadas; ver la sección 0.1.20.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -96,15 +99,24 @@ verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 
 ## Versión 0.1.20 (2026-11-01)
 
-Paquete `thinker-research 0.1.20` (wheel y sdist), preparado para TestPyPI y
-PyPI. Corrige un falso positivo de `scripts/audit_changes.py`: una cadena o clave
+Paquete `thinker-research 0.1.20` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Corrige un falso positivo de `scripts/audit_changes.py`: una cadena o clave
 literal que contiene el nombre de un matcher ya no se interpreta como una
 aserción floja; las configuraciones JSON siguen evaluándose. Añade la regresión
 correspondiente.
 
-Validación prevista: suite **1343/1343**, gates y CI limpia. R3 permanece en
-**368 brechas + 126 equivalencias**. Artefactos y hashes pendientes de publicación
-en este commit.
+Validación: suite **1343/1343**, 7/7 gates PASS y CI limpia. R3 permanece en
+**368 brechas + 126 equivalencias**. Artefactos construidos desde el commit
+`986e719` (tag `v0.1.20`); `twine check` PASSED. SHA-256:
+`efb0fcba5eca749bebb84ef6e260c751e05a22b9d1b02dd6ac739cd6fe7251f4` (wheel) y
+`d6bd6ae54d632ac7d291a601668b386f2ac6d69368c4f997ca74324cf6a51381` (sdist).
+Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI y PyPI
+pasan `pip check`, consola `evaluate-project`, versión `0.1.20` y la corrección
+del auditor. Los índices simples tardaron unos segundos en servir la versión; se
+reintentó tras comprobarlos, sin ocultar el primer fallo. Tag anotado `v0.1.20`
+(objeto `3ee09c`, commit `986e719`) empujado y verificado con `git ls-remote`.
+Evidencias: `build/release20-verificacion.json`,
+`build/release20-instalaciones.json` y `build/release20-build.log`.
 
 ## Versión 0.1.19 (2026-11-01)
 

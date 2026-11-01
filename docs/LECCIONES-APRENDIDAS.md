@@ -4577,4 +4577,9 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `_es_fixture` y las demás reglas conservan su alcance. Regresión específica:
   el literal no genera `matcher_flojo`, pero el assert eliminado sí se reporta.
 - **Resultado**: 29/29 tests del auditor, suite **1343/1343**; R3 no cambia.
-  Cambio distribuible en el paquete `scripts`, preparado como release `0.1.20`.
+  Release `0.1.20` publicada en TestPyPI y PyPI, con hashes coincidentes e
+  instalaciones limpias; tag `v0.1.20` en `986e719`. Evidencias:
+  `build/release20-verificacion.json` y `build/release20-instalaciones.json`.
+- **Lección de propagación**: los JSON de ambos índices publicaron los hashes
+  antes que el índice simple; el primer `pip install` falló y solo se reintentó
+  tras comprobar que ambos índices ofrecían `0.1.20`. El fallo quedó registrado.

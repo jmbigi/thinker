@@ -1270,4 +1270,5 @@ aserción laxa. La detección de literales se limita ahora a aserciones y matche
 las demás reglas, incluidas las configuraciones JSON, no cambian. Regresión
 añadida en `tests/test_audit_changes.py`. R3 permanece en **368 brechas + 126
 equivalencias**. Suite **1343/1343** en Linux (Python 3.11.9). Cambio
-distribuible: release `0.1.20` preparada. Hallazgo 212.
+distribuible: release `0.1.20` publicada en TestPyPI y PyPI, tag `v0.1.20`.
+Hallazgo 212.
