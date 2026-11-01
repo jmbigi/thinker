@@ -57,7 +57,7 @@ re-medición.
 | Suite completa | **1313/1313** en Linux 3.11.9 (2026-10-31) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
-| Autoevaluación con red | **1.000** (28/30; 2 N/A: `v4`, `h5`) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
+| Autoevaluación con red | **1.000** (30/30; 0 N/A) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.42.0** con hashes (2026-10-31) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (27/29; N/A `v4`, `h5`) | `python3 evaluar_proyecto.py . --sin-red --json` |
 | Cobertura `evaluar_proyecto.py` | **91%** (145/1571 sentencias sin ejecutar) | comando de la sección 8 |
@@ -65,7 +65,7 @@ re-medición.
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Mutación preflight | **95,18%** (967/1016; 49 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo preflight` |
 | Mutación evaluador | **80,98%** (4846/5984; 1138 supervivientes: 1131 brechas + 7 equivalencias, 0 timeouts; 2026-10-28) | `python3 scripts/mutacion.py --objetivo evaluar` |
-| Paquete publicado | **0.1.17** (2026-10-31; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete publicado | **0.1.18** (2026-11-01; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda principal que queda es la **mutación** de esos dos

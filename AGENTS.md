@@ -372,8 +372,8 @@ mejora de código (`code_design_improvement_tools.py`).
   modificadas (198 mutantes), el cierre directo deja **193 muertos + 5
   equivalencias demostradas**. No se mezcla con R3 ni se recalcula una tasa global.
 - Plataformas verificadas: Linux con Python **3.11.9**: **1313/1313 en la suite
-  Linux** (2026-10-31; openai 3.42.0 y `packaging 26.3` en venv aislado desde el
-  lock, con `ruff` para el doctor) y **3.12.3**
+  Linux** (2026-10-31; openai 3.40.0 y `packaging 26.3` en el venv de validación,
+  con `ruff` para el doctor; lock en openai 3.42.0) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
@@ -419,10 +419,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.17` publicado en TestPyPI y PyPI; tags
-  `v0.1.0` a `v0.1.17` empujados, `v0.1.2` a `v0.1.17` anotados; instalación
-  `pip install thinker-research==0.1.17` o por tag con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.17`; sin
+  (`thinker-research 0.1.18` publicado en TestPyPI y PyPI; tags
+  `v0.1.0` a `v0.1.18` empujados, `v0.1.2` a `v0.1.18` anotados; instalación
+  `pip install thinker-research==0.1.18` o por tag con
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.18`; sin
   GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
   cuentas de GitHub (regla 12).
 - Paquete instalable (desde 2026-10-20): `pip install .` o

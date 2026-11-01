@@ -45,8 +45,8 @@ lleva tope oculto.
 | Eficiencia | 1.00 | — |
 | **Global** | **1.000** | |
 
-**Con red**: 1.000 (28/30 criterios, 27/27 con `--ejecutar-tests`; 2 N/A: `v4`,
-`h5`). Suite **1313/1313** en Linux (Python 3.11.9), ruff 0, preflight 0,
+**Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
+Suite **1313/1313** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1178,3 +1178,17 @@ no se recalcula la tasa global ni se altera R3. Evidencias:
 `build/mutacion-fuentes-cierre.json`, `build/mutacion-fuentes-cierre-objetivo.json`,
 `build/mutacion-fuentes-verificacion-final.json` y
 `build/userinfo-equivalencias.json`. Hallazgo 204.
+
+**Actualización 2026-11-01** (preparación de `0.1.18`): la versión de
+mantenimiento distribuye las correcciones de identidad de fuentes y citas.
+Commit funcional `3183386` en `origin/main`. Suite **1313/1313** en Linux
+(Python 3.11.9), 7/7 gates PASS, tres demos offline y CI limpia OK. Cobertura
+82,74% líneas/82,78% ramas (2389/2886). Autoevaluación con red y tests **1.000
+(30/30; sin N/A)** y sin red **1.000 (27/29; 2 N/A)**. Dos fallos iniciales del
+runner fueron reproducidos y atribuidos al `PATH` del intérprete base sin
+`pypdf`; con el venv declarado el resultado es verde, sin cambios de código para
+ocultar el entorno. **No se declara publicada** antes de verificar tag,
+artefactos, hashes e instalación limpia. Evidencias:
+`build/ci-3183386.log`, `build/autoevaluacion-final-red-tests-validada.json`,
+`build/autoevaluacion-final-offline.json` y `docs/informe-calidad.json`.
+Hallazgo 205.

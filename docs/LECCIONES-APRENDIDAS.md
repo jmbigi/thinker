@@ -4423,3 +4423,19 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/userinfo-equivalencias.json`. Fuentes:
   <https://docs.python.org/3/library/urllib.parse.html> y
   <https://www.rfc-editor.org/rfc/rfc3986#section-3.2.1>.
+
+### Hallazgo 205: el intérprete del runner forma parte de la evidencia
+
+- **Problema (2026-11-01)**: dos autoevaluaciones con `--ejecutar-tests`
+  marcaron `FAILED (failures=2)` pese a las suites directas verdes. La captura
+  de la salida completa mostró que ambos fallos eran de `doctor`: el `PATH`
+  heredado seleccionaba el Python base sin `pypdf`, no el venv de validación.
+- **Verificación**: `make test` con el `PATH` correcto pasó 1313/1313; al
+  repetir la autoevaluación con ese mismo entorno obtuvo **1.000 (30/30)**. No
+  se modificó código ni se omitió `doctor` para ocultar el problema de entorno.
+  Evidencias: `build/ejecutar-tests-stderr.log` y
+  `build/autoevaluacion-final-red-tests-validada.json`.
+- **Release**: `3183386` quedó en `origin/main` tras hook y CI limpia. La
+  versión `0.1.18` se prepara con suite **1313/1313**, 7/7 gates, cobertura
+  82,74%/82,78% y R3 intacto en 673 brechas + 98 equivalencias. La publicación
+  se afirmará solo tras comprobar tag, hashes, índices e instalación limpia.
