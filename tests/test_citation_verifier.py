@@ -182,5 +182,270 @@ class TestVerificarInforme(unittest.TestCase):
         self.assertTrue(informe["advertencias"])
 
 
+class TestCoberturaLineas(unittest.TestCase):
+    """Tests dirigidos a líneas no cubiertas de citation_verifier.py."""
+
+    def test_cobertura_con_terminos_vacios(self):
+        from citation_verifier import _cobertura
+        self.assertEqual(_cobertura("", "contenido"), 0.0)
+
+    def test_cobertura_con_contenido_vacio(self):
+        from citation_verifier import _cobertura
+        self.assertEqual(_cobertura("claim", ""), 0.0)
+
+    def test_cobertura_con_terminos_unicos(self):
+        from citation_verifier import _cobertura
+        self.assertEqual(_cobertura("energia solar", "energia solar"), 1.0)
+
+    def test_cobertura_con_stopwords(self):
+        from citation_verifier import _cobertura
+        self.assertEqual(_cobertura("el agua hierve", "agua hierve"), 1.0)
+
+    def test_extraer_citas_con_none(self):
+        self.assertEqual(extraer_citas(None), [])
+
+    def test_extraer_citas_con_cadena_vacia(self):
+        self.assertEqual(extraer_citas(""), [])
+
+    def test_claim_para_fuente_sin_claims(self):
+        from citation_verifier import _claim_para_fuente
+        self.assertEqual(_claim_para_fuente({}, None), "")
+
+    def test_claim_para_fuente_con_source_id(self):
+        from citation_verifier import _claim_para_fuente
+        source = {"id": "src1", "url": "https://example.org"}
+        claims = [{"claim": "texto", "source_id": "src1"}]
+        self.assertEqual(_claim_para_fuente(source, claims), "texto")
+
+    def test_claim_para_fuente_con_source_url(self):
+        from citation_verifier import _claim_para_fuente
+        source = {"url": "https://example.org"}
+        claims = [{"claim": "texto", "source_url": "https://example.org"}]
+        self.assertEqual(_claim_para_fuente(source, claims), "texto")
+
+    def test_claim_para_fuente_sin_coincidencia(self):
+        from citation_verifier import _claim_para_fuente
+        source = {"url": "https://example.org"}
+        claims = [{"claim": "texto", "source_url": "https://otro.org"}]
+        self.assertEqual(_claim_para_fuente(source, claims), "")
+
+    def test_claim_para_fuente_con_id_numerico(self):
+        from citation_verifier import _claim_para_fuente
+        source = {"id": 42, "url": "https://example.org"}
+        claims = [{"claim": "texto", "source_id": 42}]
+        self.assertEqual(_claim_para_fuente(source, claims), "texto")
+
+    def test_clasificar_soporte_parcial(self):
+        from citation_verifier import _clasificar_soporte
+        soporte, cobertura, motivo = _clasificar_soporte(
+            "energia solar fotovoltaica concentrada", "la energia solar es renovable")
+        self.assertEqual(soporte, "PARTIALLY_SUPPORTED")
+        self.assertGreater(cobertura, 0.0)
+
+    def test_clasificar_soporte_sin_claim(self):
+        from citation_verifier import _clasificar_soporte
+        soporte, cobertura, motivo = _clasificar_soporte("", "contenido")
+        self.assertEqual(soporte, "UNVERIFIABLE")
+        self.assertEqual(cobertura, 0.0)
+
+    def test_clasificar_soporte_sin_contenido(self):
+        from citation_verifier import _clasificar_soporte
+        soporte, cobertura, motivo = _clasificar_soporte("claim", "")
+        self.assertEqual(soporte, "UNVERIFIABLE")
+        self.assertEqual(cobertura, 0.0)
+
+    def test_clasificar_soporte_sin_solapamiento(self):
+        from citation_verifier import _clasificar_soporte
+        soporte, cobertura, motivo = _clasificar_soporte(
+            "motor diesel", "energia solar")
+        self.assertEqual(soporte, "UNVERIFIABLE")
+        self.assertEqual(cobertura, 0.0)
+
+    def test_verificar_cita_con_fragmento_verificado(self):
+        sources = [{"url": "https://example.org", "snippet": "texto exacto"}]
+        check = verificar_cita(1, sources, claim="texto", fragmento="texto exacto")
+        self.assertEqual(check.estado, "EXACT_MATCH")
+        self.assertTrue(check.fragmento_verificado)
+
+    def test_verificar_cita_con_fragmento_no_verificado(self):
+        sources = [{"url": "https://example.org", "snippet": "texto exacto"}]
+        check = verificar_cita(1, sources, claim="texto", fragmento="otro texto")
+        self.assertEqual(check.estado, "NOT_FOUND")
+        self.assertFalse(check.fragmento_verificado)
+
+    def test_verificar_cita_con_razon_soporte(self):
+        sources = [{"url": "https://example.org", "snippet": "texto"}]
+        check = verificar_cita(1, sources, claim="texto")
+        self.assertIn("fuente localizada", check.motivo)
+
+    def test_grupos_duplicados(self):
+        from citation_verifier import _grupos_duplicados
+        sources = [
+            {"url": "https://example.org"},
+            {"url": "https://example.org"},
+            {"url": "https://otro.org"},
+        ]
+        grupos = _grupos_duplicados(sources)
+        self.assertEqual(len(grupos), 1)
+        self.assertEqual(grupos[0]["indices"], [1, 2])
+
+    def test_verificar_informe_con_claims(self):
+        sources = [{"url": "https://example.org", "snippet": "texto"}]
+        claims = [{"claim": "texto", "source_url": "https://example.org"}]
+        informe = verificar_informe("Texto [1]", sources, claims)
+        self.assertEqual(informe["citas_totales"], 1)
+
+    def test_verificar_informe_con_soportes(self):
+        sources = [{"url": "https://example.org", "snippet": "texto"}]
+        informe = verificar_informe("Texto [1]", sources)
+        self.assertIn("SUPPORTED", informe["soportes"])
+
+    def test_verificar_informe_con_advertencias_not_found(self):
+        sources = [{"url": "https://example.org", "snippet": "texto"}]
+        informe = verificar_informe("Texto [99]", sources)
+        self.assertTrue(any("no localizadas" in a for a in informe["advertencias"]))
+
+    def test_verificar_informe_con_advertencias_unverifiable(self):
+        sources = [{"url": "https://example.org"}]
+        informe = verificar_informe("Texto [1]", sources)
+        self.assertTrue(any("sin contenido verificable" in a for a in informe["advertencias"]))
+
+    def test_main_cli_con_json(self):
+        import tempfile
+        import json
+        import os
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("Texto [1]")
+            reporte = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
+            sources = f.name
+        try:
+            from citation_verifier import main
+            import io
+            import sys
+            salida = io.StringIO()
+            original = sys.stdout
+            sys.stdout = salida
+            try:
+                codigo = main(["--report", reporte, "--sources", sources, "--json"])
+            finally:
+                sys.stdout = original
+            self.assertEqual(codigo, 0)
+            self.assertIn("citas_totales", salida.getvalue())
+        finally:
+            os.unlink(reporte)
+            os.unlink(sources)
+
+    def test_main_cli_sin_json(self):
+        import tempfile
+        import json
+        import os
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("Texto [1]")
+            reporte = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
+            sources = f.name
+        try:
+            from citation_verifier import main
+            import io
+            import sys
+            salida = io.StringIO()
+            original = sys.stdout
+            sys.stdout = salida
+            try:
+                codigo = main(["--report", reporte, "--sources", sources])
+            finally:
+                sys.stdout = original
+            self.assertEqual(codigo, 0)
+            self.assertIn("Citas:", salida.getvalue())
+        finally:
+            os.unlink(reporte)
+            os.unlink(sources)
+
+    def test_main_cli_sources_no_lista(self):
+        import tempfile
+        import json
+        import os
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("Texto [1]")
+            reporte = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({"no": "lista"}, f)
+            sources = f.name
+        try:
+            from citation_verifier import main
+            import io
+            import sys
+            salida = io.StringIO()
+            original = sys.stderr
+            sys.stderr = salida
+            try:
+                codigo = main(["--report", reporte, "--sources", sources])
+            finally:
+                sys.stderr = original
+            self.assertEqual(codigo, 2)
+        finally:
+            os.unlink(reporte)
+            os.unlink(sources)
+
+    def test_main_cli_con_claims(self):
+        import tempfile
+        import json
+        import os
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("Texto [1]")
+            reporte = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
+            sources = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump([{"claim": "texto", "source_url": "https://example.org"}], f)
+            claims = f.name
+        try:
+            from citation_verifier import main
+            import io
+            import sys
+            salida = io.StringIO()
+            original = sys.stdout
+            sys.stdout = salida
+            try:
+                codigo = main(["--report", reporte, "--sources", sources, "--claims", claims])
+            finally:
+                sys.stdout = original
+            self.assertEqual(codigo, 0)
+        finally:
+            os.unlink(reporte)
+            os.unlink(sources)
+            os.unlink(claims)
+
+    def test_main_cli_con_not_found(self):
+        import tempfile
+        import json
+        import os
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("Texto [99]")
+            reporte = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
+            sources = f.name
+        try:
+            from citation_verifier import main
+            import io
+            import sys
+            salida = io.StringIO()
+            original = sys.stdout
+            sys.stdout = salida
+            try:
+                codigo = main(["--report", reporte, "--sources", sources])
+            finally:
+                sys.stdout = original
+            self.assertEqual(codigo, 1)
+        finally:
+            os.unlink(reporte)
+            os.unlink(sources)
+
+
 if __name__ == "__main__":
     unittest.main()

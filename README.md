@@ -386,7 +386,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1369/1369** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 tests (**+20,3%** desde 1128) |
+| Suite Linux | **1397/1397** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 tests (**+20,3%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
