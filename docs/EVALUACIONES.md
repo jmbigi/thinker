@@ -1303,3 +1303,14 @@ Faltan **101 muertes** para las 200 pedidas. Se añadieron 4 contratos de borde
 prefijo `XX` y `setup.cfg`). Suite **1397/1397** en Linux (Python 3.11.9).
 Evidencias: `build/r3-300-final.json`, `build/r3-200-b3-abiertas.json`,
 `build/r3-200-b3-sup26.json` y `build/r3-200-b3-if35.json`. Hallazgo 214.
+
+**Actualización 2026-11-02** (preparación de `0.1.21`): la versión incorpora el
+aislamiento de variables git en el evaluador y sus fixtures, avisos de imports
+dinámicos en preflight, pruebas de contrato adicionales y el objetivo de mutación
+`citas`. Suite **1397/1397** en Linux (Python 3.11.9) y CI limpia sobre `90c9063`; `make check` PASS,
+incluidos secretos, holdout y pre-commit. Benchmark factual opt-in con
+`nvidia/nemotron-3-ultra-550b-a55b:free`: **30/30**, exactitud 1,0, 0 falsos
+verificados y abstención 1,0; es un conjunto pequeño y no prueba calidad general.
+R3 permanece en **69 brechas + 139 equivalencias**; la campaña completa del
+evaluador terminó por timeout y no aporta una nueva tasa. Los artefactos y la
+publicación quedan condicionados a su verificación real.

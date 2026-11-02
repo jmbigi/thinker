@@ -1,7 +1,7 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-01: **versión `0.1.20` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-02: **versión `0.1.21` preparada; `0.1.20` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19` y `v0.1.20` empujados; `v0.1.2` a `v0.1.20` son anotados. `0.1.2` **no
@@ -16,8 +16,8 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.20`
-  publicada en TestPyPI y PyPI.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.21`
+  preparada para publicación.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -25,7 +25,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.20*`.
+  `dist/thinker_research-0.1.21*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -96,6 +96,20 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.21 (2026-11-02)
+
+Paquete `thinker-research 0.1.21` (wheel y sdist), preparado para TestPyPI y
+PyPI. Aísla las variables de entorno git en el evaluador y sus fixtures, avisa
+sobre imports dinámicos en preflight y refuerza los contratos de citas, evaluación
+y CI. El lock mantiene `openai 3.42.0`.
+
+Validación previa: suite **1397/1397**, `make check` PASS sobre `90c9063` y CI
+limpia. R3 permanece en **69 brechas + 139 equivalencias**; el timeout de la
+campaña completa no constituye una medición nueva. Benchmark factual real opt-in
+con `nvidia/nemotron-3-ultra-550b-a55b:free`: 30/30, 0 falsos verificados y
+abstención 1,0 en el conjunto pequeño versionado. Artefactos, tag, hashes e
+instalaciones pendientes de verificación en este commit.
 
 ## Versión 0.1.20 (2026-11-01)
 
