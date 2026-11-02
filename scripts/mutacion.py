@@ -49,6 +49,14 @@ OBJETIVOS = {
             "test_informe_texto_renderiza_requisitos_sintesis_e_investigacion",
         ],
     },
+    "citas": {
+        "source_paths": ["citation_verifier.py", "source_quality.py"],
+        "also_copy": [],
+        "seleccion": [
+            "tests/test_citation_verifier.py",
+            "tests/test_source_quality.py",
+        ],
+    },
 }
 
 

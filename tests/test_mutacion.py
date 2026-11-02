@@ -25,6 +25,12 @@ class TestMutacion(unittest.TestCase):
         self.assertIn("tests/test_evaluador_precision.py", evaluar)
         self.assertIn("TestAutoevaluacionDeThinker", evaluar)
 
+        citas = configurar(texto, "citas")
+        self.assertIn('source_paths = ["citation_verifier.py", '
+                      '"source_quality.py"]', citas)
+        self.assertIn("tests/test_citation_verifier.py", citas)
+        self.assertIn("tests/test_source_quality.py", citas)
+
     def test_parsea_estados_y_calcula_tasa(self):
         texto = (
             "scripts.x.f__mutmut_1: killed\n"

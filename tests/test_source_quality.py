@@ -104,6 +104,46 @@ class TestDimensionesSeparadas(unittest.TestCase):
         soporte = resultado["fuentes"][0]["dimensiones"]["soporte"]
         self.assertEqual(len(soporte["posible_contradiccion"]), 1)
 
+    def test_soporte_contradiccion_con_claim_negado(self):
+        """Test que la dimensión de soporte detecta contradicción por negación."""
+        resultado = evaluar_fuentes(
+            [{"url": "https://example.org/c",
+              "snippet": "El agua hierve a 100 grados Celsius."}],
+            claims=[{"claim": "El agua no hierve a 100 grados Celsius.",
+                     "source_url": "https://example.org/c"}])
+        soporte = resultado["fuentes"][0]["dimensiones"]["soporte"]
+        # La dimensión detecta el claim que podría contradecir (almacena el claim textual)
+        self.assertIn("no hierve", soporte["posible_contradiccion"][0])
+        # 'valor' en la dimensión de soporte mide el grado de soporte léxico
+        # (1.0 = claim plenamente presente en la fuente), no la contradicción
+        # La contradicción se captura en posible_contradiccion
+        self.assertEqual(soporte["valor"], 1.0)
+
+    def test_relevancia_con_query_vacio(self):
+        """Test edge case: query vacío debe manejarse sin error."""
+        resultado = evaluar_fuentes(
+            [{"url": "https://example.org", "snippet": "texto"}],
+            query="",
+            claims=[])
+        # Debe retornar estructura válida aunque query esté vacío
+        self.assertIn("fuentes", resultado)
+        self.assertIn("grupos_duplicados", resultado)
+
+    def test_autoridad_url_con_parametros(self):
+        """Autoridad debe ser similar para dominio mismo a pesar de parámetros."""
+        resultado = evaluar_fuentes(
+            [{"url": "https://www.nasa.gov/x?src=test", "snippet": "texto"}])
+        autoridad = resultado["fuentes"][0]["dimensiones"]["autoridad"]["valor"]
+        self.assertGreater(autoridad, 0.8)  # .gov mantiene alta autoridad
+
+    def test_trazabilidad_sin_publicado(self):
+        """Trazabilidad debe informar campos aunque falta fecha."""
+        resultado = evaluar_fuentes(
+            [{"url": "https://example.org", "snippet": "x"}])
+        traz = resultado["fuentes"][0]["dimensiones"]["trazabilidad"]
+        self.assertIn("url", traz["campos"])
+        self.assertTrue(traz["valor"])
+
 
 class TestRobustezFuentes(unittest.TestCase):
     def test_fecha_futura_no_recibe_actualidad_maxima(self):

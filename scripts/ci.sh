@@ -4,7 +4,7 @@
 # solo por lo que tienes sin comitear, aquí falla.
 set -euo pipefail
 
-cd "$(git rev-parse --show-toplevel)"
+cd "$(git --git-dir=.git --work-tree=. rev-parse --show-toplevel)"
 
 # Un TMPDIR heredado y no escribible no debe romper la CI: se declara y se cae
 # a /tmp, que es el temporal estándar del sistema.

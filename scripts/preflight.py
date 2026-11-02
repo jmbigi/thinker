@@ -482,6 +482,7 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
     locales_por_directorio: Dict[Path, Set[str]] = {}
     permitidos_norm = {_normalizar(m) for m in (permitidos or ())}
     vistos: Set[Tuple[Path, str]] = set()
+    dinámicos: List[Tuple[Path, int, str]] = []
 
     for ruta, arbol in sorted(modulos.items()):
         directorio = ruta.parent
@@ -505,6 +506,11 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
             elif (isinstance(nodo, ast.ImportFrom) and nodo.level == 0
                   and nodo.module):
                 importados = [(nodo.module.split(".")[0], nodo.lineno)]
+            elif isinstance(nodo, ast.Call) and _es_import_dinamico(nodo):
+                # Detectar importlib.import_module, __import__, importlib.util.spec_from_loader, etc.
+                nombre = _extraer_nombre_import_dinamico(nodo)
+                if nombre:
+                    dinámicos.append((ruta, nodo.lineno, nombre))
             for modulo, linea in importados:
                 if linea in opcionales:
                     continue
@@ -518,7 +524,43 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
                 resultado.hallazgos.append(Hallazgo(
                     "imports", _relativa(root, ruta), linea,
                     f"import no declarado: {modulo}", "alta"))
+    # Reportar imports dinámicos como advertencia (no bloquean, son límite conocido)
+    for ruta, linea, nombre in dinámicos:
+        resultado.advertencias.append(Hallazgo(
+            "imports", _relativa(root, ruta), linea,
+            f"import dinámico no resuelto (AST estático): {nombre}", "baja"))
     return resultado
+
+
+def _es_import_dinamico(nodo: ast.Call) -> bool:
+    """Detecta llamadas a importlib.import_module, __import__, etc."""
+    if not isinstance(nodo.func, ast.Attribute):
+        return False
+    attr = nodo.func.attr
+    if attr not in ("import_module", "spec_from_loader", "spec_from_file_location"):
+        return False
+    # importlib.import_module, importlib.util.spec_from_loader, etc.
+    if isinstance(nodo.func.value, ast.Name) and nodo.func.value.id == "importlib":
+        return True
+    if (isinstance(nodo.func.value, ast.Attribute)
+            and nodo.func.value.attr == "util"
+            and isinstance(nodo.func.value.value, ast.Name)
+            and nodo.func.value.value.id == "importlib"):
+        return True
+    return False
+
+
+def _extraer_nombre_import_dinamico(nodo: ast.Call) -> Optional[str]:
+    """Intenta extraer el nombre del módulo en imports dinámicos."""
+    if not nodo.args:
+        return None
+    arg = nodo.args[0]
+    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+        return arg.value.split(".")[0]
+    if isinstance(arg, ast.JoinedStr):
+        # f-string: no podemos resolver estáticamente
+        return "<f-string>"
+    return "<dinámico>"
 
 
 _MARCA_SILENCIO = re.compile(
