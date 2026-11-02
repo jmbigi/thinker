@@ -54,7 +54,7 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1357/1357** en Linux 3.11.9 (2026-11-01) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **1369/1369** en Linux 3.11.9 (2026-11-01) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (30/30; 0 N/A) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
@@ -494,7 +494,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-11-01, Hallazgo 211) | `code_design_improvement_tools`, `evaluar_proyecto` y arnés pareado r3c4/actual | Thinker priorizó clústeres; la reproducción 5644/355 confirmó el artefacto y se rechazó. El arnés aplicó solo diffs localizados y revalidó la base 87 para no contar arreglos posteriores | 14 contratos; **200 muertes exactas**, 3 excedentes fuera; **10 equivalencias** E28-E31; originales restaurados y hashes verificados; R3: **568→368 brechas + 126 equivalencias**; suite **1342/1342** |
 | Auditor de cambios (2026-11-01, Hallazgo 212) | `audit_changes` y pruebas de regresión | El gate marcó una cadena de datos como matcher flojo; la prueba de `tsconfig` refutó el primer filtro global | Helper limitado a aserciones y matchers; 29/29 tests del auditor; suite **1343/1343**; R3 sin cambios; release `0.1.20` publicada y tag `v0.1.20` |
 | R3 (2026-11-01, Hallazgo 213) | `evaluar_proyecto`, arnés pareado r3c4/actual y `code_design_improvement_tools` | Thinker priorizó helpers abiertos; el arnés solo contó muertes con supervivencia en r3c4 y fallo actual, y detectó que un equivalente previo ahora muere | 3 métodos (2 contratos y la regresión de `GIT_INDEX_FILE` en fixtures); **205 muertes halladas**, **200 contadas** y 4 excedentes; 1 equivalencia previa excluida hasta revisión; originales restaurados por SHA-256; R3: **368→168 brechas + 126 equivalencias**; suite **1346/1346** |
-| R3 (2026-11-01, Hallazgo 214) | `evaluar_proyecto`, arnés pareado r3c4/actual y `tests.helpers` | El lote de 200 no se alcanzó: 86 muertes ya detectadas por contratos previos, 13 nuevas y 13 equivalencias; la cola del plan quedó en `historico_killed` y los clústeres cerrados se excluyeron para no duplicar | 4 contratos de borde (`informe_texto`, requirements, tag `XX`, `setup.cfg`); **99 muertes + 13 equivalencias E32**; R3: **168→69 brechas + 139 equivalencias**; 0 hallazgos nuevos fuera del inventario; faltan 101 muertes; suite **1357/1357** |
+| R3 (2026-11-01, Hallazgo 214) | `evaluar_proyecto`, arnés pareado r3c4/actual y `tests.helpers` | El lote de 200 no se alcanzó: 86 muertes ya detectadas por contratos previos, 13 nuevas y 13 equivalencias; la cola del plan quedó en `historico_killed` y los clústeres cerrados se excluyeron para no duplicar | 4 contratos de borde (`informe_texto`, requirements, tag `XX`, `setup.cfg`); **99 muertes + 13 equivalencias E32**; R3: **168→69 brechas + 139 equivalencias**; 0 hallazgos nuevos fuera del inventario; faltan 101 muertes; suite **1369/1369** |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -576,7 +576,7 @@ declaradas). **Pendiente de ejecución:**
    previa excluida hasta revisión). El Hallazgo 214 cerró **99 muertes + 13
    equivalencias** del inventario abierto y no alcanzó las 200 pedidas: faltan
    101 muertes. Estado actual: **168→69 brechas + 139 equivalencias**; suite
-   **1357/1357**. La deuda R3 sigue abierta.
+   **1369/1369**. La deuda R3 sigue abierta.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,

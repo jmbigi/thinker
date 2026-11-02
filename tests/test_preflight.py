@@ -1296,5 +1296,117 @@ class TestEncodingRegionalR3(unittest.TestCase):
             locale.setlocale(locale.LC_CTYPE, anterior)
 
 
+class TestImportsDinamicos(unittest.TestCase):
+    """La detección de imports dinámicos debe reportar warning, no fallo."""
+
+    def _modulo(self, contenido):
+        raiz = crear_proyecto(self, {"mod.py": contenido})
+        arbol = ast.parse((raiz / "mod.py").read_text(encoding="utf-8"))
+        return raiz, arbol
+
+    def test_import_module_se_reporta_como_warning(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "m = importlib.import_module('requests')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("import dinámico no resuelto", resultado.advertencias[0].mensaje)
+        self.assertIn("requests", resultado.advertencias[0].mensaje)
+        self.assertEqual(resultado.advertencias[0].severidad, "baja")
+        self.assertEqual(resultado.hallazgos, [])
+
+    def test_dunder_import_se_reporta_como_warning(self):
+        raiz, arbol = self._modulo(
+            "m = __import__('requests')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("__import__", resultado.advertencias[0].mensaje)
+
+    def test_spec_from_loader_se_reporta_como_warning(self):
+        raiz, arbol = self._modulo(
+            "import importlib.util\n"
+            "spec = importlib.util.spec_from_loader('m', None)\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("spec_from_loader", resultado.advertencias[0].mensaje)
+
+    def test_spec_from_file_location_se_reporta_como_warning(self):
+        raiz, arbol = self._modulo(
+            "import importlib.util\n"
+            "spec = importlib.util.spec_from_file_location('m', 'x.py')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("spec_from_file_location", resultado.advertencias[0].mensaje)
+
+    def test_import_dinamico_con_fstring_se_marca_como_fstring(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "m = importlib.import_module(f'{paquete}')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("<f-string>", resultado.advertencias[0].mensaje)
+
+    def test_import_dinamico_sin_argumentos_se_marca_como_dinamico(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "m = importlib.import_module()\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("<dinámico>", resultado.advertencias[0].mensaje)
+
+    def test_import_normal_no_genera_warning_dinamico(self):
+        raiz, arbol = self._modulo(
+            "import os\nimport requests\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 0)
+
+    def test_varios_imports_dinamicos_en_un_modulo(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "a = importlib.import_module('a')\n"
+            "b = __import__('b')\n"
+            "c = importlib.util.spec_from_loader('c', None)\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 3)
+
+    def test_import_dinamico_con_alias_de_modulo(self):
+        raiz, arbol = self._modulo(
+            "from importlib import import_module\n"
+            "m = import_module('requests')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        # from-import no es ast.Call con atributo importlib, así que no se detecta
+        # como dinámico en la implementación actual (solo detecta importlib.X)
+        # Esto es un límite conocido del detector
+        self.assertEqual(len(resultado.advertencias), 0)
+
+    def test_import_dinamico_en_funcion(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "def cargar(nombre):\n"
+            "    return importlib.import_module(nombre)\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("<dinámico>", resultado.advertencias[0].mensaje)
+
+    def test_import_dinamico_en_clase(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "class Loader:\n"
+            "    def load(self, nombre):\n"
+            "        return importlib.import_module(nombre)\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+
+    def test_import_dinamico_con_string_vacia(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "m = importlib.import_module('')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+        self.assertEqual(len(resultado.advertencias), 1)
+        self.assertIn("<dinámico>", resultado.advertencias[0].mensaje)
+
+
 if __name__ == "__main__":
+    unittest.main()
+    unittest.main()
     unittest.main()

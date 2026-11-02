@@ -534,6 +534,9 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
 
 def _es_import_dinamico(nodo: ast.Call) -> bool:
     """Detecta llamadas a importlib.import_module, __import__, etc."""
+    # __import__ es un Name, no un Attribute
+    if isinstance(nodo.func, ast.Name) and nodo.func.id == "__import__":
+        return True
     if not isinstance(nodo.func, ast.Attribute):
         return False
     attr = nodo.func.attr
@@ -552,10 +555,19 @@ def _es_import_dinamico(nodo: ast.Call) -> bool:
 
 def _extraer_nombre_import_dinamico(nodo: ast.Call) -> Optional[str]:
     """Intenta extraer el nombre del módulo en imports dinámicos."""
+    # __import__ se reporta por su nombre de función
+    if isinstance(nodo.func, ast.Name) and nodo.func.id == "__import__":
+        return "__import__"
+    # spec_from_loader/spec_from_file_location se reportan por su nombre de función
+    if isinstance(nodo.func, ast.Attribute):
+        if nodo.func.attr in ("spec_from_loader", "spec_from_file_location"):
+            return nodo.func.attr
     if not nodo.args:
-        return None
+        return "<dinámico>"
     arg = nodo.args[0]
     if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+        if not arg.value:
+            return "<dinámico>"
         return arg.value.split(".")[0]
     if isinstance(arg, ast.JoinedStr):
         # f-string: no podemos resolver estáticamente

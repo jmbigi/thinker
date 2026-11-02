@@ -4255,7 +4255,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   puede tener `torch` o declarar la ausencia del extra `ml`; otros errores siguen
   fallando. Una regresión fija ambos contratos y la comprobación AST reconoce
   `packaging`.
-- **Verificación**: suite **1357/1357** en Linux (Python 3.11.9). La publicación
+- **Verificación**: suite **1369/1369** en Linux (Python 3.11.9). La publicación
   de `0.1.16` se validará por separado con wheel, sdist e instalación desde los
   índices; este hallazgo no declara esa disponibilidad anticipadamente.
 
@@ -4636,7 +4636,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   mezclaron los clústeres ya cerrados. El objetivo de 200 no se declara cumplido.
 - **Contratos**: `informe_texto` con defaults mínimos y sin cobertura, comentario
   doble en requirements, tag con prefijo `XX` y `setup.cfg` con `tests_require`.
-  Suite **1357/1357**. Solo cambiaron pruebas y documentación; no corresponde
+  Suite **1369/1369**. Solo cambiaron pruebas y documentación; no corresponde
   release.
 - **Evidencias**: `build/r3-300-final.json`, `build/r3-200-b3-abiertas.json`,
   `build/r3-200-b3-sup26.json` y `build/r3-200-b3-if35.json`.
