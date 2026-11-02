@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1350/1350** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1357/1357** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1071,7 +1071,7 @@ obsoleto «8 módulos» en favor del recuento real y se separa el extra opcional
 `ml`: la instalación normal no exige `torch`, pero cualquier otro ImportError
 sigue fallando. Una regresión impide omitir la nueva dependencia en instalaciones
 sin dependencias.
-Suite **1295/1295** en Linux (Python 3.11.9). La publicación queda condicionada
+Suite **1357/1357** en Linux (Python 3.11.9). La publicación queda condicionada
 a la validación del
 wheel/sdist y a la instalación desde TestPyPI y PyPI; no se declara aquí antes
 de comprobarla. Evidencia de gates: `docs/informe-calidad.json`. Hallazgo 195.
@@ -1300,6 +1300,6 @@ no se alcanzó. Se demostraron **99 muertes** y **13 equivalencias nuevas**
 R3 queda en **69 brechas + 139 equivalencias** (49 preflight + 90 evaluador).
 Faltan **101 muertes** para las 200 pedidas. Se añadieron 4 contratos de borde
 (`informe_texto` con defaults mínimos, comentarios de requirements, `tag` con
-prefijo `XX` y `setup.cfg`). Suite **1350/1350** en Linux (Python 3.11.9).
+prefijo `XX` y `setup.cfg`). Suite **1357/1357** en Linux (Python 3.11.9).
 Evidencias: `build/r3-300-final.json`, `build/r3-200-b3-abiertas.json`,
 `build/r3-200-b3-sup26.json` y `build/r3-200-b3-if35.json`. Hallazgo 214.
