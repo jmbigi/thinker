@@ -4640,3 +4640,20 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   release.
 - **Evidencias**: `build/r3-300-final.json`, `build/r3-200-b3-abiertas.json`,
   `build/r3-200-b3-sup26.json` y `build/r3-200-b3-if35.json`.
+
+### Hallazgo 215: cerrar la publicación con la instalación real
+
+- **Verificación**: `0.1.21` se construyó desde el tag `v0.1.21` (`29a80b9`), no
+  desde un `build/` reutilizado. `twine check`, los 7 gates y la CI limpia pasan;
+  la suite permanece en **1397/1397**. El gate documental rechazó inicialmente
+  el bloque nuevo por no usar «Suite N/N en Linux»; se corrigió el texto antes
+  del commit, sin alterar umbrales.
+- **Resultado**: wheel y sdist publicados en TestPyPI y PyPI con hashes locales y
+  remotos idénticos. Instalación limpia en ambos índices con `pip check`, 19
+  módulos obligatorios y cuatro consolas OK. El extra `ml` sigue siendo opcional.
+- **Propagación**: el primer `pip install` de PyPI no vio `0.1.21`, aunque el JSON
+  ya publicaba los hashes. Se comprobó que ambos artefactos respondían HTTP 200 y
+  se reintentó tras 20 s: instaló y pasó todas las comprobaciones. El primer fallo
+  no se contó como éxito ni se sustituyó por una instalación directa del wheel.
+- **Evidencias**: `build/release21-build.log`, `build/release21-wheel.log`,
+  `build/release21-testpypi.json` y `build/release21-pypi.json`.

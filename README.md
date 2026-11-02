@@ -88,9 +88,9 @@ pip install git+https://github.com/jmbigi/thinker.git@v0.1.21   # tag fijado (ve
 pip install thinker-research==0.1.21            # desde PyPI
 ```
 
-La versión `0.1.20` está publicada en TestPyPI y PyPI; `0.1.21` está preparada
-y su publicación se registrará solo tras verificarla. La instalación por tag no
-requiere PyPI ni claves. Estado de la publicación: `docs/PUBLICACION.md`.
+La versión `0.1.21` está publicada en TestPyPI y PyPI, con instalaciones limpias
+verificadas. La instalación por tag no requiere PyPI ni claves. Estado de la
+publicación: `docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
 estática y read-only):

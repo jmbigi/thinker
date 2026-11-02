@@ -1314,3 +1314,14 @@ verificados y abstención 1,0; es un conjunto pequeño y no prueba calidad gener
 R3 permanece en **69 brechas + 139 equivalencias**; la campaña completa del
 evaluador terminó por timeout y no aporta una nueva tasa. Los artefactos y la
 publicación quedan condicionados a su verificación real.
+
+**Actualización 2026-11-02** (publicación de `0.1.21`): wheel y sdist construidos
+desde `v0.1.21` (`29a80b9`), `twine check` PASSED y publicados en TestPyPI y PyPI.
+SHA-256: `43f3fa6d1e0078d38d0c9530e5006e437b3857e201031d7efdd26d7f1dc16b04`
+(wheel) y `51249059200f708ef9e8f79e7e9a433be59a518b98103b9ed30c41f679c9b2c1`
+(sdist), idénticos en ambos índices. Instalaciones limpias desde TestPyPI y PyPI
+con `pip check`, 19 módulos obligatorios y cuatro consolas verificados. El primer
+pip de PyPI no vio la versión; el segundo, tras 20 s, pasó.
+Suite **1397/1397** en Linux (Python 3.11.9) y CI limpia sobre `29a80b9`. Evidencias:
+`build/release21-build.log`, `build/release21-testpypi.json` y
+`build/release21-pypi.json`. Hallazgo 215.

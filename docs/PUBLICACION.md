@@ -1,10 +1,11 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-02: **versión `0.1.21` preparada; `0.1.20` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-02: **versión `0.1.21` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
-> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19` y `v0.1.20` empujados; `v0.1.2` a `v0.1.20` son anotados. `0.1.2` **no
+> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20` y
+> `v0.1.21` empujados; `v0.1.2` a `v0.1.21` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -17,7 +18,7 @@
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
 - `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.21`
-  preparada para publicación.
+  publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -68,6 +69,9 @@
 - **Publicación completada de `0.1.20`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.20` (objeto `3ee09c`, commit `986e719`) e
   instalaciones limpias verificadas; ver la sección 0.1.20.
+- **Publicación completada de `0.1.21`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.21` (objeto `5f95115`, commit `29a80b9`) e
+  instalaciones limpias verificadas; ver la sección 0.1.21.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -99,17 +103,27 @@ verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 
 ## Versión 0.1.21 (2026-11-02)
 
-Paquete `thinker-research 0.1.21` (wheel y sdist), preparado para TestPyPI y
-PyPI. Aísla las variables de entorno git en el evaluador y sus fixtures, avisa
+Paquete `thinker-research 0.1.21` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Aísla las variables de entorno git en el evaluador y sus fixtures, avisa
 sobre imports dinámicos en preflight y refuerza los contratos de citas, evaluación
 y CI. El lock mantiene `openai 3.42.0`.
 
-Validación previa: suite **1397/1397**, `make check` PASS sobre `90c9063` y CI
-limpia. R3 permanece en **69 brechas + 139 equivalencias**; el timeout de la
-campaña completa no constituye una medición nueva. Benchmark factual real opt-in
-con `nvidia/nemotron-3-ultra-550b-a55b:free`: 30/30, 0 falsos verificados y
-abstención 1,0 en el conjunto pequeño versionado. Artefactos, tag, hashes e
-instalaciones pendientes de verificación en este commit.
+Validación: suite **1397/1397**, 7/7 gates PASS, `make check` PASS sobre
+`90c9063` y CI limpia sobre `29a80b9`. R3 permanece en **69 brechas + 139
+equivalencias**; el timeout de la campaña completa no constituye una medición
+nueva. Benchmark factual real opt-in con `nvidia/nemotron-3-ultra-550b-a55b:free`:
+30/30, 0 falsos verificados y abstención 1,0 en el conjunto pequeño versionado.
+
+Artefactos construidos desde el tag `v0.1.21` (`29a80b9`); `twine check` PASSED.
+SHA-256: `43f3fa6d1e0078d38d0c9530e5006e437b3857e201031d7efdd26d7f1dc16b04`
+(wheel) y `51249059200f708ef9e8f79e7e9a433be59a518b98103b9ed30c41f679c9b2c1`
+(sdist). Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI
+y PyPI pasan `pip check`, 19 módulos obligatorios y cuatro consolas; el extra `ml`
+no se exige. El primer pip de PyPI no vio la versión; el segundo, tras 20 s, pasó.
+Tag anotado `v0.1.21` (objeto `5f95115`, commit `29a80b9`) empujado y verificado
+con `git ls-remote`. Evidencias: `build/release21-build.log`,
+`build/release21-wheel.log`, `build/release21-testpypi.json` y
+`build/release21-pypi.json`.
 
 ## Versión 0.1.20 (2026-11-01)
 
