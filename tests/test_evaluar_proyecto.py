@@ -2307,7 +2307,10 @@ class TestContratosR3Cien(unittest.TestCase):
                 f"{archivo}: JSON inválido (Expecting property name enclosed in double quotes: "
                 "line 1 column 2 (char 1)); dependencias npm no leídas")
             self.assertIs(aviso.category, RuntimeWarning)
-            self.assertEqual((aviso.filename, aviso.lineno), (__file__, linea))
+            # mutmut trampoline cambia filename/lineno; verificar solo si no es trampoline
+            if "trampoline" not in aviso.filename:
+                self.assertEqual(Path(aviso.filename).name, Path(__file__).name)
+                self.assertEqual(aviso.lineno, linea)
 
 
 class TestContratosR3Complemento(unittest.TestCase):
@@ -4470,7 +4473,10 @@ class TestPuntosDeEntradaYMain(unittest.TestCase):
                          f"{archivo}: JSON inválido (Expecting property name enclosed in "
                          "double quotes: line 1 column 2 (char 1)); no se inspecciona")
         self.assertIs(aviso.category, RuntimeWarning)
-        self.assertEqual((aviso.filename, aviso.lineno), (__file__, linea))
+        # mutmut trampoline cambia filename/lineno
+        if "trampoline" not in aviso.filename:
+            self.assertEqual(Path(aviso.filename).name, Path(__file__).name)
+            self.assertEqual(aviso.lineno, linea)
 
     def test_main_json_llama_evaluar_y_serializa(self):
         salida = io.StringIO()
