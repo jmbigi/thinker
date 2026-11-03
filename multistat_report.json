@@ -1,0 +1,1485 @@
+﻿{
+  "schema_version": 2,
+  "ruta": "C:\\Collahuasi\\GitLab\\multistat",
+  "archivos_python": 701,
+  "lineas_python": 238191,
+  "perfil": {
+    "lenguajes": {
+      "Python": 699
+    },
+    "manifiestos": [
+      ".kilo/package.json",
+      ".opencode/package.json",
+      "pyproject.toml",
+      "requirements-dev.txt",
+      "requirements-docs.txt",
+      "requirements-linux.txt",
+      "requirements.txt",
+      "salida/thinker/snapshot/pyproject.toml",
+      "salida/thinker/snapshot/requirements-dev.txt",
+      "salida/thinker/snapshot/requirements.txt"
+    ],
+    "locks": [
+      ".kilo/package-lock.json",
+      ".opencode/package-lock.json"
+    ],
+    "dependencias": 37,
+    "dependencias_python_runtime": [
+      "pyside6",
+      "matplotlib",
+      "pandas",
+      "numpy",
+      "scipy",
+      "openpyxl",
+      "pywin32",
+      "pytest",
+      "pytest-timeout"
+    ],
+    "es_llm": false,
+    "es_web": false,
+    "pesadas": [
+      "openpyxl",
+      "pandas",
+      "python-docx"
+    ]
+  },
+  "cobertura": {
+    "criterios_evaluados": 18,
+    "criterios_no_aplicables": 11,
+    "ratio_evaluado": 0.621,
+    "nivel": "media",
+    "comparable": false,
+    "motivo_no_comparable": "cobertura 62% < 80%",
+    "nota_lenguajes": "Python: AST y criterios nativos",
+    "dimensiones_evaluadas": [
+      "funcionalidades",
+      "calidad",
+      "vigencia",
+      "herramientas"
+    ],
+    "dimensiones_no_aplicables": [
+      "inteligencia",
+      "eficiencia"
+    ],
+    "lenguajes": {
+      "Python": 699
+    },
+    "nota_no_aplicables": "11 criterios declarados N/A por el perfil: no se cuentan como fallos (ver cobertura)"
+  },
+  "dependencias": [
+    {
+      "nombre": "@kilocode/plugin",
+      "operador": "",
+      "version": "7.4.23",
+      "origen": ".kilo/package.json",
+      "ambito": "runtime",
+      "ecosistema": "npm",
+      "fijada": true
+    },
+    {
+      "nombre": "@opencode-ai/plugin",
+      "operador": "",
+      "version": "1.18.16",
+      "origen": ".opencode/package.json",
+      "ambito": "runtime",
+      "ecosistema": "npm",
+      "fijada": true
+    },
+    {
+      "nombre": "pyside6",
+      "operador": ">=",
+      "version": "6.5.0",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "matplotlib",
+      "operador": ">=",
+      "version": "3.7.0",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "pandas",
+      "operador": ">=",
+      "version": "2.0.0",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "numpy",
+      "operador": ">=",
+      "version": "1.24.0",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "scipy",
+      "operador": ">=",
+      "version": "1.10.0",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "openpyxl",
+      "operador": ">=",
+      "version": "3.1.0",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "pywin32",
+      "operador": ">=",
+      "version": "306",
+      "origen": "pyproject.toml",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "thinker-research",
+      "operador": "==",
+      "version": "0.1.7",
+      "origen": "pyproject.toml",
+      "ambito": "opcional",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytest",
+      "operador": ">=",
+      "version": "7.4.0",
+      "origen": "requirements.txt",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "pytest-cov",
+      "operador": "==",
+      "version": "7.1.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytest-mock",
+      "operador": "==",
+      "version": "3.15.1",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytest-qt",
+      "operador": "==",
+      "version": "4.5.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytest-timeout",
+      "operador": ">=",
+      "version": "2.1.0",
+      "origen": "requirements.txt",
+      "ambito": "runtime",
+      "ecosistema": "python",
+      "fijada": false
+    },
+    {
+      "nombre": "pytest-html",
+      "operador": "==",
+      "version": "4.2.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytest-benchmark",
+      "operador": "==",
+      "version": "5.2.3",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytest-bdd",
+      "operador": "==",
+      "version": "8.1.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "hypothesis",
+      "operador": "==",
+      "version": "6.155.2",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "ruff",
+      "operador": "==",
+      "version": "0.16.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "black",
+      "operador": "==",
+      "version": "26.5.1",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pyflakes",
+      "operador": "==",
+      "version": "3.4.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "mypy",
+      "operador": "==",
+      "version": "2.3.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "coverage",
+      "operador": "==",
+      "version": "7.13.5",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pywinauto",
+      "operador": "==",
+      "version": "0.6.8",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pyautogui",
+      "operador": "==",
+      "version": "0.9.54",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pytesseract",
+      "operador": "==",
+      "version": "0.3.13",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "easyocr",
+      "operador": "==",
+      "version": "1.7.2",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pyyaml",
+      "operador": "==",
+      "version": "6.0.3",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pillow",
+      "operador": "==",
+      "version": "12.3.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "opencv-python",
+      "operador": "==",
+      "version": "5.0.0.93",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "python-pptx",
+      "operador": "==",
+      "version": "1.0.2",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pygetwindow",
+      "operador": "==",
+      "version": "0.0.9",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "python-docx",
+      "operador": "==",
+      "version": "1.2.0",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "pyinstaller",
+      "operador": "==",
+      "version": "6.22.3",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "seaborn",
+      "operador": "==",
+      "version": "0.13.2",
+      "origen": "requirements-dev.txt",
+      "ambito": "dev",
+      "ecosistema": "python",
+      "fijada": true
+    },
+    {
+      "nombre": "strictdoc",
+      "operador": "==",
+      "version": "0.30.1",
+      "origen": "requirements-docs.txt",
+      "ambito": "docs",
+      "ecosistema": "python",
+      "fijada": true
+    }
+  ],
+  "licencias_no_runtime": [
+    {
+      "nombre": "thinker-research",
+      "ambito": "opcional",
+      "origen": "pyproject.toml",
+      "version": "0.1.7",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytest-cov",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "7.1.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytest-mock",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "3.15.1",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytest-qt",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "4.5.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytest-html",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "4.2.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytest-benchmark",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "5.2.3",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytest-bdd",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "8.1.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "hypothesis",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "6.155.2",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "ruff",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "0.16.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "black",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "26.5.1",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pyflakes",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "3.4.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "mypy",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "2.3.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "coverage",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "7.13.5",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pywinauto",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "0.6.8",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pyautogui",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "0.9.54",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pytesseract",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "0.3.13",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "easyocr",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "1.7.2",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pyyaml",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "6.0.3",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pillow",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "12.3.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "opencv-python",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "5.0.0.93",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "python-pptx",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "1.0.2",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pygetwindow",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "0.0.9",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "python-docx",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "1.2.0",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "pyinstaller",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "6.22.3",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "seaborn",
+      "ambito": "dev",
+      "origen": "requirements-dev.txt",
+      "version": "0.13.2",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    },
+    {
+      "nombre": "strictdoc",
+      "ambito": "docs",
+      "origen": "requirements-docs.txt",
+      "version": "0.30.1",
+      "operador": "==",
+      "licencia": null,
+      "libre": null,
+      "fuente": "no consultada (--sin-red)",
+      "procedencia": "unverified"
+    }
+  ],
+  "aserciones_debiles": [
+    "tests/paridad/test_gui_antecedente.py:1140",
+    "salida/thinker/snapshot/tests/paridad/test_gui_antecedente.py:1140"
+  ],
+  "dimensiones": {
+    "funcionalidades": {
+      "puntuacion": 0.75,
+      "evaluado": true,
+      "criterios": {
+        "f1_puntos_de_entrada": true,
+        "f2_readme_vs_realidad": true,
+        "f3_sin_deuda_declarada": false,
+        "f4_tests_de_varios_modulos": true
+      },
+      "no_aplica": [],
+      "hallazgos": [
+        {
+          "severidad": "baja",
+          "descripcion": "4 marcas TODO/FIXME/XXX en c├│digo de producci├│n",
+          "evidencia": "src\\main_window.py:814, tools\\comparacion_antecedente\\func_antecedente_csv.py:8, salida\\thinker\\snapshot\\src\\main_window.py:814, salida\\thinker\\snapshot\\tools\\comparacion_antecedente\\func_antecedente_csv.py:8",
+          "tipo_evidencia": "verified-real",
+          "criterio": "f3_sin_deuda_declarada"
+        }
+      ],
+      "notas": [
+        "91 puntos de entrada: .kimi-code/hooks/pre_bash_analyze.py, .opencode/skills/cost-tracker/cost-tracker.py, data/generate_test_data.py, main.py, salida/thinker/snapshot/main.py",
+        "250 archivos de test (.py)"
+      ]
+    },
+    "calidad": {
+      "puntuacion": 0.8,
+      "evaluado": true,
+      "criterios": {
+        "c1_suite_de_tests": true,
+        "c2_linter_configurado": true,
+        "c3_sin_silencios": false,
+        "c4_tests_sobre_codigo_30pct": true,
+        "c5_tests_con_aserciones": true
+      },
+      "no_aplica": [],
+      "hallazgos": [
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "src/margenes_grafico_dialog.py:283",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "src/plot_manager.py:999",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/guide_capture_linux.py:96",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/guide_capture_linux.py:110",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/guide_capture_linux.py:148",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/guide_capture_win.py:151",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/visual_test_all_plots.py:40",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/comparar_con_multistat.py:56",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/comparar_datos_graficos.py:194",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/comparar_datos_graficos.py:354",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/comparar_datos_graficos.py:305",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:332",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:2856",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:2886",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:2900",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:3519",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:3610",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:1357",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/func_antecedente_csv.py:2876",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/gui_antecedente_log.py:32",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/comparacion_antecedente/gui_antecedente_plots.py:914",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/_legacy/ui_audit.py:31",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "tools/_legacy/ui_audit_comprehensive.py:79",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/src/margenes_grafico_dialog.py:283",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/src/plot_manager.py:999",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/guide_capture_linux.py:96",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/guide_capture_linux.py:110",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/guide_capture_linux.py:148",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/guide_capture_win.py:151",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/visual_test_all_plots.py:40",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/comparar_con_multistat.py:56",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/comparar_datos_graficos.py:194",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/comparar_datos_graficos.py:354",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/comparar_datos_graficos.py:305",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:332",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:2856",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:2886",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:2900",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:3519",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:3610",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:1357",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/func_antecedente_csv.py:2876",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/gui_antecedente_log.py:32",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/gui_antecedente_plots.py:914",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/ui_audit.py:31",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/ui_audit_comprehensive.py:79",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:323",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:3212",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:3242",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:3256",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:3865",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:3956",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:1713",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "`except` con `pass`/`continue` en producci├│n (P1.26)",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:3232",
+          "tipo_evidencia": "verified-real",
+          "criterio": "c3_sin_silencios"
+        }
+      ],
+      "notas": [
+        "71912 l├¡neas de test / 166251 de c├│digo",
+        "suite NO ejecutada (sin --ejecutar-tests): no verificado",
+        "linter: pyproject.toml",
+        "c3 sobre 415 archivos de producci├│n; tests/scripts excluidos",
+        "silencios detectados: 54",
+        "proporci├│n test/c├│digo: 0.43",
+        "c5 sobre 250 archivos de test Python",
+        "aserciones d├®biles (informativas, no fallo): 2; c5 no mide la fuerza de la suite"
+      ]
+    },
+    "vigencia": {
+      "puntuacion": 0.333,
+      "evaluado": true,
+      "criterios": {
+        "v1_dependencias_fijadas": false,
+        "v2_lockfile": false,
+        "v3_actividad_reciente": true
+      },
+      "no_aplica": [
+        {
+          "criterio": "v4_dependencias_al_dia",
+          "motivo": "comparaci├│n PyPI omitida (--sin-red): no verificada"
+        }
+      ],
+      "hallazgos": [
+        {
+          "severidad": "media",
+          "descripcion": "Dependencias Python sin fijar: pyside6, matplotlib, pandas, numpy, scipy, openpyxl, pywin32, pytest, pytest-timeout",
+          "evidencia": "manifiestos Python",
+          "tipo_evidencia": "verified-real",
+          "criterio": "v1_dependencias_fijadas"
+        },
+        {
+          "severidad": "media",
+          "descripcion": "Sin lockfile para: python (instalaci├│n no reproducible)",
+          "evidencia": "C:\\Collahuasi\\GitLab\\multistat",
+          "tipo_evidencia": "verified-real",
+          "criterio": "v2_lockfile"
+        }
+      ],
+      "notas": [
+        "locks: .kilo/package-lock.json, .opencode/package-lock.json",
+        "├║ltimo commit: 2026-10-29; commits totales: 669; ├║ltimos 180 d├¡as: 669",
+        "comprobaci├│n PyPI OMITIDA (--sin-red): no verificado"
+      ]
+    },
+    "herramientas": {
+      "puntuacion": 0.833,
+      "evaluado": true,
+      "criterios": {
+        "h1_manifiesto": true,
+        "h2_licencia": true,
+        "h3_verificacion_automatizada": true,
+        "h4_runner_de_tests_declarado": true,
+        "h6_imports_declarados": false,
+        "h7_decisiones_documentadas": true
+      },
+      "no_aplica": [
+        {
+          "criterio": "h5_licencias_libres",
+          "motivo": "licencias de dependencias OMITIDAS (--sin-red)"
+        }
+      ],
+      "hallazgos": [
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: maptek",
+          "evidencia": "antecedentes/esteban/func_bd_5_5.py:16",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: win32ui",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/capture_dialogs.py:21",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/debug_audit.py:18",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/ui_audit.py:11",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/ui_audit_comprehensive.py:13",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/ui_audit_final.py:14",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "salida/thinker/snapshot/tools/_legacy/ui_audit_v8.py:15",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: rapidocr_onnxruntime",
+          "evidencia": "salida/thinker/snapshot/tools/audit_app.py:67",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "salida/thinker/snapshot/tools/comparacion_antecedente/descripcion_360.py:29",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: rapidocr_onnxruntime",
+          "evidencia": "salida/thinker/snapshot/tools/ocr_app.py:37",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: win32ui",
+          "evidencia": "tools/_legacy/capture_dialogs.py:21",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "tools/_legacy/debug_audit.py:18",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "tools/_legacy/ui_audit.py:11",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "tools/_legacy/ui_audit_comprehensive.py:13",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "tools/_legacy/ui_audit_final.py:14",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "tools/_legacy/ui_audit_v8.py:15",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: rapidocr_onnxruntime",
+          "evidencia": "tools/audit_app.py:67",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: cv2",
+          "evidencia": "tools/comparacion_antecedente/descripcion_360.py:29",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        },
+        {
+          "severidad": "alta",
+          "descripcion": "Import de terceros sin declarar: import no declarado: rapidocr_onnxruntime",
+          "evidencia": "tools/ocr_app.py:37",
+          "tipo_evidencia": "verified-real",
+          "criterio": "h6_imports_declarados"
+        }
+      ],
+      "notas": [
+        "manifiestos (10): .kilo/package.json, .opencode/package.json, pyproject.toml, requirements-dev.txt, requirements-docs.txt, requirements-linux.txt, requirements.txt, salida/thinker/snapshot/pyproject.tomlÔÇª",
+        "runner: C:\\Collahuasi\\GitLab\\multistat\\.venv\\Scripts\\python.exe -m pytest tests/ --timeout 30 (README.md)",
+        "licencias de dependencias OMITIDAS (--sin-red)",
+        "h6 sobre 415 archivos de producci├│n (tests/docs/scripts excluidos)",
+        "imports de terceros sin declarar: 19",
+        "registro de decisiones: docs/LECCIONES-APRENDIDAS.md, docs/decisions/ADR-001-pilar-4-sesgos-y-auditoria.md, docs/decisions/ADR-002-hooks-better-project.md, docs/decisions/ADR-003-portes-better-project-licencias.md, salida/thinker/snapshot/docs/LECCIONES-APRENDIDAS.md, salida/thinker/snapshot/docs/decisions/ADR-001-pilar-4-sesgos-y-auditoria.md, salida/thinker/snapshot/docs/decisions/ADR-002-hooks-better-project.md, salida/thinker/snapshot/docs/decisions/ADR-003-portes-better-project-licencias.md"
+      ]
+    },
+    "inteligencia": {
+      "puntuacion": null,
+      "evaluado": false,
+      "criterios": {},
+      "no_aplica": [
+        {
+          "criterio": "i1_cachea_trabajo_repetido",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "i2_timeouts_explicitos",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "i3_reintentos_con_limite",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "i4_valida_respuestas",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "i5_declara_lo_simulado",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "i6_metricas_propias",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        }
+      ],
+      "hallazgos": [],
+      "notas": [
+        "dimensi├│n N/A: se├▒ales espec├¡ficas de sistemas LLM"
+      ]
+    },
+    "eficiencia": {
+      "puntuacion": null,
+      "evaluado": false,
+      "criterios": {},
+      "no_aplica": [
+        {
+          "criterio": "e1_import_perezoso_de_pesadas",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "e2_carga_unica_de_modelos",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        },
+        {
+          "criterio": "e3_mediciones_documentadas",
+          "motivo": "el proyecto no declara un LLM en dependencias runtime"
+        }
+      ],
+      "hallazgos": [],
+      "notas": [
+        "dimensi├│n N/A: se├▒ales espec├¡ficas de sistemas LLM"
+      ]
+    }
+  },
+  "global": 0.679,
+  "global_nota": "media de criterios aplicables: no es comparable entre proyectos con coberturas distintas; revisar `cobertura`",
+  "no_verificado": [
+    "la suite de tests NO se ejecuta (usa --ejecutar-tests para verificarla; P0.8: ejecutar c├│digo ajeno es opt-in)",
+    "versiones y licencias de dependencias no consultadas (--sin-red)"
+  ],
+  "evidencia": {
+    "verified-real": 76,
+    "verified-synthetic": 0,
+    "unverified": 2
+  },
+  "mejoras": [
+    {
+      "dimension": "calidad",
+      "criterio": "c3_sin_silencios",
+      "prioridad": "alta",
+      "propuesta": "Sustituir los `except` con `pass`/`continue` por error reportado o re-elevado (P1.26)",
+      "metrica": "0 coincidencias del patr├│n except+pass/continue",
+      "sitios": 54,
+      "esfuerzo": "alto",
+      "secuencia": 1,
+      "datos_medidos": {
+        "hallazgos": 54,
+        "evidencias": 54
+      },
+      "evidencia": [
+        "src/margenes_grafico_dialog.py:283",
+        "src/plot_manager.py:999",
+        "tools/guide_capture_linux.py:96",
+        "tools/guide_capture_linux.py:110",
+        "tools/guide_capture_linux.py:148"
+      ]
+    },
+    {
+      "dimension": "herramientas",
+      "criterio": "h6_imports_declarados",
+      "prioridad": "alta",
+      "propuesta": "Declarar en el manifiesto cada import de terceros del c├│digo de producci├│n o eliminar el import",
+      "metrica": "0 imports de terceros sin declarar en el paquete (tests/docs/opcionales excluidos)",
+      "sitios": 19,
+      "esfuerzo": "alto",
+      "secuencia": 1,
+      "datos_medidos": {
+        "hallazgos": 19,
+        "evidencias": 19
+      },
+      "evidencia": [
+        "antecedentes/esteban/func_bd_5_5.py:16",
+        "salida/thinker/snapshot/tools/_legacy/capture_dialogs.py:21",
+        "salida/thinker/snapshot/tools/_legacy/debug_audit.py:18",
+        "salida/thinker/snapshot/tools/_legacy/ui_audit.py:11",
+        "salida/thinker/snapshot/tools/_legacy/ui_audit_comprehensive.py:13"
+      ]
+    },
+    {
+      "dimension": "vigencia",
+      "criterio": "v1_dependencias_fijadas",
+      "prioridad": "media",
+      "propuesta": "Fijar las versiones runtime (==) o cubrirlas con un lock",
+      "metrica": "0 dependencias runtime sin versi├│n exacta ni lock",
+      "sitios": 1,
+      "esfuerzo": "bajo",
+      "secuencia": 1,
+      "datos_medidos": {
+        "hallazgos": 1,
+        "evidencias": 1
+      },
+      "evidencia": [
+        "manifiestos Python"
+      ]
+    },
+    {
+      "dimension": "vigencia",
+      "criterio": "v2_lockfile",
+      "prioridad": "media",
+      "propuesta": "Generar un lockfile por ecosistema e instalar desde ├®l",
+      "metrica": "cada ecosistema con dependencias tiene su lockfile",
+      "sitios": 1,
+      "esfuerzo": "bajo",
+      "secuencia": 2,
+      "datos_medidos": {
+        "hallazgos": 1,
+        "evidencias": 1
+      },
+      "evidencia": [
+        "C:\\Collahuasi\\GitLab\\multistat"
+      ]
+    },
+    {
+      "dimension": "funcionalidades",
+      "criterio": "f3_sin_deuda_declarada",
+      "prioridad": "baja",
+      "propuesta": "Cerrar o priorizar las marcas TODO/FIXME/XXX de producci├│n",
+      "metrica": "0 marcas TODO/FIXME/XXX en el c├│digo de producci├│n",
+      "sitios": 1,
+      "esfuerzo": "bajo",
+      "secuencia": 1,
+      "datos_medidos": {
+        "hallazgos": 1,
+        "evidencias": 1
+      },
+      "evidencia": [
+        "src\\main_window.py:814, tools\\comparacion_antecedente\\func_antecedente_csv.py:8, salida\\thinker\\snapshot\\src\\main_window.py:814, salida\\thinker\\snapshot\\tools\\comparacion_antecedente\\func_antecedente_csv.py:8"
+      ]
+    }
+  ]
+}
