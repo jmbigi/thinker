@@ -139,11 +139,12 @@ mejora de código (`code_design_improvement_tools.py`).
   `packaging`; el lock fija las exactas con hashes); `ollama` opcional y extra
   `ml` con `torch==2.15.0`
   (`requirements-ml.txt` + lock propio). `openai` verificado en **1.109.1, 2.54.0,
-  3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0 y 3.42.1** (canario en
+  3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0, 3.42.1 y 3.45.0** (canario en
   `tests/test_openai_compatibilidad.py`; 3.35.1 verificado el 2026-10-20 con
   703/703 en 3.11 y 3.12; 3.40.0 verificado el 2026-10-28 con 1018/1018 en 3.11;
   3.42.0 verificado el 2026-10-31 con el evaluador 237/237 en venv aislado desde
-  el lock; 3.42.1 verificado el 2026-11-04 con 1407/1407 en 3.11). Tras el corte 3
+  el lock; 3.42.1 verificado el 2026-11-04 con 1407/1407 en 3.11; 3.45.0
+  verificado el 2026-11-04 con 1409/1409 en 3.11, 3.12 y 3.14 desde el lock). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -227,11 +228,15 @@ mejora de código (`code_design_improvement_tools.py`).
   reporta como **warning** en c3 y preflight; sin marca sigue siendo hallazgo.
   Thinker no usa la marca en su propio código.
 - Calibración (R14, 2026-10-25): `credibility` y `confidence` **no están
-  calibradas**. Hay un Brier simulado (0,1166 en 16 casos) y un piloto real
-  **n=20** con Brier **0,0540** (20/20; modelo de fallback
-  `cohere/north-mini-code:free`; muestra pequeña y fácil). Ninguno prueba
-  calibración general; no se presentan como probabilidad. Los tests `test_docs_calibracion`, `test_calibracion_confianza`
-  y `test_calibracion_real` protegen declaración e instrumentos.
+  calibradas**. Hay un Brier simulado (0,1166 en 16 casos), un piloto real
+  **n=20** con Brier **0,0050** (20/20; IC95 [0,0034; 0,0066]) y un benchmark
+  factual real **n=30** con **30/30**, Brier **0,0044**, ECE 0,0590 e IC95
+  [0,0031; 0,0059], modelo `nvidia/nemotron-3-ultra-550b-a55b:free`. Ambos son
+  muestras pequeñas y fáciles, con confianza concentrada en 0,8-1,0; no prueban
+  calibración general ni se presentan como probabilidad. Los tests
+  `test_docs_calibracion`, `test_calibracion_confianza`,
+  `test_calibracion_real` y `test_benchmark_factual` protegen declaración e
+  instrumentos.
 - Auditoría de cambios (opt-in, offline): `python3 scripts/audit_changes.py
   --staged|--base REV|--diff ARCHIVO [--json] [--permitir RUTA]` (o
   `make audit-diff BASE=origin/main`) — detecta señales mecánicas de cambios
@@ -392,17 +397,16 @@ mejora de código (`code_design_improvement_tools.py`).
   quedan con veredicto individual: 304 detectados, 34 equivalencias y 17
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1407/1407 en la suite
-  Linux** (2026-11-04; openai 3.42.1 y `packaging 26.3` en el entorno actual,
-  con `ruff` para el doctor; mediciones anteriores: 1399/1399 el mismo día y
-  1397/1397 el 2026-11-01 con openai 3.40.0; lock en openai 3.42.0) y **3.12.3**
-  verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
-  recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
-  Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
-  en ambos** con la suite de esa fecha (2026-10-22; incluye
-  instalación limpia con `pip install .` y desde el lock). openai verificado
-  en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0 y 3.42.1
-  (lock en 3.42.0 con hashes desde 2026-10-31). La suite del evaluador creció de 41 a 58 tests con las
+- Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
+  **1409/1409 en la suite Linux** (2026-11-04; openai 3.45.0 y `ruff 0.13.2` en
+  venv aislados desde el lock, `packaging 26.3`; mediciones anteriores:
+  1407/1407, 1399/1399 el mismo día y 1397/1397 el 2026-11-01 con openai
+  3.40.0); y **Windows 11** con Python **3.12.7** (openai 3.37.0) y **3.14.3**
+  (openai 1.109.1), **750/750 en ambos** con la suite de esa fecha (2026-10-22;
+  incluye instalación limpia con `pip install .` y desde el lock). openai
+  verificado en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0,
+  3.42.0, 3.42.1 y 3.45.0 (lock en 3.45.0 con hashes desde 2026-11-04). La
+  suite del evaluador creció de 41 a 58 tests con las
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`
@@ -446,8 +450,11 @@ mejora de código (`code_design_improvement_tools.py`).
   Hallazgo 219 añadió el contrato de equivalencias únicas y dejó la suite en
   **1402/1402**. El Hallazgo 220 añadió cuatro contratos de preflight y dejó la
   suite en **1406/1406**. El Hallazgo 221 cerró las 67 brechas históricas y dejó
-  la suite en **1407/1407**. El auditor de cambios de `scripts/` añadió 28 tests y
-  el runner de holdout 9 (2026-10-23).
+  la suite en **1407/1407**. El Hallazgo 222 solo corrigió coherencia documental.
+  El Hallazgo 223 añadió el contrato de calibración del benchmark factual y la
+  regresión de enlaces en Python 3.14, y dejó la suite en **1409/1409**. El
+  auditor de cambios de `scripts/` añadió 28 tests y el runner de holdout 9
+  (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.

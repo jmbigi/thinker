@@ -48,7 +48,7 @@ herramientas de análisis estático de código.
   - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML`,
     `pypdf`, `cryptography` y `packaging` (ver `requirements.txt`; el lock fija
     las exactas con hashes). `openai` verificado en 1.109.1, 2.54.0, 3.33.0,
-    3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0 y 3.42.1 (lock en 3.42.0).
+    3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0, 3.42.1 y 3.45.0 (lock en 3.45.0).
   - Opcional: [Ollama](https://ollama.com/) para modelos locales y extra `ml`
     con `torch==2.15.0` (`requirements-ml.txt` + `requirements-ml.lock`).
 
@@ -84,13 +84,13 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.22   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.22            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.23   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.23            # desde PyPI
 ```
 
-La versión `0.1.22` está publicada en TestPyPI y PyPI, con instalaciones limpias
-verificadas. La instalación por tag no requiere PyPI ni claves. Estado de la
-publicación: `docs/PUBLICACION.md`.
+`thinker-research` se instala desde PyPI o desde un tag verificado, sin claves
+para el usuario. Cada publicación se comprueba con instalaciones limpias desde
+TestPyPI y PyPI; el estado y las evidencias están en `docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
 estática y read-only):
@@ -386,13 +386,14 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1407/1407** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 tests (**+24,7%** desde 1128) |
+| Suite Linux | **1409/1409** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 tests (**+24,9%** desde 1128); 3.11/3.12/3.14 |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
 | RAG léxico | **Recall@5 0.938** | 10 pasajes, 16 consultas; MRR 0.906, nDCG@10 0.914 |
 | Calibración simulada | **Brier 0.1166 / ECE 0.1437** | 16 casos; **no calibrada**, no es probabilidad |
-| Cobertura | **84,05% líneas / 84,62% ramas** | 2486/2938 ramas; `coverage --branch` |
+| Calibración real acotada | **piloto n=20: Brier 0,0050; factual n=30: 0,0044** | 20/20 y 30/30; IC95 [0,0034; 0,0066] y [0,0031; 0,0059]; muestras pequeñas y fáciles, no general |
+| Cobertura | **84,04% líneas / 84,59% ramas** | 2487/2940 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
@@ -447,9 +448,10 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
 - La envoltura `<untrusted_source>` declara el contenido externo como DATOS y
   escapa su cierre, pero **no garantiza** que un modelo ignore instrucciones
   inyectadas; es una mitigación estructural, no una barrera de seguridad.
-- La suite verde de esta entrega se midió en un venv aislado con `pypdf`
-  instalado porque el intérprete base no lo tenía; sin esa dependencia,
-  `doctor` falla correctamente y no se oculta el fallo.
+- La suite multiinterpretador se mide en venv temporales aislados desde el lock;
+  `openai 3.45.0` y `ruff 0.13.2` se verificaron en 3.11, 3.12 y 3.14. Una
+  versión más nueva de una herramienta de desarrollo puede añadir diagnósticos
+  propios y no se presenta como resultado del proyecto.
 - `local-only`/`private-documents` no son un *air gap*: el código acota endpoints
   y resultados, pero no sustituye firewall/contenedor. MCP se considera contenido
   no confiable y queda fuera de esos modos.
@@ -463,13 +465,15 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   diseño** (`make check` / `bash scripts/ci.sh`), sin depender de GitHub ni de
   ningún servicio externo para verificar o distribuir (regla 12).
 - `credibility` y `confidence` **no están calibradas**: son estimaciones del
-  modelo, no probabilidades. Hay un Brier simulado y un piloto real n=20
-  (Brier 0,054, muestra pequeña y fácil); ninguno prueba calibración general,
-  así que no deben interpretarse como probabilidad de acierto (R14).
-- Verificado en Linux (Python 3.11/3.12) y en Windows 11 (3.12.7/3.14.3,
+  modelo, no probabilidades. Hay un Brier simulado y dos muestras reales
+  acotadas: piloto n=20 (Brier 0,0050) y factual n=30 (Brier 0,0044), ambas con
+  IC95 y confianzas concentradas en el tramo alto. Ninguna prueba calibración
+  general, así que no deben interpretarse como probabilidad de acierto (R14).
+- Verificado en Linux (Python 3.11/3.12/3.14) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
-  Los scripts `bash`/`make` se verificaron en Linux; en Windows se ejecutaron
-  los comandos Python equivalentes.
+  La suite actual en Linux es **1409/1409** con `openai 3.45.0`; los scripts
+  `bash`/`make` se verificaron en Linux y en Windows se ejecutaron los comandos
+  Python equivalentes.
 - La suite mata el **95,2%** de los mutantes de `mutmut` (3635/3819; 184
   supervivientes, 0 timeouts, 0 sospechosos; medición 2026-10-23, re-medida
   el 2026-10-24 sin cambios, excluyendo las líneas `print`, que solo generan

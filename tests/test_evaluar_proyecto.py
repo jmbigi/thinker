@@ -1748,6 +1748,20 @@ class TestRequisitos(unittest.TestCase):
                          "evidencia fuera del proyecto o no resoluble")
         self.assertEqual(item["tipo_evidencia"], "unverified")
 
+    def test_symlink_roto_sigue_siendo_evidencia_ausente(self):
+        raiz = self._proyecto(
+            "## R1: Roto\n- Enunciado: Evidencia ausente.\n"
+            "- Criterio de aceptación: Debe existir el archivo.\n"
+            "- Verificación: archivo\n- Evidencia: roto\n")
+        (raiz / "roto").symlink_to("ausente")
+
+        item = self._item(self._evaluar(raiz))
+        self.assertEqual(item["veredicto"], "NO CUMPLE")
+        self.assertEqual(item["motivo"],
+                         "la evidencia declarada no es un archivo")
+        self.assertEqual(item["evidencia_observada"], "ausente")
+        self.assertEqual(item["tipo_evidencia"], "verified-real")
+
     def test_no_afecta_al_global_y_la_suite_se_ejecuta_una_vez(self):
         raiz = self._proyecto(self.REQ_BASE)
 

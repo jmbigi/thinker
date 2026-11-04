@@ -139,9 +139,9 @@ def calcular_brier(confianzas, aciertos):
 def brier_con_intervalo(confianzas, aciertos, muestras=2000, semilla=0):
     """Brier + IC bootstrap 95% (percentiles), determinista para una semilla.
 
-    Con n=20 el intervalo será ancho: es la forma honesta de mostrar que un
-    Brier bajo en una muestra pequeña no prueba calibración general. Devuelve
-    None sin pares.
+    Con muestras pequeñas el intervalo será ancho: es la forma honesta de
+    mostrar que un Brier bajo no prueba calibración general. Devuelve None sin
+    pares.
     """
     import random
 

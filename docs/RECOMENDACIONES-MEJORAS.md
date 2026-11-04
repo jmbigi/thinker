@@ -25,7 +25,7 @@ pendiente.
 | **Hecho** | R8. [Cerrada 2026-10-22] Versionar el esquema JSON del informe | `schema_version: 2` y test de contrato | Bajo | Bajo |
 | **Hecho** | R10. [Cerrada 2026-10-25] Reportar licencias de dev/opcionales sin mezclarlas con runtime | `licencias_no_runtime` informativo; h5 sigue siendo runtime | Bajo | Bajo |
 | **Hecho** | R13. [Cerrada 2026-10-25, B+C] CoVe con verificador barato y descomposición opt-in | 1+1 llamadas; claim compuesto detectado; 28/14 en R4 | Medio | Medio |
-| **Hecho** | R14. [Cerrada 2026-10-25, por declaración; B+C piloto] Declarar `credibility`/`confidence` no calibradas | Brier simulado 0,1166; piloto real n=20 Brier 0,0540; sin calibración general | Medio | Bajo |
+| **Hecho** | R14. [Cerrada 2026-10-25, por declaración; B+C piloto] Declarar `credibility`/`confidence` no calibradas | Brier simulado 0,1166; piloto real n=20 Brier 0,0050 y factual real n=30 Brier 0,0044, ambos con IC; sin calibración general | Medio | Bajo |
 
 **Estado de decisiones (2026-10-26; R3 actualizado el 2026-11-04):** R5-A,
 R6-C, R13-B/C y R14-B/C implementadas; R3-C **cerrada** (preflight 49: 49
@@ -41,12 +41,13 @@ R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 | **R5** | **A**: alcance Python explícito y bloqueo de comparabilidad | **Implementada y cerrada** | Hecho: `cobertura.comparable` y tests |
 | **R6** | **C con warnings**: estricto para thinker; marca externa con motivo, reportada como warning | **Implementada y cerrada** | Hecho: warnings en c3/preflight |
 | **R13** | **B con vía a C**: verificador barato; descomposición después | **B y C implementadas; cerrada** | Hecho: descomposición opt-in |
-| **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=20); declaración vigente** | Ampliar muestra; no afirmar calibración general |
+| **R14** | **B con vía a C**: Brier offline simulado; datos reales después | **B y C (piloto n=20 y factual n=30, con IC); declaración vigente** | Muestra aún pequeña y fácil; no afirmar calibración general |
 | **R3** | **C**: test-first, luego triaje; reporte parcial honesto hasta cerrar | **Cerrada**; preflight 49 equivalencias y 0 brechas, evaluador 0 brechas + 125 equivalencias validadas, 0 timeouts | Inventario cerrado; tasas históricas sin recalcular |
 | **R4** | Sin decisión de producto; ampliar cobertura | **Cerrada por alcance offline** (57 casos/26 criterios; 3 N/A) | Campaña real con red/PyPI queda opt-in y fuera de alcance |
 
-**No queda ninguna decisión de producto pendiente.** Lo que falta es ejecución. R14 ya tiene un piloto real n=20; ampliar la muestra
-no cambia su cierre por declaración. R3 queda **cerrada** con 355 candidatos
+**No queda ninguna decisión de producto pendiente.** R14 tiene un piloto real
+n=20 y un benchmark factual n=30, ambos con intervalo bootstrap; siguen sin
+representar una calibración general. R3 queda **cerrada** con 355 candidatos
 tratados, 304 detectados, 34 equivalencias conocidas y 17 contextos revisados;
 quedan **0 brechas + 125 equivalencias validadas**.
 
@@ -58,14 +59,14 @@ quedan **0 brechas + 125 equivalencias validadas**.
 | CI local (última copia limpia) | **OK** | copia limpia de HEAD; limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (30/30; 0 N/A) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
-| Lock `openai` | **3.42.0** con hashes (2026-10-31) | `requirements.lock` |
+| Lock `openai` | **3.45.0** con hashes (2026-11-04) | `requirements.lock` |
 | Autoevaluación sin red | **1.000** (27/29; N/A `v4`, `h5`) | `python3 evaluar_proyecto.py . --sin-red --json` |
-| Cobertura `evaluar_proyecto.py` | **91%** (145/1571 sentencias sin ejecutar) | comando de la sección 8 |
-| Cobertura `scripts/preflight.py` | **93%** (26/425) | comando de la sección 8 |
+| Cobertura `evaluar_proyecto.py` | **99%** (18/1645 sentencias sin ejecutar) | comando de la sección 8 |
+| Cobertura `scripts/preflight.py` | **100%** (0/461) | comando de la sección 8 |
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Mutación preflight | **95,18%** (967/1016; 49 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo preflight` |
 | Mutación evaluador | **80,98%** (4846/5984; 1138 supervivientes: 1131 brechas + 7 equivalencias, 0 timeouts; 2026-10-28) | `python3 scripts/mutacion.py --objetivo evaluar` |
-| Paquete actual | **0.1.22** (2026-11-04; publicado en TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete actual | **0.1.23** (2026-11-04; preparada para publicación) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda histórica de **mutación** de esos dos módulos (R3) quedó
@@ -403,16 +404,24 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 
 - **Decisión 2026-10-25: B con vía a C, B y C (piloto) implementadas.**
 - **Acción:** README/AGENTS declaran que **no están calibradas**. Brier
-  offline simulado (0,1166, 16 pares) y piloto real con OpenRouter:
-  **n=20, Brier 0,0540, 20/20 aciertos**, modelo de fallback
-  `cohere/north-mini-code:free`.
-- **Límite:** la muestra real es pequeña y fácil (hechos evidentes); no prueba
-  calibración general. No se presenta `confidence` como probabilidad.
-- **Evidencia:** `tests/benchmarks/calibracion_real.py`,
-  `tests/test_calibracion_real.py` (2 tests), suite **902/902**, ruff 0.
-- **Criterio:** [x] declaración; [x] Brier simulado; [x] Brier real n=20;
-  [ ] muestra representativa/intervalos (trabajo futuro).
-- **Riesgo:** bajo; el piloto se declara como piloto, no como certificado.
+  offline simulado (0,1166, 16 pares); piloto real inicial n=20 con Brier
+  0,0540 (modelo de fallback `cohere/north-mini-code:free`).
+- **Remedición 2026-11-04:** piloto n=20 con
+  `nvidia/nemotron-3-ultra-550b-a55b:free`: **20/20, Brier 0,0050, ECE 0,0650,
+  IC95 [0,0034; 0,0066]**. Benchmark factual de 30 casos (10 por categoría):
+  **30/30, 0 falsos verificados, abstención 1,0, Brier 0,0044, ECE 0,0590,
+  IC95 [0,0031; 0,0059]**. Los instrumentos ya calculan intervalos.
+- **Límite:** ambas muestras son pequeñas y fáciles, con confianzas concentradas
+  en 0,8-1,0; no prueban calibración general ni convierten `confidence` en
+  probabilidad. La muestra representativa por dominio sigue pendiente.
+- **Evidencia:** `build/mejoras-calibracion-real-n20.json` y
+  `build/mejoras-factual-real-n30.json`; 14 pruebas offline del contrato de
+  métricas, benchmark factual y calibración.
+- **Criterio:** [x] declaración; [x] Brier simulado; [x] Brier real n=20 y
+  factual n=30; [x] intervalos bootstrap; [ ] muestra representativa por
+  dominio (trabajo externo).
+- **Riesgo:** bajo; los resultados se declaran como muestras acotadas, no como
+  certificado.
 
 ## 5. Deuda priorizada y cierre (histórico desde 2026-10-25; actualizado 2026-11-04)
 
@@ -505,6 +514,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | Deduplicación y preflight (2026-11-04, Hallazgos 219-220) | `scripts/mutacion.py`, `triaje_mutantes.py` y diffs directos por contenido | E32 repite 12 casos; los 90 registros del evaluador son 78 únicos. La revalidación detectó deriva de IDs y dos casos E23 cubiertos por tests; preflight aportó 17 brechas nuevas | Inventarios JSON + contrato de conteo: **127 únicas** y **125 validadas** (49+76); cuatro contratos cierran **17/17** mutantes nuevos, original verde, suite **1406/1406** |
 | Cierre histórico (2026-11-04, Hallazgo 221) | Cuatro workers con fixtures actuales y revisión manual de contextos | Los 355 candidatos quedan con veredicto individual: 304 detectados, 34 equivalencias conocidas y 17 `no_aplicable` revisados; los 34 supervivientes están en el inventario validado | **0 brechas + 125 equivalencias validadas**; una regresión de línea vacía falla con `[] != ['requests']`; cuatro originales verdes; suite **1407/1407** |
 | Coherencia posterior al cierre (2026-11-04, Hallazgo 222) | `check_docs` y `evaluar_proyecto` | `DOCS: OK` y autoevaluación offline 1.000 (27/29; 2 N/A; 0 hallazgos) no detectaron que secciones vigentes seguían llamando «parcial» y «pendiente» a R3; la revisión semántica guio una corrección solo documental | Rótulos actuales reconciliados con **0 brechas + 125 equivalencias validadas**; historial fechado intacto, búsqueda de rótulos obsoletos sin coincidencias y gates offline; suite **1407/1407**, sin cambios de producción ni release |
+| Actualización y validación real (2026-11-04, Hallazgo 223) | `evaluar_proyecto`, benchmark factual, calibración real y suites con lock | La autoevaluación con red detectó `openai 3.42.0 → 3.45.0`; el benchmark factual prometía Brier pero no lo devolvía, y Python 3.14 no lanzaba la excepción esperada ante un bucle de symlinks | Lock con **3 actualizaciones** y sin vulnerabilidades; regresión `KeyError` corregida con Brier/ECE/IC; bucle y enlace roto contratados; **1409/1409 en 3.11/3.12/3.14** con openai 3.45.0; factual real **30/30** y piloto **20/20**, ambos acotados |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -593,11 +603,12 @@ declaradas). **Historial de ejecución de R3 (cerrado el 2026-11-04):**
    de E22–E27: hay **127 equivalencias únicas**, no 139. El Hallazgo 220 valida
    **125 equivalencias** (49 preflight + 76 evaluador) y cierra **17 brechas**
    nuevas con cuatro contratos; E23 124/126 quedan cubiertos por tests. Estado
-   actual: **67→0 brechas + 125 equivalencias validadas**; suite **1407/1407**.
+   actual: **67→0 brechas + 125 equivalencias validadas**; suite **1409/1409**.
    La deuda R3 queda cerrada.
 
-R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
-afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
+R14-C completó un piloto real n=20 (Brier 0,0050) y un factual n=30 (Brier
+0,0044), ambos con intervalos; una muestra representativa por dominio y la
+validación humana independiente siguen siendo trabajo externo. R1, R2, R5, R6, R7,
 R8, R9, R10, R11, R12, R13 y R14 están cerradas.
 
 ## 8. Verificación reproducible

@@ -1,7 +1,8 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-04: **versión `0.1.22` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-04: **versión `0.1.23` preparada para publicación**;
+> `0.1.22` sigue publicada en TestPyPI y PyPI hasta completar la verificación.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20`,
@@ -17,8 +18,9 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.22`
-  publicada en TestPyPI y PyPI.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.23`
+  preparada para publicación; no se afirma disponibilidad hasta verificarla.
+  Paquete `thinker-research 0.1.23` **preparado**, no publicado todavía.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -26,7 +28,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.22*`.
+  `dist/thinker_research-0.1.23*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.

@@ -2541,6 +2541,8 @@ def _resolver_evidencia(ruta: Path, texto: str) -> Optional[Path]:
     try:
         candidato = candidato.resolve()
         candidato.relative_to(ruta.resolve())
+        if candidato.is_symlink() and not candidato.exists():
+            return None
     except (OSError, RuntimeError, ValueError):
         return None
     return candidato

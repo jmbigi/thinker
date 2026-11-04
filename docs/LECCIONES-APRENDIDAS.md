@@ -4807,3 +4807,36 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   documental verde demuestra sus comprobaciones concretas, no que cualquier
   contradicción narrativa sea imposible; el cierre de una deuda exige revisar
   también los rótulos que siguen describiendo el presente.
+
+### Hallazgo 223: medir con el lock real y probar las promesas del benchmark
+
+- **Dogfooding (2026-11-04)**: la autoevaluación con red dio 0.958 y señaló
+  `openai 3.42.0 → 3.45.0`; el benchmark factual y el piloto real guiaron las
+  decisiones de medición. La salida se comprobó con suites aisladas, no se
+  aceptó como éxito por sí sola.
+- **Lock**: `make lock` cambió solo `openai 3.45.0`, `anyio 4.16.0` y
+  `typing-inspection 0.4.5`. `pip-audit` no encontró vulnerabilidades y
+  **1409/1409** pasaron en Python 3.11.9, 3.12.3 y 3.14.4 desde el lock, con
+  `ruff 0.13.2` y el canario de compatibilidad.
+- **Defecto del benchmark**: el docstring factual prometía Brier con IC, pero
+  el JSON no lo devolvía. La regresión falló con `KeyError: 'brier'`; ahora
+  reutiliza `calcular_brier`, `calcular_ece` y `brier_con_intervalo` y los
+  expone también en texto. Medición real: **30/30**, 0 falsos, abstención 1,0,
+  Brier 0,0044 e IC95 [0,0031; 0,0059]. El piloto n=20 dio Brier 0,0050 e IC95
+  [0,0034; 0,0066]. Ambas son muestras pequeñas y fáciles; la declaración «no
+  calibrada» sigue vigente.
+- **Defecto Python 3.14**: un bucle de symlinks hacía que `Path.resolve()`
+  devolviera la ruta en vez de lanzar `RuntimeError`; `_resolver_evidencia` la
+  aceptaba y la clasificación dejaba de ser `NO VERIFICABLE`. La guarda exige
+  que el candidato resuelto no sea un symlink inexistente; un enlace roto normal
+  conserva `NO CUMPLE`. Las 24 pruebas de requisitos pasan en 3.11 y 3.14.
+- **Fallos del arnés, no del proyecto**: primero se pasó el directorio `bin`
+  como raíz del venv; después faltó `ruff` y, al instalar la última versión
+  (0.17.3), sus reglas nuevas produjeron 873 diagnósticos. Se fijó la versión
+  ya verificada (`0.13.2`) en cada entorno temporal y se ejecutó primero 3.11
+  como control antes de repetir 3.12/3.14. Un fallo de entorno no se cuenta
+  como regresión del producto.
+- **Evidencias**: `build/mejoras-probe-modelo-defecto.log`,
+  `build/mejoras-suite-py31{1,2,4}-lock345-verified.log`,
+  `build/mejoras-calibracion-real-n20.json` y
+  `build/mejoras-factual-real-n30.json`.

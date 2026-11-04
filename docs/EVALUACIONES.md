@@ -46,16 +46,16 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1407/1407** en Linux (Python 3.11.9), ruff 0, preflight 0,
-docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
-aseveraciones exactas y triaje de mutación completado.
+Suite **1409/1409** en Linux (Python 3.11.9, 3.12.3 y 3.14.4; openai 3.45.0),
+ruff 0, preflight 0, docs-check OK; autoevaluación posterior a Hallazgo 105 con
+contrato de aseveraciones exactas y triaje de mutación completado.
 
-**Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). Suite **750/750** en
-Windows 11 (Python 3.12.7/3.14.3) y **778/778** en Linux (3.11/3.12, 2026-10-23);
+**Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). En Windows 11
+(Python 3.12.7/3.14.3) la última medición histórica es 750/750 (2026-10-22);
 ruff 0, preflight 0, docs-check OK.
 
-`no_verificado`: **vacío** (2026-10-25). Migración de `openai` a rango
-`>=1.0,<4` completada (lock en 3.42.0); `v4_dependencias_al_dia` al día con
+`no_verificado`: **vacío** (2026-11-04). Migración de `openai` a rango
+`>=1.0,<4` completada (lock en 3.45.0); `v4_dependencias_al_dia` al día con
 hashes `requirements.lock`. No hay hallazgos pendientes de verificación.
 
 **Actualización 2026-10-17** (tras corregir 6 bugs ALTA —Hallazgo 71— y aplicar
@@ -1393,3 +1393,21 @@ línea vacía que falla con `[] != ['requests']` y cuatro pasadas originales
 verdes. Resultado: **0 brechas + 125 equivalencias validadas** y Suite **1407/1407** en Linux (Python 3.11.9). Evidencias:
 `build/r3-consolidado-355.json` y `build/r3-no-aplicable-casos.json`. No se
 recalcula una tasa global de mutación. Hallazgo 221.
+
+**Actualización 2026-11-04** (dependencias, medición real y Python 3.14): la
+autoevaluación con red detectó `openai 3.42.0 → 3.45.0`; el lock actualiza solo
+`openai`, `anyio` y `typing-inspection`, pasa `pip-audit` sin vulnerabilidades.
+Suite **1409/1409** en Linux (Python 3.11.9, 3.12.3 y 3.14.4; openai 3.45.0,
+ruff 0.13.2). El benchmark
+factual ahora devuelve Brier, ECE e IC bootstrap (antes prometía Brier y no lo
+exponía). Mediciones reales opt-in con
+`nvidia/nemotron-3-ultra-550b-a55b:free`: piloto **20/20, Brier 0,0050, ECE
+0,0650, IC95 [0,0034; 0,0066]** y factual **30/30, 0 falsos, abstención 1,0,
+Brier 0,0044, ECE 0,0590, IC95 [0,0031; 0,0059]**. Son muestras pequeñas y
+fáciles, con confianza concentrada en 0,8-1,0: **no prueban calibración
+general**. Se corrigió además el bucle de symlinks en Python 3.14, que devuelve
+la ruta en vez de lanzar `RuntimeError`; los enlaces rotos conservan el veredicto
+`NO CUMPLE`. Cobertura **84,04% de líneas y 84,59% de ramas** (2487/2940).
+Evidencias: `build/mejoras-suite-py31{1,2,4}-lock345-verified.log`,
+`build/mejoras-calibracion-real-n20.json`, `build/mejoras-factual-real-n30.json`
+y `docs/metricas-calidad.json`. Hallazgo 223.

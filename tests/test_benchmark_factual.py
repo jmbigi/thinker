@@ -65,10 +65,27 @@ class TestBenchmarkFactual(unittest.TestCase):
         self.assertIn("simulado", resultado["modo"])
         self.assertIn("no mide calidad real", resultado["modo"])
 
+    def test_metricas_incluyen_calibracion_con_intervalo(self):
+        detalle = [
+            {"categoria": "supported", "esperado": "supported",
+             "veredicto": "supported", "confidence": 0.9},
+            {"categoria": "contradicted", "esperado": "contradicted",
+             "veredicto": "supported", "confidence": 0.8},
+        ]
+        metricas = factual.metricas([], detalle)
+        self.assertEqual(metricas["brier"], 0.325)
+        self.assertEqual(metricas["ece"], 0.35)
+        self.assertEqual(metricas["intervalo"]["n"], 2)
+        self.assertEqual(metricas["intervalo"]["brier"], 0.325)
+        self.assertEqual(len(metricas["intervalo"]["ic95"]), 2)
+
     def test_metricas_con_entradas_vacias_no_revientan(self):
         metricas = factual.metricas([], [])
         self.assertIsNone(metricas["exactitud"])
         self.assertIsNone(metricas["tasa_abstencion"])
+        self.assertIsNone(metricas["brier"])
+        self.assertIsNone(metricas["ece"])
+        self.assertIsNone(metricas["intervalo"])
 
 
 if __name__ == "__main__":

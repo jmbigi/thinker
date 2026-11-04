@@ -27,6 +27,8 @@ import sys
 
 from deep_research_system import EvidenceEvaluator, ResearchContext
 from llm_providers import MockLLM
+from tests.benchmarks.calibracion_confianza import calcular_brier, calcular_ece
+from tests.benchmarks.calibracion_real import brier_con_intervalo
 
 CATEGORIAS = ("supported", "contradicted", "insufficient")
 
@@ -161,7 +163,7 @@ def evaluar_casos(llm):
 
 
 def metricas(veredictos, detalle):
-    """Exactitud global/por categoría, falsos verificados y abstención."""
+    """Exactitud, falsos verificados, abstención y calibración observada."""
     exactos = sum(1 for d in detalle if d["veredicto"] == d["esperado"])
     por_categoria = {}
     for categoria in CATEGORIAS:
@@ -177,6 +179,11 @@ def metricas(veredictos, detalle):
     insuficientes = [d for d in detalle if d["categoria"] == "insufficient"]
     abstencion = sum(1 for d in insuficientes
                      if d["veredicto"] == d["esperado"])
+    confianzas = [float(d.get("confidence", 0.0) or 0.0) for d in detalle]
+    aciertos = [d["veredicto"] == d["esperado"] for d in detalle]
+    pares = list(zip(confianzas, aciertos))
+    brier = calcular_brier(pares)
+    ece = calcular_ece(pares)
     return {
         "n": len(detalle),
         "exactitud": round(exactos / len(detalle), 3) if detalle else None,
@@ -184,6 +191,9 @@ def metricas(veredictos, detalle):
         "falsos_verificados": len(falsos),
         "tasa_abstencion": round(abstencion / len(insuficientes), 3)
         if insuficientes else None,
+        "brier": round(brier, 4) if brier is not None else None,
+        "ece": round(ece, 4) if ece is not None else None,
+        "intervalo": brier_con_intervalo(confianzas, aciertos),
     }
 
 
@@ -220,6 +230,8 @@ def main(argv=None) -> int:
     print(f"  n={metricas_['n']} exactitud={metricas_['exactitud']} "
           f"falsos_verificados={metricas_['falsos_verificados']} "
           f"abstencion={metricas_['tasa_abstencion']}")
+    print(f"  brier={metricas_['brier']} ece={metricas_['ece']} "
+          f"IC95={metricas_['intervalo']['ic95']}")
     for categoria, datos in metricas_["por_categoria"].items():
         print(f"  {categoria:13s} {datos['aciertos']}/{datos['n']} "
               f"({datos['exactitud']})")
