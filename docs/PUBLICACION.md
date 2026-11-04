@@ -1,11 +1,11 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-04: **versión `0.1.22` preparada; `0.1.21` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-04: **versión `0.1.22` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
-> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20` y
-> `v0.1.21` empujados; `v0.1.2` a `v0.1.21` son anotados. `0.1.2` **no
+> `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20`,
+> `v0.1.21` y `v0.1.22` empujados; `v0.1.2` a `v0.1.22` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -18,7 +18,7 @@
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
 - `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.22`
-  preparada para publicación.
+  publicada en TestPyPI y PyPI.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -72,6 +72,9 @@
 - **Publicación completada de `0.1.21`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.21` (objeto `5f95115`, commit `29a80b9`) e
   instalaciones limpias verificadas; ver la sección 0.1.21.
+- **Publicación completada de `0.1.22`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.22` (objeto `a6d6618`, commit `dd3e3cb`) e
+  instalaciones limpias verificadas; ver la sección 0.1.22.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -103,17 +106,26 @@ verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 
 ## Versión 0.1.22 (2026-11-04)
 
-Paquete `thinker-research 0.1.22` (wheel y sdist), preparado para TestPyPI y
-PyPI. Refuerza el gate de coherencia documental y de versiones, incluida la
-distinción entre paquete actual/preparado y publicado. El lock mantiene
-`openai 3.42.0`.
+Paquete `thinker-research 0.1.22` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Refuerza el gate de coherencia documental y de versiones, incluida la
+distinción entre paquete actual/preparado y publicado, y añade dos regresiones
+R3. El lock mantiene `openai 3.42.0`.
 
-Validación previa: suite **1401/1401**. Dos regresiones cierran otras tantas
-brechas reproducidas en `r3c4` y en el código actual: R3 baja de **69 a 67
-brechas**, con **139 equivalencias** intactas. La campaña de 6144 mutantes no
-aporta una tasa global válida porque la muestra directa detectó dos falsos
-«killed». Artefactos, tag, hashes e instalaciones pendientes de verificación en
-este commit.
+Validación: suite **1401/1401**, 7/7 gates PASS, `make check` PASS y CI limpia
+sobre `dd3e3cb`. Las dos regresiones cierran otras tantas brechas reproducidas en
+`r3c4` y en el código actual: R3 baja de **69 a 67 brechas**, con **139
+equivalencias** intactas. La campaña de 6144 mutantes no aporta una tasa global
+válida porque la muestra directa detectó dos falsos «killed».
+
+Artefactos construidos desde el tag `v0.1.22` (`dd3e3cb`); `twine check` PASSED.
+SHA-256: `5be6c05a4199dc1171d16a1a426990341902974bc0411b83752958ce11afd616`
+(wheel) y `8f84a52faa4b85d67b21dbaf34bae57c686acb4e1be931a83ba5e225400941cb`
+(sdist). Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI
+y PyPI pasan `pip check`, 19 módulos obligatorios y cuatro consolas; el extra `ml`
+no se exige. La primera instalación de PyPI no vio la versión; se comprobó la
+propagación del índice simple y el reintento con `--no-cache-dir` pasó. Tag
+anotado `v0.1.22` (objeto `a6d6618`, commit `dd3e3cb`) empujado y verificado con
+`git ls-remote`. Evidencia: `build/release22-verificacion.json`.
 
 ## Versión 0.1.21 (2026-11-02)
 

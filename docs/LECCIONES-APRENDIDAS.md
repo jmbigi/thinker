@@ -4708,3 +4708,23 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/verificacion-directa-current.json`, `build/r3-cierre2-aislado.json` y
   `build/r3-cierre2-historico.json`. Quedan **67 brechas históricas**; no se
   declara R3 cerrado ni se descuentan los 36 equivalentes como muertes.
+
+### Hallazgo 218: cerrar la publicación solo tras instalar desde ambos índices
+
+- **Release (2026-11-04)**: `0.1.22` incorpora el gate documental y las dos
+  regresiones R3 del Hallazgo 217. La suite quedó en **1401/1401**, `make check`
+  y la CI limpia pasaron sobre `dd3e3cb`. El tag anotado `v0.1.22` (objeto
+  `a6d6618`) y `main` fueron empujados antes de construir.
+- **Artefactos**: wheel y sdist se construyeron desde una exportación limpia del
+  tag, no desde el `build/` principal. `twine check` PASSED. SHA-256:
+  `5be6c05a4199dc1171d16a1a426990341902974bc0411b83752958ce11afd616` (wheel) y
+  `8f84a52faa4b85d67b21dbaf34bae57c686acb4e1be931a83ba5e225400941cb` (sdist).
+  TestPyPI y PyPI publican exactamente esos hashes.
+- **Instalación**: ambos índices permitieron instalaciones limpias con `pip
+  check`, 19 módulos obligatorios y cuatro consolas. El extra `ml` sigue siendo
+  opcional. La primera instalación de PyPI no vio `0.1.22`; se comprobó el
+  índice simple y el reintento con `--no-cache-dir` pasó. El fallo inicial no se
+  contó como éxito ni se sustituyó por el wheel local.
+- **Evidencia y alcance**: `build/release22-verificacion.json`. R3 permanece en
+  **67 brechas + 139 equivalencias** y no se añadió una tasa global de mutación.
+  No se usó `gh` ni se creó una GitHub Release.

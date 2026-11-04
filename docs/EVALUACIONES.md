@@ -1352,3 +1352,15 @@ válida. Evidencias: `build/verificacion-directa-current.json`,
 `build/r3-cierre2-aislado.json` y `build/r3-cierre2-historico.json`. Cobertura
 actual: **84,03% de líneas y 84,58% de ramas** (2485/2938). Hallazgo 217.
 Artefactos, tag, publicación e instalaciones pendientes de verificación.
+
+**Actualización 2026-11-04** (publicación de `0.1.22`): wheel y sdist construidos
+desde `v0.1.22` (`dd3e3cb`), `twine check` PASSED y publicados en TestPyPI y PyPI.
+SHA-256: `5be6c05a4199dc1171d16a1a426990341902974bc0411b83752958ce11afd616`
+(wheel) y `8f84a52faa4b85d67b21dbaf34bae57c686acb4e1be931a83ba5e225400941cb`
+(sdist), idénticos en ambos índices. Instalaciones limpias desde TestPyPI y PyPI
+con `pip check`, 19 módulos obligatorios y cuatro consolas verificados. La primera
+instalación de PyPI no vio la versión; se comprobó la propagación del índice
+simple y el reintento pasó. Suite **1401/1401** en Linux (Python 3.11.9) y CI
+limpia sobre `dd3e3cb`. R3 queda en **67 brechas + 139 equivalencias**, sin una
+nueva tasa global válida. Evidencia: `build/release22-verificacion.json`.
+Hallazgo 218.
