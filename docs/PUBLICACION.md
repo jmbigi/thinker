@@ -1,12 +1,11 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-04: **versión `0.1.23` preparada para publicación**;
-> `0.1.22` sigue publicada en TestPyPI y PyPI hasta completar la verificación.
+> Estado al 2026-11-04: **versión `0.1.23` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20`,
-> `v0.1.21` y `v0.1.22` empujados; `v0.1.2` a `v0.1.22` son anotados. `0.1.2` **no
+> `v0.1.21`, `v0.1.22` y `v0.1.23` empujados; `v0.1.2` a `v0.1.23` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -19,8 +18,7 @@
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
 - `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.23`
-  preparada para publicación; no se afirma disponibilidad hasta verificarla.
-  Paquete `thinker-research 0.1.23` **preparado**, no publicado todavía.
+  publicada en TestPyPI y PyPI; artefactos, hashes e instalaciones verificados.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -105,6 +103,31 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.23 (2026-11-04)
+
+Paquete `thinker-research 0.1.23` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Actualiza el lock a `openai 3.45.0` (`anyio 4.16.0` y
+`typing-inspection 0.4.5`), expone Brier/ECE/IC en el benchmark factual,
+corrige el bucle de symlinks en Python 3.14 y registra la calibración real
+acotada. R3 permanece en **0 brechas + 125 equivalencias validadas**.
+
+Validación: suite **1409/1409** en Linux 3.11.9, 3.12.3 y 3.14.4 con openai
+3.45.0, **7/7 gates PASS** y CI limpia sobre `29e1420`; `pip-audit` sin
+vulnerabilidades. El benchmark factual real da 30/30, 0 falsos verificados y
+Brier 0,0044 (IC95 [0,0031; 0,0059]); el piloto da 20/20 y Brier 0,0050. Son
+muestras pequeñas y fáciles: no prueban calibración general.
+
+Artefactos construidos desde el tag `v0.1.23` (`29e1420`; objeto `d2b02a4`);
+`twine check` PASSED. SHA-256:
+`da834c889601f39d7970296135e0afc61f97e9c9dfd981b039cf545f47b91d7d` (wheel) y
+`a9bd500905d4ba5a32b1c8e76c89383b467cbf5fd07675c91e98ebc09925f328` (sdist).
+Ambos índices publican esos hashes. Las instalaciones limpias desde TestPyPI y
+PyPI pasan `pip check`, 19 módulos obligatorios y cuatro consolas; el extra `ml`
+no se exige. El primer `pip install` de PyPI no vio la versión mientras el JSON
+y los hashes ya eran correctos; se consultó la ruta real de `pip` con
+`pip index versions` y el reintento sin caché pasó. Evidencia:
+`build/release23-verificacion.json`.
 
 ## Versión 0.1.22 (2026-11-04)
 

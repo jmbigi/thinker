@@ -4840,3 +4840,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/mejoras-suite-py31{1,2,4}-lock345-verified.log`,
   `build/mejoras-calibracion-real-n20.json` y
   `build/mejoras-factual-real-n30.json`.
+
+### Hallazgo 224: separar «subido» de «instalable» al publicar
+
+- **Release (2026-11-04)**: `0.1.23` incorpora el lock con `openai 3.45.0`,
+  el Brier/ECE/IC del benchmark factual, la corrección de symlinks en Python
+  3.14 y la evidencia de calibración real. Suite **1409/1409** en 3.11/3.12/3.14,
+  7/7 gates y CI limpia sobre `29e1420`; tag anotado `v0.1.23` (objeto
+  `d2b02a4`) empujado antes de construir desde una exportación limpia.
+- **Artefactos**: wheel
+  `da834c889601f39d7970296135e0afc61f97e9c9dfd981b039cf545f47b91d7d` y sdist
+  `a9bd500905d4ba5a32b1c8e76c89383b467cbf5fd07675c91e98ebc09925f328`;
+  `twine check` PASSED.
+- **Primer intento de PyPI**: la subida terminó y el JSON de versión ya exponía
+  los hashes correctos, pero `pip install --no-cache-dir` seguía viendo hasta
+  0.1.22. Se distinguió explícitamente «artefacto subido» de «índice simple
+  propagado» y se consultó la ruta real de `pip` con `pip index versions`.
+  Cuando esa consulta mostró 0.1.23, el reintento instaló.
+- **Verificación final**: TestPyPI y PyPI con hashes remotos idénticos a los
+  locales, `pip check`, **19 módulos** y **cuatro consolas**. El fallo inicial no
+  se ocultó ni se contó como éxito.
+- **Evidencias**: `build/release23-verificacion.json`,
+  `build/release23-upload-testpypi.log`, `build/release23-upload-pypi.log`,
+  `build/release23-testpypi-verificacion.log` y
+  `build/release23-pypi-verificacion.log`.

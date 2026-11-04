@@ -1411,3 +1411,17 @@ la ruta en vez de lanzar `RuntimeError`; los enlaces rotos conservan el veredict
 Evidencias: `build/mejoras-suite-py31{1,2,4}-lock345-verified.log`,
 `build/mejoras-calibracion-real-n20.json`, `build/mejoras-factual-real-n30.json`
 y `docs/metricas-calidad.json`. Hallazgo 223.
+
+**Actualización 2026-11-04** (publicación de `0.1.23`): artefactos construidos
+desde el tag `v0.1.23` (commit `29e1420`; objeto `d2b02a4`), `twine check`
+PASSED y publicados en TestPyPI y PyPI. Suite **1409/1409** en Linux
+(3.11.9, 3.12.3 y 3.14.4) y 7/7 gates PASS. SHA-256:
+`da834c889601f39d7970296135e0afc61f97e9c9dfd981b039cf545f47b91d7d` (wheel) y
+`a9bd500905d4ba5a32b1c8e76c89383b467cbf5fd07675c91e98ebc09925f328` (sdist).
+Ambos índices publican esos hashes; instalaciones limpias con `pip check`,
+19 módulos obligatorios y cuatro consolas. La primera instalación directa de
+PyPI chocó con la propagación del índice simple mientras JSON y hashes ya eran
+correctos; se consultó con `pip index versions` y el reintento sin caché pasó.
+Evidencias: `build/release23-verificacion.json`,
+`build/release23-testpypi-verificacion.log` y
+`build/release23-pypi-verificacion.log`. Hallazgo 224.
