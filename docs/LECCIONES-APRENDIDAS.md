@@ -4767,3 +4767,23 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/r3-preflight-cierre17.json`, `build/r3-preflight-cierre-dinamicos.json`
   y `build/r3-e1-actual-verificacion.json`. Las **67 brechas históricas** siguen
   abiertas y su reconstrucción continúa por lotes separados.
+
+### Hallazgo 221: cerrar los 355 candidatos sin perder los contextos especiales
+
+- **Consolidación**: cuatro workers con fixtures actuales procesaron los 355
+  candidatos. Resultado: **304 detectados por tests**, **34 equivalencias
+  conocidas** y **17 contextos `no_aplicable` revisados manualmente**. Las cuatro
+  pasadas originales devolvieron 0. Los 34 supervivientes pertenecen al inventario
+  validado, así que **0 brechas abiertas** y **125 equivalencias validadas**.
+- **Contextos**: `puede_fallar` 15 es equivalente; los demás 16 fueron detectados
+  por contratos actuales o resueltos por la implementación vigente. Los cinco de
+  Poetry no se forzaron con reemplazo localizado porque la función cambió y ya
+  tiene contratos de rangos y advertencias.
+- **Regresión nueva**: una línea vacía antes de una dependencia sigue leyéndola;
+  el mutante `continue` → `break` deja de procesarla. La nueva prueba falla con
+  `[] != ['requests']` y el original pasa. La deduplicación de `vistos` ya estaba
+  cubierta por `test_requirements_conserva_vistos_entre_llamadas`.
+- **Verificación**: suite **1407/1407**. Evidencia consolidada:
+  `build/r3-consolidado-355.json` y `build/r3-no-aplicable-casos.json`. No se
+  recalcula una tasa global: las campañas con artefactos conocidos solo aportan
+  candidatos y verificaciones directas, no una cifra de calidad nueva.

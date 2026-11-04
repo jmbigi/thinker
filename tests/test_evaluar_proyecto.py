@@ -346,6 +346,15 @@ class TestDependenciasDelEvaluador(unittest.TestCase):
             (raiz / "base.txt").resolve(),
         })
 
+    def test_requirements_linea_vacia_no_detiene_lectura(self):
+        raiz = crear_proyecto(self, {
+            "requirements.txt": "\nrequests==2.31.0\n",
+        })
+
+        deps = evaluar_proyecto._leer_requirements(raiz / "requirements.txt", raiz)
+
+        self.assertEqual([d["nombre"] for d in deps], ["requests"])
+
     def test_pyproject_lee_project_dependencies_y_no_listas_de_herramientas(self):
         from evaluar_proyecto import _dependencias
 

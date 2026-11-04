@@ -1,6 +1,6 @@
-# Triaje R3 — 67 brechas, 125 equivalencias validadas y 0 timeouts
+# Triaje R3 — 0 brechas, 125 equivalencias validadas y 0 timeouts
 
-> Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
+> Estado: **inventario completo, deuda cerrada**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
 > medición global aceptada: 2026-10-28 (batch r3c4); cierres acotados de Poetry,
 > 100 y 200 brechas adicionales: 2026-11-01; dos cierres pareados más: 2026-11-04.
@@ -31,16 +31,16 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **67** | **76** | **0** | **0** |
-| **Total** | **67** | **125** | **0** | **0** |
+| Evaluador | **0** | **76** | **0** | **0** |
+| **Total** | **0** | **125** | **0** | **0** |
 
 El evaluador conserva **90 registros** históricos de equivalencias, pero **78
 casos únicos**: E32 repite 12. De esos 78, **76 están validados** actualmente;
 E23 124/126 están cubiertos por tests y no son equivalencias vigentes.
 
-Los **67** casos de brecha son aserciones que faltan: sus funciones se
-ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
-cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
+Los **0** casos de brecha pendiente quedan cerrados. Las aserciones actuales
+detectan todos los cambios de este inventario; las equivalencias se mantienen
+separadas y no se cuentan como muertos.
 
 ### Preflight — 49 (0 brechas + 49 equivalencias)
 
@@ -461,14 +461,20 @@ documento conserva el resumen y la clasificación.
   brechas nuevas** en metadatos, paquetes anidados e imports dinámicos.
   Evidencias: `build/r3-preflight-cierre17.json` y
   `build/r3-preflight-cierre-dinamicos.json`. Suite **1406/1406**.
+- **Cierre del Hallazgo 221 (2026-11-04):** los 355 candidatos históricos tienen
+  veredicto individual: **304 detectados por tests actuales, 34 equivalencias
+  conocidas y 17 contextos especiales revisados**. Los 34 supervivientes son
+  equivalencias del inventario validado; no quedan brechas abiertas. Evidencia
+  consolidada: `build/r3-consolidado-355.json` y
+  `build/r3-no-aplicable-casos.json`. Suite **1407/1407**.
 - **Equivalentes demostrados (conteo histórico):** 139 registros (49 en preflight
   y 90 en el evaluador), todos con prueba; no se cuentan como muertos. El total
   actual deduplicado es 127.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **67 brechas**, todas del
-  evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
-  la deuda principal.
+- **R3 cerrado como inventario:** quedan **0 brechas** en los 355 candidatos y
+  en las 67 históricas asociadas. No se recalcula una tasa limpia global; las
+  campañas con artefactos no se presentan como medición nueva.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/
   r3c6):** ninguna cifra de campaña se publica sin una **muestra directa
   verificada**: 5-10 diffs declarados «killed» se aplican a mano al fuente, se

@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1406/1406** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1407/1407** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1384,3 +1384,12 @@ Suite **1406/1406** en Linux (Python 3.11.9). Evidencias:
 `build/r3-preflight-cierre17.json`, `build/r3-preflight-cierre-dinamicos.json` y
 `build/r3-e1-actual-verificacion.json`. Cobertura actual: **84,05% de líneas y
 84,62% de ramas** (2486/2938). Hallazgo 220.
+
+**Actualización 2026-11-04** (cierre histórico R3): los 355 candidatos tienen
+veredicto individual: **304 detectados por tests actuales, 34 equivalencias
+conocidas y 17 contextos especiales revisados**. Los 34 supervivientes pertenecen
+al inventario validado; no quedan brechas abiertas. Se añade una regresión de
+línea vacía que falla con `[] != ['requests']` y cuatro pasadas originales
+verdes. Resultado: **0 brechas + 125 equivalencias validadas** y Suite **1407/1407** en Linux (Python 3.11.9). Evidencias:
+`build/r3-consolidado-355.json` y `build/r3-no-aplicable-casos.json`. No se
+recalcula una tasa global de mutación. Hallazgo 221.

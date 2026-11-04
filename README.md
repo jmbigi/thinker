@@ -386,7 +386,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1406/1406** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 tests (**+24,6%** desde 1128) |
+| Suite Linux | **1407/1407** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 tests (**+24,7%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -396,14 +396,14 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
-| R3 | **67 brechas + 125 equivalencias validadas** | 1131 → 368 → 168 → 69 → 67 brechas (**−94,1%** desde 1131); 139 registros históricos, 127 únicas, 125 validadas |
+| R3 | **0 brechas + 125 equivalencias validadas** | 1131 → 368 → 168 → 69 → 67 → 0 brechas (**−100%** desde 1131); 139 registros históricos, 127 únicas, 125 validadas |
 
 ```mermaid
 xychart-beta
     title "Brechas R3 pendientes (menos es mejor)"
-    x-axis ["r3c4", "H169", "H176", "H210", "H211", "H213", "H214", "H217"]
+    x-axis ["r3c4", "H169", "H176", "H210", "H211", "H213", "H214", "H217", "H221"]
     y-axis "Brechas" 0 --> 1200
-    line [1131, 949, 673, 568, 368, 168, 69, 67]
+    line [1131, 949, 673, 568, 368, 168, 69, 67, 0]
 ```
 
 ```mermaid
