@@ -3,8 +3,9 @@
 Offline y read-only (P0.1/P0.2): contrasta las afirmaciones volátiles que
 envejecen con cada cambio contra el estado real del repositorio — nº de tests
 declarado, pines de `requirements.txt` frente a `requirements.lock`, versión
-del paquete frente a la publicada y cifra de mutación de `README.md` frente a
-la vigente de `AGENTS.md`. Los históricos fechados no se comprueban.
+del paquete frente a la publicada y al estado medido de
+`docs/RECOMENDACIONES-MEJORAS.md`, y cifra de mutación de `README.md` frente
+a la vigente de `AGENTS.md`. Los históricos fechados no se comprueban.
 
 Uso: python3 scripts/check_docs.py [RAIZ]
 Códigos: 0 todo cuadra | 1 discrepancias | 2 error de lectura/parseo.
@@ -215,6 +216,22 @@ def verificar(raiz: Path) -> list[str]:
     elif version not in publicadas:
         problemas.append(f"pyproject declara versión {version} y PUBLICACION.md "
                          f"no la menciona como publicada ({sorted(publicadas)})")
+
+    if version:
+        texto_recomendaciones = (raiz / "docs" / "RECOMENDACIONES-MEJORAS.md").read_text(
+            encoding="utf-8")
+        version_recomendaciones = re.search(
+            r"^\|\s*Paquete (?:actual|publicado)\s*\|\s*\*\*(\d+\.\d+\.\d+)\*\*",
+            texto_recomendaciones, re.M)
+        if version_recomendaciones is None:
+            problemas.append(
+                "docs/RECOMENDACIONES-MEJORAS.md no declara la versión del "
+                "paquete actual/publicado en su tabla de estado medido")
+        elif version_recomendaciones.group(1) != version:
+            problemas.append(
+                f"docs/RECOMENDACIONES-MEJORAS.md declara paquete "
+                f"{version_recomendaciones.group(1)} y pyproject.toml "
+                f"declara {version}")
 
     return problemas
 

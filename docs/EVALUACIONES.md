@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1397/1397** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1399/1399** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1325,3 +1325,16 @@ pip de PyPI no vio la versión; el segundo, tras 20 s, pasó.
 Suite **1397/1397** en Linux (Python 3.11.9) y CI limpia sobre `29a80b9`. Evidencias:
 `build/release21-build.log`, `build/release21-testpypi.json` y
 `build/release21-pypi.json`. Hallazgo 215.
+
+**Actualización 2026-11-04** (coherencia del estado de recomendaciones): la
+autoevaluación offline con suite real mantuvo **1.000 (27/29; 2 N/A)** y el
+benchmark del evaluador repitió **57 casos, 26 criterios, F1 1.00**. El
+analizador estático solo encontró tres avisos de demo/estilo, que no se
+vendieron como mejoras sustantivas. La revisión sí reprodujo un falso verde:
+`check_docs` daba OK con `pyproject.toml` en `0.1.21` y la tabla de estado de
+`RECOMENDACIONES-MEJORAS.md` en `0.1.19`. Dos regresiones fallaron antes del
+cambio; ahora el gate contrasta esa fila con el paquete y exige el dato.
+`tests.test_check_docs`: **14/14**. Suite **1399/1399** en Linux (Python
+3.11.9). Cobertura medida con `metricas_calidad.py --con-cobertura`: **84,01%
+de líneas y 84,55% de ramas** (2484/2938). R3 permanece en **69 brechas +
+139 equivalencias**. Hallazgo 216.

@@ -27,6 +27,8 @@ class TestCheckDocs(unittest.TestCase):
                 "**Actualización 2026-10-23**\n"
                 "Suite **3/3** en Linux.\n"),
             "docs/PUBLICACION.md": "`thinker-research 0.1.0` publicado.\n",
+            "docs/RECOMENDACIONES-MEJORAS.md": (
+                "| Paquete actual | **0.1.0** (preparado; 0.0.9 publicado) |\n"),
             "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
             "requirements.txt": "requests==2.0.0\nopenai>=1.0,<3\n",
             "requirements.lock": "requests==2.0.0\nopenai==2.5.0\n",
@@ -86,12 +88,33 @@ class TestCheckDocs(unittest.TestCase):
                             for p in problemas), problemas)
 
     def test_version_no_publicada(self):
-        raiz = self._repo(**{"pyproject.toml": (
-            '[project]\nname = "demo"\nversion = "0.1.1"\n')})
+        raiz = self._repo(**{
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.1"\n',
+            "docs/RECOMENDACIONES-MEJORAS.md": (
+                "| Paquete publicado | **0.1.1** (TestPyPI y PyPI) |\n"),
+        })
 
         problemas = verificar(raiz)
 
         self.assertTrue(any("versión 0.1.1" in p for p in problemas), problemas)
+
+    def test_version_desactualizada_en_recomendaciones(self):
+        raiz = self._repo(**{"docs/RECOMENDACIONES-MEJORAS.md": (
+            "| Paquete publicado | **0.0.9** (TestPyPI y PyPI) |\n")})
+
+        problemas = verificar(raiz)
+
+        self.assertTrue(any("RECOMENDACIONES-MEJORAS.md declara paquete 0.0.9"
+                            in p for p in problemas), problemas)
+
+    def test_recomendaciones_sin_version_de_paquete(self):
+        raiz = self._repo(**{
+            "docs/RECOMENDACIONES-MEJORAS.md": "# Estado medido sin versión\n"})
+
+        problemas = verificar(raiz)
+
+        self.assertTrue(any("RECOMENDACIONES-MEJORAS.md no declara la versión"
+                            in p for p in problemas), problemas)
 
     def test_publicacion_con_formato_de_estado(self):
         raiz = self._repo(**{

@@ -139,11 +139,11 @@ mejora de código (`code_design_improvement_tools.py`).
   `packaging`; el lock fija las exactas con hashes); `ollama` opcional y extra
   `ml` con `torch==2.15.0`
   (`requirements-ml.txt` + lock propio). `openai` verificado en **1.109.1, 2.54.0,
-  3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0 y 3.42.0** (canario en
+  3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0 y 3.42.1** (canario en
   `tests/test_openai_compatibilidad.py`; 3.35.1 verificado el 2026-10-20 con
   703/703 en 3.11 y 3.12; 3.40.0 verificado el 2026-10-28 con 1018/1018 en 3.11;
   3.42.0 verificado el 2026-10-31 con el evaluador 237/237 en venv aislado desde
-  el lock). Tras el corte 3
+  el lock; 3.42.1 verificado el 2026-11-04 con 1399/1399 en 3.11). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -156,8 +156,9 @@ mejora de código (`code_design_improvement_tools.py`).
 - Gate documental: `python3 scripts/check_docs.py` (offline, read-only) —
   contrasta las cifras de estado presente (nº de tests en `AGENTS.md` y
   `docs/EVALUACIONES.md`, pines de `requirements.txt` vs lock, versión del
-  paquete vs `docs/PUBLICACION.md` y cifra de mutación de `README.md` frente
-  a `AGENTS.md`) con la realidad; integrado en `make check` y en el hook
+  paquete vs `docs/PUBLICACION.md` y vs la tabla de estado de
+  `docs/RECOMENDACIONES-MEJORAS.md`, y cifra de mutación de `README.md`
+  frente a `AGENTS.md`) con la realidad; integrado en `make check` y en el hook
   pre-commit. Los históricos fechados no se tocan.
 - Suite de tests: `python3 -m unittest discover -s tests -v` (stdlib, sin red).
 - Cobertura: `python3 -m coverage run --source=. -m unittest discover -s tests && python3 -m coverage report -m`
@@ -383,16 +384,17 @@ mejora de código (`code_design_improvement_tools.py`).
   demostradas**. Después, otras 99 muertes y 13 equivalencias nuevas del
   inventario R3 (Hallazgo 214); R3 queda en **69 brechas + 139 equivalencias**
   (49+90). No se alcanzaron las 200 de este lote: faltan 101 muertes.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1397/1397 en la suite
-  Linux** (2026-11-01; openai 3.40.0 y `packaging 26.3` en el venv de validación,
-  con `ruff` para el doctor; lock en openai 3.42.0) y **3.12.3**
+- Plataformas verificadas: Linux con Python **3.11.9**: **1399/1399 en la suite
+  Linux** (2026-11-04; openai 3.42.1 y `packaging 26.3` en el entorno actual,
+  con `ruff` para el doctor; medición anterior: 1397/1397 el 2026-11-01 con
+  openai 3.40.0; lock en openai 3.42.0) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
   en ambos** con la suite de esa fecha (2026-10-22; incluye
   instalación limpia con `pip install .` y desde el lock). openai verificado
-  en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0 y 3.42.0 (lock en
-  3.42.0 con hashes desde 2026-10-31). La suite del evaluador creció de 41 a 58 tests con las
+  en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0 y 3.42.1
+  (lock en 3.42.0 con hashes desde 2026-10-31). La suite del evaluador creció de 41 a 58 tests con las
   regresiones del audit (Hallazgo 94), a 60 con las regresiones de
   `_local_debug` y del runner sin `make` (Hallazgo 96), a 66 con las
   regresiones del Hallazgo 97, a 83 con los 17 tests del modo `--requisitos`

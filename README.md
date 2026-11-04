@@ -48,7 +48,7 @@ herramientas de análisis estático de código.
   - Dependencias: `requests`, `openai>=1.0,<4`, `python-dotenv`, `PyYAML`,
     `pypdf`, `cryptography` y `packaging` (ver `requirements.txt`; el lock fija
     las exactas con hashes). `openai` verificado en 1.109.1, 2.54.0, 3.33.0,
-    3.35.1, 3.36.1, 3.37.0, 3.40.0 y 3.42.0 (lock en 3.42.0).
+    3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0 y 3.42.1 (lock en 3.42.0).
   - Opcional: [Ollama](https://ollama.com/) para modelos locales y extra `ml`
     con `torch==2.15.0` (`requirements-ml.txt` + `requirements-ml.lock`).
 
@@ -386,13 +386,13 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1397/1397** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 tests (**+20,3%** desde 1128) |
+| Suite Linux | **1399/1399** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 tests (**+24,0%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
 | RAG léxico | **Recall@5 0.938** | 10 pasajes, 16 consultas; MRR 0.906, nDCG@10 0.914 |
 | Calibración simulada | **Brier 0.1166 / ECE 0.1437** | 16 casos; **no calibrada**, no es probabilidad |
-| Cobertura | **83,60% líneas / 84,08% ramas** | 2440/2902 ramas; `coverage --branch` |
+| Cobertura | **84,01% líneas / 84,55% ramas** | 2484/2938 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |

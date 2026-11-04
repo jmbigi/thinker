@@ -4657,3 +4657,27 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   no se contó como éxito ni se sustituyó por una instalación directa del wheel.
 - **Evidencias**: `build/release21-build.log`, `build/release21-wheel.log`,
   `build/release21-testpypi.json` y `build/release21-pypi.json`.
+
+### Hallazgo 216: un gate verde no prueba coherencia fuera de su alcance
+
+- **Dogfooding (2026-11-04)**: `evaluar_proyecto` ejecutó la suite real y mantuvo
+  la autoevaluación offline en 1.000; el benchmark repitió 57 casos y 26
+  criterios con F1 1.00. `code_design_improvement_tools` analizó los 18 módulos
+  públicos y solo aportó tres avisos de demo/estilo, descartados como mejoras
+  sustantivas. La decisión de cambiar código nació de contrastar el alcance real
+  de `check_docs`, no de subir una nota.
+- **Defecto reproducible**: `pyproject.toml` y `PUBLICACION.md` estaban en
+  `0.1.21`, pero la tabla de estado de `RECOMENDACIONES-MEJORAS.md` decía
+  `0.1.19`; `python3 scripts/check_docs.py` respondía «DOCS: OK».
+- **Regresión y arreglo**: dos pruebas nuevas fallaron antes del cambio, una con
+  versión obsoleta y otra sin la fila de versión. El gate contrasta la fila de
+  paquete actual/publicado con `pyproject.toml` y admite tanto una versión ya
+  publicada como una preparada, sin confundir sus estados; no busca ni reescribe
+  versiones históricas.
+- **Verificación**: `tests.test_check_docs` pasó 14/14, la suite completa quedó
+  en **1399/1399**, y `py_compile` y ruff pasaron. La ejecución inicial del
+  gate corregido detectó además las cifras 1397 pendientes de actualizar a
+  1399, evitando ocultar el efecto de las dos pruebas nuevas.
+- **Alcance**: R3 permanece en **69 brechas + 139 equivalencias**. No cambió el
+  pipeline, el evaluador, una puntuación ni la versión publicada; no corresponde
+  una release por esta corrección de tooling y documentación.

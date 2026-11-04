@@ -54,8 +54,8 @@ re-medición.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1397/1397** en Linux 3.11.9 (2026-11-01) | `python3 -m unittest discover -s tests -q` |
-| CI local (última copia limpia) | **OK** | copia limpia del árbol (HEAD + diff); limpieza Python validada del temporal |
+| Suite completa | **1399/1399** en Linux 3.11.9 (2026-11-04) | `python3 -m unittest discover -s tests -q` |
+| CI local (última copia limpia) | **OK** | copia limpia de HEAD; limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (30/30; 0 N/A) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |
 | Lock `openai` | **3.42.0** con hashes (2026-10-31) | `requirements.lock` |
@@ -65,7 +65,7 @@ re-medición.
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Mutación preflight | **95,18%** (967/1016; 49 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo preflight` |
 | Mutación evaluador | **80,98%** (4846/5984; 1138 supervivientes: 1131 brechas + 7 equivalencias, 0 timeouts; 2026-10-28) | `python3 scripts/mutacion.py --objetivo evaluar` |
-| Paquete publicado | **0.1.19** (2026-11-01; TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete actual | **0.1.21** (2026-11-02; publicado en TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda principal que queda es la **mutación** de esos dos
@@ -495,6 +495,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | Auditor de cambios (2026-11-01, Hallazgo 212) | `audit_changes` y pruebas de regresión | El gate marcó una cadena de datos como matcher flojo; la prueba de `tsconfig` refutó el primer filtro global | Helper limitado a aserciones y matchers; 29/29 tests del auditor; suite **1343/1343**; R3 sin cambios; release `0.1.20` publicada y tag `v0.1.20` |
 | R3 (2026-11-01, Hallazgo 213) | `evaluar_proyecto`, arnés pareado r3c4/actual y `code_design_improvement_tools` | Thinker priorizó helpers abiertos; el arnés solo contó muertes con supervivencia en r3c4 y fallo actual, y detectó que un equivalente previo ahora muere | 3 métodos (2 contratos y la regresión de `GIT_INDEX_FILE` en fixtures); **205 muertes halladas**, **200 contadas** y 4 excedentes; 1 equivalencia previa excluida hasta revisión; originales restaurados por SHA-256; R3: **368→168 brechas + 126 equivalencias**; suite **1346/1346** |
 | R3 (2026-11-01, Hallazgo 214) | `evaluar_proyecto`, arnés pareado r3c4/actual y `tests.helpers` | El lote de 200 no se alcanzó: 86 muertes ya detectadas por contratos previos, 13 nuevas y 13 equivalencias; la cola del plan quedó en `historico_killed` y los clústeres cerrados se excluyeron para no duplicar | 4 contratos de borde (`informe_texto`, requirements, tag `XX`, `setup.cfg`); **99 muertes + 13 equivalencias E32**; R3: **168→69 brechas + 139 equivalencias**; 0 hallazgos nuevos fuera del inventario; faltan 101 muertes; suite **1397/1397** |
+| Coherencia documental (2026-11-04, Hallazgo 216) | `evaluar_proyecto`, `code_design_improvement_tools` y `check_docs` | La autoevaluación con suite real dio 1.000 offline; el analizador solo aportó tres avisos de demo/estilo, descartados como mejora sustantiva. La revisión del gate encontró `0.1.19` en recomendaciones frente a `0.1.21` en el paquete pese a «DOCS: OK» | Dos regresiones rojas antes del arreglo; el gate contrasta la fila de paquete actual/publicado con `pyproject.toml`; 14/14 pruebas del gate, suite **1399/1399** y R3 sin cambios |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -576,7 +577,7 @@ declaradas). **Pendiente de ejecución:**
    previa excluida hasta revisión). El Hallazgo 214 cerró **99 muertes + 13
    equivalencias** del inventario abierto y no alcanzó las 200 pedidas: faltan
    101 muertes. Estado actual: **168→69 brechas + 139 equivalencias**; suite
-   **1397/1397**. La deuda R3 sigue abierta.
+   **1399/1399**. La deuda R3 sigue abierta.
 
 R14-C completó un piloto real n=20 (Brier 0,0540); ampliar la muestra para
 afirmar calibración general sigue siendo trabajo futuro. R1, R2, R5, R6, R7,
