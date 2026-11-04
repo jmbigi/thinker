@@ -1,0 +1,1010 @@
+{
+  "registros": [
+    {
+      "grupo": "E1",
+      "funcion": "evaluar_vigencia",
+      "mutante": 246,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "ids_actuales": [
+          234,
+          236
+        ],
+        "evidencia": "build/r3-e1-actual-verificacion.json",
+        "nota": "IDs históricos 246/248 cambiaron; los casos reales se validan por contenido"
+      }
+    },
+    {
+      "grupo": "E1",
+      "funcion": "evaluar_vigencia",
+      "mutante": 248,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "ids_actuales": [
+          234,
+          236
+        ],
+        "evidencia": "build/r3-e1-actual-verificacion.json",
+        "nota": "IDs históricos 246/248 cambiaron; los casos reales se validan por contenido"
+      }
+    },
+    {
+      "grupo": "E2",
+      "funcion": "evaluar",
+      "mutante": 46,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar__mutmut_46",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E3",
+      "funcion": "evaluar",
+      "mutante": 62,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar__mutmut_62",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E4",
+      "funcion": "evaluar",
+      "mutante": 134,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar__mutmut_134",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E5",
+      "funcion": "evaluar",
+      "mutante": 141,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar__mutmut_141",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E5",
+      "funcion": "evaluar",
+      "mutante": 142,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar__mutmut_142",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E6",
+      "funcion": "evaluar_herramientas",
+      "mutante": 52,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_herramientas__mutmut_52",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E7",
+      "funcion": "evaluar_herramientas",
+      "mutante": 158,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_herramientas__mutmut_158",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E7",
+      "funcion": "evaluar_herramientas",
+      "mutante": 159,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_herramientas__mutmut_159",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E7",
+      "funcion": "evaluar_herramientas",
+      "mutante": 161,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_herramientas__mutmut_161",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E7",
+      "funcion": "evaluar_herramientas",
+      "mutante": 162,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_herramientas__mutmut_162",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E8",
+      "funcion": "evaluar_herramientas",
+      "mutante": 315,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_herramientas__mutmut_315",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 23,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_23",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 24,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_24",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 34,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_34",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 35,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_35",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 36,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_36",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 37,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_37",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 38,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_38",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 39,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_39",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 40,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_40",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 41,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_41",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 42,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_42",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 43,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_43",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 44,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_44",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E9",
+      "funcion": "_ambito_requirements",
+      "mutante": 45,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__ambito_requirements__mutmut_45",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E10",
+      "funcion": "_dependencias_pyproject",
+      "mutante": 5,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias_pyproject__mutmut_5",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E11",
+      "funcion": "_versiones_lock",
+      "mutante": 7,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__versiones_lock__mutmut_7",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E11",
+      "funcion": "_versiones_lock",
+      "mutante": 9,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__versiones_lock__mutmut_9",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E12",
+      "funcion": "_dependencias",
+      "mutante": 2,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias__mutmut_2",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E12",
+      "funcion": "_dependencias",
+      "mutante": 6,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias__mutmut_6",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E13",
+      "funcion": "main",
+      "mutante": 76,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_main__mutmut_76",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E13",
+      "funcion": "main",
+      "mutante": 108,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_main__mutmut_108",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E14",
+      "funcion": "parsear_requisitos",
+      "mutante": 3,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_parsear_requisitos__mutmut_3",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E15",
+      "funcion": "_linter_configurado",
+      "mutante": 60,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__linter_configurado__mutmut_60",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E16",
+      "funcion": "plan_texto",
+      "mutante": 3,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_plan_texto__mutmut_3",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E16",
+      "funcion": "plan_texto",
+      "mutante": 5,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_plan_texto__mutmut_5",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E16",
+      "funcion": "plan_texto",
+      "mutante": 41,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_plan_texto__mutmut_41",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E17",
+      "funcion": "_es_manifiesto",
+      "mutante": 6,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_manifiesto__mutmut_6",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E17",
+      "funcion": "_es_manifiesto",
+      "mutante": 7,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_manifiesto__mutmut_7",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E18",
+      "funcion": "_es_test",
+      "mutante": 37,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_test__mutmut_37",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E18",
+      "funcion": "_es_test",
+      "mutante": 39,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_test__mutmut_39",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E19",
+      "funcion": "_es_lock",
+      "mutante": 15,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_lock__mutmut_15",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E19",
+      "funcion": "_es_lock",
+      "mutante": 16,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_lock__mutmut_16",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E19",
+      "funcion": "_es_lock",
+      "mutante": 17,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_lock__mutmut_17",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E19",
+      "funcion": "_es_lock",
+      "mutante": 23,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_lock__mutmut_23",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E19",
+      "funcion": "_es_lock",
+      "mutante": 26,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_lock__mutmut_26",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E20",
+      "funcion": "_parsear_requisito",
+      "mutante": 10,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__parsear_requisito__mutmut_10",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E20",
+      "funcion": "_parsear_requisito",
+      "mutante": 13,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__parsear_requisito__mutmut_13",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E20",
+      "funcion": "_parsear_requisito",
+      "mutante": 18,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__parsear_requisito__mutmut_18",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E21",
+      "funcion": "_requisito_poetry",
+      "mutante": 74,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__requisito_poetry__mutmut_74",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E21",
+      "funcion": "_requisito_poetry",
+      "mutante": 76,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__requisito_poetry__mutmut_76",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E22",
+      "funcion": "_puede_fallar",
+      "mutante": 3,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__puede_fallar__mutmut_3",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E22",
+      "funcion": "_puede_fallar",
+      "mutante": 6,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__puede_fallar__mutmut_6",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E23",
+      "funcion": "informe_texto",
+      "mutante": 124,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "no_equivalente_actual_cubierto_por_tests",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_124",
+        "exit_tests": 1,
+        "nota": "None se renderiza como texto y el contrato actual lo detecta"
+      }
+    },
+    {
+      "grupo": "E23",
+      "funcion": "informe_texto",
+      "mutante": 126,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "no_equivalente_actual_cubierto_por_tests",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_126",
+        "exit_tests": 1,
+        "nota": "None se renderiza como texto y el contrato actual lo detecta"
+      }
+    },
+    {
+      "grupo": "E23",
+      "funcion": "informe_texto",
+      "mutante": 150,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_150",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E23",
+      "funcion": "informe_texto",
+      "mutante": 152,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_152",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E23",
+      "funcion": "informe_texto",
+      "mutante": 177,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_177",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E23",
+      "funcion": "informe_texto",
+      "mutante": 179,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_179",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E24",
+      "funcion": "licencia_pypi",
+      "mutante": 43,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_licencia_pypi__mutmut_43",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E25",
+      "funcion": "_leer_requirements",
+      "mutante": 23,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_23",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E25",
+      "funcion": "_leer_requirements",
+      "mutante": 24,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_24",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E25",
+      "funcion": "_leer_requirements",
+      "mutante": 26,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_26",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E26",
+      "funcion": "_es_licencia_libre",
+      "mutante": 4,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_licencia_libre__mutmut_4",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E27",
+      "funcion": "_dependencias_setup_cfg",
+      "mutante": 13,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias_setup_cfg__mutmut_13",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E28",
+      "funcion": "_dependencias_setup_py",
+      "mutante": 5,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias_setup_py__mutmut_5",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E28",
+      "funcion": "_dependencias_setup_py",
+      "mutante": 7,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias_setup_py__mutmut_7",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E29",
+      "funcion": "_linter_configurado",
+      "mutante": 21,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__linter_configurado__mutmut_21",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E29",
+      "funcion": "_linter_configurado",
+      "mutante": 22,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__linter_configurado__mutmut_22",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E29",
+      "funcion": "_linter_configurado",
+      "mutante": 23,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__linter_configurado__mutmut_23",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E29",
+      "funcion": "_linter_configurado",
+      "mutante": 24,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__linter_configurado__mutmut_24",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E29",
+      "funcion": "_linter_configurado",
+      "mutante": 29,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__linter_configurado__mutmut_29",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E30",
+      "funcion": "_es_test",
+      "mutante": 36,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_test__mutmut_36",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E31",
+      "funcion": "evaluar_funcionalidades",
+      "mutante": 138,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_funcionalidades__mutmut_138",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E31",
+      "funcion": "evaluar_funcionalidades",
+      "mutante": 141,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_evaluar_funcionalidades__mutmut_141",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_dependencias_setup_cfg",
+      "mutante": 13,
+      "duplicado_de": "E27",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__dependencias_setup_cfg__mutmut_13",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_es_licencia_libre",
+      "mutante": 4,
+      "duplicado_de": "E26",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__es_licencia_libre__mutmut_4",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_leer_requirements",
+      "mutante": 23,
+      "duplicado_de": "E25",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_23",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_leer_requirements",
+      "mutante": 24,
+      "duplicado_de": "E25",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_24",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_leer_requirements",
+      "mutante": 25,
+      "duplicado_de": null,
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_25",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_leer_requirements",
+      "mutante": 26,
+      "duplicado_de": "E25",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__leer_requirements__mutmut_26",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_puede_fallar",
+      "mutante": 3,
+      "duplicado_de": "E22",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__puede_fallar__mutmut_3",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "_puede_fallar",
+      "mutante": 6,
+      "duplicado_de": "E22",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x__puede_fallar__mutmut_6",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "informe_texto",
+      "mutante": 150,
+      "duplicado_de": "E23",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_150",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "informe_texto",
+      "mutante": 152,
+      "duplicado_de": "E23",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_152",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "informe_texto",
+      "mutante": 177,
+      "duplicado_de": "E23",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_177",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "informe_texto",
+      "mutante": 179,
+      "duplicado_de": "E23",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_informe_texto__mutmut_179",
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "E32",
+      "funcion": "licencia_pypi",
+      "mutante": 43,
+      "duplicado_de": "E24",
+      "verificacion": {
+        "estado": "validado",
+        "nombre_actual": "evaluar_proyecto.x_licencia_pypi__mutmut_43",
+        "exit_tests": 0
+      }
+    }
+  ],
+  "total_registros": 90,
+  "total_unicos": 78,
+  "total_duplicados": 12,
+  "schema_version": 1,
+  "descripcion": "Un registro por mutante documentado; duplicado_de enlaza repeticiones sin contarlas como casos nuevos.",
+  "total_validados": 76
+}

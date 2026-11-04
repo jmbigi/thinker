@@ -143,7 +143,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `tests/test_openai_compatibilidad.py`; 3.35.1 verificado el 2026-10-20 con
   703/703 en 3.11 y 3.12; 3.40.0 verificado el 2026-10-28 con 1018/1018 en 3.11;
   3.42.0 verificado el 2026-10-31 con el evaluador 237/237 en venv aislado desde
-  el lock; 3.42.1 verificado el 2026-11-04 con 1401/1401 en 3.11). Tras el corte 3
+  el lock; 3.42.1 verificado el 2026-11-04 con 1406/1406 en 3.11). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -384,9 +384,13 @@ mejora de código (`code_design_improvement_tools.py`).
   demostradas**. Después, otras 99 muertes y 13 equivalencias nuevas del
   inventario R3 (Hallazgo 214) dejaron **69 brechas + 139 equivalencias**
   (49+90). Dos cierres pareados adicionales (Hallazgo 217), reproducidos en
-  r3c4 y en el código actual, dejan R3 en **67 brechas + 139 equivalencias**.
-  La campaña de 6144 mutantes del Hallazgo 217 no aporta una tasa global válida.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1401/1401 en la suite
+  r3c4 y en el código actual, dejan R3 en **67 brechas + 125 equivalencias
+  validadas** (49 preflight + 76 evaluador). Los 90 registros históricos del
+  evaluador incluyen 12 duplicidades de E32; no se cuentan como casos nuevos.
+  E23 124/126 están cubiertos por tests, no son equivalencias vigentes. E1 y
+  E13/E14 se validaron por contenido con sus IDs actuales. La campaña de 6144
+  mutantes del Hallazgo 217 no aporta una tasa global válida.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1406/1406 en la suite
   Linux** (2026-11-04; openai 3.42.1 y `packaging 26.3` en el entorno actual,
   con `ruff` para el doctor; mediciones anteriores: 1399/1399 el mismo día y
   1397/1397 el 2026-11-01 con openai 3.40.0; lock en openai 3.42.0) y **3.12.3**
@@ -436,8 +440,11 @@ mejora de código (`code_design_improvement_tools.py`).
   aislamiento de git) y dejaron la suite en **1346/1346**. El cierre parcial R3
   del Hallazgo 214 añadió 4 contratos y dejó la suite en **1397/1397**. El Hallazgo
   216 añadió 2 pruebas del gate documental y dejó la suite en **1399/1399**. El
-  Hallazgo 217 añadió 2 regresiones R3 y dejó la suite en **1401/1401**. El auditor
-  de cambios de `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
+  Hallazgo 217 añadió 2 regresiones R3 y dejó la suite en **1401/1401**. El
+  Hallazgo 219 añadió el contrato de equivalencias únicas y dejó la suite en
+  **1402/1402**. El Hallazgo 220 añadió cuatro contratos de preflight y dejó la
+  suite en **1406/1406**. El auditor de cambios de `scripts/` añadió 28 tests y el
+  runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.

@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1401/1401** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1406/1406** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1364,3 +1364,23 @@ simple y el reintento pasó. Suite **1401/1401** en Linux (Python 3.11.9) y CI
 limpia sobre `dd3e3cb`. R3 queda en **67 brechas + 139 equivalencias**, sin una
 nueva tasa global válida. Evidencia: `build/release22-verificacion.json`.
 Hallazgo 218.
+
+**Actualización 2026-11-04** (deduplicación de equivalencias): el inventario del
+evaluador contiene 90 registros, pero **78 casos únicos**. E32 repite 12 casos ya
+contados en E22–E27 y solo aporta `_leer_requirements` 25. El total correcto es
+**127 equivalencias únicas** (49 preflight + 78 evaluador), no 139. Los registros
+históricos se conservan con `duplicado_de` y los inventarios JSON versionados.
+`tests/test_triaje_equivalencias.py` protege el contrato. Suite **1402/1402** en Linux (Python 3.11.9). Las **67 brechas** siguen abiertas; las verificaciones
+funcionales se registran por lotes separados. Hallazgo 219.
+
+**Actualización 2026-11-04** (revalidación y cierre de preflight): cuatro
+contratos nuevos cierran **17 brechas** en metadatos de warnings, paquetes
+anidados e imports dinámicos. Los mutantes 29/30 y 62 no se cuentan como brechas:
+son equivalentes porque el paquete ya está en `modulos_locales` o la rama no
+cambia el resultado. E1 se validó con IDs actuales 234/236; E13/E14 con 29/30 y
+62. E23 124/126 no son equivalencias vigentes y están cubiertos por tests. El
+resultado es **125 equivalencias validadas** (49 preflight + 76 evaluador) y
+Suite **1406/1406** en Linux (Python 3.11.9). Evidencias:
+`build/r3-preflight-cierre17.json`, `build/r3-preflight-cierre-dinamicos.json` y
+`build/r3-e1-actual-verificacion.json`. Cobertura actual: **84,05% de líneas y
+84,62% de ramas** (2486/2938). Hallazgo 220.

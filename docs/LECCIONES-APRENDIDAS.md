@@ -4728,3 +4728,42 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Evidencia y alcance**: `build/release22-verificacion.json`. R3 permanece en
   **67 brechas + 139 equivalencias** y no se añadió una tasa global de mutación.
   No se usó `gh` ni se creó una GitHub Release.
+
+### Hallazgo 219: contar equivalencias únicas, no registros repetidos
+
+- **Problema**: el inventario histórico sumaba 139 equivalencias, pero E32 repite
+  12 casos ya incluidos en E22–E27. Solo `_leer_requirements` 25 es nuevo en E32.
+  Mantener esos registros como si fueran casos independientes inflaba el total.
+- **Inventario**: el evaluador tiene 90 registros y **78 casos únicos**; preflight
+  tiene 49 sin duplicidades. El total correcto es **127 equivalencias únicas**.
+  Los 139 registros se conservan para trazabilidad y `duplicado_de` enlaza las 12
+  repeticiones; no se borra la historia.
+- **Contrato**: `docs/r3-equivalencias-inventario.json` y
+  `docs/r3-preflight-equivalencias-inventario.json` versionan los identificadores.
+  `tests/test_triaje_equivalencias.py` comprueba 90/78, 49/49, 12 duplicidades y
+  el único caso nuevo de E32. La regresión pasa de forma aislada y la suite
+  completa queda en **1402/1402**.
+- **Alcance**: se corrige la contabilidad, no una nota de mutación. Las **67
+  brechas** permanecen abiertas; las revalidaciones funcionales se registran en
+  lotes separados y no se adelantan como cerradas.
+
+### Hallazgo 220: validar por contenido y cerrar las brechas nuevas
+
+- **Revalidación**: los 78 casos únicos del evaluador terminaron con 74
+  supervivientes directos y cuatro fallos. E1 tenía IDs desplazados: los casos
+  reales son 234/236 y pasan; los actuales 246/248 son otros cambios cubiertos
+  por tests. E23 124/126 renderiza `None` y el contrato B3 lo detecta: no son
+  equivalencias vigentes. Resultado: **76 equivalencias validadas** en evaluador.
+- **Preflight**: las 49 equivalencias históricas se verificaron por contenido.
+  E13/E14 usan IDs actuales 29/30 y 62, no los números históricos. Los actuales
+  28 y 56 son otros cambios ya cubiertos por tests. Las 49 quedan validadas;
+  total R3: **125 equivalencias** (49+76).
+- **Cierres**: cuatro contratos de `TestImportsDinamicos` cubren metadatos de
+  warnings, paquetes anidados, detección de imports dinámicos y extracción de
+  nombres. Los **17 mutantes nuevos** fallan con esas pruebas y el original pasa.
+  Los casos 29/30 y 62 no se forzaron a fallar: son equivalentes porque el
+  paquete ya está en `modulos_locales` o la rama no cambia el resultado.
+- **Verificación**: suite **1406/1406**. Evidencias:
+  `build/r3-preflight-cierre17.json`, `build/r3-preflight-cierre-dinamicos.json`
+  y `build/r3-e1-actual-verificacion.json`. Las **67 brechas históricas** siguen
+  abiertas y su reconstrucción continúa por lotes separados.

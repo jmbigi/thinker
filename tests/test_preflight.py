@@ -15,6 +15,7 @@ from scripts.preflight import (archivos_python, cargar_modulos,
                                main, modulos_locales, revisar_duplicados,
                                revisar_imports, revisar_silencios,
                                revisar_tareas, _alias_asyncio, _es_main,
+                               _es_import_dinamico, _extraer_nombre_import_dinamico,
                                _es_type_checking, _lineas_import_opcional,
                                _lineas_condicionales, _lineas_no_runtime,
                                _leer_requisitos, _nombre_excepcion,
@@ -1404,6 +1405,57 @@ class TestImportsDinamicos(unittest.TestCase):
         resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
         self.assertEqual(len(resultado.advertencias), 1)
         self.assertIn("<dinámico>", resultado.advertencias[0].mensaje)
+
+    def test_paquete_anidado_es_local(self):
+        raiz = crear_proyecto(self, {
+            "tools/app.py": "import helper\n",
+            "tools/helper/__init__.py": "",
+        })
+        arbol = ast.parse((raiz / "tools/app.py").read_text(encoding="utf-8"))
+
+        resultado = revisar_imports(raiz, {raiz / "tools/app.py": arbol})
+
+        self.assertEqual(resultado.hallazgos, [])
+
+    def test_warning_dinamico_campos_exactos(self):
+        raiz, arbol = self._modulo(
+            "import importlib\n"
+            "m = importlib.import_module('requests')\n")
+        resultado = revisar_imports(raiz, {raiz / "mod.py": arbol})
+
+        self.assertEqual(len(resultado.advertencias), 1)
+        warning = resultado.advertencias[0]
+        self.assertEqual(warning.gate, "imports")
+        self.assertEqual(warning.archivo, "mod.py")
+        self.assertEqual(warning.linea, 2)
+        self.assertEqual(warning.mensaje,
+                         "import dinámico no resuelto (AST estático): requests")
+        self.assertEqual(warning.severidad, "baja")
+
+    def test_import_dinamico_no_acepta_otras_rutas(self):
+        casos = (
+            "other.foo()",
+            "importlib.foo.spec_from_file_location('m', 'x.py')",
+            "other.util.spec_from_loader('m', None)",
+        )
+        for texto in casos:
+            with self.subTest(texto=texto):
+                nodo = ast.parse(texto, mode="eval").body
+                self.assertFalse(_es_import_dinamico(nodo))
+
+    def test_extraer_nombre_import_dinamico_contrato_exacto(self):
+        casos = (
+            ("__import__('requests')", "__import__"),
+            ("importlib.import_module()", "<dinámico>"),
+            ("importlib.import_module(nombre)", "<dinámico>"),
+            ("importlib.import_module('requests.sessions')", "requests"),
+            ("importlib.import_module(f'{paquete}')", "<f-string>"),
+            ("importlib.import_module('')", "<dinámico>"),
+        )
+        for texto, esperado in casos:
+            with self.subTest(texto=texto):
+                nodo = ast.parse(texto, mode="eval").body
+                self.assertEqual(_extraer_nombre_import_dinamico(nodo), esperado)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Triaje R3 — 67 brechas, 139 equivalencias y 0 timeouts
+# Triaje R3 — 67 brechas, 125 equivalencias validadas y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
@@ -31,8 +31,12 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **67** | **90** | **0** | **0** |
-| **Total** | **67** | **139** | **0** | **0** |
+| Evaluador | **67** | **76** | **0** | **0** |
+| **Total** | **67** | **125** | **0** | **0** |
+
+El evaluador conserva **90 registros** históricos de equivalencias, pero **78
+casos únicos**: E32 repite 12. De esos 78, **76 están validados** actualmente;
+E23 124/126 están cubiertos por tests y no son equivalencias vigentes.
 
 Los **67** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
@@ -445,8 +449,21 @@ documento conserva el resumen y la clasificación.
   diez «killed», dos sobrevivieron y motivaron las dos regresiones anteriores;
   por tanto no se publica una nueva tasa global. Evidencia:
   `build/verificacion-directa-current.json`.
-- **Equivalentes demostrados:** 139 (49 en preflight y 90 en el evaluador), todos
-  con prueba; no se cuentan como muertos. E28-E31 añaden 10 y E32 añade 13.
+- **Deduplicación del Hallazgo 219 (2026-11-04):** los 90 registros del
+  evaluador representan **78 equivalencias únicas**. E32 repite 12 casos ya
+  contados en E22–E27 y solo aporta `_leer_requirements` 25. Total histórico
+  deduplicado: **127 equivalencias únicas** (49+78), protegido por inventarios
+  JSON y una regresión en `tests/test_triaje_equivalencias.py`. Suite **1402/1402**.
+- **Revalidación del Hallazgo 220 (2026-11-04):** quedan **125 equivalencias
+  validadas** (49 preflight + 76 evaluador). E23 124/126 no son equivalencias
+  vigentes y están cubiertos por tests; E1 y E13/E14 se validaron por contenido
+  con IDs actuales. Se añaden cuatro contratos de preflight que cierran **17
+  brechas nuevas** en metadatos, paquetes anidados e imports dinámicos.
+  Evidencias: `build/r3-preflight-cierre17.json` y
+  `build/r3-preflight-cierre-dinamicos.json`. Suite **1406/1406**.
+- **Equivalentes demostrados (conteo histórico):** 139 registros (49 en preflight
+  y 90 en el evaluador), todos con prueba; no se cuentan como muertos. El total
+  actual deduplicado es 127.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
 - **R3 no se cierra como tasa limpia:** quedan **67 brechas**, todas del

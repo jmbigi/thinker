@@ -1,5 +1,18 @@
 # Triaje semántico de preflight (R3) — 49 equivalentes, 0 brechas
 
+> **Inventario único (2026-11-04):** el evaluador tiene **90 registros pero 78
+> casos únicos**. E32 repite 12 casos ya contados en E22–E27 y solo aporta
+> `_leer_requirements` 25. Por tanto, R3 tiene **127 equivalencias únicas**
+> (49 preflight + 78 evaluador), no 139. Los 139 registros se conservan para
+> trazabilidad; las 12 repeticiones no se contabilizan como casos nuevos.
+> Inventarios: `docs/r3-equivalencias-inventario.json` y
+> `docs/r3-preflight-equivalencias-inventario.json`.
+>
+> **Revalidación funcional (2026-11-04):** hay **125 equivalencias validadas**
+> (49 preflight + 76 evaluador). E23 124/126 están cubiertos por tests y no son
+> equivalencias vigentes. E1 y E13/E14 se verificaron por contenido con sus IDs
+> actuales, no por el número histórico del mutante.
+
 **Fecha:** 2026-10-26. **Base:** campaña de preflight `1016` mutantes,
 `967` muertos, `49` supervivientes, `0` timeouts. Este documento **no cambia la
 tasa**: los equivalentes no se cuentan como muertos. Solo evita llamar
@@ -664,6 +677,11 @@ brechas, no contadas como muertes. R3 queda en **368 brechas + 126 equivalencias
 (49 preflight + 77 evaluador).
 
 ## E32 — 13 defaults y comentarios sin efecto (2026-11-01)
+
+> **Deduplicación (2026-11-04):** 12 de estos 13 registros ya estaban incluidos
+> en E22–E27. Solo `_leer_requirements` 25 es un caso nuevo. E32 aporta por tanto
+> **1 equivalencia única**, no 13; las demás entradas se conservan como enlaces
+> de trazabilidad y no vuelven a contarse.
 
 Casos del cierre parcial R3 (Hallazgo 214), **no contados como muertes**. Todos
 se verificaron con la suite actual: los 13 sobreviven y el original pasa.

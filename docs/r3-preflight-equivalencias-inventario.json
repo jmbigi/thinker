@@ -1,0 +1,500 @@
+{
+  "total_registros": 49,
+  "total_unicos": 49,
+  "total_duplicados": 0,
+  "registros": [
+    {
+      "grupo": "1",
+      "funcion": "dependencias_declaradas",
+      "mutante": 51,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 51,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "1",
+      "funcion": "dependencias_declaradas",
+      "mutante": 158,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 158,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "1",
+      "funcion": "dependencias_declaradas",
+      "mutante": 211,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 211,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "1",
+      "funcion": "revisar_duplicados",
+      "mutante": 33,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 33,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "1",
+      "funcion": "_leer_requisitos",
+      "mutante": 10,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 10,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "1",
+      "funcion": "cargar_modulos",
+      "mutante": 13,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 13,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "1",
+      "funcion": "revisar_silencios",
+      "mutante": 9,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 9,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 76,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 76,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 78,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 78,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 83,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 83,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 85,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 85,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 102,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 102,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 104,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 104,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 113,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 113,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 115,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 115,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 125,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 125,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 127,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 127,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 132,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 132,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 134,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 134,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 141,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 141,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "2",
+      "funcion": "dependencias_declaradas",
+      "mutante": 143,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 143,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "3",
+      "funcion": "dependencias_declaradas",
+      "mutante": 179,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 179,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "3",
+      "funcion": "dependencias_declaradas",
+      "mutante": 183,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 183,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "4",
+      "funcion": "dependencias_declaradas",
+      "mutante": 246,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 246,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "5",
+      "funcion": "revisar_duplicados",
+      "mutante": 12,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 12,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "5",
+      "funcion": "revisar_duplicados",
+      "mutante": 14,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 14,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "6",
+      "funcion": "revisar_duplicados",
+      "mutante": 28,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 28,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "6",
+      "funcion": "revisar_duplicados",
+      "mutante": 30,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 30,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "7",
+      "funcion": "revisar_duplicados",
+      "mutante": 49,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 49,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "7",
+      "funcion": "revisar_tareas",
+      "mutante": 30,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 30,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "8",
+      "funcion": "main",
+      "mutante": 32,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 32,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "8",
+      "funcion": "main",
+      "mutante": 37,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 37,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "9",
+      "funcion": "_leer_requisitos",
+      "mutante": 15,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 15,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "9",
+      "funcion": "_leer_requisitos",
+      "mutante": 18,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 18,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "9",
+      "funcion": "_nombre_requisito",
+      "mutante": 5,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 5,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "9",
+      "funcion": "_nombre_requisito",
+      "mutante": 6,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 6,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "9",
+      "funcion": "_nombre_requisito",
+      "mutante": 7,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 7,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "9",
+      "funcion": "_nombre_requisito",
+      "mutante": 8,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 8,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "10",
+      "funcion": "cargar_modulos",
+      "mutante": 40,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 40,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "10",
+      "funcion": "cargar_modulos",
+      "mutante": 41,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 41,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "11",
+      "funcion": "revisar_silencios",
+      "mutante": 19,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 19,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "11",
+      "funcion": "revisar_silencios",
+      "mutante": 20,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 20,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "11",
+      "funcion": "revisar_silencios",
+      "mutante": 22,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 22,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "12",
+      "funcion": "modulos_locales",
+      "mutante": 9,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 9,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "12",
+      "funcion": "modulos_locales",
+      "mutante": 16,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 16,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "12",
+      "funcion": "modulos_locales",
+      "mutante": 17,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 17,
+        "exit_tests": 0
+      }
+    },
+    {
+      "grupo": "13",
+      "funcion": "revisar_imports",
+      "mutante": 28,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 29,
+        "nota": "El paquete ya está en modulos_locales"
+      }
+    },
+    {
+      "grupo": "13",
+      "funcion": "revisar_imports",
+      "mutante": 29,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 30,
+        "nota": "El paquete ya está en modulos_locales"
+      }
+    },
+    {
+      "grupo": "14",
+      "funcion": "revisar_imports",
+      "mutante": 56,
+      "verificacion": {
+        "estado": "validado",
+        "id_actual": 62,
+        "nota": "continue/break no altera importados en la misma línea"
+      }
+    }
+  ],
+  "schema_version": 1,
+  "descripcion": "Un registro por mutante documentado; duplicado_de enlaza repeticiones sin contarlas como casos nuevos.",
+  "total_validados": 49
+}
