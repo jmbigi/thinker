@@ -1510,6 +1510,16 @@ class TestRequisitos(unittest.TestCase):
                 ValueError, "método de verificación no reconocido"):
             parsear_requisitos(raiz / "requisitos.md")
 
+    def test_campo_duplicado_es_error_con_clave_original(self):
+        raiz = crear_proyecto(self, {
+            "requisitos.md": self.REQ_BASE + "- Enunciado: Otro texto.\n"})
+        archivo = raiz / "requisitos.md"
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"requisitos\.md:6: campo duplicado en requisito R1: Enunciado"):
+            parsear_requisitos(archivo)
+
     def test_id_duplicado_es_error(self):
         raiz = crear_proyecto(self, {"requisitos.md": (
             "## R1: Uno\n- Enunciado: A.\n- Criterio de aceptación: B.\n\n"
@@ -2510,6 +2520,17 @@ class TestContratosR3Doscientos(unittest.TestCase):
                 evaluar_proyecto.aserciones_debiles(raiz, [archivo, raiz / "bad.py"]),
                 (["test_debil.py:2", "test_debil.py:4", "test_debil.py:9"],
                  ["bad.py:1"]))
+
+    def test_aserciones_debiles_syntaxerror_sin_linea(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            archivo = raiz / "bad.py"
+            archivo.write_text("def broken(:\n", encoding="utf-8")
+            with patch("evaluar_proyecto.ast.parse",
+                       side_effect=SyntaxError("inválido")):
+                resultado = evaluar_proyecto.aserciones_debiles(raiz, [archivo])
+
+        self.assertEqual(resultado, ([], ["bad.py:0"]))
 
     def test_perfil_modulos_y_detectores(self):
         with tempfile.TemporaryDirectory() as tmp:

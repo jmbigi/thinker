@@ -84,13 +84,13 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.21   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.21            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.22   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.22            # desde PyPI
 ```
 
-La versión `0.1.21` está publicada en TestPyPI y PyPI, con instalaciones limpias
-verificadas. La instalación por tag no requiere PyPI ni claves. Estado de la
-publicación: `docs/PUBLICACION.md`.
+La versión `0.1.21` está publicada en TestPyPI y PyPI; `0.1.22` está preparada
+y su publicación se registrará solo tras verificarla. La instalación por tag no
+requiere PyPI ni claves. Estado de la publicación: `docs/PUBLICACION.md`.
 
 Como **herramienta de consola** (evalúa y recomienda mejoras a OTRO proyecto,
 estática y read-only):
@@ -386,24 +386,24 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1399/1399** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 tests (**+24,0%** desde 1128) |
+| Suite Linux | **1401/1401** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 tests (**+24,2%** desde 1128) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
 | RAG léxico | **Recall@5 0.938** | 10 pasajes, 16 consultas; MRR 0.906, nDCG@10 0.914 |
 | Calibración simulada | **Brier 0.1166 / ECE 0.1437** | 16 casos; **no calibrada**, no es probabilidad |
-| Cobertura | **84,01% líneas / 84,55% ramas** | 2484/2938 ramas; `coverage --branch` |
+| Cobertura | **84,03% líneas / 84,58% ramas** | 2485/2938 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
-| R3 | **69 brechas + 139 equivalencias** | 1131 → 368 → 168 → 69 brechas (**−93,9%** desde 1131); equivalencias 62 → 139 |
+| R3 | **67 brechas + 139 equivalencias** | 1131 → 368 → 168 → 69 → 67 brechas (**−94,1%** desde 1131); equivalencias 62 → 139 |
 
 ```mermaid
 xychart-beta
     title "Brechas R3 pendientes (menos es mejor)"
-    x-axis ["r3c4", "H169", "H176", "H210", "H211", "H213", "H214"]
+    x-axis ["r3c4", "H169", "H176", "H210", "H211", "H213", "H214", "H217"]
     y-axis "Brechas" 0 --> 1200
-    line [1131, 949, 673, 568, 368, 168, 69]
+    line [1131, 949, 673, 568, 368, 168, 69, 67]
 ```
 
 ```mermaid

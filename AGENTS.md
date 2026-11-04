@@ -143,7 +143,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `tests/test_openai_compatibilidad.py`; 3.35.1 verificado el 2026-10-20 con
   703/703 en 3.11 y 3.12; 3.40.0 verificado el 2026-10-28 con 1018/1018 en 3.11;
   3.42.0 verificado el 2026-10-31 con el evaluador 237/237 en venv aislado desde
-  el lock; 3.42.1 verificado el 2026-11-04 con 1399/1399 en 3.11). Tras el corte 3
+  el lock; 3.42.1 verificado el 2026-11-04 con 1401/1401 en 3.11). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
   `requirements.lock` el 2026-10-19).
@@ -382,12 +382,14 @@ mejora de código (`code_design_improvement_tools.py`).
   demostradas**. Después, 200 brechas históricas resueltas mediante diffs
   localizados y verificación directa r3c4/actual; otras **10 equivalencias
   demostradas**. Después, otras 99 muertes y 13 equivalencias nuevas del
-  inventario R3 (Hallazgo 214); R3 queda en **69 brechas + 139 equivalencias**
-  (49+90). No se alcanzaron las 200 de este lote: faltan 101 muertes.
-- Plataformas verificadas: Linux con Python **3.11.9**: **1399/1399 en la suite
+  inventario R3 (Hallazgo 214) dejaron **69 brechas + 139 equivalencias**
+  (49+90). Dos cierres pareados adicionales (Hallazgo 217), reproducidos en
+  r3c4 y en el código actual, dejan R3 en **67 brechas + 139 equivalencias**.
+  La campaña de 6144 mutantes del Hallazgo 217 no aporta una tasa global válida.
+- Plataformas verificadas: Linux con Python **3.11.9**: **1401/1401 en la suite
   Linux** (2026-11-04; openai 3.42.1 y `packaging 26.3` en el entorno actual,
-  con `ruff` para el doctor; medición anterior: 1397/1397 el 2026-11-01 con
-  openai 3.40.0; lock en openai 3.42.0) y **3.12.3**
+  con `ruff` para el doctor; mediciones anteriores: 1399/1399 el mismo día y
+  1397/1397 el 2026-11-01 con openai 3.40.0; lock en openai 3.42.0) y **3.12.3**
   verificado el 2026-10-23 con la suite de entonces (**832/832**, venv aislado
   recreado desde `requirements.lock`, con openai 3.37.0); y **Windows 11** con
   Python **3.12.7** (openai 3.37.0) y **3.14.3** (openai 1.109.1), **750/750
@@ -432,8 +434,10 @@ mejora de código (`code_design_improvement_tools.py`).
   (Hallazgo 212) añadió 1 test y dejó la suite en **1343/1343**. Las otras 200
   brechas R3 del Hallazgo 213 añadieron 3 tests (dos contratos y la regresión de
   aislamiento de git) y dejaron la suite en **1346/1346**. El cierre parcial R3
-  del Hallazgo 214 añadió 4 contratos y dejó la suite en **1397/1397**. El auditor de
-  cambios de `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
+  del Hallazgo 214 añadió 4 contratos y dejó la suite en **1397/1397**. El Hallazgo
+  216 añadió 2 pruebas del gate documental y dejó la suite en **1399/1399**. El
+  Hallazgo 217 añadió 2 regresiones R3 y dejó la suite en **1401/1401**. El auditor
+  de cambios de `scripts/` añadió 28 tests y el runner de holdout 9 (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
   Instalación: `make hook`.
@@ -441,10 +445,10 @@ mejora de código (`code_design_improvement_tools.py`).
   `make vuln-scan` (pip-audit). Instalación reproducible:
   `python3 -m pip install --require-hashes -r requirements.lock`.
 - Publicación y distribución: `docs/PUBLICACION.md`
-  (`thinker-research 0.1.21` publicado en TestPyPI y PyPI; tags
-  `v0.1.0` a `v0.1.21` empujados, `v0.1.2` a `v0.1.21` anotados; instalación
-  `pip install thinker-research==0.1.21` o por tag con
-  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.21`; sin
+  (`thinker-research 0.1.22` preparado; `0.1.21` publicado en TestPyPI y PyPI;
+  tags `v0.1.0` a `v0.1.21` empujados, `v0.1.2` a `v0.1.21` anotados; instalación
+  `pip install thinker-research==0.1.22` o por tag con
+  `pip install git+https://github.com/jmbigi/thinker.git@v0.1.22`; sin
   GitHub Releases ni CLI `gh`: distribuir no depende de instalaciones ni
   cuentas de GitHub (regla 12).
 - Paquete instalable (desde 2026-10-20): `pip install .` o

@@ -1,9 +1,10 @@
-# Triaje R3 — 69 brechas, 139 equivalencias y 0 timeouts
+# Triaje R3 — 67 brechas, 139 equivalencias y 0 timeouts
 
 > Estado: **inventario completo, deuda abierta**. Cada caso tiene categoría;
 > las equivalencias tienen prueba en `docs/TRIAGE-EQUIVALENCIAS.md`. Última
-> medición global: 2026-10-28 (batch r3c4); cierres acotados de Poetry, 100 y
-> 200 brechas adicionales: 2026-11-01.
+> medición global aceptada: 2026-10-28 (batch r3c4); cierres acotados de Poetry,
+> 100 y 200 brechas adicionales: 2026-11-01; dos cierres pareados más: 2026-11-04.
+> La campaña de 6144 mutantes de 2026-11-04 no aporta una tasa global válida.
 
 ## Método
 
@@ -30,10 +31,10 @@
 | Objetivo | Brechas | Equivalentes | Timeouts | Sin categoría |
 |---|---:|---:|---:|---:|
 | Preflight | **0** | **49** | 0 | **0** |
-| Evaluador | **69** | **90** | **0** | **0** |
-| **Total** | **69** | **139** | **0** | **0** |
+| Evaluador | **67** | **90** | **0** | **0** |
+| **Total** | **67** | **139** | **0** | **0** |
 
-Los **69** casos de brecha son aserciones que faltan: sus funciones se
+Los **67** casos de brecha son aserciones que faltan: sus funciones se
 ejecutan, pero los tests no detectan el cambio. No hay ningún caso sin
 cobertura que se resuelva solo con un test de humo; hace falta aserción exacta.
 
@@ -432,11 +433,23 @@ documento conserva el resumen y la clasificación.
   brechas descuenta solo muertes; las 13 equivalencias E32 se registran aparte
   aunque reduzcan el universo (criterio conservador). Evidencia:
   `build/r3-300-final.json`. Suite **1350/1350**.
+- **Cierre pareado del Hallazgo 217 (2026-11-04):** dos regresiones nuevas
+  detectan `aserciones_debiles` 12 y `parsear_requisitos` 206 con el original
+  verde y cada mutante aislado en fallo. Los mismos diffs sobreviven a la
+  selección de `r3c4` (`5623448`). R3 baja de **69 a 67 brechas**; las **139
+  equivalencias** no cambian. Evidencias: `build/r3-cierre2-aislado.json` y
+  `build/r3-cierre2-historico.json`. Suite **1401/1401**.
+- **Campaña 2026-11-04 descartada como tasa:** 6144 mutantes, 6107 «killed» y
+  37 supervivientes, 0 timeouts. Los 37 son 36 equivalencias ya documentadas y
+  un mutante de `package_json` que las pruebas actuales matan. En la muestra de
+  diez «killed», dos sobrevivieron y motivaron las dos regresiones anteriores;
+  por tanto no se publica una nueva tasa global. Evidencia:
+  `build/verificacion-directa-current.json`.
 - **Equivalentes demostrados:** 139 (49 en preflight y 90 en el evaluador), todos
   con prueba; no se cuentan como muertos. E28-E31 añaden 10 y E32 añade 13.
 - **Tasas históricas:** 967/1016 (preflight) y 4846/5984 (evaluador); no se
   recalculan por clasificar. Los timeouts quedaron en 0.
-- **R3 no se cierra como tasa limpia:** quedan **69 brechas**, todas del
+- **R3 no se cierra como tasa limpia:** quedan **67 brechas**, todas del
   evaluador; el preflight ya no tiene brechas reales. El evaluador sigue siendo
   la deuda principal.
 - **Criterio de aceptación de campañas futuras (lección del artefacto r3c5/

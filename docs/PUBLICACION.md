@@ -1,7 +1,7 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-02: **versión `0.1.21` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-04: **versión `0.1.22` preparada; `0.1.21` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20` y
@@ -17,8 +17,8 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.21`
-  publicada en TestPyPI y PyPI.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.22`
+  preparada para publicación.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -26,7 +26,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.21*`.
+  `dist/thinker_research-0.1.22*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -100,6 +100,20 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.22 (2026-11-04)
+
+Paquete `thinker-research 0.1.22` (wheel y sdist), preparado para TestPyPI y
+PyPI. Refuerza el gate de coherencia documental y de versiones, incluida la
+distinción entre paquete actual/preparado y publicado. El lock mantiene
+`openai 3.42.0`.
+
+Validación previa: suite **1401/1401**. Dos regresiones cierran otras tantas
+brechas reproducidas en `r3c4` y en el código actual: R3 baja de **69 a 67
+brechas**, con **139 equivalencias** intactas. La campaña de 6144 mutantes no
+aporta una tasa global válida porque la muestra directa detectó dos falsos
+«killed». Artefactos, tag, hashes e instalaciones pendientes de verificación en
+este commit.
 
 ## Versión 0.1.21 (2026-11-02)
 

@@ -4681,3 +4681,30 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Alcance**: R3 permanece en **69 brechas + 139 equivalencias**. No cambió el
   pipeline, el evaluador, una puntuación ni la versión publicada; no corresponde
   una release por esta corrección de tooling y documentación.
+
+### Hallazgo 217: validar la campaña antes de cerrar deuda histórica
+
+- **Dogfooding (2026-11-04)**: `scripts/mutacion.py --objetivo evaluar` generó
+  **6144 mutantes, 6107 muertos y 37 supervivientes**, sin timeouts ni casos
+  sin tests. `triaje_mutantes.py` clasificó los 37 como cobertura sin detección.
+  La salida guio el trabajo, pero no se aceptó la tasa sin verificación directa.
+- **Validación cruzada**: los 37 supervivientes se probaron con diffs localizados
+  y el original restaurado por SHA-256. Treinta y seis corresponden a
+  equivalencias ya documentadas; el de `package_json` muere con el contrato
+  exacto de warning. En la muestra de diez «killed», ocho murieron y dos
+  sobrevivieron: `aserciones_debiles` 12 y `parsear_requisitos` 206. Esos dos
+  falsos «killed» invalidan la tasa global de esta campaña.
+- **Cierres reales**: dos regresiones nuevas fijan `SyntaxError.lineno=None` como
+  línea 0 y el `ValueError` exacto al duplicar `Enunciado`. Ambas pasan con el
+  original y fallan con sus mutantes aislados; los mismos diffs también
+  sobrevivieron a la selección de `r3c4` (`5623448`). R3 baja de **69 a 67
+  brechas**, sin sumar equivalencias ni presentar una tasa nueva.
+- **Errores del arnés**: `mutmut apply` superó 60 s y se sustituyó por diffs
+  acotados a cada función. Una primera prueba de requisitos ejercitaba campo
+  desconocido, no campo duplicado; se corrigió tras inspeccionar el diff. Otra
+  comprobación importó el módulo del repo por precedencia de CWD; la evidencia
+  final verifica explícitamente el archivo mutante importado.
+- **Verificación y límites**: suite **1401/1401**. Evidencias:
+  `build/verificacion-directa-current.json`, `build/r3-cierre2-aislado.json` y
+  `build/r3-cierre2-historico.json`. Quedan **67 brechas históricas**; no se
+  declara R3 cerrado ni se descuentan los 36 equivalentes como muertes.

@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1399/1399** en Linux (Python 3.11.9), ruff 0, preflight 0,
+Suite **1401/1401** en Linux (Python 3.11.9), ruff 0, preflight 0,
 docs-check OK; autoevaluación posterior a Hallazgo 105 con contrato de
 aseveraciones exactas y triaje de mutación completado.
 
@@ -1338,3 +1338,17 @@ cambio; ahora el gate contrasta esa fila con el paquete y exige el dato.
 3.11.9). Cobertura medida con `metricas_calidad.py --con-cobertura`: **84,01%
 de líneas y 84,55% de ramas** (2484/2938). R3 permanece en **69 brechas +
 139 equivalencias**. Hallazgo 216.
+
+**Actualización 2026-11-04** (preparación de `0.1.22` y cierre R3 acotado): la
+versión incorpora el gate de coherencia documental y de versiones y dos
+regresiones de aserciones. Suite **1401/1401** en Linux (Python 3.11.9). La
+campaña generó 6144 mutantes y 37 supervivientes: 36 equivalencias ya
+documentadas y un mutante de `package_json` que las pruebas actuales sí matan.
+La muestra de diez «killed» detectó dos falsos positivos de campaña; ambos
+sobrevivían en `r3c4` y ahora mueren con las nuevas pruebas. R3 baja de **69 a
+67 brechas**, con **139 equivalencias** intactas. La tasa global de esta
+campaña se descarta por esos dos falsos «killed»; no se presenta como medición
+válida. Evidencias: `build/verificacion-directa-current.json`,
+`build/r3-cierre2-aislado.json` y `build/r3-cierre2-historico.json`. Cobertura
+actual: **84,03% de líneas y 84,58% de ramas** (2485/2938). Hallazgo 217.
+Artefactos, tag, publicación e instalaciones pendientes de verificación.
