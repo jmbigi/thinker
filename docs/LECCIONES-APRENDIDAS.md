@@ -4787,3 +4787,23 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/r3-consolidado-355.json` y `build/r3-no-aplicable-casos.json`. No se
   recalcula una tasa global: las campañas con artefactos conocidos solo aportan
   candidatos y verificaciones directas, no una cifra de calidad nueva.
+
+### Hallazgo 222: reconciliar también los rótulos vigentes tras cerrar una deuda
+
+- **Dogfooding (2026-11-04)**: `check_docs` respondió `DOCS: OK` y
+  `evaluar_proyecto . --sin-red --json` produjo global 1.000, 27 criterios
+  evaluados, 2 N/A y cero hallazgos. Esas salidas no aportaron un defecto de
+  producción que corregir, pero tampoco validaban la coherencia semántica entre
+  secciones.
+- **Defecto reproducible**: el resumen de `RECOMENDACIONES-MEJORAS.md` cerraba
+  R3 con **0 brechas + 125 equivalencias validadas**, mientras su encabezado la
+  llamaba «PARCIAL», el criterio conservaba «368 aserciones pendientes» y la
+  sección 7 la presentaba como «Pendiente de ejecución» con 1319 brechas.
+- **Corrección**: los rótulos y criterios vigentes ahora declaran el cierre; las
+  cifras antiguas se conservan explícitamente como historial fechado. No se
+  reabrió R3 ni se modificaron producción, pruebas, puntuaciones, umbrales o
+  versión. Una búsqueda de los rótulos obsoletos quedó sin coincidencias.
+- **Evidencia y límite**: `build/coherencia-r3-autoevaluacion.json`. Un gate
+  documental verde demuestra sus comprobaciones concretas, no que cualquier
+  contradicción narrativa sea imposible; el cierre de una deuda exige revisar
+  también los rótulos que siguen describiendo el presente.

@@ -1,8 +1,8 @@
 # Recomendaciones de mejora de thinker
 
-**Fecha:** 2026-10-22, actualizado el **2026-11-01**. **Base:** commit `6d20a4c`
-más las decisiones del programador del 2026-10-25, la release `0.1.15` publicada
-y el refuerzo de aserciones del preflight del 2026-10-26.
+**Fecha:** 2026-10-22, actualizado el **2026-11-04**. **Base inicial:** commit
+`6d20a4c`, más las decisiones del programador del 2026-10-25, la release `0.1.15`
+publicada y el refuerzo de aserciones del preflight del 2026-10-26.
 **Alcance:** recomendaciones abiertas, no una lista de deseos. Cada una nace de
 una medición de este repositorio o de la campaña de evaluación externa y lleva
 su criterio de aceptación. Lo ya cerrado no se repite como si estuviera
@@ -68,8 +68,10 @@ quedan **0 brechas + 125 equivalencias validadas**.
 | Paquete actual | **0.1.22** (2026-11-04; publicado en TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
-preflight). La deuda principal que queda es la **mutación** de esos dos
-módulos (R3); R4 se cerró por alcance offline (26/29; 3 N/A).
+preflight). La deuda histórica de **mutación** de esos dos módulos (R3) quedó
+cerrada el 2026-11-04 con **0 brechas + 125 equivalencias validadas**; las tasas
+de la tabla son mediciones históricas, no una tasa global recalculada. R4 se
+cerró por alcance offline (26/29; 3 N/A).
 
 ## 3. Lo que ya está cerrado (no reabrir sin nueva evidencia)
 
@@ -139,11 +141,12 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Riesgo:** bajo; los tests comprueban comportamiento, no solo ejecutan
   líneas.
 
-### R3 — Medir mutación del evaluador y preflight — PARCIAL 2026-10-26 (decisión C)
+### R3 — Medir mutación del evaluador y preflight — CERRADA 2026-11-04 (decisión C)
 
 - **Decisión 2026-10-25: C.** Test-first, luego triaje; reporte parcial con el
   número de no triados; no cerrar hasta 0 sin tests y 0 supervivientes sin
-  triaje. En ejecución.
+  triaje. Ejecutada y cerrada con **0 brechas + 125 equivalencias validadas**;
+  el historial conserva las cifras de cada campaña en su fecha.
 - **Problema medido:** `make mutation` mide el núcleo, pero excluye
   `evaluar_proyecto.py` y `scripts/preflight.py`. El 95,2% actual **no cubre**
   el código del evaluador ni el de preflight.
@@ -176,8 +179,8 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
 - **Triaje de inventario (2026-10-26):** **1368/1368** casos con categoría:
   **1319 brechas de aserción** (0 preflight + 1319 evaluador), **0 sin
   cobertura**, **49 equivalencias demostradas** y **0 timeouts**. Detalle y
-  razones en `docs/TRIAGE-R3.md` y `docs/TRIAGE-EQUIVALENCIAS.md`. No es una
-  tasa limpia: 1319 siguen sin matar.
+  razones en `docs/TRIAGE-R3.md` y `docs/TRIAGE-EQUIVALENCIAS.md`. Aquella no
+  era una tasa limpia: los 1319 casos seguían sin matar en esa medición.
 - **Re-medición oficial (2026-10-28, batch r3c2):** **5984 mutantes, 4681
   muertos, 1303 supervivientes, 0 sin tests, 0 timeouts**, 0 sospechosos; tasa
   bruta **78,23%**. El test de contrato exacto de `_verificar_test` (Hallazgo
@@ -203,9 +206,11 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   sí. La mejora del preflight no autoriza a presentar el evaluador como sano.
 - **Criterio de aceptación:** [x] evaluador medido; [x] comando reproducible
   empaquetado; [x] 0 mutantes sin categoría de triaje (1368/1368); [x] 0
-  timeouts (re-medido); [ ] tasa limpia (**368 aserciones pendientes** tras los
-  cierres anteriores, `_requisito_poetry`, el Hallazgo 210 y el Hallazgo 211).
-- **Riesgo:** medio; el triaje del evaluador sigue siendo la deuda principal.
+  timeouts (re-medido); [x] deuda histórica cerrada con **0 brechas + 125
+  equivalencias validadas**; [—] nueva tasa global: no se recalcula por los
+  artefactos de campaña documentados en los Hallazgos 217 y 221.
+- **Riesgo:** cerrado para el inventario histórico; una campaña nueva exigirá
+  validación cruzada antes de aceptar sus conteos.
 
 ### R4 — Benchmark de precisión/recall del evaluador — CERRADA 2026-10-26 (alcance offline)
 
@@ -409,7 +414,7 @@ No se recomienda volver a trabajar en esto; ya tiene tests y evidencia:
   [ ] muestra representativa/intervalos (trabajo futuro).
 - **Riesgo:** bajo; el piloto se declara como piloto, no como certificado.
 
-## 5. Deuda pendiente priorizada (2026-10-25)
+## 5. Deuda priorizada y cierre (histórico desde 2026-10-25; actualizado 2026-11-04)
 
 **Cerrada:** R3-C (2026-11-04).
 **Cerradas:** R1, R2, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13 y R14. Una
@@ -499,6 +504,7 @@ así, y el registro se conserva en el informe de cierre del lote:
 | R3 (2026-11-04, Hallazgo 217) | `scripts/mutacion.py`, `triaje_mutantes.py` y verificación directa r3c4/actual | La campaña de 6144 mutantes dejó 37 supervivientes: 36 equivalencias conocidas y un falso superviviente ya cubierto. La muestra de diez «killed» destapó dos brechas reales e invalidó la tasa global | Dos regresiones de `lineno=None` y campo duplicado; ambos diffs sobrevivían en r3c4 y ahora mueren de forma aislada; R3: **69→67 brechas + 139 equivalencias**; suite **1401/1401** |
 | Deduplicación y preflight (2026-11-04, Hallazgos 219-220) | `scripts/mutacion.py`, `triaje_mutantes.py` y diffs directos por contenido | E32 repite 12 casos; los 90 registros del evaluador son 78 únicos. La revalidación detectó deriva de IDs y dos casos E23 cubiertos por tests; preflight aportó 17 brechas nuevas | Inventarios JSON + contrato de conteo: **127 únicas** y **125 validadas** (49+76); cuatro contratos cierran **17/17** mutantes nuevos, original verde, suite **1406/1406** |
 | Cierre histórico (2026-11-04, Hallazgo 221) | Cuatro workers con fixtures actuales y revisión manual de contextos | Los 355 candidatos quedan con veredicto individual: 304 detectados, 34 equivalencias conocidas y 17 `no_aplicable` revisados; los 34 supervivientes están en el inventario validado | **0 brechas + 125 equivalencias validadas**; una regresión de línea vacía falla con `[] != ['requests']`; cuatro originales verdes; suite **1407/1407** |
+| Coherencia posterior al cierre (2026-11-04, Hallazgo 222) | `check_docs` y `evaluar_proyecto` | `DOCS: OK` y autoevaluación offline 1.000 (27/29; 2 N/A; 0 hallazgos) no detectaron que secciones vigentes seguían llamando «parcial» y «pendiente» a R3; la revisión semántica guio una corrección solo documental | Rótulos actuales reconciliados con **0 brechas + 125 equivalencias validadas**; historial fechado intacto, búsqueda de rótulos obsoletos sin coincidencias y gates offline; suite **1407/1407**, sin cambios de producción ni release |
 
 No cuenta una ejecución decorativa al final: si la salida de thinker no cambió
 o no validó una decisión, la tarea no se contabiliza. Si thinker alucina, se
@@ -526,11 +532,12 @@ descarta y se anota; la verificación empírica sigue siendo obligatoria.
 **Implementado:** R5-A (comparabilidad), R6-C (warnings), R13-B/C
 (verificador barato y descomposición), R14-B/C (Brier simulado y piloto real
 n=20) y R4 cerrada por alcance offline (57 casos/26 criterios; 3 N/A
-declaradas). **Pendiente de ejecución:**
+declaradas). **Historial de ejecución de R3 (cerrado el 2026-11-04):**
 
-1. **R3-C:** preflight 0 brechas reales (967/1016; 95,18%; 49 equivalencias) y
-   evaluador 1319 brechas (4665/5984; 77,96%), con **0 timeouts** y
-   triaje 1368/1368. El 2026-10-28 se atacaron 16 (`_verificar_test`; 16/16
+1. **R3-C (cerrada):** el punto de partida registró preflight 0 brechas reales
+   (967/1016; 95,18%; 49 equivalencias) y evaluador 1319 brechas (4665/5984;
+   77,96%), con **0 timeouts** y triaje 1368/1368. El 2026-10-28 se atacaron
+   16 (`_verificar_test`; 16/16
    muertos, r3c2), 80 de `evaluar_vigencia` (82 → 2, ambas equivalencias
    demostradas; r3c3) y 70 de `evaluar` (75 → 5, las cinco equivalencias
    demostradas E2-E5; r3c4) y 64 de `evaluar_herramientas` (70 → 0: 64
@@ -544,8 +551,9 @@ declaradas). **Pendiente de ejecución:**
    `evaluar_calidad` (47 → 0: 47 muertos, Hallazgo 173), `parsear_requisitos`
    (35 → 0: 35 muertos + 1 equivalencia E14, Hallazgo 174),
    `evaluar_inteligencia` (30 → 0: 30 muertos, Hallazgo 175) y
-   `sintetizar_con_llm` (29 → 0: 29 muertos, Hallazgo 176): quedan **673**
-   (tasa histórica: 4846/5984; 80,98%); no cerrar hasta 0 brechas.
+   `sintetizar_con_llm` (29 → 0: 29 muertos, Hallazgo 176): en ese punto
+   quedaban **673** (tasa histórica: 4846/5984; 80,98%); el criterio vigente
+   era no cerrar hasta llegar a 0 brechas.
    La re-medición de `evaluar_eficiencia` confirmó **190/190 muertos** y 10/10
    controles directos (Hallazgo 177), sin cambiar el conteo por falta de
    distribución histórica detallada. El cierre de `_digesto` añadió tres
