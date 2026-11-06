@@ -8,7 +8,8 @@ from typing import Tuple
 from urllib.parse import urlparse
 
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import (BudgetLLM, LLMProvider, MockLLM, OllamaLLM, OpenAILLM)
+from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, LLMProvider, MockLLM,
+                           OllamaLLM, OpenAILLM)
 from mcp_client import MCPSearchAPI
 from research_state import (atomic_write_bytes, context_from_state, context_to_state)
 from web_search import (MockSearchAPI, SearchAPI, SearXNGSearchAPI, _es_host_publico)
@@ -35,6 +36,9 @@ def _validate_llm(provider: LLMProvider, scope: str) -> None:
         return _validate_llm(provider.provider, scope)
     if scope == "public" or isinstance(provider, MockLLM):
         return
+    if isinstance(provider, DeepSeekFreeAgentLLM):
+        raise RuntimeError(
+            f"{scope}: deepseek-free-agent reenvía prompts a chat.deepseek.com")
     if isinstance(provider, OllamaLLM):
         if _host_local(provider.base_url):
             return

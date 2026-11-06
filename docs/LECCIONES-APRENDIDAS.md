@@ -4864,3 +4864,42 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   `build/release23-upload-testpypi.log`, `build/release23-upload-pypi.log`,
   `build/release23-testpypi-verificacion.log` y
   `build/release23-pypi-verificacion.log`.
+
+
+### Hallazgo 225: proveedor gratuito con autorización, evidencia y gates formales
+
+- **Dogfooding (2026-11-06)**: `evaluar_proyecto.py . --sin-red --json` dio GLOBAL
+  1.000, 27 criterios evaluados y 2 N/A; `analyze_python_code('llm_providers.py')`
+  devolvió `issues: []`. No se inventaron defectos ni se refactorizó para mejorar
+  una nota. El requisito explícito guió el cambio: usar `deepseek-free-agent` sin
+  cobro, con defensas frente a alucinación/engaño, especificación y autorizaciones.
+- **Diseño**: `DeepSeekFreeAgentLLM` adapta solo la API loopback del paquete externo
+  1.11.3. Exige autorización booleana aparte de seleccionar el proveedor, `public`,
+  timeout, sin redirecciones ni reintentos, 1 MB máximo, `newChat` y prefijo de solo
+  lectura. No hay API key ni fallback pagado; HTTP 402 es un error con una sola
+  llamada. `answer` permanece como texto no confiable. La instrucción de solo
+  lectura no se declara sandbox y la verificación léxica no se declara prueba de
+  verdad ni eliminación de alucinaciones.
+- **Especificación**: `docs/DEEPSEEK-FREE-AGENT.md` separa siete capas y patrones;
+  `docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md` define 12 criterios. El evaluador con
+  suite verde reportó **10 CUMPLE + 1 CUBIERTO + 1 NO VERIFICABLE**. La disponibilidad
+  y calidad reales quedan sin verificar: no se instaló el servicio ni se simuló una
+  sesión. El paquete externo escucha sin autenticación y tiene herramientas de
+  escritura/comandos; se documentó aislamiento y no exposición del puerto.
+- **Defecto detectado por la suite**: la primera pasada (1422 tests) falló porque
+  `doctor.py` no declaraba `DEEPSEEK_AGENT_URL`; la prueba existente de correspondencia
+  de variables obligó a registrarla. Se corrigió la declaración, no el test. Después
+  se añadió el contrato explícito de coste cero/sin fallback, total 1423.
+- **Fallos de entorno, no del producto**: los intérpretes 3.12/3.14 del sistema no
+  tenían `openai`. En los primeros venv desde el lock, dos tests de informe fallaron
+  porque faltaba Ruff. Se repitió con `ruff 0.13.2`, sin cambiar tests ni umbrales.
+  Resultado final: **1423/1423 en 3.11, 3.12 y 3.14**; Ruff, preflight, docs-check,
+  secretos, doctor, holdout, demos offline e instalación limpia en verde.
+- **Métricas y revisión**: cobertura **84,23% líneas / 84,75% ramas** (2517/2970),
+  registrada en `docs/metricas-calidad.json`. El auditor revisó 18 archivos sin
+  exclusiones y devolvió **REVISAR** (0 alta, 4 media) por 938 líneas, reglas,
+  requisitos y tests nuevos. El programador autorizó explícitamente commit/push;
+  las señales quedan declaradas y no se presentan como prueba de seguridad.
+- **Evidencias**: `build/deepseek-free-agent-requisitos.json`,
+  `build/deepseek-free-agent-suite-31{2,4}.log`,
+  `build/deepseek-free-agent-metricas.log` y `docs/EVALUACIONES.md`.

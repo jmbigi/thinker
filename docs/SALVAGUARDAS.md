@@ -26,6 +26,8 @@ afirmaciones sin salida se marcan como **no verificadas**, nunca como éxito
 | Dependencias de archivos no versionados | `scripts/ci.sh` | `make ci` | copia limpia de HEAD en verde |
 | Deriva de la documentación | `scripts/check_docs.py` | hook / `make check` | cifras cuadradas |
 | Autoevaluación del proyecto | `evaluar_proyecto.py` | `python3 evaluar_proyecto.py . --sin-red --json` | informe JSON (diagnóstico, no bloqueante) |
+| Egreso y autorización de deepseek-free-agent | `DeepSeekFreeAgentLLM` + `PrivacyPolicy` | `tests/test_deepseek_free_agent.py` | cero HTTP sin permiso; solo `public` |
+| Requisitos del conector | `evaluar_proyecto.py --requisitos` | `docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md` | tests trazados; disponibilidad real separada |
 
 `make check` encadena lint, preflight, docs-check, tests, secretos, CI y el
 hook completo. El hook es la última barrera antes de un commit; `--no-verify`
@@ -96,3 +98,19 @@ una medición.
 - La CI es local: no hay una nube independiente que valide el resultado.
 - Los gates offline no sustituyen la ejecución real de proveedores; esa
   ejecución es opt-in, se declara y puede fallar por red o cuota.
+
+## 8. Autorización y salidas no confiables de deepseek-free-agent
+
+El conector requiere dos decisiones: seleccionar el proveedor y autorizarlo de
+forma explícita (`--authorize-deepseek-agent`, `authorized=True` o el parámetro
+booleano del plugin). Sin la segunda, falla antes de crear una tarea. La URL debe
+ser loopback y la política debe ser `public`: localhost no oculta que el prompt
+termina en `chat.deepseek.com`.
+
+La respuesta `answer` es texto no confiable. El adaptador no la ejecuta ni la
+convierte en herramienta; el pipeline delimita las fuentes y audita citas de forma
+léxica. Esto reduce inyección y afirmaciones sin rastro, pero no demuestra verdad
+ni elimina alucinaciones o engaños. La instrucción de solo lectura tampoco es un
+sandbox para las herramientas del proceso externo. Especificación y autorización:
+`docs/DEEPSEEK-FREE-AGENT.md`; requisitos medibles:
+`docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md`.

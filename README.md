@@ -21,7 +21,7 @@ herramientas de análisis estático de código.
 | `documents.py` | Contenido completo HTML/PDF/TXT/Markdown/CSV y Office Open XML, pasajes con hash/localización, RAG local BM25+coseno y full-text web. |
 | `research_cli.py` | CLI real `research`: proveedores, buscadores, documentos, Markdown/JSON, estado, presupuestos y opciones opt-in. Sin argumentos conserva la demo. |
 | `research_state.py` | Checkpoints idempotentes con esquema versionado, caché de recuperación y escritura atómica 0600. |
-| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, Ollama, Mock). Reintentos con backoff, caché y presupuesto seguro entre hilos. |
+| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, deepseek-free-agent, Ollama, Mock). Reintentos con backoff en APIs compatibles, caché y presupuesto seguro entre hilos. |
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
@@ -49,8 +49,10 @@ herramientas de análisis estático de código.
     `pypdf`, `cryptography` y `packaging` (ver `requirements.txt`; el lock fija
     las exactas con hashes). `openai` verificado en 1.109.1, 2.54.0, 3.33.0,
     3.35.1, 3.36.1, 3.37.0, 3.40.0, 3.42.0, 3.42.1 y 3.45.0 (lock en 3.45.0).
-  - Opcional: [Ollama](https://ollama.com/) para modelos locales y extra `ml`
-    con `torch==2.15.0` (`requirements-ml.txt` + `requirements-ml.lock`).
+  - Opcional: [Ollama](https://ollama.com/) para modelos locales;
+    `deepseek-free-agent` con Node.js ≥18 y Chromium para DeepSeek web sin API
+    key ([instalación y riesgos](docs/DEEPSEEK-FREE-AGENT.md)); extra `ml` con
+    `torch==2.15.0` (`requirements-ml.txt` + `requirements-ml.lock`).
 
 ## Instalación
 
@@ -275,6 +277,28 @@ reales: destilación con logits, LoRA, cuantización/poda de pesos, MoE,
 decodificación especulativa verificada y VQ residual. Es un banco de validación
 mecánica en CPU, **no una demostración de mejora de calidad del LLM de producción**.
 
+## Uso real sin API key ni cobro: deepseek-free-agent
+
+Con el servicio externo configurado y la sesión iniciada:
+
+```bash
+research "Compara RAG y MCP" \
+  --provider deepseek-free-agent --search wikipedia \
+  --authorize-deepseek-agent
+```
+
+Además de seleccionarlo, debes autorizarlo en cada invocación; sin ese flag no se
+crea ninguna tarea. El conector exige loopback, no reintenta, abre un chat nuevo
+y trata la respuesta como texto no confiable, nunca como una orden. Las fuentes y
+citas pasan por las comprobaciones del pipeline, pero eso no elimina alucinaciones
+ni prueba verdad. Thinker no cobra y nunca conmuta a un proveedor pagado: si el
+servicio gratuito falla, eleva el error. **No es local ni ilimitado**: los prompts
+se envían a DeepSeek y la cuenta/servicio puede imponer límites. Solo admite `--privacy public`; para
+datos sensibles usa un modelo local. El agente externo puede ejecutar herramientas:
+instálalo y ejecútalo de forma aislada siguiendo
+[la guía, especificación y autorizaciones](docs/DEEPSEEK-FREE-AGENT.md) y sus
+[requisitos verificables](docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md).
+
 ## Uso real (OpenRouter con modelos gratuitos)
 
 1. Copia `.env.example` a `.env` y pon tu clave de OpenRouter:
@@ -386,14 +410,14 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1409/1409** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 tests (**+24,9%** desde 1128); 3.11/3.12/3.14 |
+| Suite Linux | **1423/1423** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1423 tests (**+26,2%** desde 1128); 3.11/3.12/3.14 |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
 | RAG léxico | **Recall@5 0.938** | 10 pasajes, 16 consultas; MRR 0.906, nDCG@10 0.914 |
 | Calibración simulada | **Brier 0.1166 / ECE 0.1437** | 16 casos; **no calibrada**, no es probabilidad |
 | Calibración real acotada | **piloto n=20: Brier 0,0050; factual n=30: 0,0044** | 20/20 y 30/30; IC95 [0,0034; 0,0066] y [0,0031; 0,0059]; muestras pequeñas y fáciles, no general |
-| Cobertura | **84,04% líneas / 84,59% ramas** | 2487/2940 ramas; `coverage --branch` |
+| Cobertura | **84,23% líneas / 84,75% ramas** | 2517/2970 ramas; `coverage --branch` |
 | Mutación del núcleo | **95,2%** | 3635/3819, histórico 2026-10-23/24 |
 | Mutación preflight / evaluador | **95,18% / 80,98%** | 967/1016 y 4846/5984, históricos separados |
 | Mutación citas/calidad, 4 funciones | **193 muertos + 5 equivalencias** | 198 mutantes; cierre acotado, sin tasa global |
@@ -459,6 +483,10 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   no prueba destilación, cuantización, poda, MoE, LoRA ni speculative decoding
   sobre el LLM de producción. La prueba real Ollama se omitió al no estar el
   servidor disponible; no se simuló.
+- `deepseek-free-agent` se verificó con contratos offline, no con una sesión real:
+  disponibilidad y calidad del servicio siguen no verificadas. Requiere autorización
+  explícita, reenvía prompts a DeepSeek, puede tener límites de cuenta y sus
+  herramientas externas necesitan aislamiento; no es sandbox ni garantía de verdad.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube: la verificación es **local por
@@ -471,7 +499,8 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   general, así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12/3.14) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
-  La suite actual en Linux es **1409/1409** con `openai 3.45.0`; los scripts
+  La suite actual en Linux es **1423/1423** (3.11 con `openai 3.42.1`;
+  3.12/3.14 desde el lock con `openai 3.45.0`); los scripts
   `bash`/`make` se verificaron en Linux y en Windows se ejecutaron los comandos
   Python equivalentes.
 - La suite mata el **95,2%** de los mutantes de `mutmut` (3635/3819; 184

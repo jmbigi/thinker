@@ -10,7 +10,8 @@ from pathlib import Path
 
 from deep_research_system import ResearchOrchestrator
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import BudgetLLM, MockLLM, OllamaLLM, OpenRouterLLM
+from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, MockLLM, OllamaLLM,
+                           OpenRouterLLM)
 from mcp_client import MCPSearchAPI
 from research_state import context_to_state
 from web_search import (ArxivSearchAPI, DuckDuckGoSearchAPI, MockSearchAPI,
@@ -37,9 +38,16 @@ def build_parser() -> argparse.ArgumentParser:
         prog="research",
         description="Investiga con evidencia, documentos locales y estado reanudable.")
     parser.add_argument("question", nargs="?", help="pregunta de investigación")
-    parser.add_argument("--provider", choices=("mock", "openrouter", "ollama"),
+    parser.add_argument("--provider",
+                        choices=("mock", "openrouter", "ollama", "deepseek-free-agent"),
                         default="mock", help="proveedor LLM (defecto: mock offline)")
     parser.add_argument("--model", help="modelo del proveedor")
+    parser.add_argument("--deepseek-agent-url",
+                        help="URL loopback del agente (o DEEPSEEK_AGENT_URL)")
+    parser.add_argument("--deepseek-agent-timeout", type=_float_positivo, default=300.0,
+                        help="timeout de lectura del agente en segundos (defecto: 300)")
+    parser.add_argument("--authorize-deepseek-agent", action="store_true",
+                        help="autoriza egreso a DeepSeek y el riesgo de herramientas externas")
     parser.add_argument("--search", choices=(
         "mock", "wikipedia", "duckduckgo", "local", "searxng", "arxiv",
         "pubmed", "semantic_scholar", "mcp"),
@@ -97,6 +105,13 @@ def _base_llm(args, model):
         return MockLLM(model=model or "mock-llm")
     if args.provider == "openrouter":
         return OpenRouterLLM(model=model)
+    if args.provider == "deepseek-free-agent":
+        return DeepSeekFreeAgentLLM(
+            base_url=args.deepseek_agent_url,
+            model=model or "deepseek-free-agent",
+            timeout=args.deepseek_agent_timeout,
+            authorized=args.authorize_deepseek_agent,
+        )
     return OllamaLLM(model=model or "qwen3:1.7b")
 
 

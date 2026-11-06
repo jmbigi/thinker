@@ -46,9 +46,11 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1409/1409** en Linux (Python 3.11.9, 3.12.3 y 3.14.4; openai 3.45.0),
-ruff 0, preflight 0, docs-check OK; autoevaluación posterior a Hallazgo 105 con
-contrato de aseveraciones exactas y triaje de mutación completado.
+Suite **1423/1423** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
+docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
+loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
+permanece no verificada sin servicio y sesión; no se simuló.
 
 **Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). En Windows 11
 (Python 3.12.7/3.14.3) la última medición histórica es 750/750 (2026-10-22);
@@ -1425,3 +1427,17 @@ correctos; se consultó con `pip index versions` y el reintento sin caché pasó
 Evidencias: `build/release23-verificacion.json`,
 `build/release23-testpypi-verificacion.log` y
 `build/release23-pypi-verificacion.log`. Hallazgo 224.
+
+
+**Actualización 2026-11-06** (deepseek-free-agent, Hallazgo 225): integración sin
+API key ni fallback pagado, con autorización formal, endpoint loopback, política
+`public`, salida no confiable y 14 contratos nuevos. Suite **1423/1423** en Linux
+(Python 3.11.9 con openai 3.42.1; 3.12.3/3.14.4 desde el lock con openai 3.45.0).
+Requisitos: **10 CUMPLE + 1 CUBIERTO + 1 NO VERIFICABLE**, sin `NO CUMPLE`; la
+especificación formal es evidencia estática y la disponibilidad/calidad real sigue
+sin verificar porque no hay servicio ni sesión autorizada. Cobertura **84,23% de
+líneas y 84,75% de ramas** (2517/2970). El auditor del diff dio **REVISAR** (0 alta,
+4 media: 938 líneas, reglas, requisitos y tests nuevos), con autorización explícita
+de commit/push del programador; no se usaron exclusiones ni se elevaron presupuestos. Evidencias:
+`build/deepseek-free-agent-requisitos.json`,
+`build/deepseek-free-agent-suite-31{2,4}.log` y `docs/metricas-calidad.json`.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Proveedores LLM del sistema (OpenAI, OpenRouter, Kilo, Ollama y Mock).
+Proveedores LLM del sistema (OpenAI, OpenRouter, Kilo, DeepSeek,
+deepseek-free-agent, Ollama y Mock).
 
 Separado de `deep_research_system` (que solo orquesta el pipeline) para
 mantener la cohesión de módulos: aquí vive todo lo relacionado con hablar con
@@ -8,7 +9,9 @@ modelos. `MockLLM` es SIMULADO: offline, determinista, sin red.
 """
 
 import hashlib
+import ipaddress
 import json
+import math
 import os
 import random
 import re
@@ -16,6 +19,7 @@ import sys
 import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional  # noqa: F401
+from urllib.parse import urlparse
 
 
 # LLM Provider Interface
@@ -325,6 +329,108 @@ class DeepSeekLLM(OpenAILLM):
         # un cliente de OTRO proveedor eso enviaría la clave de OpenAI a un
         # tercero (api.deepseek.com). Se fija aquí la clave propia, o vacía.
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
+
+
+DEEPSEEK_AGENT_MAX_RESPONSE_BYTES = 1_000_000
+DEEPSEEK_AGENT_READONLY_PREFIX = (
+    "Responde únicamente con texto a la solicitud siguiente. No uses herramientas, "
+    "no leas ni modifiques archivos, no ejecutes comandos y no accedas a URLs. "
+    "Si la solicitud exige esas acciones, explica la limitación y responde solo "
+    "con la información disponible.\n\n"
+)
+
+
+def _deepseek_agent_loopback_url(url: str) -> str:
+    candidata = url.strip().rstrip("/")
+    try:
+        parsed = urlparse(candidata)
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError(f"URL inválida para deepseek-free-agent: {url!r}") from exc
+    host = parsed.hostname or ""
+    try:
+        loopback = host == "localhost" or (
+            "%" not in host and ipaddress.ip_address(host).is_loopback)
+    except ValueError:
+        loopback = False
+    if (parsed.scheme not in ("http", "https") or not loopback or
+            parsed.username is not None or parsed.password is not None or
+            parsed.path not in ("", "/") or parsed.query or parsed.fragment or
+            not (1 <= (port or (443 if parsed.scheme == "https" else 80)) <= 65535)):
+        raise ValueError(
+            "deepseek-free-agent exige una URL HTTP(S) loopback sin credenciales, "
+            "ruta, query ni fragmento (por ejemplo http://127.0.0.1:9527)")
+    return candidata
+
+
+class DeepSeekFreeAgentLLM(LLMProvider):
+    """Adaptador de solo lectura para la API local de deepseek-free-agent.
+
+    El servicio reenvía los prompts a chat.deepseek.com: no es un LLM local ni
+    una garantía de disponibilidad ilimitada. Cada llamada abre un chat nuevo.
+    """
+
+    def __init__(self, base_url: str = None, model: str = "deepseek-free-agent",
+                 timeout: float = 300.0, use_cache: bool = True,
+                 authorized: bool = False):
+        self.base_url = _deepseek_agent_loopback_url(
+            base_url or os.environ.get("DEEPSEEK_AGENT_URL", "http://127.0.0.1:9527"))
+        self.model = model
+        self.timeout = float(timeout)
+        if not math.isfinite(self.timeout) or self.timeout <= 0:
+            raise ValueError("timeout de deepseek-free-agent debe ser un número > 0")
+        self.use_cache = use_cache
+        self.authorized = authorized is True
+        self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
+        self._post = None
+
+    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("prompt de deepseek-free-agent no puede estar vacío")
+        if not self.authorized:
+            raise PermissionError(
+                "deepseek-free-agent requiere autorización explícita: revisa "
+                "docs/DEEPSEEK-FREE-AGENT.md y usa authorized=True o "
+                "--authorize-deepseek-agent")
+        modelo = model or self.model
+        if self.cache is not None:
+            guardada = self.cache.get(modelo, prompt)
+            if guardada is not None:
+                return guardada
+
+        import requests
+        post = self._post or requests.post
+        response = post(
+            f"{self.base_url}/task",
+            json={"task": DEEPSEEK_AGENT_READONLY_PREFIX + prompt, "newChat": True},
+            timeout=(min(5.0, self.timeout), self.timeout),
+            allow_redirects=False,
+            stream=True,
+        )
+        try:
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"deepseek-free-agent respondió HTTP {response.status_code}; "
+                    "comprueba el servicio local y la sesión de DeepSeek")
+            contenido = bytearray()
+            for chunk in response.iter_content(chunk_size=65536):
+                contenido.extend(chunk)
+                if len(contenido) > DEEPSEEK_AGENT_MAX_RESPONSE_BYTES:
+                    raise RuntimeError("Respuesta de deepseek-free-agent demasiado grande")
+            try:
+                resultado = json.loads(contenido.decode("utf-8"))
+            except (UnicodeError, json.JSONDecodeError) as exc:
+                raise RuntimeError("Respuesta no JSON de deepseek-free-agent") from exc
+            if not isinstance(resultado, dict) or resultado.get("status") != "success":
+                raise RuntimeError("deepseek-free-agent no completó la tarea correctamente")
+            respuesta = resultado.get("answer")
+            if not isinstance(respuesta, str) or not respuesta.strip():
+                raise RuntimeError("deepseek-free-agent devolvió una respuesta vacía")
+        finally:
+            response.close()
+        if self.cache is not None:
+            self.cache.set(modelo, prompt, respuesta)
+        return respuesta
 
 
 # Mock LLM for offline demos and tests

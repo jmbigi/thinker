@@ -16,6 +16,7 @@ plugins/
 ├── llm_providers/         # Plugins de proveedores LLM
 │   ├── openrouter_plugin.py
 │   ├── deepseek_plugin.py
+│   ├── deepseek_free_agent_plugin.py
 │   └── mock_llm_plugin.py
 └── search_providers/      # Plugins de búsqueda
     ├── duckduckgo_plugin.py
@@ -167,6 +168,13 @@ plugins:
     params:
       model: deepseek-chat
       base_url: https://api.deepseek.com/v1
+  deepseek_free_agent:
+    enabled: true
+    priority: 80
+    params:
+      base_url: http://127.0.0.1:9527
+      timeout: 300
+      authorized: false  # Activar solo tras revisar docs/DEEPSEEK-FREE-AGENT.md.
   mock_llm:
     enabled: true
     priority: 10
@@ -185,6 +193,11 @@ plugins:
     enabled: true
     priority: 10
 ```
+
+`deepseek_free_agent` no envía prompts con `authorized: false`: cambiarlo a `true`
+es una autorización formal tras revisar egreso, herramientas externas y aislamiento
+en `docs/DEEPSEEK-FREE-AGENT.md`. No es un modelo local ni tiene disponibilidad
+ilimitada.
 
 ## CLI (python -m plugins.cli ...)
 

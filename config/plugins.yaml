@@ -21,6 +21,14 @@ plugins:
       max_retries: 3
       base_url: "https://api.deepseek.com/v1"
 
+  deepseek_free_agent:
+    enabled: true
+    priority: 80
+    params:
+      base_url: "http://127.0.0.1:9527"
+      timeout: 300
+      authorized: false  # Revisar docs/DEEPSEEK-FREE-AGENT.md antes de activar.
+
   mock_llm:
     enabled: true
     priority: 10

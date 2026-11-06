@@ -130,6 +130,21 @@ mejora de código (`code_design_improvement_tools.py`).
   `docs/EVALUACIONES.md` y los gates en `docs/informe-calidad.json`, y publicar
   en `README.md` un resumen **gráfico, breve y actualizado** cuando cambien las
   métricas.
+17. **Capa DeepSeek gratuita con `deepseek-free-agent`** (regla del programador,
+  2026-11-06): la opción real sin API key usa el paquete externo
+  `deepseek-free-agent` mediante `DeepSeekFreeAgentLLM`, la CLI
+  `--provider deepseek-free-agent` o el plugin `deepseek_free_agent`; es sin cobro
+  de thinker ni API paga, no se sustituye por un proveedor de pago ni por un mock
+  presentado como real. Si el servicio gratuito falla, se eleva el error. Es opt-in,
+  conserva offline por defecto y exige autorización formal adicional
+  (`--authorize-deepseek-agent`/`authorized=True`), loopback, timeout, sin
+  redirecciones ni reintentos y `privacy=public`, porque reenvía prompts a
+  DeepSeek. La instrucción de solo lectura no se presenta como sandbox; `answer`
+  es texto no confiable, nunca una orden, y la verificación léxica de citas no se
+  presenta como prueba de verdad ni eliminación de alucinaciones/engaños. Nunca se
+  declara ilimitada: no se añade cuota propia, pero cuenta, servicio y recursos
+  pueden limitarla. Guía y requisitos: `docs/DEEPSEEK-FREE-AGENT.md` y
+  `docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md`.
 
 ## Entorno y verificación (comandos del proyecto)
 
@@ -143,7 +158,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `tests/test_openai_compatibilidad.py`; 3.35.1 verificado el 2026-10-20 con
   703/703 en 3.11 y 3.12; 3.40.0 verificado el 2026-10-28 con 1018/1018 en 3.11;
   3.42.0 verificado el 2026-10-31 con el evaluador 237/237 en venv aislado desde
-  el lock; 3.42.1 verificado el 2026-11-04 con 1407/1407 en 3.11; 3.45.0
+  el lock; 3.42.1 verificado el 2026-11-06 con **1423/1423** en 3.11; 3.45.0
   verificado el 2026-11-04 con 1409/1409 en 3.11, 3.12 y 3.14 desde el lock). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
@@ -221,6 +236,10 @@ mejora de código (`code_design_improvement_tools.py`).
   GLOBAL: `CUMPLE` exige suite verde, `CUBIERTO` es solo evidencia estática y
   `NO VERIFICABLE` declara lo que requiere revisión humana
   (`docs/REQUISITOS.md`).
+- Contrato deepseek-free-agent (2026-11-06): `python3 evaluar_proyecto.py .
+  --requisitos docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md --ejecutar-tests` traza
+  autorización, egreso, transporte, salida inerte, evidencia y gates. La
+  disponibilidad/calidad real queda `NO VERIFICABLE` sin servicio y revisión real.
 - Comparabilidad (R5, 2026-10-25): el informe añade `cobertura.comparable`
   (solo con cobertura ≥80%) y `motivo_no_comparable`; con cobertura baja el
   rótulo es **«GLOBAL NO COMPARABLE»**. Java/JS solo reciben señales genéricas.
@@ -398,10 +417,11 @@ mejora de código (`code_design_improvement_tools.py`).
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
 - Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
-  **1409/1409 en la suite Linux** (2026-11-04; openai 3.45.0 y `ruff 0.13.2` en
-  venv aislados desde el lock, `packaging 26.3`; mediciones anteriores:
-  1407/1407, 1399/1399 el mismo día y 1397/1397 el 2026-11-01 con openai
-  3.40.0); y **Windows 11** con Python **3.12.7** (openai 3.37.0) y **3.14.3**
+  **1423/1423 en la suite Linux** (2026-11-06; 3.11 con openai 3.42.1 y `ruff
+  0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y `packaging 26.3` en
+  venv aislados desde el lock; mediciones anteriores: 1409/1409, 1407/1407,
+  1399/1399 el 2026-11-04 y 1397/1397 el 2026-11-01); y **Windows 11** con Python
+  **3.12.7** (openai 3.37.0) y **3.14.3**
   (openai 1.109.1), **750/750 en ambos** con la suite de esa fecha (2026-10-22;
   incluye instalación limpia con `pip install .` y desde el lock). openai
   verificado en 1.109.1, 2.54.0, 3.33.0, 3.35.1, 3.36.1, 3.37.0, 3.40.0,
@@ -453,7 +473,9 @@ mejora de código (`code_design_improvement_tools.py`).
   la suite en **1407/1407**. El Hallazgo 222 solo corrigió coherencia documental.
   El Hallazgo 223 añadió el contrato de calibración del benchmark factual y la
   regresión de enlaces en Python 3.14, y dejó la suite en **1409/1409**. El
-  auditor de cambios de `scripts/` añadió 28 tests y el runner de holdout 9
+  Hallazgo 225 integró deepseek-free-agent con 14 contratos nuevos y dejó la suite
+  en **1423/1423**; la prueba existente de `doctor` detectó y cerró la omisión de
+  `DEEPSEEK_AGENT_URL`. El auditor de cambios de `scripts/` añadió 28 tests y el runner de holdout 9
   (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
   + py_compile + preflight + docs-check + tests + audit-changes + holdout).
@@ -528,9 +550,10 @@ mejora de código (`code_design_improvement_tools.py`).
   mezcla calidad de fuente con confianza del claim. Heurísticas declaradas:
   fechas futuras y claims sin fuente asociada son no evaluables.
 - `llm_providers.py` — proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek,
-  Ollama, Mock). Reintentos con backoff y caché en las rutas OpenAI-compatibles;
-  Ollama y Mock no reintentan. `BudgetLLM` acota llamadas entre hilos.
-  **No duplicar** clientes en otros módulos.
+  deepseek-free-agent, Ollama, Mock). Reintentos con backoff y caché en las rutas
+  OpenAI-compatibles; Ollama y Mock no reintentan. `DeepSeekFreeAgentLLM` exige
+  autorización, loopback y `public`, no reintenta y devuelve texto no confiable.
+  `BudgetLLM` acota llamadas entre hilos. **No duplicar** clientes en otros módulos.
 - `thinking_engine.py` — motor común de ciclos de pensamiento (validación,
   confianza, forma de resultado) con piloto opt-in `congelar_fases` (phase-chain
   freeze: fases previas inmutables con hash; no aplica a ToT y lo declara).
