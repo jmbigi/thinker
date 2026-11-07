@@ -1,7 +1,7 @@
 """Contrato offline del proveedor Free AI Gateway (ia.forthtrade.com).
 
 Sin red ni API key real. Verifica construcción, selección de clave del gateway
-(sin caer a OPENAI_API_KEY ajena), mensajes de error y wiring de CLI/plugin.
+(sin caer a OPENAI_API_KEY ajena), mensaje claro sin key y wiring de CLI/plugin.
 """
 
 import os
@@ -35,7 +35,9 @@ class TestForthtradeGateway(unittest.TestCase):
             llm = ForthtradeGatewayLLM()
             with self.assertRaises(ValueError) as ctx:
                 llm.generate("hola")
-        self.assertIn("OpenAI API key required", str(ctx.exception))
+        msg = str(ctx.exception)
+        self.assertIn("FT_AI_API_KEY", msg)
+        self.assertIn("ia.forthtrade.com/help.json", msg)
 
     def test_plugin_configura_y_estima(self):
         with patch("llm_providers.ForthtradeGatewayLLM") as cls:
@@ -55,6 +57,19 @@ class TestForthtradeGateway(unittest.TestCase):
         self.assertIsInstance(llm, ForthtradeGatewayLLM)
         self.assertEqual(llm.model, "auto")
         self.assertEqual(llm.base_url, "https://ia.forthtrade.com/v1")
+
+    def test_modelo_explicito_sobreescribe(self):
+        with patch.dict(os.environ, {"FT_AI_API_KEY": "gw-test"}, clear=True):
+            llm = ForthtradeGatewayLLM(model="gpt-4o-mini")
+            self.assertEqual(llm.model, "gpt-4o-mini")
+
+    def test_gateway_no_fuga_openai_key(self):
+        with patch.dict(os.environ, {
+                "FT_AI_API_KEY": "gw-secret",
+                "OPENAI_API_KEY": "sk-or-should-not-be-used",
+        }, clear=True):
+            llm = ForthtradeGatewayLLM()
+            self.assertEqual(llm.api_key, "gw-secret")
 
 
 if __name__ == "__main__":

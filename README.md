@@ -477,7 +477,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1509/1509** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 → 1503 → 1504 → 1509 tests (**+33,8%** desde 1128); 1509 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
+| Suite Linux | **1511/1511** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 → 1503 → 1504 → 1509 → 1511 tests (**+34,0%** desde 1128); 1511 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -567,7 +567,7 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   general, así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12/3.14) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
-  La suite actual en Linux es **1509/1509** en 3.11 (con `openai 3.42.1`);
+  La suite actual en Linux es **1511/1511** en 3.11 (con `openai 3.42.1`);
   en 3.12/3.14 la última medición es 1451/1451 desde el lock con `openai 3.45.0`; los scripts
   `bash`/`make` se verificaron en Linux y en Windows se ejecutaron los comandos
   Python equivalentes.
