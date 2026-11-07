@@ -42,10 +42,10 @@ El proxy y Ollama escuchan solo en loopback. El modelo gratuito de OpenRouter no
 |-----------|-------------|----------|----------|
 | **Proxy / Load Balancer** | **Olla** | Apache 2.0 | Proxy/balanceador multi-backend (Ollama, llama.cpp, vLLM), unifica catálogo, health checks |
 | | **SOLLOL** | OSS | Orquestación ligera clusters Ollama: autodescubrimiento, failover, enrutamiento por capacidad |
-| **Sandbox / Evaluación código** | **Proof** (proof-ai) | OSS | Ejecución en contenedores Docker aislados, CI-ready (exit 0/1), detecta errores/seguridad/alucinaciones |
+| **Sandbox / Evaluación código** | **Proof** (proof-ai) | MIT | Ejecución en contenedores Docker aislados, CI-ready (exit 0/1), detecta errores/seguridad/alucinaciones |
 | | **Promptfoo** + **Epicbox** | OSS | Framework tests + sandbox Docker para validación funcional automatizada |
-| **DeepSeek Security** | **dsh-agent-gate** | AGPL | Fail-closed, sandbox rutas (`allowed_roots`), rate limiting, auditoría JSONL; **fail-closed por defecto** |
-| **llama.cpp optim.** | OpenBLAS / offloading GPU | OSS | `make LLAMA_OPENBLAS=1` (2-3x), `-t <núcleos físicos>`, `-ngl 999` y bajar de 5 en 5 si OOM |
+| **DeepSeek Security** | **dsh-agent-gate** | AGPL | Fail-closed, sandbox rutas (`allowed_roots`), rate limiting, auditoría JSONL; **fail-closed por defecto**. **Plugin comunitario, no oficial DeepSeek** |
+| **llama.cpp optim.** | OpenBLAS / offloading GPU | OSS | `make LLAMA_OPENBLAS=1` (acelera **prefill**, no generación token-a-token), `-t` (por defecto usa núcleos físicos), `-ngl 999` y bajar de 5 en 5 si OOM |
 
 > **Nota**: Todas las herramientas son **gratuitas, autoalojables, sin claves API ni servicios en la nube**.
 
@@ -65,10 +65,13 @@ El proxy y Ollama escuchan solo en loopback. El modelo gratuito de OpenRouter no
 ### Optimizaciones llama.cpp en `start-all.sh`
 ```bash
 # Flags recomendados (ajustar a tu hardware):
-# -t <núcleos físicos>        # ej. 16 en Ryzen 9 7950X (no hilos lógicos)
-# make LLAMA_OPENBLAS=1       # 2-3x speedup en ops matriciales
-# -ngl 999                    # offload all layers to GPU; bajar de 5 en 5 si OOM
+# -t <núcleos físicos>        # Por defecto llama.cpp ya usa núcleos físicos; solo forzar si necesario
+# make LLAMA_OPENBLAS=1       # Acelera PREFIll (prompts largos); impacto en generación token-a-token limitado/nulo
+# -ngl 999                    # Offload all layers to GPU; bajar de 5 en 5 si OOM
+# stream_buffer_size          # 2-4 KB (chat baja latencia) / 8 KB (equilibrio) si se usa proxy adicional
 ```
+
+> **Nota técnica**: OpenBLAS acelera el procesamiento de prompts (prefill), no la generación token-a-token. La documentación de llama.cpp lo recomienda para "faster prompt processing". El parámetro `-t` (hilos) se autodetecta a núcleos físicos por defecto; el ajuste manual solo es necesario para forzar un valor distinto.
 
 ---
 
@@ -264,7 +267,7 @@ Suite del proyecto: **1451 tests** (registrada en `AGENTS.md`); hook pre-commit 
 - **Proof**: <https://github.com/proof-ai/proof>
 - **Promptfoo**: <https://github.com/promptfoo/promptfoo>
 - **Epicbox**: <https://github.com/epicbox/epicbox>
-- **dsh-agent-gate**: <https://github.com/deepseek-ai/dsh-agent-gate> (AGPL)
+- **dsh-agent-gate**: <https://github.com/deepseek-ai/dsh-agent-gate> (AGPL, **plugin comunitario, no oficial DeepSeek**)
 
 ---
 
