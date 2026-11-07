@@ -13,6 +13,17 @@ plugins:
       use_fallback: true
       max_retries: 3
 
+  # Kilo AI Gateway: `cohere/north-mini-code:free` no requiere key (200 req/h por IP).
+  # Con KILO_API_KEY se puede elegir cualquier modelo del catálogo.
+  kilo:
+    enabled: true
+    priority: 95
+    params:
+      model: "cohere/north-mini-code:free"
+      max_retries: 3
+      timeout: 60.0
+      use_cache: true
+
   deepseek:
     enabled: true
     priority: 90

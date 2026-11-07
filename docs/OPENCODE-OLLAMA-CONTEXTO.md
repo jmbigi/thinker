@@ -111,7 +111,7 @@ La arquitectura de OpenCode/Kimi Code **no soporta** contexto dinámico desde la
 - `docs/LECCIONES-APRENDIDAS.md`: Hallazgo 226, 227 documentados
 - `tests/test_deepseek_free_agent.py`: 19/19 tests pasando (incluye fallback local)
 - `build/ollama-context-proxy.go`: Proxy funcional que enriquece `/v1/models` (pero no usado por OpenCode)
-- Suite completa: **1488/1488 tests pasando**
+- Suite completa: **1492/1492 tests pasando**
 
 ---
 

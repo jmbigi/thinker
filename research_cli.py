@@ -10,8 +10,9 @@ from pathlib import Path
 
 from deep_research_system import ResearchOrchestrator
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, LocalFallbackLLM, MockLLM,
-                           OllamaLLM, OpenAILLM, OpenRouterLLM)
+from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, KiloGatewayLLM,
+                           LocalFallbackLLM, MockLLM, OllamaLLM, OpenAILLM,
+                           OpenRouterLLM)
 from mcp_client import MCPSearchAPI
 from research_state import context_to_state
 from web_search import (ArxivSearchAPI, DuckDuckGoSearchAPI, MockSearchAPI,
@@ -39,7 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Investiga con evidencia, documentos locales y estado reanudable.")
     parser.add_argument("question", nargs="?", help="pregunta de investigación")
     parser.add_argument("--provider",
-                        choices=("mock", "openrouter", "ollama", "deepseek-free-agent"),
+                        choices=("mock", "openrouter", "kilo", "ollama",
+                                 "deepseek-free-agent"),
                         default="mock", help="proveedor LLM (defecto: mock offline)")
     parser.add_argument("--model", help="modelo del proveedor")
     parser.add_argument("--ollama-base-url",
@@ -137,6 +139,8 @@ def _base_llm(args, model):
         return MockLLM(model=model or "mock-llm")
     if args.provider == "openrouter":
         return OpenRouterLLM(model=model)
+    if args.provider == "kilo":
+        return KiloGatewayLLM(model=model)
     if args.provider == "deepseek-free-agent":
         primary = DeepSeekFreeAgentLLM(
             base_url=args.deepseek_agent_url,

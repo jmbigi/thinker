@@ -282,24 +282,43 @@ class OllamaLLM(LLMProvider):
 
 
 # Kilo AI Gateway implementation (unified API with BYOK)
-class KiloGatewayLLM(LLMProvider):
-    """Conecta al Kilo AI Gateway para acceder a cientos de modelos con una sola key.
+KILO_DEFAULT_FREE_MODEL = "cohere/north-mini-code:free"
+KILO_DEFAULT_BASE_URL = "https://ai-gateway.kilo.ai/api/v1"
 
-    Base URL: https://api.kilo.ai/api/gateway
-    Características:
-    - BYOK (Bring Your Own Key): usa tu propia API key de proveedores
-    - Acceso a cientos de modelos (Anthropic, OpenAI, Google, Mistral, etc.)
-    - API compatible con OpenAI: mismo formato de petición
-    - Tracking de uso y costos
+
+def _kilo_modelo_gratuito(model: str) -> bool:
+    """True para los IDs gratuitos conocidos del catálogo de Kilo.
+
+    Los modelos `:free` y los `kilo-auto/free` aceptan acceso anónimo (200
+    peticiones/hora por IP según la documentación de Kilo). Los IDs `stealth/*`
+    del catálogo son gratuitos y dinámicos.
+    """
+    m = (model or "").strip().lower()
+    return (m.endswith(":free") or m in {
+        KILO_DEFAULT_FREE_MODEL, "kilo-auto/free", "openrouter/free",
+        "reflection/beam-free",
+    } or m.startswith("stealth/"))
+
+
+class KiloGatewayLLM(LLMProvider):
+    """Kilo AI Gateway: cientos de modelos con una sola API compatible OpenAI.
+
+    - Base URL documentada: https://ai-gateway.kilo.ai/api/v1
+    - Acceso **anónimo** solo a modelos gratuitos (`:free`, `kilo-auto/free`),
+      limitado por Kilo (200 peticiones/hora por IP); no es ilimitado.
+    - Con `KILO_API_KEY` se puede usar cualquier modelo del catálogo.
+    - BYOK: la clave del proveedor se configura en Kilo, no aquí.
     """
 
     def __init__(self, api_key: str = None, model: str = None,
-                 base_url: str = "https://api.kilo.ai/api/gateway",
-                 max_retries: int = 3, timeout: float = DEFAULT_TIMEOUT,
-                 use_cache: bool = True):
-        self.api_key = api_key or os.environ.get("KILO_API_KEY", "")
-        self.model = model or "anthropic/claude-sonnet-4"
-        self.base_url = base_url
+                 base_url: str = None, max_retries: int = 3,
+                 timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
+        self.api_key = (api_key if api_key is not None
+                        else os.environ.get("KILO_API_KEY", ""))
+        self.model = (model or os.environ.get("KILO_MODEL")
+                      or KILO_DEFAULT_FREE_MODEL)
+        self.base_url = (base_url or os.environ.get("KILO_BASE_URL")
+                         or KILO_DEFAULT_BASE_URL)
         self.max_retries = max_retries
         self.timeout = timeout
         self.use_cache = use_cache
@@ -307,14 +326,21 @@ class KiloGatewayLLM(LLMProvider):
         self._clientes: Dict[Any, Any] = {}
 
     def generate(self, prompt: str, model: str = None, **kwargs) -> str:
-        key = kwargs.pop("api_key", None) or self.api_key
+        modelo = model or self.model
+        key = kwargs.pop("api_key", None)
+        if key is None:
+            key = self.api_key
         if not key:
-            raise ValueError(
-                "Kilo API key required for KiloGatewayLLM. "
-                "Provide api_key parameter or set KILO_API_KEY environment variable."
-            )
+            if not _kilo_modelo_gratuito(modelo):
+                raise ValueError(
+                    "Kilo API key required para modelos de pago; usa un "
+                    f"modelo gratuito ({KILO_DEFAULT_FREE_MODEL}) o define "
+                    "KILO_API_KEY.")
+            # Kilo acepta acceso anónimo a modelos gratuitos; el SDK exige una
+            # clave no vacía, pero el gateway no la valida para :free.
+            key = "anonymous"
         client = _cliente_openai(self._clientes, key, self.base_url)
-        return _chat_completion(client, model or self.model, prompt,
+        return _chat_completion(client, modelo, prompt,
                                 self.max_retries, "KiloGatewayLLM",
                                 timeout=self.timeout, cache=self.cache)
 

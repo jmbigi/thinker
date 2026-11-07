@@ -37,7 +37,8 @@ if str(RAIZ) not in sys.path:
 # proveedor añade una variable de entorno, debe aparecer aquí.
 VARIABLES_PROVEEDORES = (
     "OPENAI_API_KEY", "OPENROUTER_API_KEY", "OPENROUTER_MODEL",
-    "KILO_API_KEY", "DEEPSEEK_API_KEY", "DEEPSEEK_AGENT_URL",
+    "KILO_API_KEY", "KILO_MODEL", "KILO_BASE_URL",
+    "DEEPSEEK_API_KEY", "DEEPSEEK_AGENT_URL",
     "OLLAMA_MODEL", "OLLAMA_BASE_URL",
     # Política del gate local (no es una clave): raíces permitidas.
     "DSH_AGENT_GATE_ROOTS",

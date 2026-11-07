@@ -45,7 +45,10 @@ mejora de código (`code_design_improvement_tools.py`).
    Ollama) solo se usan de forma opt-in y explícita. Para OpenRouter se usan
    **modelos gratuitos** (`:free`, coste 0): por defecto
    `poolside/laguna-xs-2.1:free`, sobreescribible con la variable
-   de entorno `OPENROUTER_MODEL`.
+   de entorno `OPENROUTER_MODEL`. Para Kilo se usa `cohere/north-mini-code:free` por
+   defecto, con acceso anónimo limitado a **200 peticiones/hora por IP**;
+   `KILO_API_KEY` solo es necesaria para modelos de pago y `KILO_MODEL`
+   permite elegir otro ID.
 7. **Rutas portables**: prohibidas rutas absolutas de Windows (`C:\...`);
    rutas relativas al proyecto o `pathlib`.
 8. **Comprobaciones obligatorias** (regla añadida por el programador,
@@ -417,7 +420,7 @@ mejora de código (`code_design_improvement_tools.py`).
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
 - Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
-  **1488/1488 en la suite Linux** (2026-11-07; 3.11 con openai 3.42.1 y `ruff
+  **1492/1492 en la suite Linux** (2026-11-07; 3.11 con openai 3.42.1 y `ruff
   0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y `packaging 26.3` en
   venv aislados desde el lock; mediciones anteriores: 1409/1409, 1407/1407,
   1399/1399 el 2026-11-04 y 1397/1397 el 2026-11-01); y **Windows 11** con Python

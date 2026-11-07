@@ -272,8 +272,8 @@ class TestConstructoresExactos(unittest.TestCase):
             llm = KiloGatewayLLM()
 
         self.assertEqual(llm.api_key, "")
-        self.assertEqual(llm.model, "anthropic/claude-sonnet-4")
-        self.assertEqual(llm.base_url, "https://api.kilo.ai/api/gateway")
+        self.assertEqual(llm.model, "cohere/north-mini-code:free")
+        self.assertEqual(llm.base_url, "https://ai-gateway.kilo.ai/api/v1")
         self.assertEqual(llm.max_retries, 3)
         self.assertEqual(llm.timeout, 60.0)
         self.assertTrue(llm.use_cache)
@@ -415,14 +415,13 @@ class TestMensajesDeErrorExactos(unittest.TestCase):
 
     def test_kilo_sin_key_mensaje_exacto(self):
         with patch.dict(os.environ, _entorno_sin("KILO_API_KEY"), clear=True):
-            llm = KiloGatewayLLM()
+            llm = KiloGatewayLLM(model="anthropic/claude-sonnet-4")
             with self.assertRaises(ValueError) as cm:
                 llm.generate("hola")
 
         self.assertEqual(str(cm.exception),
-                         "Kilo API key required for KiloGatewayLLM. "
-                         "Provide api_key parameter or set KILO_API_KEY "
-                         "environment variable.")
+                         "Kilo API key required para modelos de pago; usa un "
+                         "modelo gratuito (cohere/north-mini-code:free) o define KILO_API_KEY.")
 
 
 class TestKiloGenerateDetalle(unittest.TestCase):
@@ -435,7 +434,20 @@ class TestKiloGenerateDetalle(unittest.TestCase):
 
         fabrica.assert_called_once_with(
             api_key="clave-en-kwargs",
-            base_url="https://api.kilo.ai/api/gateway")
+            base_url="https://ai-gateway.kilo.ai/api/v1")
+
+    def test_kilo_gratuito_sin_key_usa_acceso_anonimo(self):
+        cliente = make_chat_client([ok_chat_response("ok gratis")])
+        with patch.dict(os.environ, _entorno_sin("KILO_API_KEY"), clear=True):
+            llm = KiloGatewayLLM()
+            with patch("openai.OpenAI", return_value=cliente) as fabrica:
+                salida = llm.generate("p")
+
+        self.assertEqual(salida, "ok gratis")
+        fabrica.assert_called_once_with(
+            api_key="anonymous",
+            base_url="https://ai-gateway.kilo.ai/api/v1")
+        self.assertEqual(cliente.calls[0]["model"], "cohere/north-mini-code:free")
 
     def test_el_prompt_llega_al_cliente(self):
         cliente = make_chat_client([ok_chat_response("ok")])

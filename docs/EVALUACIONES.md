@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1488/1488** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+Suite **1492/1492** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
 3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
 docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
 loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
@@ -54,7 +54,9 @@ permanece no verificada sin servicio y sesión; no se simuló. Hallazgo 228:
 `LocalToolGate` fail-closed sin HTTP ficticio, Olla con sus rutas reales y
 `code_evaluator` retirado por no ser verificable. Hallazgo 229: escáner de
 secretos fail-closed, `code_generator` sin éxito vacío y guía llama.cpp
-validada contra la API instalada.
+validada contra la API instalada. Hallazgo 230: Kilo integrado como
+proveedor gratuito (`cohere/north-mini-code:free`, anónimo 200 req/h), con
+pipeline real de 36,55 s.
 
 **Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). En Windows 11
 (Python 3.12.7/3.14.3) la última medición histórica es 750/750 (2026-10-22);
@@ -1503,3 +1505,15 @@ reproducidas y la afirmación de caché compartida del fallback se corrigió. Se
 añadió `fallback_model` al plugin DeepSeek. Suite **1488/1488** en Linux (+3 tests: 2 de `code_generator` y 1 del
 escáner sin git), Ruff 0, preflight 0, docs-check OK; evidencia:
 `build/suite-2026-11-07-d.log`.
+
+
+**Actualización 2026-11-07** (Kilo AI Gateway, Hallazgo 230): se añadió Kilo
+como proveedor real (`--provider kilo`, plugin `kilo`, `config/plugins.yaml`).
+El endpoint documentado es `https://ai-gateway.kilo.ai/api/v1` y el modelo por
+defecto es `cohere/north-mini-code:free` (256k, coste 0), con acceso anónimo
+limitado por Kilo a **200 peticiones/hora por IP**; `kilo-auto/free` queda como
+auto-routing y `KILO_API_KEY` permite modelos de pago. Verificación real:
+«París» en 1,4 s y «OK» en 0,9 s; pipeline completo en **36,55 s** con
+**5 fuentes, 3 claims y 3 evaluaciones**. No es privado ni ilimitado. Suite **1492/1492** en Linux (+4 tests: CLI, plugin y acceso anónimo), Ruff 0,
+preflight 0, docs-check OK. Evidencia: `build/kilo-cli-4.json`,
+`build/kilo-cli-4.err` y `build/suite-2026-11-07-g.log`.

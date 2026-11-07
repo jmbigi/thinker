@@ -14,7 +14,8 @@
 | Proxy de contexto (11435) | `build/ollama-context-proxy` (Go); inyecta `num_ctx` por modelo en `/v1/chat/completions`, elimina `max_tokens`. **Alternativas gratuitas/OSS**: **Olla** (Apache 2.0, multi-backend) y **SOLLOL** (MIT, orquestador de clusters Ollama). |
 | llama.cpp (11436) | Servidor opcional `build/llama-cpp-server.py`, compatible con OpenAI; health en `/health`. |
 | Kimi Code | `~/.kimi-code/config.toml`; modelo por defecto gratuito OpenRouter (`nemotron-3-ultra:free`) y Ollama local (`qwen3:8b`) como alternativa. |
-| OpenCode | `~/.config/opencode/opencode.jsonc`; modelo gratuito OpenRouter. |
+| OpenCode | `~/.config/opencode/opencode.jsonc`; OpenRouter gratuito y proveedor Kilo (`kilo-auto/free`). |
+| Kilo AI Gateway | `research --provider kilo` / plugin `kilo`; `cohere/north-mini-code:free` anónimo (200 req/h por IP), `kilo-auto/free` como auto-routing; `KILO_API_KEY` para el catálogo completo; remoto y con cuota. |
 | DeepSeek Free Agent | Integración opt-in con fallback local declarado; **solo intercambia texto, no ejecuta herramientas**; no es un modelo local. |
 
 ---
@@ -24,15 +25,18 @@
 ```
 Kimi Code / OpenCode ── OpenRouter ──> nvidia/nemotron-3-ultra-550b-a55b:free
         │                                   (remoto, coste 0, requiere red, tool_use ✓)
+        ├── Kilo Gateway ──> cohere/north-mini-code:free (remoto, 0 €, 200 req/h por IP)
         │
         └── :11435 proxy (ollama-context-proxy / Olla / SOLLOL) ──> Ollama :11434
               (inyecta num_ctx por modelo, OpenAI-compat /v1/chat/completions)
 
 research / smart-research ──> Ollama vía proxy (tool_use con qwen3:8b)
+                          ──> OpenRouter / Kilo / DeepSeek (opt-in, remoto)
 llama.cpp :11436 <── clientes OpenAI-compatibles (opcional)
 ```
 
-El proxy y Ollama escuchan solo en loopback. El modelo gratuito de OpenRouter no es privado: los prompts salen de la máquina.
+El proxy y Ollama escuchan solo en loopback. OpenRouter, Kilo y DeepSeek no son
+privados: los prompts salen de la máquina y sus cuotas/límites aplican.
 
 ---
 
@@ -247,7 +251,7 @@ ruff check .
 python3 scripts/check_docs.py
 ```
 
-Suite del proyecto: **1488 tests** (registrada en `AGENTS.md`); hook pre-commit la ejecuta antes de cada commit.
+Suite del proyecto: **1492 tests** (registrada en `AGENTS.md`); hook pre-commit la ejecuta antes de cada commit.
 
 ---
 
@@ -263,6 +267,8 @@ benchmark sostenido ni una medida de calidad factual.
 | Ollama `deepseek-r1:8b` | 0 | **sin cuota** | local | 8B reasoning, sin tools | 58,6 tok/s; TTFT 8,7 s |
 | DeepSeek Free Agent | 0 con cuenta | límites del servicio | prompts a DeepSeek | modelo web | «OK» en 43,2 s |
 | OpenRouter `:free` | 0 | **cuota diaria** | prompts a OpenRouter | modelo grande | el límite diario bloqueó el 2026-11-07 (`free-models-per-day-high-balance`); no se midió |
+| Kilo `cohere/north-mini-code:free` | 0 | **200 req/h por IP** (anónimo) | prompts a Kilo | free, 256k | «París» en 1,4 s; «OK» en 0,9 s |
+| Kilo `kilo-auto/free` | 0 | 200 req/h por IP (anónimo) | prompts a Kilo | auto-ruteado | «OK» en 3,9 s (puede elegir un reasoning lento) |
 
 Lectura honesta:
 
@@ -270,7 +276,7 @@ Lectura honesta:
   hardware y el tamaño del modelo son el límite real. 8B no es «muy bueno» para
   todo; no se declara calidad frontier.
 - **Muy bueno** con coste 0 depende hoy de cuotas externas (OpenRouter,
-  DeepSeek). Cuando la cuota se agota, el respaldo local mantiene el servicio:
+  Kilo y DeepSeek). Cuando la cuota se agota, el respaldo local mantiene el servicio:
   `--fallback-model qwen3:8b`.
 - No se puede garantizar que un modelo externo no rechace una petición; no se
   implementan técnicas para eludir las políticas del proveedor. «Sin

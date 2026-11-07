@@ -6,11 +6,13 @@ API keys. Se fija el contrato de configuración (`params.max_results`) y que la
 dependencia declarada por cada plugin sea la que el código usa de verdad.
 """
 
+import math
 import unittest
 from unittest.mock import patch
 
 from plugins.interfaces import PluginConfig
 from plugins.llm_providers.deepseek_plugin import DeepSeekPlugin
+from plugins.llm_providers.kilo_plugin import KiloPlugin
 from plugins.llm_providers.openrouter_plugin import OpenRouterPlugin
 from plugins.search_providers.duckduckgo_plugin import DuckDuckGoSearchPlugin
 from plugins.search_providers.wikipedia_plugin import WikipediaSearchPlugin
@@ -126,6 +128,29 @@ class TestProveedoresLLM(unittest.TestCase):
 
         cliente.assert_called_once_with(model="deepseek-chat", max_retries=2,
                                         base_url="https://api.deepseek.com/v1")
+
+    def test_kilo_pasa_la_configuracion_y_usa_el_modelo_gratuito(self):
+        with patch("llm_providers.KiloGatewayLLM") as cliente:
+            cliente.return_value.generate.return_value = "respuesta kilo"
+            plugin = KiloPlugin(PluginConfig(params={
+                "model": "cohere/north-mini-code:free", "max_retries": 2,
+                "timeout": 30.0, "use_cache": False}))
+            self.assertTrue(plugin.initialize())
+            self.assertEqual(plugin.generate("hola"), "respuesta kilo")
+            self.assertEqual(plugin.estimate_cost("hola"), 0.0)
+            self.assertEqual(plugin.metadata.usage_count, 1)
+
+        cliente.assert_called_once_with(
+            model="cohere/north-mini-code:free", base_url=None, max_retries=2,
+            timeout=30.0, use_cache=False)
+        cliente.return_value.generate.assert_called_once_with("hola", model=None)
+
+    def test_kilo_sin_initialize_y_coste_no_estimado(self):
+        with self.assertRaisesRegex(RuntimeError, "no inicializado"):
+            KiloPlugin().generate("hola")
+
+        plugin = KiloPlugin(PluginConfig(params={"model": "anthropic/claude-sonnet-4"}))
+        self.assertTrue(math.isnan(plugin.estimate_cost("hola")))
 
     def test_deepseek_generar_sin_initialize_es_un_error_explicito(self):
         with self.assertRaisesRegex(RuntimeError, "not initialized"):

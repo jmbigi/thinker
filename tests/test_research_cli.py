@@ -8,8 +8,8 @@ import unittest
 from argparse import Namespace
 from pathlib import Path
 
-from llm_providers import OllamaLLM, OpenAILLM
-from research_cli import _ollama_llm, main
+from llm_providers import KiloGatewayLLM, OllamaLLM, OpenAILLM
+from research_cli import _ollama_llm, build_llm, build_parser, main
 
 
 class TestResearchCLI(unittest.TestCase):
@@ -57,6 +57,13 @@ class TestResearchCLI(unittest.TestCase):
         self.assertEqual(informe.read_text(encoding="utf-8"), contenido)
         self.assertEqual(salida, "")
         self.assertTrue(json.loads(estado.read_text())["completed"])
+
+    def test_provider_kilo_usa_el_modelo_gratuito(self):
+        args = build_parser().parse_args(["pregunta", "--provider", "kilo"])
+        llm = build_llm(args)
+        self.assertIsInstance(llm, KiloGatewayLLM)
+        self.assertEqual(llm.model, "cohere/north-mini-code:free")
+        self.assertEqual(llm.base_url, "https://ai-gateway.kilo.ai/api/v1")
 
     def test_presupuesto_agotado_es_error_visible(self):
         codigo, salida, errores = self._run(["pregunta", "--max-llm-calls", "1"])

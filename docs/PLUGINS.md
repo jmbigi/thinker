@@ -15,6 +15,7 @@ plugins/
 ├── cli.py                 # CLI de gestión
 ├── llm_providers/         # Plugins de proveedores LLM
 │   ├── openrouter_plugin.py
+│   ├── kilo_plugin.py
 │   ├── deepseek_plugin.py
 │   ├── deepseek_free_agent_plugin.py
 │   └── mock_llm_plugin.py
@@ -161,6 +162,12 @@ plugins:
     params:
       model: poolside/laguna-xs-2.1:free
       use_fallback: true
+      max_retries: 3
+  kilo:
+    enabled: true
+    priority: 95
+    params:
+      model: cohere/north-mini-code:free
       max_retries: 3
   deepseek:
     enabled: true

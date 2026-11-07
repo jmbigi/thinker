@@ -272,7 +272,7 @@ class TestLLMProviders(unittest.TestCase):
 
     def test_kilo_sin_key_eleva_value_error(self):
         with patch.dict(os.environ, {"KILO_API_KEY": ""}):
-            llm = KiloGatewayLLM(api_key="")
+            llm = KiloGatewayLLM(api_key="", model="anthropic/claude-sonnet-4")
             with self.assertRaises(ValueError) as cm:
                 llm.generate("hola")
         self.assertIn("Kilo API key required", str(cm.exception))
@@ -285,9 +285,9 @@ class TestLLMProviders(unittest.TestCase):
         self.assertEqual(result, "respuesta kilo")
         mock_openai.assert_called_once_with(
             api_key="clave-ficticia-de-test",
-            base_url="https://api.kilo.ai/api/gateway",
+            base_url="https://ai-gateway.kilo.ai/api/v1",
         )
-        self.assertEqual(client.calls[0]["model"], "anthropic/claude-sonnet-4")
+        self.assertEqual(client.calls[0]["model"], "cohere/north-mini-code:free")
 
     def test_kilo_cache_y_timeout_como_las_rutas_openai(self):
         client = make_chat_client([ok_chat_response("respuesta kilo")])

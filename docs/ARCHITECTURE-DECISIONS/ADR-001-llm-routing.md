@@ -32,7 +32,7 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 - **Cero trabajo en binarios propietarios** - no se modifica binario ni se mantiene fork
 - **Contexto 131k declarado** por el proxy; el uso real de 131k no se midió
 - **Fallback automático** - DeepSeek Free Agent conmuta a Ollama local si falla web
-- **Evidencia verificable** - 1488/1488 tests pasan, 19/19 tests de integración DeepSeek Free Agent
+- **Evidencia verificable** - 1492/1492 tests pasan, 19/19 tests de integración DeepSeek Free Agent
 - **Mantenibilidad** - actualizaciones upstream no rompen la solución
 
 ### Negativos
@@ -72,13 +72,13 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 
 | Componente | Prueba | Estado |
 |------------|--------|--------|
-| Suite de tests | `1488/1488` tests OK | ✅ |
+| Suite de tests | `1492/1492` tests OK | ✅ |
 | DeepSeek Free Agent tests | 17/17 OK (4 tests fallback) | ✅ |
 | Pipeline local Thinker | 77s, 3 claims, 3 evals; 131k declarado (no medido) | ✅ |
 | DeepSeek Free Agent + fallback | 44s, 4 claims, 4 evals, 0 citas válidas* | ✅ |
 | Proxy HTTP Ollama | Inyecta `num_ctx=131072`, elimina `max_tokens` | ✅ |
 | Ollama directo `num_ctx=131072` | 131k aceptado; uso real no medido | ✅ |
-| Suite completa | Ruff 0, Preflight 0, Docs 0, Tests 1488/1488 | ✅ |
+| Suite completa | Ruff 0, Preflight 0, Docs 0, Tests 1492/1492 | ✅ |
 
 *\* Citas 0/17 por limitación del modelo, no del pipeline*
 

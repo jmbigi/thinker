@@ -5009,10 +5009,41 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   bloques, 0 errores, 0 kwargs inválidos) y se corrigieron tamaños, contexto y
   enlaces; OpenCode/ADR se marcan como hipótesis no reproducidas; el fallback
   DeepSeek declara que no comparte caché y el plugin configura `fallback_model`.
-- **Verificación**: suite **1488/1488**, Ruff 0, preflight 0, docs-check OK;
+- **Verificación**: suite **1492/1492**, Ruff 0, preflight 0, docs-check OK;
   `tests.test_scan_secrets` 5/5; `tests.test_code_generator` 22/22; guía
   validada con llama-cpp-python 0.3.28. Evidencia:
   `build/suite-2026-11-07-d.log`.
 - **Lección**: todo ejemplo de documentación que se publique debe compilarse o
   contrastarse con la API instalada; y un gate de seguridad debe fallar cuando
   no puede ejecutarse, nunca devolver «OK» por defecto.
+
+
+### Hallazgo 230: Kilo existía, pero no estaba usable como gratuito
+
+- **Problema**: `KiloGatewayLLM` estaba en `llm_providers.py`, pero la CLI no
+  ofrecía `--provider kilo`; el modelo por defecto era el **de pago**
+  `anthropic/claude-sonnet-4`; la base URL era la antigua
+  `https://api.kilo.ai/api/gateway` y el adaptador exigía API key incluso para
+  modelos `:free`, aunque Kilo permite acceso anónimo a esos modelos.
+- **Comprobación real**: el catálogo público devolvió 383 modelos y 14
+  gratuitos. `cohere/north-mini-code:free` respondió «París» en **1,4 s** y
+  «OK» en **0,9 s**; `kilo-auto/free` tardó 3,9 s y puede enrutar a un modelo
+  de razonamiento lento. El pipeline completo con Kilo terminó en **36,55 s**
+  con **5 fuentes, 3 claims y 3 evaluaciones**.
+- **Solución**: base URL documentada
+  `https://ai-gateway.kilo.ai/api/v1`; defecto gratuito
+  `cohere/north-mini-code:free`; acceso anónimo con clave interna `anonymous`
+  solo para IDs gratuitos; `KILO_API_KEY` para modelos de pago; `KILO_MODEL` y
+  `KILO_BASE_URL` como overrides; `--provider kilo`, plugin `kilo` y entrada en
+  `config/plugins.yaml`; 4 tests nuevos (CLI, plugin, acceso anónimo y error de
+  modelo de pago).
+- **Límite**: Kilo limita el acceso anónimo a **200 peticiones/hora por IP**;
+  es remoto, no privado y no ilimitado. Si se agota, Ollama local o
+  `--fallback-model qwen3:8b`.
+- **Verificación**: suite **1492/1492**, Ruff 0, preflight 0, docs-check OK;
+  evidencia `build/kilo-cli-4.json`, `build/kilo-cli-4.err` y
+  `build/suite-2026-11-07-g.log`.
+- **Lección**: un proveedor «soportado» no está integrado hasta que la CLI lo
+  expone, el defecto es gratuito y el camino sin key está probado contra el
+  catálogo real. El modelo por defecto de un proveedor gratuito no puede ser
+  uno de pago.

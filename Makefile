@@ -119,5 +119,7 @@ ai-check:
 	@if grep -q '^default_model = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"' "$$HOME/.kimi-code/config.toml" 2>/dev/null; then echo "modelo gratuito por defecto"; else echo "revisar $$HOME/.kimi-code/config.toml"; exit 1; fi
 	@printf 'OpenCode:    '
 	@if grep -q '"model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"' "$$HOME/.config/opencode/opencode.jsonc" 2>/dev/null; then echo "modelo gratuito configurado"; else echo "revisar $$HOME/.config/opencode/opencode.jsonc"; exit 1; fi
+	@printf 'Kilo:        '
+	@python3 -c 'from research_cli import build_parser, build_llm; a=build_parser().parse_args(["x","--provider","kilo"]); l=build_llm(a); print(l.model, "·", l.base_url)'
 	@printf 'kimi doctor: '
 	@if command -v kimi >/dev/null 2>&1; then kimi doctor >/dev/null 2>&1 && echo OK || { echo "revisar"; exit 1; }; else echo "kimi no disponible"; fi
