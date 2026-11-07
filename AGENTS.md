@@ -420,7 +420,7 @@ mejora de código (`code_design_improvement_tools.py`).
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
 - Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
-  **1492/1492 en la suite Linux** (2026-11-07; 3.11 con openai 3.42.1 y `ruff
+  **1500/1500 en la suite Linux** (2026-11-07; 3.11 con openai 3.42.1 y `ruff
   0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y `packaging 26.3` en
   venv aislados desde el lock; mediciones anteriores: 1409/1409, 1407/1407,
   1399/1399 el 2026-11-04 y 1397/1397 el 2026-11-01); y **Windows 11** con Python
@@ -563,6 +563,7 @@ mejora de código (`code_design_improvement_tools.py`).
   **No duplicar** su lógica en otros módulos.
 - `pensamiento_layer.py` / `code_design_improvement_tools.py` — pasos concretos
   sobre ese motor.
+- `code_evaluator.py` — evaluación local/offline de código Python generado (AST + subproceso `shell=False`, timeout, entorno mínimo); declara aislamiento limitado, sin Docker/Proof/Promptfoo ni red.
 - `web_search.py` — búsqueda: `MockSearchAPI` (offline), `WikipediaSearchAPI`
   y `DuckDuckGoSearchAPI` (reales, sin API key), `SearXNGSearchAPI`,
   `ArxivSearchAPI`, `PubMedSearchAPI` y `SemanticScholarSearchAPI` +

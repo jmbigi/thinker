@@ -25,6 +25,7 @@ herramientas de análisis estático de código.
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
+| `code_evaluator.py` | Evaluación local/offline de código Python generado: `ast.parse` + subproceso `shell=False` con timeout y entorno mínimo; declara aislamiento limitado (no Docker/Proof/Promptfoo). |
 | `web_search.py` | Wikipedia, DuckDuckGo, SearXNG, arXiv, PubMed y Semantic Scholar + mock offline y formulación de consulta. |
 | `mcp_client.py` | Cliente MCP stdio oficial: negociación, allowlist, sin shell ni herencia de secretos, timeout y límite de salida. |
 | `concept_ncm.py` | NCM conceptual: esquema→secciones→residuales, trazas hash, paralelismo por nivel y reconstrucción determinista; no es el modelo neural del paper. |
@@ -438,7 +439,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1492/1492** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 tests (**+32,3%** desde 1128); 1492 en 3.11, 1451 en 3.12/3.14 (última medición) |
+| Suite Linux | **1500/1500** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 tests (**+33,0%** desde 1128); 1500 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -528,7 +529,7 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   general, así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12/3.14) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
-  La suite actual en Linux es **1492/1492** en 3.11 (con `openai 3.42.1`);
+  La suite actual en Linux es **1500/1500** en 3.11 (con `openai 3.42.1`);
   en 3.12/3.14 la última medición es 1451/1451 desde el lock con `openai 3.45.0`; los scripts
   `bash`/`make` se verificaron en Linux y en Windows se ejecutaron los comandos
   Python equivalentes.

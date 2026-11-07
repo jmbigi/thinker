@@ -379,6 +379,27 @@ DEEPSEEK_AGENT_INVALID_RESPONSES = {
     "one more step before you proceed...",
     "verifica la red e inténtalo de nuevo",
 }
+DEEPSEEK_AGENT_INTERMEDIATE_MARKERS = (
+    "one more step",
+    "before you proceed",
+    "verify",
+    "verification",
+    "checking",
+    "verifica la red",
+    "inténtalo de nuevo",
+    "please wait",
+    "loading",
+)
+
+
+def _deepseek_agent_intermedio(respuesta: str) -> bool:
+    texto = " ".join(respuesta.strip().lower().split())
+    if not texto:
+        return True
+    if texto in DEEPSEEK_AGENT_INVALID_RESPONSES:
+        return True
+    # Respuestas muy cortas de verificación/UI: marcador presente y sin contenido útil.
+    return len(texto) <= 120 and any(m in texto for m in DEEPSEEK_AGENT_INTERMEDIATE_MARKERS)
 
 
 def _deepseek_agent_loopback_url(url: str) -> str:
@@ -442,38 +463,52 @@ class DeepSeekFreeAgentLLM(LLMProvider):
         import requests
         post = self._post or requests.post
         tarea = " ".join((DEEPSEEK_AGENT_READONLY_PREFIX + prompt).split())
-        response = post(
-            f"{self.base_url}/task",
-            json={"task": tarea, "newChat": True},
-            timeout=(min(5.0, self.timeout), self.timeout),
-            allow_redirects=False,
-            stream=True,
-        )
-        try:
-            if response.status_code != 200:
-                raise RuntimeError(
-                    f"deepseek-free-agent respondió HTTP {response.status_code}; "
-                    "comprueba el servicio local y la sesión de DeepSeek")
-            contenido = bytearray()
-            for chunk in response.iter_content(chunk_size=65536):
-                contenido.extend(chunk)
-                if len(contenido) > DEEPSEEK_AGENT_MAX_RESPONSE_BYTES:
-                    raise RuntimeError("Respuesta de deepseek-free-agent demasiado grande")
+
+        def _pedir(abrir_chat_nuevo: bool) -> str:
+            response = post(
+                f"{self.base_url}/task",
+                json={"task": tarea, "newChat": abrir_chat_nuevo},
+                timeout=(min(5.0, self.timeout), self.timeout),
+                allow_redirects=False,
+                stream=True,
+            )
             try:
-                resultado = json.loads(contenido.decode("utf-8"))
-            except (UnicodeError, json.JSONDecodeError) as exc:
-                raise RuntimeError("Respuesta no JSON de deepseek-free-agent") from exc
-            if not isinstance(resultado, dict) or resultado.get("status") != "success":
-                raise RuntimeError("deepseek-free-agent no completó la tarea correctamente")
-            respuesta = resultado.get("answer")
-            if not isinstance(respuesta, str) or not respuesta.strip():
-                raise RuntimeError("deepseek-free-agent devolvió una respuesta vacía")
-            if respuesta.strip().lower() in DEEPSEEK_AGENT_INVALID_RESPONSES:
-                raise RuntimeError(
-                    "deepseek-free-agent devolvió una verificación o texto intermedio, "
-                    "no una respuesta válida del modelo")
-        finally:
-            response.close()
+                if response.status_code != 200:
+                    raise RuntimeError(
+                        f"deepseek-free-agent respondió HTTP {response.status_code}; "
+                        "comprueba el servicio local y la sesión de DeepSeek")
+                contenido = bytearray()
+                for chunk in response.iter_content(chunk_size=65536):
+                    contenido.extend(chunk)
+                    if len(contenido) > DEEPSEEK_AGENT_MAX_RESPONSE_BYTES:
+                        raise RuntimeError(
+                            "Respuesta de deepseek-free-agent demasiado grande")
+                try:
+                    resultado = json.loads(contenido.decode("utf-8"))
+                except (UnicodeError, json.JSONDecodeError) as exc:
+                    raise RuntimeError(
+                        "Respuesta no JSON de deepseek-free-agent") from exc
+                if not isinstance(resultado, dict) or resultado.get("status") != "success":
+                    raise RuntimeError(
+                        "deepseek-free-agent no completó la tarea correctamente")
+                respuesta = resultado.get("answer")
+                if not isinstance(respuesta, str) or not respuesta.strip():
+                    raise RuntimeError(
+                        "deepseek-free-agent devolvió una respuesta vacía")
+                return respuesta
+            finally:
+                response.close()
+
+        respuesta = _pedir(True)
+        if _deepseek_agent_intermedio(respuesta):
+            # El servicio bloqueante devolvió verificación/UI intermedia. Un
+            # reintento acotado (misma tarea, sin chat nuevo) puede obtener la
+            # respuesta real; nunca se hacen bucles ni reintentos ciegos.
+            respuesta = _pedir(False)
+        if _deepseek_agent_intermedio(respuesta):
+            raise RuntimeError(
+                "deepseek-free-agent devolvió una verificación o texto intermedio, "
+                "no una respuesta válida del modelo")
         if self.cache is not None:
             self.cache.set(modelo, prompt, respuesta)
         return respuesta

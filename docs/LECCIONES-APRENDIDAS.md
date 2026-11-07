@@ -5047,3 +5047,84 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   expone, el defecto es gratuito y el camino sin key está probado contra el
   catálogo real. El modelo por defecto de un proveedor gratuito no puede ser
   uno de pago.
+
+
+### Hallazgo 231: plan «todas» ejecutado con evidencia y límites declarados
+
+- **Fecha**: 2026-11-07
+- **Problema/pedido**: ejecutar los 6 ítems pendientes (DeepSeek Free Agent
+  real, gate HTTP ficticio→local fail-closed, plugin Olla + `code_evaluator` +
+  benchmark llama.cpp, coherencia documental 9527/dsh-agent-gate/cifras/licencias,
+  verificación completa y lecciones/límites).
+- **Hallazgos reales**:
+  1. DeepSeek Free Agent (servicio real, opt-in): `DEEPSEAK_AGENT_URL` por
+     defecto `http://127.0.0.1:9527`; TCP inaccesible
+     (`ConnectionRefusedError [Errno 111]`). `DeepSeekFreeAgentLLM(authorized=True,
+     timeout=5).generate("Responde solo: OK")` falló con `ConnectionError`
+     (Max retries / Failed to establish a new connection). **No se simuló éxito.**
+  2. Gate: `llm_providers.py` ya implementa `LocalToolGate`/`gate_check`/
+     `GateCheckedLLM` (política local fail-closed, sin HTTP/red, sin puerto 9527);
+     `tests/test_security_gate.py` pasa (**27/27**). El puerto 9527 pertenece a
+     `deepseek-free-agent`; `dsh-agent-gate` es plugin Node/TS comunitario para
+     DeepSeek Harness, no un servicio HTTP invocable desde Python.
+  3. Olla: `plugins/llm_providers/olla_plugin.py` usa rutas reales
+     `/internal/health` y `/olla/proxy/v1/*`; `tests/test_olla_plugin.py` pasa
+     (**4/4**, HTTP simulado). Servicio Olla real en `:40114` inaccesible
+     (ConnectionRefused) — no probado contra servicio real.
+     `code_evaluator.py` no estaba en la raíz (solo `build/archive/`); se
+     restauró implementación local/offline real (`ast.parse` + subproceso
+     `python -I`, `shell=False`, sin entorno heredado, timeout) con
+     `tests/test_code_evaluator.py` (**7/7**). Aislamiento **limitado**: no
+     equivale a Docker/Proof/Promptfoo. Benchmark llama.cpp: script y
+     `tests/test_benchmark_llama_cpp.py` (**4/4**); benchmark real ejecutado
+     contra Ollama local (`qwen3:1.7b`, 1 run, 4 tokens, prompt «Responde solo:
+     OK»): `Gen TPS 117.62`, `TTFT 3094.4 ms`. Olla `:40114` y llama.cpp
+     `:11436` caídos — no medidos.
+- **Cambios**: añadido `code_evaluator.py` (raíz) y
+  `tests/test_code_evaluator.py`; actualizado `AGENTS.md`, `README.md`,
+  `docs/EVALUACIONES.md` y `docs/INFRAESTRUCTURA-COMPLETA.md` (cifras de suite
+  actual Linux 3.11 → **1499/1499**, módulo `code_evaluator`, nota
+  Proof/externo vs evaluador local).
+- **Verificación (evidencia)**: `ruff check .` 0; `scripts/preflight.py` OK (0
+  hallazgos, 8 warnings de imports dinámicos esperados); `scripts/check_docs.py`
+  OK; `scripts/scan_secrets.py` OK; `python3 -m unittest discover -s tests -p
+  'test_*.py'` → **Ran 1499 tests in ~36s, OK**; demo offline
+  `python3 deep_research_system.py` mostró `*** MODO DEMO OFFLINE — RESULTADOS
+  SIMULADOS ***`; `make ai-check` OK (modelo gratuito Kilo configurado; kimi
+  doctor OK). `scripts/doctor.py` ejecutado (entorno esencial correcto).
+- **Límites declarados (gratuito/ilimitado/calidad)**: *Gratuito* ≠ *ilimitado*
+  ni *privado*. Kilo anónimo `:free`: **200 req/h por IP**, remoto, prompts
+  salen a Kilo, catálogo gratuito variable; sin `KILO_API_KEY` real verificada
+  aquí para modelos de pago. DeepSeek Free Agent depende de servicio local
+  9527 + sesión DeepSeek + navegador/cola; no ilimitado, no privado para datos
+  sensibles fuera de aislamiento local. Ollama/local es la vía sin cuota externa
+  para datos sensibles, pero calidad/velocidad dependen del hardware/modelo
+  (medición puntual qwen3:1.7b no generaliza). `code_evaluator` no es sandbox de
+  contenedor; no sustituye revisión humana ni pruebas de seguridad. CoVe con
+  mismo proveedor no es independencia; MockLLM/demos son simulados.
+
+### Hallazgo 232: DeepSeek Free Agent — rechazo intermedio y reintento acotado
+
+- **Fecha**: 2026-11-07
+- **Problema**: la prueba real opt-in devolvió `RuntimeError` tras 35.35 s:
+  `deepseek-free-agent devolvió una verificación o texto intermedio, no una
+  respuesta válida del modelo`. El servicio 1.11.3 (`/task` bloqueante,
+  `status/answer`) puede capturar UI de verificación/cola (“One more step…”,
+  red/espera) antes que la respuesta real.
+- **Mejora (optimizando sin romper contrato)**: `_deepseek_agent_intermedio()`
+  detecta intermedios conocidos/marcadores cortos de UI; tras intermedio, un
+  **único reintento acotado** con la misma tarea y `newChat: false` (sin bucle,
+  sin reintentos ciegos, sin redirecciones). Si persiste, sigue fallando de
+  forma explícita. `deepseek-free-agent` no tiene API de polling de respuesta
+  útil para un `POST /task` ya completado por el servidor con ese `answer`.
+- **Verificación offline**: `tests/test_deepseek_free_agent.py` **20/20 OK**;
+  nuevo caso `test_intermedio_reintenta_una_vez_y_devuelve_respuesta_real`.
+  Suite completa **1500/1500 OK**; ruff/preflight/docs-check/secretos OK.
+- **Prueba real opt-in**: servicio reiniciado; `/status` mostró tarea
+  `processing` largo (>120 s) y la invocación Python excedió timeout de shell;
+  se detuvo el servicio. **No se obtuvo respuesta válida end-to-end** en esta
+  ventana (limitación externa de sesión/cola/UI de DeepSeek, no defecto del
+  contrato del cliente). Límite declarado.
+- **Lección**: optimizar el cliente ayuda (evita aceptar basura como respuesta),
+  pero no elimina dependencia del servicio web/cola/sesión; para fiabilidad sin
+  esa dependencia, usar Ollama local o proveedor API con contrato estable.

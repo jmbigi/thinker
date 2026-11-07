@@ -347,7 +347,7 @@ def main():
     parser.add_argument("--backend", choices=["llama-cpp", "ollama", "olla"], required=True,
                         help="Backend a benchmarkear")
     parser.add_argument("--model", required=True,
-                        help="Ruta al modelo (llama-cpp) o nombre (ollam/olla)")
+                        help="Ruta al modelo (llama-cpp) o nombre (ollama/olla)")
     parser.add_argument("--prompt", default=None, help="Prompt personalizado")
     parser.add_argument("--max-tokens", type=int, default=256, help="Tokens a generar")
     parser.add_argument("--runs", type=int, default=5, help="Número de ejecuciones")
