@@ -115,4 +115,4 @@ Validación: `kimi doctor config <archivo>` → OK.
 
 ---
 
-**Evidencias**: `tests/test_deepseek_free_agent.py` (19/19 OK), `kimi doctor` (OK), `research_cli.py` y `llm_providers.py` (compilación OK), suite completa `1487/1487`.
+**Evidencias**: `tests/test_deepseek_free_agent.py` (19/19 OK), `kimi doctor` (OK), `research_cli.py` y `llm_providers.py` (compilación OK), suite completa `1488/1488`.

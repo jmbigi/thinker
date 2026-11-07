@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1487/1487** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+Suite **1488/1488** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
 3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
 docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
 loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
@@ -1500,6 +1500,6 @@ Python, 0 errores de sintaxis y 0 kwargs inválidos de `Llama`; se corrigieron
 duplicados, tamaños imposibles (550B Q4), contexto 131k en 8 GB y enlaces
 obsoletos. Los documentos de OpenCode/ADR se marcan como hipótesis no
 reproducidas y la afirmación de caché compartida del fallback se corrigió. Se
-añadió `fallback_model` al plugin DeepSeek. Suite **1487/1487** en Linux (+2
-tests de `code_generator`), Ruff 0, preflight 0, docs-check OK; evidencia:
-`build/suite-2026-11-07-b.log`.
+añadió `fallback_model` al plugin DeepSeek. Suite **1488/1488** en Linux (+3 tests: 2 de `code_generator` y 1 del
+escáner sin git), Ruff 0, preflight 0, docs-check OK; evidencia:
+`build/suite-2026-11-07-d.log`.

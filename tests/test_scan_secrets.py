@@ -2,7 +2,10 @@
 
 import io
 import contextlib
+import subprocess
+import sys
 import unittest
+from pathlib import Path
 
 from tests.helpers import crear_proyecto
 import scripts.scan_secrets as scan
@@ -52,6 +55,19 @@ class TestScanSecrets(unittest.TestCase):
         })
         codigo, _ = _ejecutar(raiz)
         self.assertEqual(codigo, 0)
+
+    def test_sin_git_escanea_arbol_y_no_dice_ok_por_defecto(self):
+        """La copia limpia de CI no tiene .git: se escanea el árbol y se avisa."""
+        raiz = crear_proyecto(self, {
+            "fuga.py": f"TOKEN = '{self.CANARIO_CLAVE}'\n",
+        })
+        script = Path(__file__).resolve().parent.parent / "scripts" / "scan_secrets.py"
+        proc = subprocess.run(
+            [sys.executable, str(script)], cwd=raiz,
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("fuga.py", proc.stdout + proc.stderr)
+        self.assertIn("no es un repositorio git", proc.stderr)
 
 
 if __name__ == "__main__":

@@ -5009,10 +5009,10 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   bloques, 0 errores, 0 kwargs inválidos) y se corrigieron tamaños, contexto y
   enlaces; OpenCode/ADR se marcan como hipótesis no reproducidas; el fallback
   DeepSeek declara que no comparte caché y el plugin configura `fallback_model`.
-- **Verificación**: suite **1487/1487**, Ruff 0, preflight 0, docs-check OK;
-  `tests.test_scan_secrets` 4/4; `tests.test_code_generator` 22/22; guía
+- **Verificación**: suite **1488/1488**, Ruff 0, preflight 0, docs-check OK;
+  `tests.test_scan_secrets` 5/5; `tests.test_code_generator` 22/22; guía
   validada con llama-cpp-python 0.3.28. Evidencia:
-  `build/suite-2026-11-07-b.log`.
+  `build/suite-2026-11-07-d.log`.
 - **Lección**: todo ejemplo de documentación que se publique debe compilarse o
   contrastarse con la API instalada; y un gate de seguridad debe fallar cuando
   no puede ejecutarse, nunca devolver «OK» por defecto.

@@ -249,7 +249,7 @@ if ! command -v ollama &> /dev/null; then
 fi
 
 # Verificar modelo
-if ! ollama list | grep -q "^${MODEL} "; then
+if ! ollama list | grep -qF "${MODEL} "; then
     echo -e "\033[1;33m[WARN]\033[0m Modelo ${MODEL} no encontrado"
     echo "Instalando: ollama pull ${MODEL}"
     ollama pull "${MODEL}"

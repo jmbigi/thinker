@@ -39,6 +39,12 @@ def _archivos_del_repo(raiz: Path):
             cwd=raiz, capture_output=True, text=True, check=True).stdout
         return [raiz / linea for linea in salida.splitlines() if linea]
     except (OSError, subprocess.CalledProcessError) as exc:
+        # La CI local exporta HEAD a una copia limpia SIN .git. En ese caso el
+        # escaneo del árbol es válido y se declara; en un repo roto se falla.
+        if not (raiz / ".git").exists():
+            print(f"[scan_secrets] {raiz} no es un repositorio git; "
+                  "se escanea el árbol completo (sin .git)", file=sys.stderr)
+            return _archivos_del_arbol(raiz)
         raise RuntimeError(
             f"no se pudo listar archivos versionados con git: {exc}") from exc
 
