@@ -164,10 +164,10 @@ class CodeEvaluator:
             return {
                 "name": caso.name,
                 "passed": False,
-                "reason": f"rc={proc.returncode}: {proc.stderr.strip() or salida.strip()}",
+                "reason": f"rc={proc.returncode}: {_cap(proc.stderr.strip() or salida.strip(), 500)}",
                 "rc": proc.returncode,
-                "stdout": salida,
-                "stderr": proc.stderr,
+                "stdout": _cap(salida),
+                "stderr": _cap(proc.stderr),
             }
         if caso.expected_output is None:
             return {"name": caso.name, "passed": True, "reason": "ok", "rc": 0, "stdout": _cap(salida), "stderr": _cap(proc.stderr)}

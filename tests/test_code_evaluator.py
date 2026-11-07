@@ -80,5 +80,13 @@ class TestCodeEvaluator(unittest.TestCase):
         self.assertTrue(r.passed)
         self.assertLessEqual(len(r.cases[0].get("stdout", "")), 4100)
 
+
+    def test_error_grande_truncado_en_detalle(self):
+        code = "import sys; sys.stderr.write('e' * 10000); sys.exit(2)\n"
+        r = self.ev.evaluate_generated_code(code, [TestCase(name="errbig")])
+        self.assertFalse(r.passed)
+        self.assertLessEqual(len(r.cases[0].get("stderr", "")), 4100)
+        self.assertLessEqual(len(r.cases[0].get("stdout", "")), 4100)
+
 if __name__ == "__main__":
     unittest.main()
