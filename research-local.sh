@@ -33,63 +33,16 @@ ensure_proxy() {
     fi
     
     log_warn "Proxy no responde, iniciando..."
-    pkill -f "ollama-context-proxy" 2>/dev/null || true
-    sleep 1
-    
     cd "${RESEARCH_DIR}/build"
     OLLAMA_TARGET=http://127.0.0.1:11434 ./ollama-context-proxy &
     PROXY_PID=$!
     sleep 2
-    
-    if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
-        log_ok "Proxy reiniciado"
-        return 0
-    else
-        log_error "No se pudo iniciar proxy"
-        return 1
-    fi
-}
 
-# Verificar/Iniciar Ollama
-ensure_ollama() {
-    if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
-        return 0
-    fi
-    
-    log_warn "Ollama no responde, iniciando..."
-    ollama serve &
-    OLLAMA_PID=$!
-    sleep 3
-    
-    if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
-        log_ok "Ollama iniciado"
+    if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
+        log_ok "Proxy iniciado"
         return 0
     else
-        log_error "No se pudo iniciar Ollama"
-        return 1
-    fi
-}
-
-# Verificar/Iniciar proxy
-ensure_proxy() {
-    if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
-        return 0
-    fi
-    
-    log_warn "Proxy no responde, iniciando..."
-    pkill -f "ollama-context-proxy" 2>/dev/null || true
-    sleep 1
-    
-    cd "${RESEARCH_DIR}/build"
-    OLLAMA_TARGET=http://127.0.0.1:11434 ./ollama-context-proxy &
-    PROXY_PID=$!
-    sleep 2
-    
-    if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
-        log_ok "Proxy reiniciado"
-        return 0
-    else
-        log_error "No se pudo iniciar proxy"
+        log_error "No se pudo iniciar el proxy (¿puerto 11435 ocupado?). No se mata ningún proceso ajeno."
         return 1
     fi
 }
@@ -126,7 +79,7 @@ EOF
     RESEARCH_ARGS=(
         "$query"
         --provider ollama
-        --model deepseek-r1:8b
+        --model "${MODEL}"
         --ollama-base-url "http://127.0.0.1:11435"
         --ollama-api openai
         --search local
@@ -174,18 +127,12 @@ shift
 
 log_info "🔬 Iniciando investigación local: $QUERY"
 
-# Verificar prerrequisitos
-ensure_ollama || exit 1
-ensure_proxy || exit 1
-
-# Ejecutar
-run_research "$QUERY" "$@"
-EXIT_CODE=$?
-
-if [ $EXIT_CODE -eq 0 ]; then
+# Ejecutar (run_research verifica Ollama y proxy)
+if run_research "$QUERY" "$@"; then
     echo -e "\n${GREEN}✅ Investigación completada exitosamente${NC}"
+    exit 0
 else
+    EXIT_CODE=$?
     log_error "Investigación falló (código: $EXIT_CODE)"
+    exit "$EXIT_CODE"
 fi
-
-exit $EXIT_CODE

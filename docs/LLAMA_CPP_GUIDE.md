@@ -1,8 +1,14 @@
-# Guía Completa llama.cpp - Referencia Técnica Exhaustiva
+# Guía Completa llama.cpp - Referencia Técnica
 
-> **Estado**: Documento vivo - Actualizado 2026-11-07
-> **Modelo de referencia**: DeepSeek-R1 8B (Q4_K_M, 8.2B params, 131k ctx)
-> **Hardware**: RTX 3070 8GB / 16GB RAM / Linux
+> **Estado**: documento de referencia en revisión (2026-11-07). Los ejemplos de
+> `llama_cpp.Llama` se contrastaron con **llama-cpp-python 0.3.28**; el resto de
+> comandos y modelos son orientativos y deben comprobarse con `--help` y la
+> documentación oficial antes de usarlos.
+> **Hardware de referencia (NO verificado en este equipo)**: RTX 3070 8 GB /
+> 16 GB RAM / Linux. En esta máquina `nvidia-smi` no responde y solo hay CPU;
+> las cifras de VRAM/contexto son cotas orientativas, no mediciones.
+> **Modelo de referencia**: DeepSeek-R1 8B (Q4_K_M, ~5 GB, contexto de 131k
+> declarado por el modelo; el contexto usable depende de la memoria para KV).
 
 ---
 
@@ -26,7 +32,7 @@ CMAKE_ARGS="-DGGML_VULKAN=on" pip install llama-cpp-python
 CMAKE_ARGS="-DGGML_HIPBLAS=on" pip install llama-cpp-python
 
 # Build desde source (última versión)
-git clone https://github.com/ggerganov/llama.cpp
+git clone https://github.com/ggml-org/llama.cpp
 cd llama.cpp
 make LLAMA_CUBLAS=1  # o LLAMA_CUDA=1, LLAMA_HIPBLAS=1, LLAMA_METAL=1, etc.
 ```
@@ -58,25 +64,27 @@ llama-cli --version  # CLI standalone
 | **K-quants (K_M, K_S, K_L)** | Mejor calidad/tamaño, calibración por capas | Ligeramente más lento |
 | **Legacy (Q4_0, Q4_1, Q5_0, Q5_1, Q8_0)** | Más rápido, compatible antiguos | Peor calidad/tamaño |
 
-### 2.3 Modelos recomendados (2026)
+### 2.3 Modelos recomendados (2026, orientativo)
+
+> El «contexto» es el máximo declarado por el modelo; el usable depende de la
+> memoria para KV. Los tamaños Q4 son aproximados y deben comprobarse en el
+> repositorio del modelo.
+
 | Modelo | Tamaño | Contexto | Uso |
 |--------|--------|----------|-----|
-| **DeepSeek-R1-Distill-Qwen-8B** | 4.8 GB (Q4_K_M) | 131k | **Mejor razonamiento general** |
-| **DeepSeek-R1-Distill-Qwen-14B** | 8.5 GB (Q4_K_M) | 131k | Mejor coding/math |
-| **DeepSeek-R1-Distill-Qwen-32B** | 19 GB (Q4_K_M) | 131k | Máxima calidad local |
-| **Qwen3-8B/14B/32B** | 4.5-19 GB | 131k/256k | Multilingüe, tools |
-| **Qwen3-Coder-7B/14B/32B** | 4.5-19 GB | 16k-131k | **Mejor coding** |
-| **Qwen3-30B-A3B** / **Qwen3-30B-A3B-Thinking** | 17 GB | 131k | MoE eficiente |
-| **Gemma-3-12B/27B** | 7-15 GB | 131k/256k | Multimodal, largo contexto |
-| **Gemma-4-26B-A4B** | 14 GB | 131k | MoE eficiente |
-| **Nemotron-3-Ultra-550B-A55B** | 35 GB (Q4) | 128k | Top-tier reasoning |
-| **Nemotron-3-Ultra-550B-A55B** | 35 GB (Q4) | 128k | Top-tier |
-| **Gemma-4-26B-A4B** | 14 GB | 131k | MoE, largo contexto |
-| **GLM-4-32B / GLM-4-32B-0414** | 20 GB | 131k | Chino/Inglés fuerte |
-| **GLM-4-32B-0414-Zero** | 20 GB | 131k | Sin alineación |
+| **DeepSeek-R1-Distill-Qwen-8B** | ~5 GB (Q4_K_M) | 131k | Razonamiento general |
+| **DeepSeek-R1-Distill-Qwen-14B** | ~9 GB (Q4_K_M) | 131k | Coding/math |
+| **DeepSeek-R1-Distill-Qwen-32B** | ~19 GB (Q4_K_M) | 131k | Calidad local alta |
+| **Qwen3-8B/14B/32B** | 5-19 GB | 131k/256k | Multilingüe, tools |
+| **Qwen3-Coder-7B/14B/32B** | 4.5-19 GB | 16k-131k | Coding |
+| **Qwen3-30B-A3B** / Thinking | ~17 GB | 131k | MoE eficiente |
+| **Gemma-3-12B/27B** | 7-15 GB | 131k/256k | Multimodal |
+| **Gemma-4-26B-A4B** | ~14 GB | 131k | MoE |
+| **Nemotron-3-Ultra-550B-A55B** | ~300 GB (Q4 estimado) | 128k | Top-tier; **no cabe en 16 GB** |
+| **GLM-4-32B / GLM-4-32B-0414** | ~20 GB | 131k | Chino/inglés |
+| **GLM-4-32B-0414-Zero** | ~20 GB | 131k | Sin alineación |
 | **GPT-OSS-20B / 120B** | 11/60 GB | 131k | Open weights |
-| **Llama-3.3-70B** | 40 GB (Q4) | 128k | Referencia open |
-| **GPT-OSS-20B/120B** | 11/60 GB | 131k | OpenAI open |
+| **Llama-3.3-70B** | ~40 GB (Q4) | 128k | Referencia open |
 
 ---
 
@@ -84,108 +92,99 @@ llama-cli --version  # CLI standalone
 
 ### 3.1 Parámetros Críticos
 ```python
+import llama_cpp
 from llama_cpp import Llama
 
 llm = Llama(
     model_path="/path/to/model.gguf",
-    
-    # CONTEXTO - CRÍTICO
-    n_ctx=131072,              # 131k contexto (max del modelo)
-    n_ctx_train=131072,        # Tamaño entrenamiento (evita warning)
-    
-    # GPU OFFLOAD
-    n_gpu_layers=-1,           # -1 = todas las capas a GPU (auto)
-    # n_gpu_layers=35          # O capas específicas (DeepSeek 8B = 36 capas)
-    
+
+    # CONTEXTO: la KV cache crece con n_ctx y consume RAM/VRAM.
+    n_ctx=8192,
+    n_batch=512,
+    n_ubatch=512,
+
+    # GPU OFFLOAD (0 = CPU; -1 = todas las capas si caben)
+    n_gpu_layers=0,
+
     # THREADING
-    n_threads=8,               # CPU threads (0 = auto)
-    n_threads_batch=8,         # Threads para batch/prefill
-    
-    # MEMORIA
-    n_gqa=8,                   # Grouped Query Attention (Qwen/DeepSeek=8)
-    rms_norm_eps=1e-6,
-    
-    # CONTEXTO
-    n_ctx=131072,              # Tamaño contexto (max modelo)
-    n_batch=512,               # Batch size prompt processing
-    n_ubatch=512,              # Micro-batch
-    
-    # SAMPLING
+    n_threads=8,
+    n_threads_batch=8,
+
+    # FORMATO
+    chat_format="chatml",      # o "llama-3", "gemma", "mistral", etc.
+    verbose=False,
+
+    # MEMORIA / CACHE
+    use_mmap=True,             # mmap de pesos (ahorra RAM)
+    use_mlock=False,           # True evita swap, pero puede agotar la RAM
+    type_k=None,               # p. ej. llama_cpp.GGML_TYPE_Q8_0
+    type_v=None,
+    flash_attn=False,          # solo si tu build y GPU lo soportan
+)
+
+# El sampling NO va en el constructor: va en cada llamada.
+respuesta = llm.create_chat_completion(
+    messages=[{"role": "user", "content": "Hola"}],
     temperature=0.7,
     top_p=0.95,
     top_k=40,
     min_p=0.05,
-    typical_p=1.0,
     repeat_penalty=1.1,
-    repeat_penalty_sustain=256,
-    repeat_penalty_slope=0.0,
-    
-    # FORMATO
-    chat_format="chatml",      # o "llama-2", "gemma", "mistral", etc.
-    verbose=False,
-    
-    # PERFORMANCE
-    use_mmap=True,             # mmap weights (ahorra RAM)
-    use_mlock=True,            # Lock weights en RAM (no swap)
-    use_mlock=True,
-    numa=False,                # NUMA awareness
-    low_vram=False,            # True si VRAM < 8GB
-    
-    # EXPERTOS
-    tensor_split=None,         # [0.5, 0.5] para multi-GPU
-    main_gpu=0,                # GPU principal
-    tensor_split=None,
-    rope_freq_base=10000,
-    rope_freq_scale=1.0,
-    
-    # CACHE
-    cache_type_k="f16",        # f16/f32/q8_0/q4_0
-    cache_type_v="f16",
+    max_tokens=256,
 )
 ```
 
-### 3.2 Parámetros por Caso de Uso
+> Comprobado con `inspect.signature(llama_cpp.Llama.__init__)` en
+> llama-cpp-python 0.3.28: `temperature`, `top_p`, `top_k`, `min_p`,
+> `repeat_penalty`, `n_ctx_train`, `n_gqa`, `rms_norm_eps`, `low_vram`,
+> `cache_type_k` y `cache_type_v` **no** son parámetros del constructor. Los
+> de sampling van en `create_chat_completion`/`create_completion`; los tipos de
+> cache se llaman `type_k`/`type_v`.
 
-#### Chat/Chatbot (Latencia baja)
-```python
-n_ctx=4096, n_batch=512, n_threads=8,
-temperature=0.7, top_p=0.95, top_k=40
-```
+---
 
-#### Razonamiento Complejo (DeepSeek-R1)
-```python
-n_ctx=131072, n_batch=512,
-temperature=0.6, top_p=0.95, top_k=40,
-repeat_penalty=1.1
-```
+### 3.2 Sampling por caso de uso
 
-#### Coding (Qwen3-Coder)
-```python
-n_ctx=32768, temperature=0.2, top_p=0.95,
-repeat_penalty=1.05
-```
+El sampling se pasa en cada llamada, no en el constructor:
 
-#### Inferencia Máxima Velocidad
 ```python
-n_gpu_layers=-1, n_threads=8, n_batch=512,
-n_ctx=4096, use_mlock=True, low_vram=False
+# Chat / baja latencia
+llm.create_chat_completion(messages=msgs, temperature=0.7, top_p=0.95,
+                           top_k=40, max_tokens=512)
+
+# Razonamiento (DeepSeek-R1)
+llm.create_chat_completion(messages=msgs, temperature=0.6, top_p=0.95,
+                           top_k=40, repeat_penalty=1.1, max_tokens=2048)
+
+# Código (Qwen3-Coder)
+llm.create_chat_completion(messages=msgs, temperature=0.2, top_p=0.95,
+                           repeat_penalty=1.05, max_tokens=2048)
+
+# Máxima velocidad: contexto corto y batch moderado en el constructor
+llm = Llama(model_path="model.gguf", n_ctx=4096, n_batch=512,
+            n_threads=8, n_gpu_layers=0, verbose=False)
 ```
 
 ---
 
-## 3.3 Configuración por Hardware
+### 3.3 Configuración por Hardware (orientativa)
 
-| Hardware | n_gpu_layers | n_threads | n_batch | n_ctx | Modelo recomendado |
-|----------|--------------|-----------|---------|-------|-------------------|
-| **RTX 3070 8GB** | 35 (full) | 8 | 512 | 131k | DeepSeek-R1 8B Q4_K_M |
-| **RTX 3080 10GB** | 35 (full) | 12 | 512 | 131k | DeepSeek-R1 14B Q4_K_M |
-| **RTX 3090/4090 24GB** | -1 (all) | 16 | 1024 | 131k | DeepSeek-R1 32B Q4_K_M |
-| **RTX 4090 24GB x2** | -1 (all) | 24 | 2048 | 131k | DeepSeek-R1 70B Q4_K_M |
-| **RTX 3060 12GB** | 35 (full) | 8 | 512 | 131k | DeepSeek-R1 14B Q4_K_M |
-| **Apple M1/M2/M3 16GB** | Metal (-ngl 999) | 8 | 512 | 131k | Q4_K_M 8B-14B |
-| **Apple M1/M2/M3 Max 64GB** | Metal | 16 | 1024 | 131k | 32B-70B Q4_K_M |
-| **CPU only (16GB RAM)** | 0 | 8-16 | 256 | 8192 | 7B-8B Q4_K_M |
-| **CPU only (32GB RAM)** | 0 | 16-32 | 512 | 131k | 14B-32B Q4_K_M |
+| Hardware | n_gpu_layers | n_threads | n_batch | Modelo recomendado |
+|----------|--------------|-----------|---------|-------------------|
+| **RTX 3070 8 GB** | 35 | 8 | 512 | 8B Q4_K_M completo; 14B parcial o no cabe |
+| **RTX 3080 10 GB** | 30-35 | 12 | 512 | 8B completo; 14B parcial |
+| **RTX 3060 12 GB** | 30-35 | 8 | 512 | 8B completo; 14B parcial |
+| **RTX 3090/4090 24 GB** | -1 | 16 | 1024 | 32B Q4 con contexto corto |
+| **RTX 4090 24 GB x2** | -1 | 24 | 2048 | 70B Q4 con contexto moderado |
+| **Apple M1/M2/M3 16 GB** | Metal | 8 | 512 | 8B-14B Q4 |
+| **Apple M1/M2/M3 Max 64 GB** | Metal | 16 | 1024 | 32B-70B Q4 |
+| **CPU only 16 GB RAM** | 0 | 8-16 | 256 | 7B-8B Q4, contexto 4k-8k |
+| **CPU only 32 GB RAM** | 0 | 16-32 | 512 | 14B Q4, contexto 8k-16k |
+
+> `n_ctx` no es gratis: la KV cache de un 8B a 131k tokens ocupa decenas de GB.
+> En 8 GB de VRAM no cabe un contexto de 131k; empieza por 4k-8k y mide con
+> `llama-bench` o el log de llama.cpp. Las filas son cotas orientativas, no
+> mediciones de este equipo.
 
 ---
 
@@ -306,7 +305,7 @@ mirostat_eta=0.1,        # learning rate mirostat
 
 ---
 
-## 5.5 Sampling Avanzado - Mirostat
+### 5.5 Sampling Avanzado - Mirostat
 ```python
 # Mirostat 2.0 (auto-adapta temperature)
 mirostat_mode=2,        # 0=off, 1=mirostat, 2=mirostat 2.0
@@ -353,7 +352,7 @@ Llama.register_chat_format("mi-template", {
 
 ---
 
-## 6.3 Chat Handler Personalizado
+### 6.3 Chat Handler Personalizado
 ```python
 from llama_cpp import Llama, llama_chat_format
 
@@ -457,7 +456,7 @@ for chunk in llm.create_chat_completion(
 
 ---
 
-## 8.3 Function Calling con DeepSeek-R1
+### 8.3 Function Calling con DeepSeek-R1
 ```python
 # DeepSeek-R1 soporta function calling nativo
 tools = [
@@ -539,13 +538,13 @@ def search(query, documents, top_k=5):
 ### 10.1 CLI (llama-cli / llama-server)
 ```bash
 # Chat interactivo
-llama-cli -m model.gguf -c 131072 -ngl 35 -cnv
+llama-cli -m model.gguf -c 8192 -ngl 35 -cnv
 
 # Servidor OpenAI-compatible
-llama-server -m model.gguf -c 131072 -ngl 35 --port 8080
+llama-server -m model.gguf -c 8192 -ngl 35 --port 8080
 
 # Benchmark
-llama-bench -m model.gguf -ngl 35 -c 131072
+llama-bench -m model.gguf -ngl 35 -c 8192
 
 # Quantizar
 llama-quantize model.f16.gguf model.q4_k_m.gguf Q4_K_M
@@ -557,7 +556,7 @@ llama-export model.gguf --format gguf --outtype q4_k_m
 ### 10.2 Benchmarks
 ```bash
 # Benchmark velocidad
-llama-bench -m model.gguf -ngl 35 -c 131072 -t 8 -b 512
+llama-bench -m model.gguf -ngl 35 -c 8192 -t 8 -b 512
 
 # Latencia
 llama-cli -m model.gguf -p "Hola" -n 100 -t 8
@@ -616,13 +615,13 @@ torch.cuda.empty_cache()  # si usando torch
 ### 12.2 Benchmarks Comando
 ```bash
 # Benchmark completo
-llama-bench -m model.gguf -ngl 35 -c 131072 -t 8 -b 512 -p 512
+llama-bench -m model.gguf -ngl 35 -c 8192 -t 8 -b 512 -p 512
 
 # Latencia simple
 llama-cli -m model.gguf -p "Hola" -n 100 -t 8
 
 # Stress test
-llama-bench -m model.gguf -ngl 35 -c 131072 -t 8 -b 512 -p 1024 -r 10
+llama-bench -m model.gguf -ngl 35 -c 8192 -t 8 -b 512 -p 1024 -r 10
 ```
 
 ---
@@ -631,28 +630,25 @@ llama-bench -m model.gguf -ngl 35 -c 131072 -t 8 -b 512 -p 1024 -r 10
 
 | Modelo | Tamaño | Contexto | Quant | Uso | Descarga |
 |--------|--------|----------|-------|-----|----------|
-| **DeepSeek-R1-Distill-Qwen-8B** | 4.8 GB | 131k | Q4_K_M | Razonamiento, coding | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-8B-GGUF |
-| **DeepSeek-R1-Distill-Qwen-14B** | 8.5 GB | 131k | Q4_K_M | Mejor reasoning | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-14B-GGUF |
-| **DeepSeek-R1-Distill-Qwen-32B** | 19 GB | 131k | Q4_K_M | SOTA reasoning | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B-GGUF |
-| **DeepSeek-R1-Distill-Qwen-32B** | 19 GB | 131k | Q4_K_M | SOTA reasoning | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B-GGUF |
-| **DeepSeek-R1-Distill-Llama-70B** | 40 GB | 131k | Q4_K_M | Top tier | HF: deepseek-ai/DeepSeek-R1-Distill-Llama-70B-GGUF |
-| **Qwen3-8B / 14B / 32B** | 4.5-19 GB | 131k/256k | Q4_K_M | Multilingüe, tools | Qwen/Qwen3-*-GGUF |
-| **Qwen3-Coder-7B/14B/32B** | 4.5-19 GB | 16k-131k | Q4_K_M | **Mejor coding** | Qwen/Qwen3-Coder-*-GGUF |
-| **Qwen3-30B-A3B / A3B-Thinking** | 17 GB | 131k | Q4_K_M | MoE eficiente | Qwen/Qwen3-30B-A3B-GGUF |
+| **DeepSeek-R1-Distill-Qwen-8B** | ~5 GB | 131k | Q4_K_M | Razonamiento, coding | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-8B-GGUF |
+| **DeepSeek-R1-Distill-Qwen-14B** | ~9 GB | 131k | Q4_K_M | Razonamiento | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-14B-GGUF |
+| **DeepSeek-R1-Distill-Qwen-32B** | ~19 GB | 131k | Q4_K_M | Razonamiento | HF: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B-GGUF |
+| **DeepSeek-R1-Distill-Llama-70B** | ~40 GB | 131k | Q4_K_M | Top tier | HF: deepseek-ai/DeepSeek-R1-Distill-Llama-70B-GGUF |
+| **Qwen3-8B / 14B / 32B** | 5-19 GB | 131k/256k | Q4_K_M | Multilingüe, tools | Qwen/Qwen3-*-GGUF |
+| **Qwen3-Coder-7B/14B/32B** | 4.5-19 GB | 16k-131k | Q4_K_M | Coding | Qwen/Qwen3-Coder-*-GGUF |
+| **Qwen3-30B-A3B / A3B-Thinking** | ~17 GB | 131k | Q4_K_M | MoE | Qwen/Qwen3-30B-A3B-GGUF |
 | **Gemma-3-12B/27B** | 7-15 GB | 131k/256k | Q4_K_M | Multimodal | google/gemma-3-*-GGUF |
-| **Gemma-4-26B-A4B** | 14 GB | 131k | Q4_K_M | MoE eficiente | google/gemma-4-26b-a4b-GGUF |
-| **Nemotron-3-Ultra-550B** | 35 GB | 128k | Q4_K_M | Top-tier | nvidia/Nemotron-3-Ultra-550B-A55B-GGUF |
-| **Gemma-4-26B-A4B** | 14 GB | 131k | Q4_K_M | MoE | google/gemma-4-26b-a4b-GGUF |
+| **Gemma-4-26B-A4B** | ~14 GB | 131k | Q4_K_M | MoE | google/gemma-4-26b-a4b-GGUF |
+| **Nemotron-3-Ultra-550B** | ~300 GB (Q4) | 128k | Q4_K_M | Top-tier; no cabe en 16 GB | nvidia/Nemotron-3-Ultra-550B-A55B-GGUF |
 | **GPT-OSS-20B/120B** | 11/60 GB | 131k | Q4_K_M | Open weights | openai/gpt-oss-20b-GGUF |
-| **Llama-3.3-70B** | 40 GB | 128k | Q4_K_M | Referencia | meta-llama/Llama-3.3-70B-Instruct-GGUF |
-| **GPT-OSS-20B/120B** | 11/60 GB | 131k | Q4_K_M | Open weights | openai/gpt-oss-20b-GGUF |
+| **Llama-3.3-70B** | ~40 GB | 128k | Q4_K_M | Referencia | meta-llama/Llama-3.3-70B-Instruct-GGUF |
 
 ---
 
-## 11. Recursos y Enlaces
+## 14. Recursos y Enlaces
 
 ### 11.1 Repositorios Oficiales
-- **llama.cpp**: https://github.com/ggerganov/llama.cpp
+- **llama.cpp**: https://github.com/ggml-org/llama.cpp
 - **llama-cpp-python**: https://github.com/abetlen/llama-cpp-python
 - **Hugging Face GGUF Models**: https://huggingface.co/models?library=gguf
 
@@ -666,29 +662,29 @@ llama-bench -m model.gguf -ngl 35 -c 131072 -t 8 -b 512 -p 1024 -r 10
 - **Nemotron**: https://huggingface.co/nvidia/Nemotron-3-Ultra-550B-A55B-GGUF
 
 ### 11.3 Quantization Guides
-- llama.cpp quantization: https://github.com/ggerganov/llama.cpp/blob/master/docs/quantization.md
-- GGUF spec: https://github.com/ggerganov/gguf
+- llama.cpp quantization: https://github.com/ggml-org/llama.cpp/blob/master/docs/quantization.md
+- GGUF spec: https://github.com/ggml-org/gguf
 - Quantization methods: Q4_K_M, Q5_K_M, Q6_K, Q8_0, IQ4_XS, etc.
 
 ---
 
-## Resumen Rápido (Cheatsheet)
+## 15. Resumen Rápido (Cheatsheet)
 
 ```python
 # CONFIGURACIÓN RECOMENDADA DeepSeek-R1 8B (RTX 3070 8GB)
 llm = Llama(
     model_path="~/models/deepseek-r1-8b-q4_k_m.gguf",
-    n_ctx=131072,
+    n_ctx=8192,
     n_gpu_layers=35,           # RTX 3070 8GB = 35 capas
     n_gpu_layers=-1,           # O -1 para todas
-    n_ctx=131072,
+    n_ctx=8192,
     n_batch=512,
     n_threads=8,
     n_gpu_layers=-1,
     use_mlock=True,
     use_mmap=True,
     n_gpu_layers=-1,
-    n_ctx=131072,
+    n_ctx=8192,
     n_batch=512,
     n_threads=8,
     chat_format="chatml",       # DeepSeek usa ChatML
@@ -728,13 +724,13 @@ for chunk in llm.create_chat_completion(
 
 ---
 
-## 14. Deployment y Serving en Producción
+## 16. Deployment y Serving en Producción
 
 ### 14.1 llama-server (Servidor Nativo)
 ```bash
 # Servidor OpenAI-compatible
 llama-server -m model.gguf \
-  -c 131072 \
+  -c 8192 \
   -ngl 35 \
   --port 8080 \
   --host 0.0.0.0 \
@@ -747,7 +743,7 @@ llama-server -m model.gguf \
   --defrag-thold-gpu 0.1
 
 # Con métricas Prometheus
-llama-server -m model.gguf -c 131072 -ngl 35 --port 8080 --metrics
+llama-server -m model.gguf -c 8192 -ngl 35 --port 8080 --metrics
 ```
 
 ### 14.2 llama.cpp como Servidor OpenAI-Compatible
@@ -771,17 +767,17 @@ response = client.chat.completions.create(
 ### 14.3 Docker Deployment
 ```dockerfile
 # Dockerfile
-FROM ghcr.io/ggerganov/llama.cpp:full-cuda-latest
+FROM ghcr.io/ggml-org/llama.cpp:full-cuda-latest
 
 # O build custom
 FROM nvidia/cuda:12.4-devel-ubuntu22.04
-RUN git clone https://github.com/ggerganov/llama.cpp /llama.cpp \
+RUN git clone https://github.com/ggml-org/llama.cpp /llama.cpp \
     && cd /llama.cpp \
     && make LLAMA_CUBLAS=1
 
 COPY models/ /models/
 EXPOSE 8080
-CMD ["llama-server", "-m", "/models/model.gguf", "-c", "131072", "-ngl", "99", "--port", "8080"]
+CMD ["llama-server", "-m", "/models/model.gguf", "-c", "8192", "-ngl", "99", "--port", "8080"]
 ```
 
 ```yaml
@@ -822,13 +818,13 @@ spec:
     spec:
       containers:
       - name: llama-server
-        image: ghcr.io/ggerganov/llama.cpp:full-cuda-latest
+        image: ghcr.io/ggml-org/llama.cpp:full-cuda-latest
         command: ["llama-server"]
         args:
           - "-m"
           - "/models/model.gguf"
           - "-c"
-          - "131072"
+          - "8192"
           - "-ngl"
           - "99"
           - "--port"
@@ -874,7 +870,7 @@ User=llama
 WorkingDirectory=/opt/llama.cpp
 ExecStart=/usr/local/bin/llama-server \
   -m /models/model.gguf \
-  -c 131072 \
+  -c 8192 \
   -ngl 35 \
   --port 8080 \
   --host 0.0.0.0 \
@@ -915,7 +911,7 @@ curl http://localhost:8080/metrics
 
 ---
 
-## 15. Fine-tuning / LoRA / QLoRA con llama.cpp
+## 17. Fine-tuning / LoRA / QLoRA con llama.cpp
 
 ### 15.1 Preparación de Datos
 ```jsonl
@@ -982,7 +978,7 @@ python3 -m llama_cpp.train \
 
 ---
 
-## 16. RAG Avanzado con llama.cpp
+## 18. RAG Avanzado con llama.cpp
 
 ### 16.1 RAG Completo Local
 ```python
@@ -992,13 +988,17 @@ import sqlite3
 import json
 
 class LocalRAG:
-    def __init__(self, model_path, db_path="rag.db"):
-        self.llm = Llama(
-            model_path=model_path,
-            n_ctx=131072,
-            n_gpu_layers=-1,
-            embedding=True,  # Modo embedding
-            embedding_model="bge-m3"  # o modelo embedding GGUF
+    def __init__(self, model_path, db_path="rag.db", embedding_model_path=None):
+        self.llm = Llama(model_path=model_path, n_ctx=8192, n_gpu_layers=0,
+                         verbose=False)
+        # Un modelo de embeddings se carga en su propia instancia Llama.
+        # `embedding_model` NO es un parámetro de Llama en 0.3.28.
+        self.embedder = Llama(
+            model_path=embedding_model_path or model_path,
+            n_ctx=8192,
+            n_gpu_layers=0,
+            embedding=True,
+            verbose=False,
         )
         self.db = sqlite3.connect(db_path)
         self._init_db()
@@ -1017,7 +1017,7 @@ class LocalRAG:
     
     def add_document(self, content: str, metadata: dict = None):
         """Añade documento con embedding"""
-        embedding = self.llm.create_embedding(content)['data'][0]['embedding']
+        embedding = self.embedder.create_embedding(content)['data'][0]['embedding']
         self.db.execute(
             "INSERT INTO documents (content, embedding, metadata) VALUES (?, ?, ?)",
             (content, np.array(embedding, dtype=np.float32).tobytes(), json.dumps(metadata or {}))
@@ -1026,7 +1026,7 @@ class LocalRAG:
     
     def search(self, query: str, top_k: int = 5) -> list:
         """Búsqueda semántica + reranking"""
-        query_emb = self.llm.create_embedding(query)['data'][0]['embedding']
+        query_emb = self.embedder.create_embedding(query)['data'][0]['embedding']
         query_vec = np.array(query_emb, dtype=np.float32)
         
         # Cosine similarity
@@ -1118,7 +1118,7 @@ class HybridRAG:
 
 ---
 
-## 17. Multi-GPU / Distributed Inference
+## 19. Multi-GPU / Distributed Inference
 
 ### 17.1 Tensor Split (Multi-GPU)
 ```python
@@ -1154,7 +1154,7 @@ tensor_split=[0.5, 0.5]  # Split por capas (aprox)
 
 ---
 
-## 18. Comparativa: llama.cpp vs vLLM vs TGI vs TGI
+## 20. Comparativa: llama.cpp vs vLLM vs TGI
 
 | Característica | llama.cpp | vLLM | TGI (Text Generation Inference) | TensorRT-LLM |
 |----------------|-----------|------|----------------------------------|--------------|
@@ -1196,7 +1196,7 @@ tensor_split=[0.5, 0.5]  # Split por capas (aprox)
 
 ---
 
-## 19. Security / Safety / Guardrails
+## 21. Security / Safety / Guardrails
 
 ### 18.1 Prompt Injection Defense
 ```python
@@ -1300,7 +1300,7 @@ async def safe_completion(prompt):
 
 ---
 
-## 19. Performance Tuning / Benchmarking
+## 22. Performance Tuning / Benchmarking
 
 ### 19.1 Benchmarking Script
 ```bash
@@ -1308,7 +1308,7 @@ async def safe_completion(prompt):
 # benchmark.sh
 
 MODEL=$1
-N_CTX=${2:-131072}
+N_CTX=${2:-8192}
 N_GPU_LAYERS=${3:-35}
 THREADS=${4:-8}
 BATCH=${5:-512}
@@ -1382,7 +1382,7 @@ nsys stats llama_profile.qdrep
 
 ---
 
-## 18. Troubleshooting Exhaustivo
+## 23. Troubleshooting Exhaustivo
 
 ### 18.1 Problemas Comunes y Soluciones
 
@@ -1410,7 +1410,7 @@ nsys stats llama_profile.qdrep
 GGML_LOG_LEVEL=DEBUG llama-cli -m model.gguf -p "Test" -n 10
 
 # Verbose llama.cpp
-GGML_LOG_LEVEL=DEBUG llama-server -m model.gguf -c 131072
+GGML_LOG_LEVEL=DEBUG llama-server -m model.gguf -c 8192
 
 # Debug OpenAI API
 OPENAI_LOG=debug python3 -c "import openai; ..."
@@ -1422,52 +1422,56 @@ nsys stats profile.qdrep
 
 ---
 
-## 18.4 Configuración por Problema
+## 23.4 Configuración por Problema
 
 ```python
 # PROBLEMA: OOM en GPU
 llm = Llama(
+    model_path="model.gguf",
     n_gpu_layers=20,      # Reducir capas en GPU
-    n_ctx=4096,           # Reducir contexto
+    n_ctx=4096,           # Reducir contexto (KV cache)
     n_batch=128,          # Batch pequeño
-    low_vram=True,        # Modo low VRAM
-    use_mlock=True,
+    use_mlock=False,      # mlock puede agravar el OOM
+    verbose=False,
 )
 
 # PROBLEMA: Lento en CPU
 llm = Llama(
+    model_path="model.gguf",
     n_threads=os.cpu_count(),  # Todos los cores
     n_batch=512,               # Batch grande
     use_mmap=True,             # mmap activado
-    use_mlock=True,            # Lock en RAM
-    n_threads=os.cpu_count(),
+    use_mlock=False,
+    verbose=False,
 )
 
-# PROBLEMA: Repetición
-llm = Llama(
+# PROBLEMA: Repetición (el sampling va en la llamada, NO en el constructor)
+llm.create_chat_completion(
+    messages=msgs,
     repeat_penalty=1.15,
-    repeat_penalty_sustain=256,
-    repeat_penalty_slope=0.1,
     temperature=0.6,
     top_p=0.9,
+    max_tokens=512,
 )
 
-# PROBLEMA: Contexto insuficiente
+# PROBLEMA: Contexto insuficiente (n_ctx grande consume RAM/VRAM)
 llm = Llama(
-    n_ctx=131072,
-    n_ctx_train=131072,
+    model_path="model.gguf",
+    n_ctx=32768,           # subir solo si la memoria lo permite
+    n_batch=512,
     rope_freq_base=10000,
     rope_freq_scale=1.0,
     yarn_ext_factor=1.0,
     yarn_attn_factor=1.0,
     yarn_beta_fast=32,
     yarn_beta_slow=1,
+    verbose=False,
 )
 ```
 
 ---
 
-## 19. Deployment Checklist
+## 24. Deployment Checklist
 
 ```bash
 # PRE-DEPLOYMENT CHECKLIST
@@ -1504,10 +1508,10 @@ llm = Llama(
 
 ---
 
-## 20. Recursos y Referencias
+## 25. Recursos y Referencias
 
 ### 20.1 Enlaces Oficiales
-- **llama.cpp**: https://github.com/ggerganov/llama.cpp
+- **llama.cpp**: https://github.com/ggml-org/llama.cpp
 - **llama-cpp-python**: https://github.com/abetlen/llama-cpp-python
 - **Hugging Face GGUF**: https://huggingface.co/models?library=gguf
 - **Discord llama.cpp**: https://discord.gg/ggml
@@ -1528,29 +1532,29 @@ llm = Llama(
 | **Yi** | https://huggingface.co/01-ai |
 
 ### 11.3 Quantization Guides
-- llama.cpp quantization: https://github.com/ggerganov/llama.cpp/blob/master/docs/quantization.md
-- GGUF spec: https://github.com/ggerganov/gguf
+- llama.cpp quantization: https://github.com/ggml-org/llama.cpp/blob/master/docs/quantization.md
+- GGUF spec: https://github.com/ggml-org/gguf
 - K-quants explanation: https://github.com/ggml-org/llama.cpp/pull/6847
 
 ---
 
-## Resumen Rápido (Cheatsheet Final)
+## 26. Resumen Rápido (Cheatsheet Final)
 
 ```python
 # CONFIGURACIÓN DEFINITIVA DeepSeek-R1 8B (RTX 3070 8GB)
 llm = Llama(
     model_path="~/models/deepseek-r1-8b-q4_k_m.gguf",
-    n_ctx=131072,
+    n_ctx=8192,
     n_gpu_layers=35,           # RTX 3070 8GB = 35 capas
     n_gpu_layers=-1,           # O -1 para todas
-    n_ctx=131072,
+    n_ctx=8192,
     n_batch=512,
     n_threads=8,
     n_gpu_layers=-1,
     use_mlock=True,
     use_mmap=True,
     n_gpu_layers=-1,
-    n_ctx=131072,
+    n_ctx=8192,
     n_batch=512,
     chat_format="chatml",       # DeepSeek usa ChatML
     verbose=False,

@@ -24,15 +24,8 @@ RESEARCH_CLI="${RESEARCH_DIR}/research_cli.py"
 PROXY_URL="http://127.0.0.1:11435"
 OLLAMA_URL="http://127.0.0.1:11434"
 MODEL="deepseek-r1:8b"
-MAX_RETRIES=3
-RETRY_DELAY=5
 # DeepSeek reenvía prompts a un servicio externo: solo opt-in explícito.
 ALLOW_DEEPSEEK="${SMART_ALLOW_DEEPSEEK:-0}"
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_ok() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Verificar/Iniciar Ollama
 ensure_ollama() {
@@ -60,20 +53,17 @@ ensure_proxy() {
         return 0
     fi
     
-    log_warn "Proxy no responde, reiniciando..."
-    pkill -f "ollama-context-proxy" 2>/dev/null || true
-    sleep 1
-    
+    log_warn "Proxy no responde, iniciando..."
     cd "${RESEARCH_DIR}/build"
     OLLAMA_TARGET=http://127.0.0.1:11434 ./ollama-context-proxy &
     PROXY_PID=$!
     sleep 2
-    
+
     if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
-        log_ok "Proxy reiniciado"
+        log_ok "Proxy iniciado"
         return 0
     else
-        log_error "No se pudo iniciar proxy"
+        log_error "No se pudo iniciar el proxy (¿puerto 11435 ocupado?). No se mata ningún proceso ajeno."
         return 1
     fi
 }
@@ -91,7 +81,7 @@ try_local_proxy() {
     cd "${RESEARCH_DIR}"
     timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider ollama \
-        --model deepseek-r1:8b \
+        --model "${MODEL}" \
         --ollama-base-url "${PROXY_URL}" \
         --ollama-api openai \
         --search local \
@@ -117,7 +107,7 @@ try_deepseek_free_agent() {
     timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider deepseek-free-agent \
         --authorize-deepseek-agent \
-        --deepseek-agent-fallback-model deepseek-r1:8b \
+        --deepseek-agent-fallback-model "${MODEL}" \
         --ollama-base-url "${OLLAMA_URL}" \
         --ollama-api native \
         --search wikipedia \
@@ -140,7 +130,7 @@ try_ollama_direct() {
     cd "${RESEARCH_DIR}"
     timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider ollama \
-        --model deepseek-r1:8b \
+        --model "${MODEL}" \
         --ollama-base-url "${OLLAMA_URL}" \
         --ollama-api native \
         --search local \
@@ -259,10 +249,10 @@ if ! command -v ollama &> /dev/null; then
 fi
 
 # Verificar modelo
-if ! ollama list | grep -q "deepseek-r1:8b"; then
-    echo -e "\033[1;33m[WARN]\033[0m Modelo deepseek-r1:8b no encontrado"
-    echo "Instalando: ollama pull deepseek-r1:8b"
-    ollama pull deepseek-r1:8b
+if ! ollama list | grep -q "^${MODEL} "; then
+    echo -e "\033[1;33m[WARN]\033[0m Modelo ${MODEL} no encontrado"
+    echo "Instalando: ollama pull ${MODEL}"
+    ollama pull "${MODEL}"
 fi
 
 # Ejecutar

@@ -4985,3 +4985,34 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   el comando real; si no se puede probar, se declara «no verificado» y no se
   presenta como integración. Un mock debe declararse como simulación, no como
   evidencia de la API externa.
+
+
+### Hallazgo 229: los ejemplos de documentación también son código
+
+- **Problema**: la revisión de los siete commits de las últimas 24 h encontró
+  defectos reales fuera de los tests. `scripts/scan_secrets.py` devolvía «OK»
+  si `git ls-files` fallaba o un archivo no se podía leer (gate que no podía
+  fallar) y tenía una allowlist que podía ocultar una credencial.
+  `code_generator` devolvía éxito con cero archivos si el JSON del paso 5 no se
+  extraía, sobrescribía archivos sin avisar y afirmaba «sandboxing» cuando solo
+  ejecutaba tests en un subproceso. La guía de llama.cpp tenía parámetros que
+  no existen en `Llama` 0.3.28 (`temperature`, `n_gqa`, `n_ctx_train`,
+  `cache_type_k`), claves duplicadas, un modelo 550B con «35 GB» imposible y
+  ejemplos de 131k de contexto en 8 GB de VRAM.
+- **Causa**: se revisó el texto, no la API instalada; se confundió «el ejemplo
+  parece razonable» con «el ejemplo se ejecuta». Un documento largo generado
+  por un modelo no es una fuente de verdad.
+- **Solución**: el escáner falla cerrado ante error de git/lectura y ya no
+  permite ocultar líneas; `code_generator` falla si no hay `archivos`, exige
+  `overwrite=True` para sobrescribir, escribe UTF-8 y declara que no es un
+  sandbox; la guía se validó con `inspect.signature(Llama.__init__)` (37
+  bloques, 0 errores, 0 kwargs inválidos) y se corrigieron tamaños, contexto y
+  enlaces; OpenCode/ADR se marcan como hipótesis no reproducidas; el fallback
+  DeepSeek declara que no comparte caché y el plugin configura `fallback_model`.
+- **Verificación**: suite **1487/1487**, Ruff 0, preflight 0, docs-check OK;
+  `tests.test_scan_secrets` 4/4; `tests.test_code_generator` 22/22; guía
+  validada con llama-cpp-python 0.3.28. Evidencia:
+  `build/suite-2026-11-07-b.log`.
+- **Lección**: todo ejemplo de documentación que se publique debe compilarse o
+  contrastarse con la API instalada; y un gate de seguridad debe fallar cuando
+  no puede ejecutarse, nunca devolver «OK» por defecto.

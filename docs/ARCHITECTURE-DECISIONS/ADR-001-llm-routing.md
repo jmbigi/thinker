@@ -1,15 +1,15 @@
 # ADR-001: LLM Provider Routing and Model Validation in OpenCode/Kimi Code
 
-**Status:** Accepted
-**Date:** 2026-11-06
+**Status:** Proposed (evidencia parcial; falta reproducir con OpenCode 2.5.2)
+**Date:** 2026-11-06, actualizado 2026-11-07
 **Author:** Thinker Pipeline
-**Reviewers:** [Auto-evaluación interna]
+**Reviewers:** pendiente de revisión humana
 
 ---
 
 ## Context
 
-OpenCode/Kimi Code (derivados de sst/opencode) implementan validación de modelos **antes** de enviar la request al provider LLM. La arquitectura usa:
+Según una revisión no versionada del código de OpenCode/Kimi Code (derivados de sst/opencode), habría validación de modelos **antes** de enviar la request. **No se verificó contra OpenCode 2.5.2**; se conserva como hipótesis. La arquitectura descrita sería:
 
 1. **SupportedModels hardcodeado** - mapa estático `ModelID → Model` compilado en el binario
 2. **Validación pre-request** en `validateAgent()` - rechaza modelos no en `SupportedModels` antes de crear el provider
@@ -22,7 +22,7 @@ OpenCode/Kimi Code (derivados de sst/opencode) implementan validación de modelo
 
 **No implementar workarounds de red (proxy, MITM, DNS) para sortear validación de modelos en OpenCode/Kimi Code.**
 
-En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research` CLI)** o **DeepSeek Free Agent con fallback local**, que ya soportan modelos Ollama con contexto completo (131k tokens).
+En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research` CLI)** o **DeepSeek Free Agent con fallback local**, que declaran contexto 131k (no se midió el contexto usable real; depende de la RAM).
 
 ---
 
@@ -30,9 +30,9 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 
 ### Positivos
 - **Cero trabajo en binarios propietarios** - no se modifica binario ni se mantiene fork
-- **Contexto completo (131k tokens)** verificado en pipeline Thinker y DeepSeek Free Agent
+- **Contexto 131k declarado** por el proxy; el uso real de 131k no se midió
 - **Fallback automático** - DeepSeek Free Agent conmuta a Ollama local si falla web
-- **Evidencia verificable** - 1423/1423 tests pasan, 17/17 tests de integración DeepSeek Free Agent
+- **Evidencia verificable** - 1487/1487 tests pasan, 19/19 tests de integración DeepSeek Free Agent
 - **Mantenibilidad** - actualizaciones upstream no rompen la solución
 
 ### Negativos
@@ -72,13 +72,13 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 
 | Componente | Prueba | Estado |
 |------------|--------|--------|
-| Suite de tests | `1423/1423` tests OK | ✅ |
+| Suite de tests | `1487/1487` tests OK | ✅ |
 | DeepSeek Free Agent tests | 17/17 OK (4 tests fallback) | ✅ |
-| Pipeline local Thinker | 77s, 3 claims, 3 evals, 131k tokens | ✅ |
+| Pipeline local Thinker | 77s, 3 claims, 3 evals; 131k declarado (no medido) | ✅ |
 | DeepSeek Free Agent + fallback | 44s, 4 claims, 4 evals, 0 citas válidas* | ✅ |
 | Proxy HTTP Ollama | Inyecta `num_ctx=131072`, elimina `max_tokens` | ✅ |
-| Ollama directo `num_ctx=131072` | 131k tokens | ✅ |
-| Suite completa | Ruff 0, Preflight 0, Docs 0, Tests 1423/1423 | ✅ |
+| Ollama directo `num_ctx=131072` | 131k aceptado; uso real no medido | ✅ |
+| Suite completa | Ruff 0, Preflight 0, Docs 0, Tests 1487/1487 | ✅ |
 
 *\* Citas 0/17 por limitación del modelo, no del pipeline*
 

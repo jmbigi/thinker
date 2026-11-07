@@ -92,15 +92,21 @@ class LlamaCppBench:
         return False
 
     def stop_server(self):
-        if self.process:
-            self.process.terminate()
-            self.process.wait(timeout=5)
-            self.process = None
+        """Detiene solo el servidor que inició este objeto."""
+        if not self.process:
+            return
+        proceso = self.process
+        self.process = None
+        proceso.terminate()
+        try:
+            proceso.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proceso.kill()
+            proceso.wait(timeout=5)
 
     def benchmark(self, prompt: str, max_tokens: int = 128, n_runs: int = 5) -> BenchmarkResult:
         """Ejecuta benchmark contra el servidor."""
         import urllib.request
-        import urllib.parse
 
         results = []
         for run in range(n_runs):
@@ -317,6 +323,7 @@ def run_benchmark(
     if backend == "llama-cpp":
         bench = LlamaCppBench()
         if not bench.start_server(model, llama_cpp_args or []):
+            bench.stop_server()
             raise RuntimeError("No se pudo iniciar llama.cpp server")
         try:
             return bench.benchmark(prompt, max_tokens, n_runs)

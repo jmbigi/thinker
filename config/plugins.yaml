@@ -28,6 +28,7 @@ plugins:
       base_url: "http://127.0.0.1:9527"
       timeout: 300
       authorized: true  # Activado explícitamente por el usuario el 2026-11-06.
+      fallback_model: "deepseek-r1:8b"  # respaldo local si el servicio falla
 
   mock_llm:
     enabled: true

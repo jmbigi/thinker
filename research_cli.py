@@ -129,6 +129,10 @@ def _ollama_llm(args, model):
 
 
 def _base_llm(args, model):
+    if (args.deepseek_agent_fallback_model
+            and args.provider != "deepseek-free-agent"):
+        raise ValueError(
+            "--deepseek-agent-fallback-model exige --provider deepseek-free-agent")
     if args.provider == "mock":
         return MockLLM(model=model or "mock-llm")
     if args.provider == "openrouter":
@@ -144,8 +148,6 @@ def _base_llm(args, model):
             return LocalFallbackLLM(
                 primary, _ollama_llm(args, args.deepseek_agent_fallback_model))
         return primary
-    if args.deepseek_agent_fallback_model:
-        raise ValueError("--deepseek-agent-fallback-model exige --provider deepseek-free-agent")
     return _ollama_llm(args, model)
 
 

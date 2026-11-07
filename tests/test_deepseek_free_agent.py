@@ -229,9 +229,11 @@ class TestLocalFallback(unittest.TestCase):
         self.assertEqual(llm.fallback.model, "deepseek-r1:8b")
         with self.assertRaisesRegex(RuntimeError, "chat.deepseek.com"):
             PrivacyPolicy("private-documents").apply(llm, MockSearchAPI())
-        args.provider = "ollama"
-        with self.assertRaisesRegex(ValueError, "exige"):
-            build_llm(args)
+        for proveedor in ("ollama", "openrouter", "mock"):
+            with self.subTest(proveedor=proveedor):
+                args.provider = proveedor
+                with self.assertRaisesRegex(ValueError, "exige"):
+                    build_llm(args)
 
     def test_fallback_generico_para_cuota_agotada(self):
         args = build_parser().parse_args([

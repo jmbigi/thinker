@@ -123,6 +123,8 @@ class OllaPlugin(LLMProviderPlugin):
 
     def _refresh_models(self) -> None:
         """Actualiza el catálogo; un fallo se reporta, no se silencia."""
+        # Se marca el intento aunque falle: evita reintentar en cada llamada.
+        self._last_models_refresh = time.time()
         try:
             resp = requests.get(
                 self._base_url + "/olla/proxy/v1/models", timeout=3)
@@ -131,7 +133,6 @@ class OllaPlugin(LLMProviderPlugin):
                     m.get("id", "") for m in resp.json().get("data", [])
                     if m.get("id")
                 ]
-                self._last_models_refresh = time.time()
             else:
                 print(f"[OllaPlugin] /models respondió HTTP {resp.status_code}",
                       file=sys.stderr)

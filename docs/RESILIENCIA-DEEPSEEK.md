@@ -8,7 +8,9 @@ Garantizar que una tarea de investigación pueda completarse sin depender de la 
 - **Regla de conmutación**: solo errores operativos del proveedor principal (red, timeout, HTTP 5xx, error JSON, respuestas intermedias) disparan la conmutación. `ValueError` (prompt vacío) y `PermissionError` (sin autorización) **no** conmutan.
 - **Modelo de respaldo**: se especifica explícitamente (`deepseek-r1:8b` por defecto en CLI y plugin). No hay auto-detección ni auto-selección.
 - **Registro**: cada conmutación incrementa `fallback_calls`, guarda el motivo en `last_fallback_reason` y emite una línea a `stderr` con modelo local usado.
-- **Cache**: el fallback hereda la caché del proveedor principal (misma clave por prompt normalizado) para evitar trabajo duplicado tras conmutar.
+- **Cache**: no hay caché compartida. `LocalFallbackLLM` no cachea; el proveedor
+  principal solo guarda éxitos. Tras conmutar, la siguiente llamada vuelve a
+  intentar el principal y solo usa el local si vuelve a fallar.
 - **Privacidad**: `PrivacyPolicy` valida tanto el proveedor principal como el respaldo; el fallback solo pasa con `public` si **ambos** cumplen la política.
 
 ## Contratos de prueba (`tests/test_deepseek_free_agent.py`)
@@ -61,7 +63,7 @@ Si `fallback_model` es no vacío, el plugin instancia `LocalFallbackLLM(primary,
 
 ## Verificación (`kimi doctor` y tests)
 
-- `python3 -m unittest tests.test_deepseek_free_agent -v`: 17/17 tests OK (incluye 4 tests de `TestLocalFallback`).
+- `python3 -m unittest tests.test_deepseek_free_agent -v`: 19/19 tests OK (incluye 4 tests de `TestLocalFallback`).
 - `kimi doctor config config.toml`: valida esquema y que el modelo está declarado.
 - `kimi doctor` sobre la config completa: OK.
 
@@ -69,7 +71,7 @@ Si `fallback_model` es no vacío, el plugin instancia `LocalFallbackLLM(primary,
 
 | Escenario | Resultado |
 |---|---|
-| Servicio web DeepSeek caído (`RuntimeError`) | Conmuta a Ollama local, registra motivo y modelo, emite stderr, cache hereda clave normalizada. |
+| Servicio web DeepSeek caído (`RuntimeError`) | Conmuta a Ollama local, registra motivo y modelo, emite stderr, sin caché compartida. |
 | DeepSeek responde `One more step before you proceed...` | Rechazado como texto intermedio; lanza `RuntimeError` → conmuta si hay fallback. |
 | `ERR_NETWORK_CHANGED` / `HTTP 5xx` | Conmuta. |
 | Prompt vacío / sin autorización | **No** conmuta; error explícito visible. |
@@ -113,4 +115,4 @@ Validación: `kimi doctor config <archivo>` → OK.
 
 ---
 
-**Evidencias**: `tests/test_deepseek_free_agent.py` (17/17 OK), `kimi doctor` (OK), `research_cli.py` y `llm_providers.py` (compilación OK), suite completa `1423/1423`.
+**Evidencias**: `tests/test_deepseek_free_agent.py` (19/19 OK), `kimi doctor` (OK), `research_cli.py` y `llm_providers.py` (compilación OK), suite completa `1487/1487`.

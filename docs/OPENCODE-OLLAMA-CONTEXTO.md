@@ -1,8 +1,15 @@
 # OpenCode + Ollama: Contexto Real vs Expectativas
 
+> **Estado de verificación (2026-11-07):** las rutas de código de OpenCode se
+> citan de una revisión no versionada y **no se verificaron** contra OpenCode
+> 2.5.2. En esta sesión `opencode models` falla con `EROFS` al escribir su log,
+> así que el error de 4096 tokens es una **hipótesis observada**, no una
+> reproducción actual. «131k» es el valor declarado por el proxy, no una
+> medición de contexto usable; la RAM disponible lo limita.
+
 ## Hallazgo Principal
 
-**OpenCode + Ollama no logra usar el contexto completo del modelo (131k) debido a limitaciones arquitectónicas en ambos proyectos.**
+**OpenCode + Ollama no logra usar el contexto completo del modelo (131k) debido a limitaciones arquitectónicas en ambos proyectos.** (Hipótesis pendiente de reproducción; ver aviso).
 
 ## Evidencia Técnica
 
@@ -64,7 +71,7 @@ opencode run -m ollama/deepseek-r1:8b "pregunta" --standalone
 ### 1. Pipeline Local de Thinker (100% funcional)
 ```bash
 research "pregunta" --provider ollama --model deepseek-r1:8b --documents ./corpus
-# 77s, 3 claims, 3 evaluaciones, 131k contexto real
+# 77s, 3 claims, 3 evaluaciones; 131k declarado (no medido)
 ```
 
 ### 2. DeepSeek Free Agent + Fallback Local
@@ -78,7 +85,7 @@ research "pregunta" --provider deepseek-free-agent --authorize-deepseek-agent \
 ```bash
 curl -X POST http://127.0.0.1:11434/api/generate \
   -d '{"model":"deepseek-r1:8b","prompt":"...", "options":{"num_ctx":131072}}'
-# Funciona con 131k contexto real
+# Funciona con num_ctx declarado; el contexto usable depende de la RAM
 ```
 
 ## Conclusión Honesta
@@ -94,7 +101,7 @@ curl -X POST http://127.0.0.1:11434/api/generate \
 
 ## Recomendación
 
-**No usar OpenCode/Kimi Code con Ollama para tareas que requieran contexto largo.** Usar el pipeline de investigación de Thinker (`research` CLI) que ya está probado, documentado y funciona con 131k tokens reales.
+**No usar OpenCode/Kimi Code con Ollama para tareas que requieran contexto largo.** Usar el pipeline de investigación de Thinker (`research` CLI) que ya está probado, documentado y declara 131k; el contexto usable real no se midió y depende de la RAM.
 
 La arquitectura de OpenCode/Kimi Code **no soporta** contexto dinámico desde la API - el `maxTokens` viene hardcodeado en el registro de modelos interno, no se descubre dinámicamente de la API.
 
@@ -102,9 +109,9 @@ La arquitectura de OpenCode/Kimi Code **no soporta** contexto dinámico desde la
 
 - `docs/RESILIENCIA-DEEPSEEK.md`: Contratos de fallback documentados
 - `docs/LECCIONES-APRENDIDAS.md`: Hallazgo 226, 227 documentados
-- `tests/test_deepseek_free_agent.py`: 17/17 tests pasando (incluye fallback local)
+- `tests/test_deepseek_free_agent.py`: 19/19 tests pasando (incluye fallback local)
 - `build/ollama-context-proxy.go`: Proxy funcional que enriquece `/v1/models` (pero no usado por OpenCode)
-- Suite completa: **1423/1423 tests pasando**
+- Suite completa: **1487/1487 tests pasando**
 
 ---
 

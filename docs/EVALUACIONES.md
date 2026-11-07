@@ -46,13 +46,15 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1485/1485** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+Suite **1487/1487** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
 3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
 docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
 loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
 permanece no verificada sin servicio y sesión; no se simuló. Hallazgo 228:
 `LocalToolGate` fail-closed sin HTTP ficticio, Olla con sus rutas reales y
-`code_evaluator` retirado por no ser verificable.
+`code_evaluator` retirado por no ser verificable. Hallazgo 229: escáner de
+secretos fail-closed, `code_generator` sin éxito vacío y guía llama.cpp
+validada contra la API instalada.
 
 **Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). En Windows 11
 (Python 3.12.7/3.14.3) la última medición histórica es 750/750 (2026-10-22);
@@ -1484,3 +1486,20 @@ empírico de `code_generator`. `scripts/start-olla-cluster.sh` se retiró por us
 PIDs. Prueba real del agente DeepSeek 1.11.3 headless: **«OK» en 43,2 s**; no es
 ilimitado. Suite **1485/1485** en Linux (+34: 24 gate, 4 Olla, 4 benchmark, 2 fallback),
 Ruff 0, preflight 0, docs-check OK.
+
+
+**Actualización 2026-11-07** (revisión de las últimas 24 h, Hallazgo 229): se
+auditaron los siete commits del día. `scripts/scan_secrets.py` ahora **falla
+cerrado** si `git ls-files` no responde o un archivo no se puede leer (antes
+devolvía «OK» sin escanear) y se retiró la allowlist que podía ocultar una
+credencial. `code_generator` ya no devuelve éxito con cero archivos si el JSON
+del paso 5 no se puede extraer, no sobrescribe por defecto, escribe UTF-8 y
+declara que la ejecución de tests **no es un sandbox**. La guía
+`docs/LLAMA_CPP_GUIDE.md` se validó contra `llama-cpp-python 0.3.28`: 37 bloques
+Python, 0 errores de sintaxis y 0 kwargs inválidos de `Llama`; se corrigieron
+duplicados, tamaños imposibles (550B Q4), contexto 131k en 8 GB y enlaces
+obsoletos. Los documentos de OpenCode/ADR se marcan como hipótesis no
+reproducidas y la afirmación de caché compartida del fallback se corrigió. Se
+añadió `fallback_model` al plugin DeepSeek. Suite **1487/1487** en Linux (+2
+tests de `code_generator`), Ruff 0, preflight 0, docs-check OK; evidencia:
+`build/suite-2026-11-07-b.log`.

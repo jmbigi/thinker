@@ -1,25 +1,34 @@
 # Realidad de OpenCode + Ollama: Lo que SÍ y NO funciona
 
+> **Estado de verificación (2026-11-07):** las rutas internas de OpenCode se
+> citan de una revisión no versionada y no se verificaron contra OpenCode 2.5.2;
+> en esta sesión `opencode models` falla con `EROFS`. Los «4096 tokens» son una
+> **hipótesis observada**, no una reproducción actual. «131k» es el valor
+> declarado por el proxy, no una medición de contexto usable.
+
 ## Conclusión Ejecutiva
 
-**OpenCode + Ollama NO funciona con modelos arbitrarios y contexto largo.** La arquitectura de OpenCode tiene limitaciones硬性 que impiden usar modelos arbitrarios de Ollama con contexto largo (131k tokens).
+**OpenCode + Ollama no logra usar el contexto completo del modelo (131k) según
+la revisión citada.** La causa exacta (validación de modelos, `baseURL` o
+`ContextWindow`) queda como hipótesis hasta reproducirla con la versión 2.5.2.
 
-## Lo que SÍ funciona (probado y verificado)
+## Lo que SÍ funciona (declarado; contexto 131k no medido)
 
-| Configuración | Contexto Real | Estado |
-|---------------|---------------|--------|
-| **Pipeline Thinker + Ollama directo** | 131k tokens | ✅ Funcional |
-| **DeepSeek Free Agent + Fallback local** | 131k tokens (con fallback) | ✅ Funcional |
-| **Ollama API directo con `num_ctx`** | 131k tokens | ✅ Funcional |
-| **Proxy HTTP Ollama + curl** | 131k tokens | ✅ Funcional |
+| Configuración | Contexto declarado | Estado |
+|---------------|--------------------|--------|
+| **Pipeline Thinker + Ollama directo** | 131k declarado | Funcional (pipeline real; contexto usable limitado por RAM) |
+| **DeepSeek Free Agent + Fallback local** | 131k declarado | Funcional con fallback |
+| **Ollama API directo con `num_ctx`** | 131k declarado | Aceptado por Ollama; usable limitado por RAM |
+| **Proxy HTTP Ollama + curl** | 131k declarado | El proxy lo publica; no se midió el uso real |
 
-## Lo que NO funciona (y por qué)
+## Lo que NO funciona (hipótesis pendiente de reproducción)
 
-| Configuración | Contexto Real | Causa Raíz |
-|---------------|---------------|------------|
-| **OpenCode + Ollama (provider "ollama")** | 4096 tokens | OpenCode ignora `baseURL` y conecta directo a localhost:11434 |
-| **OpenCode + Ollama (provider "openai" + baseURL proxy)** | 4096 tokens | Modelo no está en `SupportedModels` hardcodeado |
-| **Kimi Code + Ollama** | 4096 tokens | Misma arquitectura que OpenCode |
+| Configuración | Contexto observado | Causa propuesta |
+|---------------|--------------------|-----------------|
+| **OpenCode + Ollama (provider "ollama")** | 4096 (reportado) | OpenCode podría ignorar `baseURL` y usar localhost:11434 |
+| **OpenCode + Ollama (provider "openai" + baseURL proxy)** | 4096 (reportado) | El modelo no estaría en `SupportedModels` |
+| **Kimi Code + Ollama** | 4096 (reportado) | Misma arquitectura que OpenCode |
+
 
 ## Causa Raíz Técnica
 

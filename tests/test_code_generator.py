@@ -241,6 +241,36 @@ class TestCodeGeneratorOrchestrator(unittest.TestCase):
             self.assertEqual(Path(saved[0]).read_text(encoding="utf-8"), "x = 1\n")
             self.assertTrue(Path(saved[0]).is_relative_to(Path(tmp)))
 
+    def test_save_generated_no_sobrescribe_por_defecto(self):
+        context = GenerationContext(project_path="/tmp/test", mode="offline")
+        context.generated_files = {"mod.py": "nuevo\n"}
+        orchestrator = CodeGeneratorOrchestrator(self.thinker, context)
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "mod.py").write_text("original\n", encoding="utf-8")
+            with self.assertRaises(FileExistsError):
+                orchestrator.save_generated(tmp)
+            self.assertEqual(
+                (Path(tmp) / "mod.py").read_text(encoding="utf-8"), "original\n")
+            orchestrator.save_generated(tmp, overwrite=True)
+            self.assertEqual(
+                (Path(tmp) / "mod.py").read_text(encoding="utf-8"), "nuevo\n")
+
+    def test_paso_5_sin_json_es_error_no_exito_vacio(self):
+        class _ThinkerSinCodigo:
+            def generate(self, context, prompt, progress=None):
+                return {
+                    "valid": True,
+                    "steps": [("code_generation", "texto sin JSON")],
+                    "step_count": 1,
+                    "confidence": 1.0,
+                }
+
+        context = GenerationContext(project_path="/tmp/test", mode="offline")
+        orchestrator = CodeGeneratorOrchestrator(_ThinkerSinCodigo(), context)
+        result = orchestrator.generate_and_validate("test")
+        self.assertIn("error", result)
+        self.assertIn("archivos", result["error"])
+
 
 class TestIntegration(unittest.TestCase):
     """Test de integración completo."""

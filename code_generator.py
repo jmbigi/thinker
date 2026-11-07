@@ -5,7 +5,10 @@ Generador de Código Inteligente, Seguro, Honesto y Exacto
 
 Principios (alineados con AGENTS.md del proyecto):
 1. INTELIGENTE - Capa de pensamiento estructurado (7 pasos), reutiliza StepThinkingEngine
-2. SEGURO - Validación en cada paso, sandboxing de ejecución, sin eval/exec no controlado
+2. SEGURO - Validación en cada paso; los tests se ejecutan en un subproceso con
+   timeout y directorio temporal. **No es un sandbox**: no aísla red, sistema de
+   archivos ni permisos; no ejecutes código generado por un modelo no confiable
+   sin aislamiento externo (contenedor/VM).
 3. HONESTO - Declara cuando es simulado (MockLLM), no inventa APIs ni archivos
 4. EXACTO - Verificación empírica (py_compile + tests), evidencia reproducible
 
@@ -407,7 +410,10 @@ JSON:
 class EmpiricalValidator:
     """
     Validador empírico: ejecuta herramientas REALES sobre el código generado.
-    No simula, no asume: VERIFICA.
+
+    py_compile y ruff son análisis estáticos. unittest ejecuta el código en un
+    subproceso con timeout y directorio temporal; **no es un sandbox** (sin
+    aislamiento de red, FS ni permisos).
     """
 
     @staticmethod
@@ -418,7 +424,7 @@ class EmpiricalValidator:
                 temp_path = Path(tmpdir) / (Path(filename).name or "generated.py")
                 if temp_path.suffix != ".py":
                     temp_path = temp_path.with_suffix(".py")
-                temp_path.write_text(code)
+                temp_path.write_text(code, encoding="utf-8")
                 result = subprocess.run(
                     [sys.executable, "-m", "py_compile", str(temp_path)],
                     capture_output=True, text=True, timeout=30
@@ -434,7 +440,8 @@ class EmpiricalValidator:
     @staticmethod
     def validate_ruff(code: str, filename: str = "generated.py") -> Dict[str, Any]:
         """ruff check - lint 0 errores."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False,
+                                         encoding="utf-8") as f:
             f.write(code)
             temp_path = f.name
         try:
@@ -451,13 +458,11 @@ class EmpiricalValidator:
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             return {"passed": False, "tool": "ruff", "errors": [str(e)]}
         finally:
-            temp_file = Path(temp_path)
-            if temp_file.exists():
-                try:
-                    temp_file.unlink()
-                except OSError:
-                    # Fallo silencioso esperado: archivo ya borrado o permisos
-                    _cleanup_failed = True
+            try:
+                Path(temp_path).unlink(missing_ok=True)
+            except OSError as exc:
+                print(f"[code_generator] no se pudo borrar el temporal "
+                      f"{temp_path}: {exc}", file=sys.stderr)
 
     @staticmethod
     def validate_unittest(test_code: str, source_code: str,
@@ -466,11 +471,11 @@ class EmpiricalValidator:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             # Escribir código fuente
-            (tmp / f"{module_name}.py").write_text(source_code)
+            (tmp / f"{module_name}.py").write_text(source_code, encoding="utf-8")
             # Escribir tests
-            (tmp / f"test_{module_name}.py").write_text(test_code)
+            (tmp / f"test_{module_name}.py").write_text(test_code, encoding="utf-8")
             # __init__.py para imports
-            (tmp / "__init__.py").write_text("")
+            (tmp / "__init__.py").write_text("", encoding="utf-8")
 
             try:
                 result = subprocess.run(
@@ -482,9 +487,12 @@ class EmpiricalValidator:
                 return {
                     "passed": passed,
                     "tool": "unittest",
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                    "tests_run": result.stdout.count("ok") + result.stdout.count("FAIL")
+                    # La salida puede contener datos del código generado;
+                    # se conserva solo la cola para diagnóstico.
+                    "stdout": result.stdout[-4000:],
+                    "stderr": result.stderr[-4000:],
+                    "tests_run": len(re.findall(
+                        r"\.\.\. ok$", result.stdout, re.MULTILINE)),
                 }
             except subprocess.TimeoutExpired:
                 return {"passed": False, "tool": "unittest",
@@ -574,6 +582,11 @@ class CodeGeneratorOrchestrator:
 
         generated = self._parse_generated_code(code_step[1])
         self.context.generated_files = generated.get("archivos", {})
+        if not self.context.generated_files:
+            return {
+                "error": "El paso 5 no contiene un JSON válido con 'archivos'",
+                "thinking": ciclo,
+            }
 
         # 3. VALIDACIÓN EMPÍRICA REAL
         _decir(">>> Validando código generado (py_compile + ruff + unittest)...")
@@ -635,8 +648,12 @@ class CodeGeneratorOrchestrator:
                 return parsed
         return {"archivos": {}}
 
-    def save_generated(self, output_dir: str) -> List[str]:
-        """Guarda archivos generados en disco, sin salir del directorio."""
+    def save_generated(self, output_dir: str, overwrite: bool = False) -> List[str]:
+        """Guarda archivos generados en disco, sin salir del directorio.
+
+        Por defecto NO sobrescribe archivos existentes: exige `overwrite=True`
+        para evitar perder trabajo previo por accidente (P1.28).
+        """
         out = Path(output_dir).resolve()
         out.mkdir(parents=True, exist_ok=True)
         saved = []
@@ -645,8 +662,11 @@ class CodeGeneratorOrchestrator:
             if file_path == out or not file_path.is_relative_to(out):
                 raise ValueError(
                     f"Ruta generada fuera del directorio de salida: {rel_path!r}")
+            if file_path.exists() and not overwrite:
+                raise FileExistsError(
+                    f"El archivo ya existe: {file_path}; usa overwrite=True")
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(content)
+            file_path.write_text(content, encoding="utf-8")
             saved.append(str(file_path))
         return saved
 
@@ -801,7 +821,7 @@ class MockLLM:
 def main():
     print("*** MODO DEMO OFFLINE — RESULTADOS SIMULADOS ***")
     print("    LLM: MockLLM (determinista, sin red)")
-    print("    Validación: EMPÍRICA REAL (py_compile + ruff + unittest)\n")
+    print("    Validación: EMPÍRICA REAL (py_compile + ruff + unittest en subproceso; sin sandbox)\n")
 
     # Configuración
     context = GenerationContext(
@@ -849,7 +869,7 @@ def main():
             print(f"    {tstatus} {tool}")
 
     # Guardar
-    saved = orchestrator.save_generated("demo_output")
+    saved = orchestrator.save_generated("demo_output", overwrite=True)
     print("\nGuardado en: demo_output/")
     for f in saved:
         print(f"  {f}")

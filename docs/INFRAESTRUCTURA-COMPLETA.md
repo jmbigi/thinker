@@ -247,7 +247,7 @@ ruff check .
 python3 scripts/check_docs.py
 ```
 
-Suite del proyecto: **1485 tests** (registrada en `AGENTS.md`); hook pre-commit la ejecuta antes de cada commit.
+Suite del proyecto: **1487 tests** (registrada en `AGENTS.md`); hook pre-commit la ejecuta antes de cada commit.
 
 ---
 
