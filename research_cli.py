@@ -40,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Investiga con evidencia, documentos locales y estado reanudable.")
     parser.add_argument("question", nargs="?", help="pregunta de investigación")
     parser.add_argument("--provider",
-                        choices=("mock", "openrouter", "kilo", "ollama",
+                        choices=("mock", "openrouter", "kilo", "forthtrade", "ollama",
                                  "deepseek-free-agent"),
                         default="mock", help="proveedor LLM (defecto: mock offline)")
     parser.add_argument("--model", help="modelo del proveedor")
@@ -141,6 +141,9 @@ def _base_llm(args, model):
         return OpenRouterLLM(model=model)
     if args.provider == "kilo":
         return KiloGatewayLLM(model=model)
+    if args.provider == "forthtrade":
+        from llm_providers import ForthtradeGatewayLLM
+        return ForthtradeGatewayLLM(model=model)
     if args.provider == "deepseek-free-agent":
         primary = DeepSeekFreeAgentLLM(
             base_url=args.deepseek_agent_url,

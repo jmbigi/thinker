@@ -38,6 +38,8 @@ if str(RAIZ) not in sys.path:
 VARIABLES_PROVEEDORES = (
     "OPENAI_API_KEY", "OPENROUTER_API_KEY", "OPENROUTER_MODEL",
     "KILO_API_KEY", "KILO_MODEL", "KILO_BASE_URL",
+    "FT_AI_API_KEY", "API_KEY", "FREE_AI_API_KEY", "GATEWAY_API_KEY",
+    "FORTHTRADE_BASE_URL", "FORTHTRADE_MODEL",
     "DEEPSEEK_API_KEY", "DEEPSEEK_AGENT_URL",
     "OLLAMA_MODEL", "OLLAMA_BASE_URL",
     # Política del gate local (no es una clave): raíces permitidas.

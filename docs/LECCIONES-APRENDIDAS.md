@@ -5128,3 +5128,28 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Lección**: optimizar el cliente ayuda (evita aceptar basura como respuesta),
   pero no elimina dependencia del servicio web/cola/sesión; para fiabilidad sin
   esa dependencia, usar Ollama local o proveedor API con contrato estable.
+
+### Hallazgo 233: Free AI Gateway (ia.forthtrade.com) conectado como proveedor opt-in
+
+- **Fecha**: 2026-11-07
+- **Fuente (pública, verificada)**: `https://ia.forthtrade.com/help.json` y
+  `/help` (servicio OpenAI-compatible, status ok, v2.1.0; `/health` respondió
+  200 con proveedores activos declarados). `/v1/models` y `/v1/free` exigen
+  API key del gateway (HTTP 401 sin credenciales) — comportamiento esperado.
+- **Integración (offline, sin red en tests)**: `ForthtradeGatewayLLM` en
+  `llm_providers.py` (base `https://ia.forthtrade.com/v1`, modelo `auto`;
+  lee `FT_AI_API_KEY`/`API_KEY`/`FREE_AI_API_KEY`/`GATEWAY_API_KEY`, sin caer a
+  `OPENAI_API_KEY` ajena). CLI `research --provider forthtrade`. Plugin
+  `plugins/llm_providers/forthtrade_plugin.py`. `scripts/doctor.py` lista las
+  variables (solo presencia, P0.6). `tests/test_forthtrade_gateway.py` 5 tests
+  offline (construcción, selección de key, error sin key, plugin, CLI).
+- **Prueba real end-to-end**: **NO realizada** — no hay `FT_AI_API_KEY`/clave
+  de gateway en el entorno (verificado sin imprimir valores). `ForthtradeGatewayLLM`
+  falla con mensaje claro de API key si se invoca sin credencial. Para probar
+  realmente: `export FT_AI_API_KEY=...` y
+  `research "hola" --provider forthtrade --model auto` (opt-in, red, datos salen
+  al gateway; costes/cuotas según política del gateway).
+- **Límites**: gratis/controlado ≠ ilimitado (cuotas/rate limits/capacidad,
+  FREE_ONLY según gateway). Una sola API key del gateway; **no** usar claves
+  upstream. Rotar si se expuso. Prompts/salidas no confiables; gates verdes ≠
+  calidad de producción.

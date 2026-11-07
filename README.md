@@ -21,7 +21,7 @@ herramientas de análisis estático de código.
 | `documents.py` | Contenido completo HTML/PDF/TXT/Markdown/CSV y Office Open XML, pasajes con hash/localización, RAG local BM25+coseno y full-text web. |
 | `research_cli.py` | CLI real `research`: proveedores, buscadores, documentos, Markdown/JSON, estado, presupuestos y opciones opt-in. Sin argumentos conserva la demo. |
 | `research_state.py` | Checkpoints idempotentes con esquema versionado, caché de recuperación y escritura atómica 0600. |
-| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, DeepSeek, deepseek-free-agent, Ollama, Mock). Reintentos con backoff en APIs compatibles, caché y presupuesto seguro entre hilos. |
+| `llm_providers.py` | Proveedores LLM (OpenAI, OpenRouter, Kilo, Free AI Gateway/forthtrade, DeepSeek, deepseek-free-agent, Ollama, Mock). Reintentos con backoff en APIs compatibles, caché y presupuesto seguro entre hilos. |
 | `thinking_engine.py` | Motor común de ciclos de pensamiento por pasos con validación antes de avanzar (sin duplicación) + Tree of Thoughts (BFS/DFS/Beam). |
 | `pensamiento_layer.py` | Los 7 pasos de pensamiento para investigación + orquestador con pensamiento. |
 | `code_design_improvement_tools.py` | Análisis estático de Python (AST) y ciclo de pensamiento para decisiones de diseño. |
@@ -330,6 +330,44 @@ Base URL documentada: `https://ai-gateway.kilo.ai/api/v1`. No es local, no es
 privado y **no es ilimitado**; si el límite se agota, usa Ollama local o
 `--fallback-model qwen3:8b`.
 
+## Uso con Free AI Gateway (ia.forthtrade.com, OpenAI-compatible)
+
+[Free AI Gateway](https://ia.forthtrade.com/help) expone un endpoint
+OpenAI-compatible. **Fuente de verdad:** <https://ia.forthtrade.com/help> y
+<https://ia.forthtrade.com/help.json> (verificar ahí cambios de endpoints/auth).
+Modelo recomendado `auto` (fallback, caché, compresión y política `FREE_ONLY`
+según el gateway). **Gratis/controlado ≠ ilimitado** (cuotas, rate limits,
+capacidad). Requiere **una sola API key del gateway**; **no** usar claves
+upstream. Rotar la key si se expuso.
+
+- Base URL: `https://ia.forthtrade.com/v1` (alias OpenAI:
+  `https://ia.forthtrade.com/openai/v1/chat/completions`).
+- Chat: `POST /v1/chat/completions` · Modelos: `GET /v1/models` (auth) ·
+  Salud: `GET /health` · Providers/free/cache/audit: según `help.json`.
+- Auth aceptada por el gateway: `Authorization: Bearer <key>`, `api-key`,
+  `x-api-key`, query `key`/`api_key`/`apikey`. El cliente de thinker usa
+  `FT_AI_API_KEY`/`API_KEY`/`FREE_AI_API_KEY`/`GATEWAY_API_KEY` (nunca imprime
+  valores) y la envía por cabecera Bearer al endpoint OpenAI-compatible.
+- Variables opcionales: `FORTHTRADE_BASE_URL`, `FORTHTRADE_MODEL`.
+
+```bash
+export FT_AI_API_KEY="TU_API_KEY_GATEWAY"   # no pegar en chat/repos
+research "Hola" --provider forthtrade --model auto --max-iterations 1 --format json
+```
+
+Sin clave, el proveedor falla de forma explícita (no inventa credenciales).
+Prueba rápida (opt-in, red), tomada de `help.json`:
+
+```bash
+curl -sS https://ia.forthtrade.com/v1/chat/completions \
+  -H "Authorization: Bearer $FT_AI_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"auto","messages":[{"role":"user","content":"Hola"}],"max_tokens":64,"temperature":0}'
+```
+
+Los prompts/salidas salen al gateway y **no son confiables** como verdad; para
+datos sensibles usa Ollama local.
+
 Con **Ollama local** (sin API key, sin coste; requiere `ollama serve`):
 
 ```bash
@@ -439,7 +477,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1504/1504** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 → 1503 → 1504 tests (**+33,3%** desde 1128); 1504 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
+| Suite Linux | **1509/1509** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 → 1503 → 1504 → 1509 tests (**+33,8%** desde 1128); 1509 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -529,7 +567,7 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   general, así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12/3.14) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
-  La suite actual en Linux es **1504/1504** en 3.11 (con `openai 3.42.1`);
+  La suite actual en Linux es **1509/1509** en 3.11 (con `openai 3.42.1`);
   en 3.12/3.14 la última medición es 1451/1451 desde el lock con `openai 3.45.0`; los scripts
   `bash`/`make` se verificaron en Linux y en Windows se ejecutaron los comandos
   Python equivalentes.

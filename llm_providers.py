@@ -346,6 +346,38 @@ class KiloGatewayLLM(LLMProvider):
 
 
 # DeepSeek implementation (OpenAI-compatible API)
+class ForthtradeGatewayLLM(OpenAILLM):
+    """Free AI Gateway OpenAI-compatible (ia.forthtrade.com).
+
+    Requiere la API key del gateway (FT_AI_API_KEY, API_KEY, FREE_AI_API_KEY o
+    GATEWAY_API_KEY). No usar claves upstream. "auto" aplica fallback/caché/
+    compresión/FREE_ONLY según el gateway; gratis/controlado ≠ ilimitado
+    (cuotas, rate limits, capacidad).
+    """
+
+    def __init__(self, api_key: str = None, model: str = None,
+                 base_url: str = None, max_retries: int = 3,
+                 timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
+        self.base_url = (base_url or os.environ.get("FORTHTRADE_BASE_URL")
+                         or FORTHTRADE_DEFAULT_BASE_URL)
+        self.model = (model or os.environ.get("FORTHTRADE_MODEL")
+                      or FORTHTRADE_DEFAULT_MODEL)
+        key = (api_key or os.environ.get("FT_AI_API_KEY")
+               or os.environ.get("API_KEY")
+               or os.environ.get("FREE_AI_API_KEY")
+               or os.environ.get("GATEWAY_API_KEY") or "")
+        super().__init__(
+            api_key=key,
+            model=self.model,
+            base_url=self.base_url,
+            max_retries=max_retries,
+            timeout=timeout,
+            use_cache=use_cache,
+        )
+        # Evitar fuga a OPENAI_API_KEY por la lógica base de OpenAILLM.
+        self.api_key = key
+
+
 class DeepSeekLLM(OpenAILLM):
     """Cliente para DeepSeek API (https://api.deepseek.com).
 
@@ -366,6 +398,10 @@ class DeepSeekLLM(OpenAILLM):
         # un cliente de OTRO proveedor eso enviaría la clave de OpenAI a un
         # tercero (api.deepseek.com). Se fija aquí la clave propia, o vacía.
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
+
+
+FORTHTRADE_DEFAULT_BASE_URL = "https://ia.forthtrade.com/v1"
+FORTHTRADE_DEFAULT_MODEL = "auto"
 
 
 DEEPSEEK_AGENT_MAX_RESPONSE_BYTES = 1_000_000

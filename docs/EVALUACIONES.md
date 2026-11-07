@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1504/1504** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+Suite **1509/1509** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
 3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
 docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
 loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
@@ -1514,6 +1514,6 @@ defecto es `cohere/north-mini-code:free` (256k, coste 0), con acceso anónimo
 limitado por Kilo a **200 peticiones/hora por IP**; `kilo-auto/free` queda como
 auto-routing y `KILO_API_KEY` permite modelos de pago. Verificación real:
 «París» en 1,4 s y «OK» en 0,9 s; pipeline completo en **36,55 s** con
-**5 fuentes, 3 claims y 3 evaluaciones**. No es privado ni ilimitado. Suite **1504/1504** en Linux (+4 tests: CLI, plugin y acceso anónimo), Ruff 0,
+**5 fuentes, 3 claims y 3 evaluaciones**. No es privado ni ilimitado. Suite **1509/1509** en Linux (+4 tests: CLI, plugin y acceso anónimo), Ruff 0,
 preflight 0, docs-check OK. Evidencia: `build/kilo-cli-4.json`,
 `build/kilo-cli-4.err` y `build/suite-2026-11-07-g.log`.
