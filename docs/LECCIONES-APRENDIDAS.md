@@ -4893,7 +4893,7 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Fallos de entorno, no del producto**: los intérpretes 3.12/3.14 del sistema no
   tenían `openai`. En los primeros venv desde el lock, dos tests de informe fallaron
   porque faltaba Ruff. Se repitió con `ruff 0.13.2`, sin cambiar tests ni umbrales.
-  Resultado final: **1423/1423 en 3.11, 3.12 y 3.14**; Ruff, preflight, docs-check,
+  Resultado final: **1426/1426 en 3.11, 3.12 y 3.14**; Ruff, preflight, docs-check,
   secretos, doctor, holdout, demos offline e instalación limpia en verde.
 - **Métricas y revisión**: cobertura **84,23% líneas / 84,75% ramas** (2517/2970),
   registrada en `docs/metricas-calidad.json`. El auditor revisó 18 archivos sin
@@ -4903,3 +4903,55 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Evidencias**: `build/deepseek-free-agent-requisitos.json`,
   `build/deepseek-free-agent-suite-31{2,4}.log`,
   `build/deepseek-free-agent-metricas.log` y `docs/EVALUACIONES.md`.
+
+
+### Hallazgo 226: revisar la entrada y la salida real antes de declarar activación
+
+- **Activación**: instalación npm local 1.11.3 con scripts desactivados, auditoría 0
+  vulnerabilidades, Chromium y sesión aislados en `build/`, y servidor parcheado para
+  escuchar solo en `127.0.0.1`. El plugin quedó autorizado y con prioridad 110 por
+  orden explícita del usuario. No se instalaron paquetes del sistema ni globales.
+- **Fallo real y causa**: las primeras respuestas eran confirmaciones del prefijo o
+  `One more step before you proceed...`; los logs también mostraron
+  `ERR_NETWORK_CHANGED`. El reinicio conservó la sesión, pero la evidencia decisiva
+  fue que `keyboard.type(text)` interpreta `\n` como `Enter`: enviaba el prefijo antes
+  de la pregunta. La defensa normaliza **toda** la tarea a una línea y el contrato usa
+  un prompt multilínea para impedir regresiones. Resultado factual: **«París» en
+  44,14 s**.
+- **No confundir completado con calidad**: la primera investigación terminó con 0
+  claims. La segunda terminó con 4 claims/4 evaluaciones en 349,61 s, pero una
+  subpregunta era el texto intermedio y el informe tenía 0 citas válidas. El proveedor
+  ahora rechaza ese texto y el de error de red conocidos en vez de aceptarlos como
+  respuesta del modelo. La disponibilidad/calidad general sigue no verificada.
+- **Verificación**: 14/14 contratos del proveedor y **1426/1426** en la suite completa
+  tras el arreglo; Ruff y docs-check OK. Evidencia real no versionada:
+  `build/deepseek-free-agent-runtime/workspace/resultado-fotosintesis-2.json`.
+
+
+### Hallazgo 227: comparar DeepSeek gratuito y probar la alternativa local sin llamarla perfecta
+
+- **Investigación actual**: se contrastaron fuentes oficiales de DeepSeek, Ollama,
+  LM Studio, OpenRouter, NVIDIA NIM, SambaNova, LLM7, Cloudflare, Hugging Face,
+  Vercel, OVHcloud, Alibaba, DigitalOcean, Baseten, Novita, Freebuff, Groq,
+  GitHub Models y Together. No existe una nube DeepSeek gratuita e ilimitada
+  verificable. OpenRouter no muestra actualmente DeepSeek a precio cero; GitHub
+  Models está retirado; Together declara el endpoint gratuito no disponible; Groq
+  no lista DeepSeek activo; OVHcloud devolvió 404 y retiró el modelo histórico.
+  Otras opciones son cuotas o créditos temporales, no gratuidad permanente.
+- **Privacidad**: Freebuff no exige API key, pero su política permite analizar
+  prompts/proyectos para publicidad y los agentes pueden leer archivos y variables
+  del entorno. No se recomienda para datos sensibles. Aider, Continue y OpenCode
+  pueden aprovechar Ollama/LM Studio/vLLM locales sin enviar inferencia a terceros.
+- **Prueba local real**: en un equipo con 16 GB RAM y RTX 3070 8 GB se instaló
+  `deepseek-r1:8b` Q4_K_M (5,2 GB, MIT). Respondió **«París» en 19,45 s** y el
+  pipeline `private-documents` terminó en **77,41 s**, con **1 fuente, 3 claims y
+  3 evaluaciones**. Es viable sin API key ni cobro por inferencia.
+- **Límite que impide llamarla perfecta**: el informe afirmó que la fuente no
+  menciona oxígeno ni clorofila, aunque ambos están explícitos. El verificador léxico
+  localizó la fuente pero marcó una contradicción. Completar pipeline no demuestra
+  calidad factual; las defensas de evidencia y revisión humana siguen siendo
+  necesarias. Modelos 14B/32B podrían mejorar calidad, pero no se probaron y no se
+  promete que resuelvan el problema.
+- **Recomendación**: preferir Ollama/LM Studio para privacidad y ausencia de cuota;
+  SambaNova, LLM7 o NVIDIA para cuota cloud; DeepSeek App/Freebuff solo cuando se
+  acepten sus condiciones. Evitar automatización web cuando se necesite fiabilidad.

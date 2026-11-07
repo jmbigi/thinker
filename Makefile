@@ -1,5 +1,5 @@
 # Comandos del proyecto (P2.1: herramientas libres, sin cuentas en la nube).
-.PHONY: help lint preflight docs-check test coverage audit-diff holdout secrets lock sbom vuln-scan mutation check ci hook install verify-install doctor
+.PHONY: help lint preflight docs-check test coverage audit-diff holdout secrets lock sbom vuln-scan mutation check ci hook install verify-install doctor ai-check
 
 help:
 	@echo "make lint        - ruff check ."
@@ -17,6 +17,7 @@ help:
 	@echo "make ci          - CI local: verifica una copia limpia de HEAD"
 	@echo "make verify-install - instalación limpia del paquete en venv temporal"
 	@echo "make doctor      - autodiagnóstico del entorno (offline por defecto)"
+	@echo "make ai-check    - verifica Kimi/OpenCode y el modelo gratuito"
 	@echo "make check       - todo lo anterior + hook pre-commit"
 	@echo "make hook        - instala el hook pre-commit de git"
 	@echo "make install     - instala el paquete (pip install .) con sus comandos"
@@ -82,3 +83,41 @@ verify-install:
 
 doctor:
 	python3 scripts/doctor.py
+
+# ============================================================
+# Infraestructura IA local (opt-in; no sustituye los gates)
+# ============================================================
+# Requiere ./start-all.sh (Ollama + proxy 11435 + llama.cpp) y los scripts
+# locales del repo. Sin Q, los targets de investigación fallan con uso claro.
+Q ?=
+
+.PHONY: local-status local-doctor local-up local-research local-smart
+local-status:
+	@echo "=== Estado de servicios locales ==="
+	@printf 'Ollama (11434):          '; curl -sf http://127.0.0.1:11434/api/tags >/dev/null && echo UP || echo DOWN
+	@printf 'Proxy contexto (11435):  '; curl -sf http://127.0.0.1:11435/v1/models >/dev/null && echo UP || echo DOWN
+	@printf 'llama.cpp (11436):       '; curl -sf http://127.0.0.1:11436/health >/dev/null && echo UP || echo DOWN
+
+local-doctor: local-status
+	@echo "=== Modelos Ollama ==="
+	@ollama list 2>/dev/null || echo "ollama no disponible"
+
+local-up:
+	@echo "Levantando infraestructura local (bloquea; Ctrl+C detiene)..."
+	@bash ./start-all.sh
+
+local-research:
+	@test -n "$(Q)" || { echo 'Uso: make local-research Q="tu pregunta"'; exit 2; }
+	@bash ./research-local.sh "$(Q)"
+
+local-smart:
+	@test -n "$(Q)" || { echo 'Uso: make local-smart Q="tu pregunta"'; exit 2; }
+	@bash ./smart-research.sh "$(Q)"
+
+ai-check:
+	@printf 'Kimi Code:   '
+	@if grep -q '^default_model = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"' "$$HOME/.kimi-code/config.toml" 2>/dev/null; then echo "modelo gratuito por defecto"; else echo "revisar $$HOME/.kimi-code/config.toml"; exit 1; fi
+	@printf 'OpenCode:    '
+	@if grep -q '"model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"' "$$HOME/.config/opencode/opencode.jsonc" 2>/dev/null; then echo "modelo gratuito configurado"; else echo "revisar $$HOME/.config/opencode/opencode.jsonc"; exit 1; fi
+	@printf 'kimi doctor: '
+	@if command -v kimi >/dev/null 2>&1; then kimi doctor >/dev/null 2>&1 && echo OK || { echo "revisar"; exit 1; }; else echo "kimi no disponible"; fi

@@ -483,10 +483,11 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   no prueba destilación, cuantización, poda, MoE, LoRA ni speculative decoding
   sobre el LLM de producción. La prueba real Ollama se omitió al no estar el
   servidor disponible; no se simuló.
-- `deepseek-free-agent` se verificó con contratos offline, no con una sesión real:
-  disponibilidad y calidad del servicio siguen no verificadas. Requiere autorización
-  explícita, reenvía prompts a DeepSeek, puede tener límites de cuenta y sus
-  herramientas externas necesitan aislamiento; no es sandbox ni garantía de verdad.
+- `deepseek-free-agent` tiene contratos offline y una prueba real acotada: respuesta
+  factual correcta y pipeline 4/4, pero otra etapa recibió texto intermedio y el
+  informe quedó sin citas válidas. La disponibilidad/calidad general sigue no
+  verificada. Requiere autorización explícita, reenvía prompts a DeepSeek, puede
+  tener límites de cuenta y necesita aislamiento; no es sandbox ni garantía de verdad.
 - Los modelos gratuitos de OpenRouter tienen límites de tasa y errores 5xx
   transitorios; el código reintenta con backoff, pero la intermitencia persiste.
 - No hay integración continua en la nube: la verificación es **local por

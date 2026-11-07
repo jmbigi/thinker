@@ -10,8 +10,8 @@ from pathlib import Path
 
 from deep_research_system import ResearchOrchestrator
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, MockLLM, OllamaLLM,
-                           OpenRouterLLM)
+from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, LocalFallbackLLM, MockLLM,
+                           OllamaLLM, OpenRouterLLM)
 from mcp_client import MCPSearchAPI
 from research_state import context_to_state
 from web_search import (ArxivSearchAPI, DuckDuckGoSearchAPI, MockSearchAPI,
@@ -48,6 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="timeout de lectura del agente en segundos (defecto: 300)")
     parser.add_argument("--authorize-deepseek-agent", action="store_true",
                         help="autoriza egreso a DeepSeek y el riesgo de herramientas externas")
+    parser.add_argument("--deepseek-agent-fallback-model", nargs="?", const="deepseek-r1:8b",
+                        help="respaldo local Ollama opt-in (defecto si se omite: deepseek-r1:8b)")
     parser.add_argument("--search", choices=(
         "mock", "wikipedia", "duckduckgo", "local", "searxng", "arxiv",
         "pubmed", "semantic_scholar", "mcp"),
@@ -106,12 +108,18 @@ def _base_llm(args, model):
     if args.provider == "openrouter":
         return OpenRouterLLM(model=model)
     if args.provider == "deepseek-free-agent":
-        return DeepSeekFreeAgentLLM(
+        primary = DeepSeekFreeAgentLLM(
             base_url=args.deepseek_agent_url,
             model=model or "deepseek-free-agent",
             timeout=args.deepseek_agent_timeout,
             authorized=args.authorize_deepseek_agent,
         )
+        if args.deepseek_agent_fallback_model:
+            return LocalFallbackLLM(
+                primary, OllamaLLM(model=args.deepseek_agent_fallback_model))
+        return primary
+    if args.deepseek_agent_fallback_model:
+        raise ValueError("--deepseek-agent-fallback-model exige --provider deepseek-free-agent")
     return OllamaLLM(model=model or "qwen3:1.7b")
 
 

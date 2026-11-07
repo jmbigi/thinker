@@ -4,7 +4,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from llm_providers import (DEEPSEEK_AGENT_READONLY_PREFIX, DeepSeekFreeAgentLLM)
+from llm_providers import (DEEPSEEK_AGENT_READONLY_PREFIX, DeepSeekFreeAgentLLM,
+                           LocalFallbackLLM)
 from plugins.interfaces import PluginConfig
 from plugins.llm_providers.deepseek_free_agent_plugin import DeepSeekFreeAgentPlugin
 from privacy import PrivacyPolicy
@@ -35,6 +36,20 @@ class _Post:
         return self.responses[min(len(self.calls) - 1, len(self.responses) - 1)]
 
 
+class _StubLLM:
+    def __init__(self, result=None, error=None, model="local"):
+        self.result = result
+        self.error = error
+        self.model = model
+        self.calls = []
+
+    def generate(self, prompt, model=None, **kwargs):
+        self.calls.append((prompt, model, kwargs))
+        if self.error:
+            raise self.error
+        return self.result
+
+
 def _success(answer="respuesta"):
     return _Response(json.dumps({
         "status": "success", "answer": answer, "duration": 1,
@@ -55,16 +70,18 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
         llm = DeepSeekFreeAgentLLM(timeout=12, authorized=True)
         llm._post = post
 
-        self.assertEqual(llm.generate("pregunta"), "respuesta")
-        self.assertEqual(llm.generate("pregunta"), "respuesta")
+        self.assertEqual(llm.generate("pregunta\ncontinuación"), "respuesta")
+        self.assertEqual(llm.generate("pregunta\ncontinuación"), "respuesta")
 
         self.assertEqual(len(post.calls), 1)
         args, kwargs = post.calls[0]
         self.assertEqual(args, ("http://127.0.0.1:9527/task",))
         self.assertEqual(kwargs["json"], {
-            "task": DEEPSEEK_AGENT_READONLY_PREFIX + "pregunta",
+            "task": DEEPSEEK_AGENT_READONLY_PREFIX + "pregunta continuación",
             "newChat": True,
         })
+        self.assertNotIn("\n", kwargs["json"]["task"],
+                         "keyboard.type envía los saltos de línea antes de la pregunta")
         self.assertEqual(kwargs["timeout"], (5.0, 12.0))
         self.assertFalse(kwargs["allow_redirects"])
         self.assertTrue(kwargs["stream"])
@@ -120,6 +137,7 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
             (_Response(json.dumps({"status": "error", "answer": "fallo"}).encode()),
              "no completó"),
             (_success(""), "vacía"),
+            (_success("One more step before you proceed..."), "texto intermedio"),
         )
         for response, mensaje in casos:
             with self.subTest(mensaje=mensaje):
@@ -176,6 +194,44 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
         self.assertEqual(llm.base_url, "http://localhost:9528")
         self.assertEqual(llm.timeout, 42.0)
         self.assertTrue(llm.authorized)
+
+
+class TestLocalFallback(unittest.TestCase):
+    def test_fallo_operativo_usa_local_y_lo_declara(self):
+        principal = _StubLLM(error=RuntimeError("web caída"), model="web")
+        local = _StubLLM(result="respuesta local", model="deepseek-r1:8b")
+        llm = LocalFallbackLLM(principal, local)
+        with patch("sys.stderr") as errores:
+            self.assertEqual(llm.generate("pregunta"), "respuesta local")
+        self.assertEqual(llm.fallback_calls, 1)
+        self.assertIn("web caída", llm.last_fallback_reason)
+        self.assertEqual(local.calls[0][1], "deepseek-r1:8b")
+        errores.write.assert_called()
+
+    def test_exito_principal_y_errores_de_uso_no_conmutan(self):
+        local = _StubLLM(result="local")
+        self.assertEqual(LocalFallbackLLM(
+            _StubLLM(result="web"), local).generate("pregunta"), "web")
+        self.assertEqual(local.calls, [])
+        for error in (ValueError("prompt"), PermissionError("sin permiso")):
+            with self.subTest(error=type(error).__name__):
+                with self.assertRaises(type(error)):
+                    LocalFallbackLLM(_StubLLM(error=error), local).generate("pregunta")
+        self.assertEqual(local.calls, [])
+
+    def test_cli_y_privacidad_del_fallback(self):
+        args = build_parser().parse_args([
+            "pregunta", "--provider", "deepseek-free-agent",
+            "--deepseek-agent-fallback-model", "deepseek-r1:8b",
+        ])
+        llm = build_llm(args)
+        self.assertIsInstance(llm, LocalFallbackLLM)
+        self.assertEqual(llm.fallback.model, "deepseek-r1:8b")
+        with self.assertRaisesRegex(RuntimeError, "chat.deepseek.com"):
+            PrivacyPolicy("private-documents").apply(llm, MockSearchAPI())
+        args.provider = "ollama"
+        with self.assertRaisesRegex(ValueError, "exige"):
+            build_llm(args)
 
 
 class TestDeepSeekFreeAgentPlugin(unittest.TestCase):

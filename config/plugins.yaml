@@ -23,11 +23,11 @@ plugins:
 
   deepseek_free_agent:
     enabled: true
-    priority: 80
+    priority: 110
     params:
       base_url: "http://127.0.0.1:9527"
       timeout: 300
-      authorized: false  # Revisar docs/DEEPSEEK-FREE-AGENT.md antes de activar.
+      authorized: true  # Activado explícitamente por el usuario el 2026-11-06.
 
   mock_llm:
     enabled: true

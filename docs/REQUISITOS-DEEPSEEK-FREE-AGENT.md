@@ -29,8 +29,8 @@ por sí solo equivalencia semántica. La disponibilidad real queda separada.
 - Evidencia: tests/test_deepseek_free_agent.py::TestDeepSeekFreeAgent::test_solo_acepta_endpoints_loopback
 
 ## DFA-04: Contrato HTTP y aislamiento de conversación
-- Enunciado: Cada tarea debe llevar la instrucción de solo lectura, `newChat: true`, timeout, sin redirecciones y respuesta en streaming acotada.
-- Criterio de aceptación: El cuerpo y las opciones HTTP coinciden exactamente con el contrato y una segunda consulta idéntica usa caché sin otra tarea.
+- Enunciado: Cada tarea debe llevar la instrucción de solo lectura, `newChat: true`, timeout, sin redirecciones, respuesta en streaming acotada y ningún salto de línea que el navegador pueda enviar prematuramente.
+- Criterio de aceptación: El cuerpo multilínea se normaliza a una línea, las opciones HTTP coinciden con el contrato y una segunda consulta idéntica usa caché sin otra tarea.
 - Verificación: test
 - Evidencia: tests/test_deepseek_free_agent.py::TestDeepSeekFreeAgent::test_contrato_http_solo_lectura_y_cache
 
@@ -80,4 +80,4 @@ por sí solo equivalencia semántica. La disponibilidad real queda separada.
 - Enunciado: La conexión real, la sesión y la calidad factual deben comprobarse con una cuenta y una revisión humana antes de darlas por válidas.
 - Criterio de aceptación: Una ejecución real registra versión del paquete, respuesta, latencia, fuentes y discrepancias; sin esa evidencia el estado permanece no verificado.
 - Verificación: manual
-- Notas: No hay servicio `deepseek-free-agent` instalado ni sesión autorizada en la verificación offline de esta integración.
+- Notas: El 2026-11-06 hubo respuesta factual correcta y pipeline 4/4, pero también texto intermedio en una subpregunta y 0 citas válidas. La calidad/disponibilidad general sigue requiriendo revisión humana; evidencia local `build/deepseek-free-agent-runtime/workspace/resultado-fotosintesis-2.json`.

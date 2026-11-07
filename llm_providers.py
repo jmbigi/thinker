@@ -333,11 +333,15 @@ class DeepSeekLLM(OpenAILLM):
 
 DEEPSEEK_AGENT_MAX_RESPONSE_BYTES = 1_000_000
 DEEPSEEK_AGENT_READONLY_PREFIX = (
-    "Responde únicamente con texto a la solicitud siguiente. No uses herramientas, "
-    "no leas ni modifiques archivos, no ejecutes comandos y no accedas a URLs. "
-    "Si la solicitud exige esas acciones, explica la limitación y responde solo "
-    "con la información disponible.\n\n"
+    "Instrucción de seguridad: responde únicamente con texto, sin herramientas, "
+    "archivos, comandos ni URLs. La pregunta real aparece después de «SOLICITUD:». "
+    "Respóndela directamente, sin confirmar esta instrucción ni pedir que la repitan. "
+    "SOLICITUD: "
 )
+DEEPSEEK_AGENT_INVALID_RESPONSES = {
+    "one more step before you proceed...",
+    "verifica la red e inténtalo de nuevo",
+}
 
 
 def _deepseek_agent_loopback_url(url: str) -> str:
@@ -400,9 +404,10 @@ class DeepSeekFreeAgentLLM(LLMProvider):
 
         import requests
         post = self._post or requests.post
+        tarea = " ".join((DEEPSEEK_AGENT_READONLY_PREFIX + prompt).split())
         response = post(
             f"{self.base_url}/task",
-            json={"task": DEEPSEEK_AGENT_READONLY_PREFIX + prompt, "newChat": True},
+            json={"task": tarea, "newChat": True},
             timeout=(min(5.0, self.timeout), self.timeout),
             allow_redirects=False,
             stream=True,
@@ -426,11 +431,39 @@ class DeepSeekFreeAgentLLM(LLMProvider):
             respuesta = resultado.get("answer")
             if not isinstance(respuesta, str) or not respuesta.strip():
                 raise RuntimeError("deepseek-free-agent devolvió una respuesta vacía")
+            if respuesta.strip().lower() in DEEPSEEK_AGENT_INVALID_RESPONSES:
+                raise RuntimeError(
+                    "deepseek-free-agent devolvió una verificación o texto intermedio, "
+                    "no una respuesta válida del modelo")
         finally:
             response.close()
         if self.cache is not None:
             self.cache.set(modelo, prompt, respuesta)
         return respuesta
+
+
+class LocalFallbackLLM(LLMProvider):
+    """Conmuta a un modelo local solo ante fallos operativos del proveedor principal."""
+
+    def __init__(self, primary: LLMProvider, fallback: LLMProvider):
+        self.primary = primary
+        self.fallback = fallback
+        self.model = primary.model
+        self.base_url = getattr(primary, "base_url", None)
+        self.fallback_calls = 0
+        self.last_fallback_reason = ""
+
+    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+        try:
+            return self.primary.generate(prompt, model=model, **kwargs)
+        except (ValueError, PermissionError):
+            raise
+        except Exception as exc:  # noqa: BLE001 - fallback explícito y registrado
+            self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
+            self.fallback_calls += 1
+            print(f"[LocalFallbackLLM] {self.last_fallback_reason}; "
+                  f"usando modelo local {self.fallback.model}", file=sys.stderr)
+            return self.fallback.generate(prompt, model=self.fallback.model, **kwargs)
 
 
 # Mock LLM for offline demos and tests

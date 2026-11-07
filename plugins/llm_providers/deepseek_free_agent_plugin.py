@@ -24,18 +24,22 @@ class DeepSeekFreeAgentPlugin(LLMProviderPlugin):
                     "base_url": {"type": "string", "default": "http://127.0.0.1:9527"},
                     "timeout": {"type": "number", "default": 300.0},
                     "authorized": {"type": "boolean", "default": False},
+                    "fallback_model": {"type": "string", "default": ""},
                 },
             },
         )
 
     def initialize(self) -> bool:
         try:
-            from llm_providers import DeepSeekFreeAgentLLM
-            self._llm = DeepSeekFreeAgentLLM(
+            from llm_providers import DeepSeekFreeAgentLLM, LocalFallbackLLM, OllamaLLM
+            primary = DeepSeekFreeAgentLLM(
                 base_url=self.config.params.get("base_url", "http://127.0.0.1:9527"),
                 timeout=self.config.params.get("timeout", 300.0),
                 authorized=self.config.params.get("authorized", False),
             )
+            fallback_model = self.config.params.get("fallback_model", "")
+            self._llm = (LocalFallbackLLM(primary, OllamaLLM(model=fallback_model))
+                         if fallback_model else primary)
             self._initialized = True
             return True
         except Exception as exc:

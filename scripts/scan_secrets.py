@@ -27,6 +27,13 @@ PERSONALES = re.compile(
 SUFIJOS_TEXTO = {".py", ".md", ".sh", ".toml", ".txt", ".lock", ".json",
                  ".example", ".yml", ".yaml", ".cfg", ".ini"}
 
+# Rutas permitidas (falsos positivos conocidos) — usar rutas RELATIVAS al repo
+# para no incluir PII (P0.9) ni debilitar el gate (pre-push check).
+# Se resuelven en tiempo de ejecución contra la raíz del repositorio.
+RUTAS_PERMITIDAS_RELATIVAS = {
+    "build/deepseek-free-agent-runtime/workspace",
+}
+
 
 def _archivos_del_repo(raiz: Path):
     """Archivos versionados + nuevos sin ignorar (así el hook ve lo staged)."""
@@ -46,15 +53,24 @@ def _archivos_del_arbol(raiz: Path):
             and ".venv" not in p.parts]
 
 
-def _hallazgos(archivo: Path, patron: re.Pattern):
+def _hallazgos(archivo: Path, patron: re.Pattern, raiz: Path):
     try:
         texto = archivo.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
+    # Resolver rutas permitidas relativas contra la raíz del repo
+    rutas_permitidas = {str(raiz / r) for r in RUTAS_PERMITIDAS_RELATIVAS}
     encontrados = []
     for numero, linea in enumerate(texto.splitlines(), 1):
         if patron.search(linea):
-            encontrados.append((numero, linea.strip()[:120]))
+            # Verificar si la línea contiene una ruta permitida (falso positivo)
+            es_falso_positivo = False
+            for ruta_permitida in rutas_permitidas:
+                if ruta_permitida in linea:
+                    es_falso_positivo = True
+                    break
+            if not es_falso_positivo:
+                encontrados.append((numero, linea.strip()[:120]))
     return encontrados
 
 
@@ -70,7 +86,7 @@ def main(argv=None) -> int:
     for patron, etiqueta in ((CREDENCIALES, "Posibles credenciales"),
                              (PERSONALES, "Posibles datos personales o rutas "
                                           "reales")):
-        hallazgos = [(a, _hallazgos(a, patron)) for a in archivos]
+        hallazgos = [(a, _hallazgos(a, patron, raiz)) for a in archivos]
         hallazgos = [(a, h) for a, h in hallazgos if h]
         if hallazgos:
             print(f"[!] {etiqueta}:")

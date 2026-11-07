@@ -75,9 +75,14 @@ python -m plugins.cli set-active llm deepseek_free_agent
 - No sigue redirecciones y no reintenta una tarea: un fallo es visible y no se
   duplica una operación que el agente ya pudiera haber ejecutado.
 - Usa timeout de conexión/lectura, cierra la respuesta y limita el cuerpo a 1 MB.
-- Exige JSON con `status: "success"` y una respuesta textual no vacía.
+- Exige JSON con `status: "success"` y una respuesta textual no vacía. Los textos
+  intermedios conocidos de verificación/red se rechazan explícitamente y no entran
+  en el pipeline como si fueran respuestas del modelo.
 - Envía `newChat: true` para evitar memoria entre llamadas y antepone una
   instrucción de responder solo texto, sin herramientas, archivos, comandos ni URLs.
+- Normaliza toda la tarea a una sola línea: el `keyboard.type` del agente interpreta
+  saltos de línea como `Enter` y, sin esta defensa, envía el prefijo antes que la
+  pregunta. Hay una regresión con prompt multilínea en `tests/test_deepseek_free_agent.py`.
 - La caché por instancia evita repetir una tarea idéntica ya completada.
 - `--max-llm-calls` sigue disponible como presupuesto opcional de thinker.
 
@@ -145,9 +150,13 @@ reportan, no se sustituyen silenciosamente por un mock.
 ## Verificación
 
 `tests/test_deepseek_free_agent.py` comprueba el contrato HTTP y los controles
-con respuestas dobles, sin red ni cuenta. La disponibilidad y calidad del modelo
-real requieren una prueba opt-in con el servicio configurado; no se deducen de
-los tests offline.
+con respuestas dobles, sin red ni cuenta. El 2026-11-06 se verificó además una
+respuesta factual real correcta («París», 44,14 s) y un pipeline real acotado con
+1 fuente, 4 claims y 4 evaluaciones (349,61 s). Esa ejecución también dejó una
+subpregunta contaminada por texto intermedio y 0 citas válidas, por lo que prueba
+el recorrido, **no** calidad ni disponibilidad general. El adaptador ahora rechaza
+ese texto intermedio. Evidencia local no versionada:
+`build/deepseek-free-agent-runtime/workspace/resultado-fotosintesis-2.json`.
 
 Fuentes externas consultadas: [README 1.11.3](https://unpkg.com/deepseek-free-agent@1.11.3/README.md),
 [servidor HTTP 1.11.3](https://unpkg.com/deepseek-free-agent@1.11.3/src/server.js)
