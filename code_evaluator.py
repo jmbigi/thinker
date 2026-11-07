@@ -21,6 +21,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
+def _cap(texto: Any, limite: int = 4000) -> str:
+    s = "" if texto is None else str(texto)
+    return s if len(s) <= limite else s[:limite] + f"\n...[truncado {len(s)-limite} chars]"
+
+
+
 @dataclass
 class TestCase:
     """Caso de prueba ejecutable por stdin/stdout o por llamada simple."""
@@ -60,13 +66,22 @@ class CodeEvaluator:
     ) -> EvalResult:
         inicio = time.monotonic()
         test_cases = list(test_cases or [])
+        meta = {"engine": "local", "sandbox": "subprocess", "language": language}
+        if not isinstance(code, str):
+            return EvalResult(
+                passed=False,
+                syntax_ok=False,
+                failures=[f"Código inválido: se esperaba str, recibido {type(code).__name__}"],
+                duration_seconds=time.monotonic() - inicio,
+                metadata=meta,
+            )
         if language != "python":
             return EvalResult(
                 passed=False,
                 syntax_ok=False,
                 failures=[f"Lenguaje no soportado por el evaluador local: {language}"],
                 duration_seconds=time.monotonic() - inicio,
-                metadata={"engine": "local", "sandbox": "subprocess", "language": language},
+                metadata=meta,
             )
 
         try:
@@ -77,7 +92,7 @@ class CodeEvaluator:
                 syntax_ok=False,
                 failures=[f"SyntaxError: {exc.msg} (línea {exc.lineno})"],
                 duration_seconds=time.monotonic() - inicio,
-                metadata={"engine": "local", "sandbox": "subprocess", "language": language},
+                metadata=meta,
             )
 
         failures: List[str] = []
@@ -118,21 +133,25 @@ class CodeEvaluator:
             caso.input_data, (list, tuple)
         ):
             stdin = str(caso.input_data)
-        env = {"PATH": os.environ.get("PATH", ""), "PYTHONIOENCODING": "utf-8"}
+        timeout = float(getattr(caso, "timeout_seconds", 30.0) or 30.0)
+        if timeout <= 0:
+            timeout = 30.0
+        env = {"PATH": os.environ.get("PATH", ""), "PYTHONIOENCODING": "utf-8",
+               "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
         try:
             proc = subprocess.run(
                 args,
                 input=stdin,
                 capture_output=True,
                 text=True,
-                timeout=float(caso.timeout_seconds),
+                timeout=timeout,
                 cwd=str(ruta.parent),
                 env=env,
                 shell=False,
                 check=False,
             )
         except subprocess.TimeoutExpired:
-            return {"name": caso.name, "passed": False, "reason": f"timeout ({caso.timeout_seconds}s)"}
+            return {"name": caso.name, "passed": False, "reason": f"timeout ({timeout}s)"}
         except OSError as exc:
             return {"name": caso.name, "passed": False, "reason": f"ejecución falló: {exc}"}
 
@@ -140,7 +159,7 @@ class CodeEvaluator:
         if caso.expected_error:
             ok = proc.returncode != 0
             reason = "ok" if ok else f"se esperaba error y salió con rc={proc.returncode}"
-            return {"name": caso.name, "passed": ok, "reason": reason, "rc": proc.returncode, "stdout": salida, "stderr": proc.stderr}
+            return {"name": caso.name, "passed": ok, "reason": reason, "rc": proc.returncode, "stdout": _cap(salida), "stderr": _cap(proc.stderr)}
         if proc.returncode != 0:
             return {
                 "name": caso.name,
@@ -151,7 +170,7 @@ class CodeEvaluator:
                 "stderr": proc.stderr,
             }
         if caso.expected_output is None:
-            return {"name": caso.name, "passed": True, "reason": "ok", "rc": 0, "stdout": salida, "stderr": proc.stderr}
+            return {"name": caso.name, "passed": True, "reason": "ok", "rc": 0, "stdout": _cap(salida), "stderr": _cap(proc.stderr)}
 
         esperado = caso.expected_output
         if isinstance(esperado, (dict, list)):
@@ -165,7 +184,7 @@ class CodeEvaluator:
             esperado_txt = str(esperado)
             ok = salida == esperado_txt or salida.strip() == esperado_txt.strip()
             reason = "ok" if ok else f"esperado={esperado_txt!r} obtenido={salida!r}"
-        return {"name": caso.name, "passed": ok, "reason": reason, "rc": proc.returncode, "stdout": salida, "stderr": proc.stderr}
+        return {"name": caso.name, "passed": ok, "reason": reason, "rc": proc.returncode, "stdout": _cap(salida), "stderr": _cap(proc.stderr)}
 
 
 __all__ = ["CodeEvaluator", "EvalResult", "TestCase"]
