@@ -254,6 +254,9 @@ JSON:
         # PASO 5: Generación de código REAL (no simulado)
         step5 = self._llm_generate(f"""
 PASO 5 - GENERACIÓN DE CÓDIGO:
+TU RESPUESTA DEBE EMPEZAR CON {{ Y SER EXCLUSIVAMENTE JSON VÁLIDO.
+NO ESCRIBAS TEXTO EXPLICATIVO, NO USES MARKDOWN, NO INCLUYAS RAZONAMIENTO.
+
 Genera el código COMPLETO y EJECUTABLE para cada módulo.
 REGLAS ESTRICTAS:
 - Código real, no pseudocódigo
@@ -267,11 +270,12 @@ REGLAS ESTRICTAS:
 Estrategia: {step4}
 Interfaces: {step3}
 
-JSON (un objeto por archivo):
+RESPONDE SOLO CON ESTE JSON (empieza con {{, termina con }}):
 {{
   "archivos": {{
-    "ruta/archivo.py": "código completo como string",
-    "tests/test_archivo.py": "tests unitarios completos"
+    "main.py": "código completo del archivo principal como string con \\n escapados",
+    "utils/helpers.py": "otro archivo si aplica",
+    "tests/test_main.py": "tests unitarios completos con unittest"
   }}
 }}
 """)
@@ -585,21 +589,50 @@ class CodeGeneratorOrchestrator:
             "context": self.context.to_dict()
         }
 
+    @staticmethod
+    def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
+        """Intenta parsear JSON, retorna None si falla."""
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return None
+
     def _parse_generated_code(self, step_content: str) -> Dict[str, Any]:
         """Extrae JSON del contenido del paso 5."""
-        # Buscar JSON en la respuesta
-        try:
-            # Intentar parsear directamente
-            return json.loads(step_content)
-        except json.JSONDecodeError:
-            # Buscar bloque JSON entre ```json ... ``` o { ... }
-            match = re.search(r'```json\s*(\{.*?\})\s*```', step_content, re.DOTALL)
-            if match:
-                return json.loads(match.group(1))
-            match = re.search(r'(\{.*"archivos".*\})', step_content, re.DOTALL)
-            if match:
-                return json.loads(match.group(1))
-        # Fallback: devolver vacío
+        # 1. Buscar bloque JSON en markdown ```json ... ``` (requiere ```json al inicio de línea)
+        match = re.search(r'(?m)^```json\s*(\{.*?\})\s*```', step_content, re.DOTALL)
+        if match:
+            parsed = self._try_parse_json(match.group(1))
+            if parsed:
+                return parsed
+        # 2. Buscar bloque JSON en markdown genérico ``` ... ```
+        match = re.search(r'(?m)^```\s*(\{.*?\})\s*```', step_content, re.DOTALL)
+        if match:
+            parsed = self._try_parse_json(match.group(1))
+            if parsed and "archivos" in parsed:
+                return parsed
+        # 3. Extraer JSON balanceado que contenga "archivos" (cuenta llaves)
+        idx = step_content.find('"archivos"')
+        if idx >= 0:
+            start = step_content.rfind('{', 0, idx)
+            if start >= 0:
+                balance = 0
+                for i, ch in enumerate(step_content[start:], start):
+                    if ch == '{':
+                        balance += 1
+                    elif ch == '}':
+                        balance -= 1
+                        if balance == 0:
+                            candidate = step_content[start:i+1]
+                            parsed = self._try_parse_json(candidate)
+                            if parsed and "archivos" in parsed:
+                                return parsed
+                            break
+        # 4. Fallback: buscar cualquier JSON válido con "archivos"
+        for match in re.finditer(r'\{.*?"archivos".*?\}', step_content, re.DOTALL):
+            parsed = self._try_parse_json(match.group(0))
+            if parsed and "archivos" in parsed:
+                return parsed
         return {"archivos": {}}
 
     def save_generated(self, output_dir: str) -> List[str]:
