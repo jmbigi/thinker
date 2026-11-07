@@ -158,7 +158,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `tests/test_openai_compatibilidad.py`; 3.35.1 verificado el 2026-10-20 con
   703/703 en 3.11 y 3.12; 3.40.0 verificado el 2026-10-28 con 1018/1018 en 3.11;
   3.42.0 verificado el 2026-10-31 con el evaluador 237/237 en venv aislado desde
-  el lock; 3.42.1 verificado el 2026-11-06 con **1426/1426** en 3.11; 3.45.0
+  el lock; 3.42.1 verificado el 2026-11-06 con **1451/1451** en 3.11; 3.45.0
   verificado el 2026-11-04 con 1409/1409 en 3.11, 3.12 y 3.14 desde el lock). Tras el corte 3
   (Hallazgo 76): **517/517 tests** en Python **3.11** (openai 1.109.1 y
   2.54.0) y en **3.12** (openai 3.33.0, venv aislado recreado desde
@@ -195,7 +195,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `python3 scripts/verificar_instalacion.py` — construye el wheel sin red, lo
   instala en un venv temporal y lo comprueba desde un CWD ajeno; offline
   verifica la forma del paquete (`--no-deps`) y `--con-red` además las
-  dependencias, los 18 módulos públicos y los console scripts (Hallazgo 82
+  dependencias, los 19 módulos públicos y los console scripts (Hallazgo 82
   hecho reproducible).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
@@ -417,7 +417,7 @@ mejora de código (`code_design_improvement_tools.py`).
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
 - Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
-  **1426/1426 en la suite Linux** (2026-11-06; 3.11 con openai 3.42.1 y `ruff
+  **1451/1451 en la suite Linux** (2026-11-06; 3.11 con openai 3.42.1 y `ruff
   0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y `packaging 26.3` en
   venv aislados desde el lock; mediciones anteriores: 1409/1409, 1407/1407,
   1399/1399 el 2026-11-04 y 1397/1397 el 2026-11-01); y **Windows 11** con Python
@@ -474,7 +474,7 @@ mejora de código (`code_design_improvement_tools.py`).
   El Hallazgo 223 añadió el contrato de calibración del benchmark factual y la
   regresión de enlaces en Python 3.14, y dejó la suite en **1409/1409**. El
   Hallazgo 225 integró deepseek-free-agent con 14 contratos nuevos y dejó la suite
-  en **1426/1426**; la prueba existente de `doctor` detectó y cerró la omisión de
+  en **1451/1451**; la prueba existente de `doctor` detectó y cerró la omisión de
   `DEEPSEEK_AGENT_URL`. El auditor de cambios de `scripts/` añadió 28 tests y el runner de holdout 9
   (2026-10-23).
 - Hook pre-commit: `bash scripts/hooks/pre-commit` (ruff + escaneo de secretos
@@ -498,7 +498,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `thinking_engine`, `llm_providers`, `web_search`, `evaluar_proyecto`,
   `evidence`, `documents`, `research_state`, `research_cli`, `mcp_client`,
   `concept_ncm`, `privacy`, `efficiency`, `neural_concepts`,
-  `citation_verifier`, `source_quality`) + paquetes
+  `citation_verifier`, `source_quality`, `code_generator`) + paquetes
   `plugins` y `scripts` (este último porque el evaluador importa
   `scripts.preflight`). `tests` no se instala (colisión de nombre raíz en
   site-packages): el benchmark se ejecuta desde el repo con

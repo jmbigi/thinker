@@ -48,6 +48,7 @@ evaluate-project = "evaluar_proyecto:main"
 py-modules = [
     "citation_verifier",
     "code_design_improvement_tools",
+    "code_generator",
     "concept_ncm",
     "deep_research_system",
     "documents",

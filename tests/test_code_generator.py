@@ -4,8 +4,10 @@ Tests para code_generator.py
 """
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 # Añadir directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -82,10 +84,37 @@ class TestEmpiricalValidator(unittest.TestCase):
         self.assertEqual(result["tool"], "py_compile")
 
     def test_validate_syntax_invalid(self):
-        code = "def foo():\n    return 42\n    "  # indentación inválida
+        code = "def foo(:\n    return 42\n"  # sintaxis inválida
         result = EmpiricalValidator.validate_syntax(code)
-        # py_compile puede o no detectar esto, pero no debe crashear
-        self.assertIn("passed", result)
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["tool"], "py_compile")
+
+    @patch("code_generator.subprocess.run")
+    def test_validate_syntax_ejecuta_py_compile(self, run):
+        run.return_value.returncode = 0
+        run.return_value.stderr = ""
+        result = EmpiricalValidator.validate_syntax("x = 1\n")
+        self.assertTrue(result["passed"])
+        comando = run.call_args.args[0]
+        self.assertEqual(comando[0], sys.executable)
+        self.assertEqual(comando[1:3], ["-m", "py_compile"])
+
+    def test_validate_all_ejecuta_tests_generados(self):
+        source = "def add(a, b):\n    return a + b\n"
+        test_code = (
+            "import unittest\n\n"
+            "from generated_code import add\n\n\n"
+            "class TestAdd(unittest.TestCase):\n"
+            "    def test_add(self):\n"
+            "        self.assertEqual(add(2, 3), 5)\n"
+        )
+        result = EmpiricalValidator.validate_all({
+            "generated_code.py": source,
+            "tests/test_generated_code.py": test_code,
+        })
+        file_result = result["files"]["generated_code.py"]["results"]
+        self.assertIn("tests", file_result)
+        self.assertTrue(file_result["tests"]["passed"])
 
     def test_validate_ruff(self):
         code = "def foo():\n    return 42\n"
@@ -177,10 +206,11 @@ class TestCodeGeneratorOrchestrator(unittest.TestCase):
         self.assertIn("validation", result)
         self.assertIn("context", result)
 
-        # Validación debe pasar
+        # Validación debe pasar, incluida la ejecución real de los tests.
         val = result["validation"]
         self.assertIn("summary", val)
         self.assertIn("files", val)
+        self.assertIn("tests", val["files"]["generated_code.py"]["results"])
 
     def test_generated_files_exist(self):
         context = GenerationContext(project_path="/tmp/test", mode="offline")
@@ -191,6 +221,25 @@ class TestCodeGeneratorOrchestrator(unittest.TestCase):
         for fname, content in result["generated"].items():
             self.assertIsInstance(content, str)
             self.assertGreater(len(content), 0)
+
+    def test_save_generated_rechaza_traversal(self):
+        context = GenerationContext(project_path="/tmp/test", mode="offline")
+        context.generated_files = {"../fuera.py": "x = 1\n"}
+        orchestrator = CodeGeneratorOrchestrator(self.thinker, context)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            with self.assertRaisesRegex(ValueError, "fuera"):
+                orchestrator.save_generated(str(out))
+            self.assertFalse((Path(tmp) / "fuera.py").exists())
+
+    def test_save_generated_escribe_dentro(self):
+        context = GenerationContext(project_path="/tmp/test", mode="offline")
+        context.generated_files = {"pkg/mod.py": "x = 1\n"}
+        orchestrator = CodeGeneratorOrchestrator(self.thinker, context)
+        with tempfile.TemporaryDirectory() as tmp:
+            saved = orchestrator.save_generated(tmp)
+            self.assertEqual(Path(saved[0]).read_text(encoding="utf-8"), "x = 1\n")
+            self.assertTrue(Path(saved[0]).is_relative_to(Path(tmp)))
 
 
 class TestIntegration(unittest.TestCase):

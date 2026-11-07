@@ -16,7 +16,6 @@ Arquitectura:
 - Modo offline por defecto (MockLLM), opt-in real con proveedores
 """
 
-import ast
 import re
 import sys
 import time
@@ -409,12 +408,24 @@ class EmpiricalValidator:
 
     @staticmethod
     def validate_syntax(code: str, filename: str = "generated.py") -> Dict[str, Any]:
-        """py_compile - sintaxis válida."""
+        """py_compile - sintaxis válida con la herramienta real."""
         try:
-            ast.parse(code)
-            return {"passed": True, "tool": "py_compile", "errors": []}
-        except SyntaxError as e:
-            return {"passed": False, "tool": "py_compile", "errors": [str(e)]}
+            with tempfile.TemporaryDirectory() as tmpdir:
+                temp_path = Path(tmpdir) / (Path(filename).name or "generated.py")
+                if temp_path.suffix != ".py":
+                    temp_path = temp_path.with_suffix(".py")
+                temp_path.write_text(code)
+                result = subprocess.run(
+                    [sys.executable, "-m", "py_compile", str(temp_path)],
+                    capture_output=True, text=True, timeout=30
+                )
+                return {
+                    "passed": result.returncode == 0,
+                    "tool": "py_compile",
+                    "errors": result.stderr.splitlines() if result.stderr else [],
+                }
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            return {"passed": False, "tool": "py_compile", "errors": [str(exc)]}
 
     @staticmethod
     def validate_ruff(code: str, filename: str = "generated.py") -> Dict[str, Any]:
@@ -479,6 +490,12 @@ class EmpiricalValidator:
     def validate_all(source_files: Dict[str, str],
                      test_files: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """Valida todo el proyecto generado."""
+        if test_files is None:
+            # Los tests pueden venir en el mismo dict de archivos generados.
+            test_files = {
+                name: code for name, code in source_files.items()
+                if Path(name).name.startswith("test_")
+            }
         results = {"files": {}, "summary": {"total": 0, "passed": 0, "failed": 0}}
 
         for filename, code in source_files.items():
@@ -490,9 +507,11 @@ class EmpiricalValidator:
             # Lint
             file_results["lint"] = EmpiricalValidator.validate_ruff(code, filename)
 
-            # Tests si existen
-            test_file = f"tests/{Path(filename).name}" if "test_" not in filename else filename
-            if test_files and test_file in test_files:
+            # Tests si existen (buscar test_<stem>.py en cualquier carpeta)
+            test_name = f"test_{Path(filename).stem}.py"
+            test_file = next(
+                (name for name in test_files if Path(name).name == test_name), None)
+            if test_file:
                 file_results["tests"] = EmpiricalValidator.validate_unittest(
                     test_files[test_file], code, Path(filename).stem
                 )
@@ -584,12 +603,15 @@ class CodeGeneratorOrchestrator:
         return {"archivos": {}}
 
     def save_generated(self, output_dir: str) -> List[str]:
-        """Guarda archivos generados en disco."""
-        out = Path(output_dir)
+        """Guarda archivos generados en disco, sin salir del directorio."""
+        out = Path(output_dir).resolve()
         out.mkdir(parents=True, exist_ok=True)
         saved = []
         for rel_path, content in self.context.generated_files.items():
-            file_path = out / rel_path
+            file_path = (out / rel_path).resolve()
+            if file_path == out or not file_path.is_relative_to(out):
+                raise ValueError(
+                    f"Ruta generada fuera del directorio de salida: {rel_path!r}")
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text(content)
             saved.append(str(file_path))

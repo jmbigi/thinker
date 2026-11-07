@@ -10,7 +10,7 @@ from cryptography.fernet import Fernet
 
 from deep_research_system import ResearchContext, ResearchOrchestrator
 from documents import FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import BudgetLLM, MockLLM, OllamaLLM, OpenRouterLLM
+from llm_providers import BudgetLLM, MockLLM, OllamaLLM, OpenAILLM, OpenRouterLLM
 from mcp_client import MCPSearchAPI
 from privacy import (GuardSearch, PrivacyPolicy, load_encrypted_research_state,
                      save_encrypted_research_state)
@@ -47,6 +47,23 @@ class TestPrivacyPolicy(unittest.TestCase):
                 OllamaLLM(base_url="http://localhost:11434"), buscador)
             self.assertEqual(llm.scope, "local-only")
             self.assertEqual(search.scope, "local-only")
+
+    def test_openai_compatible_loopback_es_local(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            documento = Path(tmp) / "doc.txt"
+            documento.write_text("contenido local", encoding="utf-8")
+            buscador = LocalDocumentSearchAPI([str(documento)])
+            llm, _ = PrivacyPolicy("private-documents").apply(
+                OpenAILLM(api_key="ollama",
+                          base_url="http://127.0.0.1:11435/v1",
+                          model="deepseek-r1:8b"), buscador)
+            self.assertEqual(llm.scope, "private-documents")
+
+    def test_openai_compatible_remoto_se_rechaza(self):
+        with self.assertRaisesRegex(RuntimeError, "nube"):
+            PrivacyPolicy("private-documents").apply(
+                OpenAILLM(api_key="x", base_url="https://api.example.com/v1"),
+                MockSearchAPI())
 
     def test_searxng_local_y_private_documents_son_distintos(self):
         searxng = SearXNGSearchAPI("http://localhost:8080", allow_private=True)

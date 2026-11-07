@@ -1,6 +1,7 @@
 #!/bin/bash
 # smart-research.sh - Investigación con fallback automático inteligente
 # Uso: ./smart-research.sh "tu pregunta de investigación"
+# DeepSeek (externo) es opt-in: SMART_ALLOW_DEEPSEEK=1 ./smart-research.sh "..."
 
 set -e
 
@@ -19,11 +20,14 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Configuración
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESEARCH_DIR="${SCRIPT_DIR}"
+RESEARCH_CLI="${RESEARCH_DIR}/research_cli.py"
 PROXY_URL="http://127.0.0.1:11435"
 OLLAMA_URL="http://127.0.0.1:11434"
 MODEL="deepseek-r1:8b"
 MAX_RETRIES=3
 RETRY_DELAY=5
+# DeepSeek reenvía prompts a un servicio externo: solo opt-in explícito.
+ALLOW_DEEPSEEK="${SMART_ALLOW_DEEPSEEK:-0}"
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_ok() { echo -e "${GREEN}[OK]${NC} $1"; }
@@ -85,9 +89,11 @@ try_local_proxy() {
     log_info "Ejecutando investigación vía proxy local..."
     
     cd "${RESEARCH_DIR}"
-    timeout 300 research "$QUERY" \
+    timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider ollama \
         --model deepseek-r1:8b \
+        --ollama-base-url "${PROXY_URL}" \
+        --ollama-api openai \
         --search local \
         --documents "${RESEARCH_DIR}/build/deepseek-free-agent-runtime/workspace" \
         --privacy private-documents \
@@ -108,10 +114,12 @@ try_deepseek_free_agent() {
     log_info "Ejecutando DeepSeek Free Agent con fallback local..."
     
     cd "${RESEARCH_DIR}"
-    timeout 300 research "$QUERY" \
+    timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider deepseek-free-agent \
         --authorize-deepseek-agent \
         --deepseek-agent-fallback-model deepseek-r1:8b \
+        --ollama-base-url "${OLLAMA_URL}" \
+        --ollama-api native \
         --search wikipedia \
         --max-iterations 2 \
         --max-llm-calls 8 \
@@ -130,9 +138,11 @@ try_ollama_direct() {
     log_info "Ejecutando con Ollama directo..."
     
     cd "${RESEARCH_DIR}"
-    timeout 300 research "$QUERY" \
+    timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider ollama \
         --model deepseek-r1:8b \
+        --ollama-base-url "${OLLAMA_URL}" \
+        --ollama-api native \
         --search local \
         --documents "${RESEARCH_DIR}/build/deepseek-free-agent-runtime/workspace" \
         --privacy private-documents \
@@ -151,7 +161,7 @@ try_deepseek_web() {
     log_info "Ejecutando DeepSeek Free Agent (web)..."
     
     cd "${RESEARCH_DIR}"
-    timeout 300 research "$QUERY" \
+    timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider deepseek-free-agent \
         --authorize-deepseek-agent \
         --search wikipedia \
@@ -168,36 +178,49 @@ main() {
     if [ -z "$QUERY" ]; then
         echo "Uso: $0 \"tu pregunta de investigación\""
         echo "Ejemplo: $0 \"¿Qué es la fotosíntesis y qué papel tiene la clorofila?\""
+        echo "DeepSeek opt-in: SMART_ALLOW_DEEPSEEK=1 $0 \"...\""
         exit 1
     fi
     
     QUERY="$1"
     shift
-    EXTRA_ARGS="$@"
-    
+
     echo -e "\n🧠 \033[1;34mSMART RESEARCH\033[0m - Investigación inteligente con fallback automático"
     echo "================================================================"
     echo -e "Pregunta: \033[1;33m$QUERY\033[0m"
     echo ""
-    
+
     # Verificar prerrequisitos básicos
-    if ! command -v research &> /dev/null; then
-        echo -e "\033[0;31m[ERROR]\033[0m 'research' no encontrado en PATH"
+    if [ ! -f "${RESEARCH_CLI}" ]; then
+        echo -e "\033[0;31m[ERROR]\033[0m research_cli.py no encontrado en ${RESEARCH_CLI}"
         exit 1
     fi
-    
+
+    if ! command -v python3 &> /dev/null; then
+        echo -e "\033[0;31m[ERROR]\033[0m python3 no encontrado en PATH"
+        exit 1
+    fi
+
     if ! command -v ollama &> /dev/null; then
         echo -e "\033[0;31m[ERROR]\033[0m Ollama no instalado"
         exit 1
     fi
-    
-    # Estrategias en orden de preferencia
+
+    # Estrategias en orden de preferencia. Las locales primero; DeepSeek solo
+    # con autorización explícita porque reenvía prompts a un servicio externo.
     STRATEGIES=(
         "try_local_proxy:Proxy local + Ollama (131k ctx, privado, gratis)"
-        "try_deepseek_free_agent:DeepSeek Free Agent + Fallback local"
         "try_ollama_direct:Ollama directo (sin proxy)"
-        "try_deepseek_web:DeepSeek Free Agent (solo web)"
     )
+    if [ "$ALLOW_DEEPSEEK" = "1" ]; then
+        log_warn "DeepSeek habilitado (SMART_ALLOW_DEEPSEEK=1): egreso a servicio externo"
+        STRATEGIES+=(
+            "try_deepseek_free_agent:DeepSeek Free Agent + Fallback local"
+            "try_deepseek_web:DeepSeek Free Agent (solo web)"
+        )
+    else
+        log_info "DeepSeek omitido; para autorizarlo: SMART_ALLOW_DEEPSEEK=1 $0 ..."
+    fi
     
     for strategy in "${STRATEGIES[@]}"; do
         IFS=':' read -r func desc <<< "$strategy"
@@ -220,8 +243,13 @@ main() {
 }
 
 # Verificar prerrequisitos
-if ! command -v research &> /dev/null; then
-    echo -e "\033[0;31m[ERROR]\033[0m 'research' no encontrado en PATH"
+if [ ! -f "${RESEARCH_CLI}" ]; then
+    echo -e "\033[0;31m[ERROR]\033[0m research_cli.py no encontrado en ${RESEARCH_CLI}"
+    exit 1
+fi
+
+if ! command -v python3 &> /dev/null; then
+    echo -e "\033[0;31m[ERROR]\033[0m python3 no encontrado en PATH"
     exit 1
 fi
 

@@ -5,9 +5,11 @@ import io
 import json
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
 
-from research_cli import main
+from llm_providers import OllamaLLM, OpenAILLM
+from research_cli import _ollama_llm, main
 
 
 class TestResearchCLI(unittest.TestCase):
@@ -87,6 +89,32 @@ class TestResearchCLI(unittest.TestCase):
             "pregunta", "--documents", str(documento), "--full-text"])
         self.assertEqual(codigo, 2)
         self.assertIn("no aplica", errores)
+
+
+class TestProveedorOllama(unittest.TestCase):
+    def test_openai_compatible_usa_v1_y_timeout_local(self):
+        args = Namespace(ollama_base_url="http://127.0.0.1:11435",
+                         ollama_api="openai")
+        llm = _ollama_llm(args, "deepseek-r1:8b")
+        self.assertIsInstance(llm, OpenAILLM)
+        self.assertEqual(llm.base_url, "http://127.0.0.1:11435/v1")
+        self.assertEqual(llm.model, "deepseek-r1:8b")
+        self.assertEqual(llm.timeout, 180.0)
+        self.assertEqual(llm.max_retries, 1)
+
+    def test_nativo_conserva_api_ollama(self):
+        args = Namespace(ollama_base_url="http://127.0.0.1:11434",
+                         ollama_api="native")
+        llm = _ollama_llm(args, "deepseek-r1:8b")
+        self.assertIsInstance(llm, OllamaLLM)
+        self.assertEqual(llm.base_url, "http://127.0.0.1:11434")
+        self.assertEqual(llm.model, "deepseek-r1:8b")
+
+    def test_defaults_sin_atributos(self):
+        llm = _ollama_llm(Namespace(), None)
+        self.assertIsInstance(llm, OllamaLLM)
+        self.assertEqual(llm.base_url, "http://localhost:11434")
+        self.assertEqual(llm.model, "qwen3:1.7b")
 
 
 if __name__ == "__main__":

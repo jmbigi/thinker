@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1426/1426** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+Suite **1451/1451** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
 3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
 docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
 loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
@@ -1431,7 +1431,7 @@ Evidencias: `build/release23-verificacion.json`,
 
 **Actualización 2026-11-06** (deepseek-free-agent, Hallazgo 225): integración sin
 API key ni fallback pagado, con autorización formal, endpoint loopback, política
-`public`, salida no confiable y 14 contratos nuevos. Suite **1426/1426** en Linux
+`public`, salida no confiable y 14 contratos nuevos. Suite **1451/1451** en Linux
 (Python 3.11.9 con openai 3.42.1; 3.12.3/3.14.4 desde el lock con openai 3.45.0).
 Requisitos: **10 CUMPLE + 1 CUBIERTO + 1 NO VERIFICABLE**, sin `NO CUMPLE`; la
 especificación formal es evidencia estática y la disponibilidad/calidad real sigue
@@ -1452,7 +1452,7 @@ con documento público terminó en **349,61 s**, con **1 fuente, 4 claims y 4
 evaluaciones**, pero la descomposición recibió `One more step before you proceed...`
 y quedó con **0 citas válidas**. Se añadió rechazo explícito de ese texto intermedio.
 Esto verifica conexión y recorrido, no calidad/disponibilidad general.
-Suite **1426/1426** en Linux, Ruff y docs-check OK. Evidencia no versionada:
+Suite **1451/1451** en Linux, Ruff y docs-check OK. Evidencia no versionada:
 `build/deepseek-free-agent-runtime/workspace/resultado-fotosintesis-2.json`.
 
 
@@ -1463,5 +1463,5 @@ pregunta factual respondió **«París» en 19,45 s** y el pipeline privado term
 presente en la fuente, por lo que el recorrido funciona pero la calidad no se declara
 perfecta. La investigación de proveedores confirmó que no hay DeepSeek cloud gratuito
 e ilimitado verificable; OVHcloud devolvió 404 y OpenRouter no lista DeepSeek a precio
-cero. Suite **1426/1426** en Linux, sin cambios funcionales posteriores. Evidencia no
+cero. Suite **1451/1451** en Linux, sin cambios funcionales posteriores. Evidencia no
 versionada: `build/deepseek-free-agent-runtime/workspace/resultado-ollama-deepseek.json`.

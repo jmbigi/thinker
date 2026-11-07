@@ -46,6 +46,8 @@ IGNORAR = {
     ".eggs", ".nox",
     # Scripts locales de depuración: no forman parte del proyecto (.gitignore).
     "_local_debug",
+    # Directorios generados por demos: no forman parte del proyecto.
+    "demo_output",
 }
 # Directorios generados que no siempre llevan el nombre exacto: entornos
 # virtuales con sufijo (`.venv-docs`, `venv-old`) y temporales de pytest.

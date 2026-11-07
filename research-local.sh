@@ -19,23 +19,11 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Configuración
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESEARCH_DIR="${SCRIPT_DIR}"
+RESEARCH_CLI="${RESEARCH_DIR}/research_cli.py"
 PROXY_URL="http://127.0.0.1:11435"
 PROXY_URL_ALT="http://127.0.0.1:11434"
 MODEL="deepseek-r1:8b"
 CORPUS_DIR="${RESEARCH_DIR}/build/deepseek-free-agent-runtime/workspace"
-
-# Verificar argumentos
-if [ $# -eq 0 ]; then
-    echo "Uso: $0 \"tu pregunta de investigación\""
-    echo "Ejemplo: $0 \"¿Qué es la fotosíntesis y qué papel tiene la clorofila?\""
-    exit 1
-fi
-
-QUERY="$1"
-shift
-EXTRA_ARGS="$@"
-
-log_info "🔬 Iniciando investigación local: $QUERY"
 
 # Verificar/Iniciar proxy
 ensure_proxy() {
@@ -110,9 +98,8 @@ ensure_proxy() {
 run_research() {
     local query="$1"
     shift
-    local extra_args="$@"
-    
-    log_info "🔬 Iniciando investigación: $QUERY"
+
+    log_info "🔬 Iniciando investigación: $query"
     
     # Verificar prerrequisitos
     ensure_ollama || return 1
@@ -130,15 +117,18 @@ EOF
     fi
     
     # Ejecutar investigación
-    log_info "🔬 Ejecutando investigación: $QUERY"
-    
+    log_info "🔬 Ejecutando investigación: $query"
+
     cd "${RESEARCH_DIR}"
-    
-    # Construir argumentos para research
+
+    # Construir argumentos para el CLI del repo (no el binario instalado, que
+    # puede estar desactualizado). El proxy local inyecta num_ctx=131072.
     RESEARCH_ARGS=(
-        "$QUERY"
+        "$query"
         --provider ollama
         --model deepseek-r1:8b
+        --ollama-base-url "http://127.0.0.1:11435"
+        --ollama-api openai
         --search local
         --documents "${CORPUS_DIR}"
         --privacy private-documents
@@ -146,16 +136,16 @@ EOF
         --max-llm-calls 10
         --format json
     )
-    
-    # Añadir argumentos extra
-    if [ $# -gt 1 ]; then
+
+    # Añadir argumentos extra (después del shift, $# son solo los extras)
+    if [ $# -gt 0 ]; then
         RESEARCH_ARGS+=("$@")
     fi
-    
-    log_info "Ejecutando: research ${RESEARCH_ARGS[*]}"
-    
+
+    log_info "Ejecutando: python3 ${RESEARCH_CLI} ${RESEARCH_ARGS[*]}"
+
     # Ejecutar con timeout
-    timeout 300 research "${RESEARCH_ARGS[@]}" 2>&1 | tee /tmp/research-output.log
+    timeout 300 python3 "${RESEARCH_CLI}" "${RESEARCH_ARGS[@]}" 2>&1 | tee /tmp/research-output.log
     
     local exit_code=${PIPESTATUS[0]}
     
@@ -182,14 +172,14 @@ fi
 QUERY="${1}"
 shift
 
-log_info "🔬 Iniciando investigación local: $1"
+log_info "🔬 Iniciando investigación local: $QUERY"
 
 # Verificar prerrequisitos
 ensure_ollama || exit 1
 ensure_proxy || exit 1
 
 # Ejecutar
-run_research "$@"
+run_research "$QUERY" "$@"
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then

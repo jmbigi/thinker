@@ -11,7 +11,7 @@ from pathlib import Path
 from deep_research_system import ResearchOrchestrator
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
 from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, LocalFallbackLLM, MockLLM,
-                           OllamaLLM, OpenRouterLLM)
+                           OllamaLLM, OpenAILLM, OpenRouterLLM)
 from mcp_client import MCPSearchAPI
 from research_state import context_to_state
 from web_search import (ArxivSearchAPI, DuckDuckGoSearchAPI, MockSearchAPI,
@@ -42,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
                         choices=("mock", "openrouter", "ollama", "deepseek-free-agent"),
                         default="mock", help="proveedor LLM (defecto: mock offline)")
     parser.add_argument("--model", help="modelo del proveedor")
+    parser.add_argument("--ollama-base-url",
+                        help="URL base de Ollama (defecto: http://localhost:11434; "
+                             "el proxy local usa http://127.0.0.1:11435)")
+    parser.add_argument("--ollama-api", choices=("native", "openai"), default="native",
+                        help="API de Ollama: nativa /api/generate o compatible OpenAI "
+                             "/v1/chat/completions (el proxy local usa openai)")
     parser.add_argument("--deepseek-agent-url",
                         help="URL loopback del agente (o DEEPSEEK_AGENT_URL)")
     parser.add_argument("--deepseek-agent-timeout", type=_float_positivo, default=300.0,
@@ -102,6 +108,23 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _ollama_llm(args, model):
+    """Crea el proveedor Ollama en modo nativo o compatible OpenAI.
+
+    El proxy local (11435) solo implementa el endpoint compatible OpenAI para
+    chat; el modo nativo se usa con Ollama directo (11434).
+    """
+    base_url = getattr(args, "ollama_base_url", None) or "http://localhost:11434"
+    model = model or "qwen3:1.7b"
+    if getattr(args, "ollama_api", "native") == "openai":
+        base = base_url.rstrip("/")
+        if not base.endswith("/v1"):
+            base = f"{base}/v1"
+        return OpenAILLM(api_key="ollama", base_url=base, model=model,
+                         max_retries=1, timeout=180.0)
+    return OllamaLLM(base_url=base_url, model=model)
+
+
 def _base_llm(args, model):
     if args.provider == "mock":
         return MockLLM(model=model or "mock-llm")
@@ -116,11 +139,11 @@ def _base_llm(args, model):
         )
         if args.deepseek_agent_fallback_model:
             return LocalFallbackLLM(
-                primary, OllamaLLM(model=args.deepseek_agent_fallback_model))
+                primary, _ollama_llm(args, args.deepseek_agent_fallback_model))
         return primary
     if args.deepseek_agent_fallback_model:
         raise ValueError("--deepseek-agent-fallback-model exige --provider deepseek-free-agent")
-    return OllamaLLM(model=model or "qwen3:1.7b")
+    return _ollama_llm(args, model)
 
 
 def build_llm(args):

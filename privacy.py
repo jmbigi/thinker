@@ -47,6 +47,8 @@ def _validate_llm(provider: LLMProvider, scope: str) -> None:
             return
         raise RuntimeError(f"{scope}: el endpoint Ollama no es local")
     if isinstance(provider, OpenAILLM):
+        if provider.base_url and _host_local(provider.base_url):
+            return
         raise RuntimeError(f"{scope}: proveedor LLM en la nube no permitido")
     base_url = getattr(provider, "base_url", None)
     if base_url and _host_local(base_url):
