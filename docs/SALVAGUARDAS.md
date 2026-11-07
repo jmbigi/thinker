@@ -73,6 +73,12 @@ El 2026-10-26 se comprobó el entorno, sin instalar nada:
   `dsh-agent-governor` y `dsh-gatedflow` devuelven **404**; el resto de nombres
   del documento externo no se pudo verificar por caché npm de solo lectura.
 
+**Actualización 2026-11-07:** `dsh-agent-gate` existe en
+<https://github.com/DSH-Raising-Plan/dsh-agent-gate> (AGPL, plugin Node/TS para
+DeepSeek Harness), pero **no es un servicio HTTP** y el perfil `dsh-tui` sigue
+siendo de solo lectura. No se instaló. Para agentes Python, thinker usa
+`LocalToolGate` (offline, fail-closed, con tests); no se presenta como el plugin.
+
 **Decisión:** no se instalan plugins externos no verificados. Hacerlo
 modificaría el perfil del agente, añadiría código de terceros sin revisión de
 licencia/seguridad (P0.18) y podría introducir una falsa sensación de

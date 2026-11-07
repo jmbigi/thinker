@@ -30,10 +30,14 @@ PROXY_PID=""
 LLAMA_PID=""
 
 cleanup() {
-    log_info "Deteniendo servicios..."
-    pkill -f "ollama-context-proxy" 2>/dev/null || true
-    pkill -f "llama-cpp-server" 2>/dev/null || true
-    # No matamos ollama serve, lo dejamos corriendo
+    log_info "Deteniendo solo los servicios iniciados por este script..."
+    for pid in "${PROXY_PID}" "${LLAMA_PID}"; do
+        if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
+            kill "${pid}" 2>/dev/null || true
+            wait "${pid}" 2>/dev/null || true
+        fi
+    done
+    # No matamos ollama serve ni servicios que ya estuvieran corriendo.
     log_ok "Limpieza completada"
 }
 
@@ -60,32 +64,45 @@ log_info "Modelos disponibles:"
 curl -sf http://127.0.0.1:11434/api/tags | jq -r '.models[] | "  - \(.name) (\(.details.parameter_size // "N/A"), \(.details.quantization_level // "N/A"), ctx: \(.details.context_length // "N/A"))"'
 
 # 2. Iniciar Proxy de Contexto (puerto 11435)
-log_info "Iniciando Proxy de Contexto Ollama (puerto 11435)..."
-cd "${BUILD_DIR}"
-OLLAMA_TARGET=http://127.0.0.1:11434 ./ollama-context-proxy &
-PROXY_PID=$!
-sleep 2
-
-# Verificar proxy
 if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
-    log_ok "Proxy contexto activo en puerto 11435"
-    curl -sf http://127.0.0.1:11435/v1/models | jq '.data[] | select(.id | contains("deepseek")) | {id, context_window}'
+    log_ok "Proxy contexto ya activo en 11435; se reutiliza y no se detendrá"
 else
-    log_error "Proxy contexto no responde"
-    exit 1
+    log_info "Iniciando Proxy de Contexto Ollama (puerto 11435)..."
+    cd "${BUILD_DIR}"
+    OLLAMA_TARGET=http://127.0.0.1:11434 ./ollama-context-proxy &
+    PROXY_PID=$!
+    sleep 2
+
+    if curl -sf http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
+        log_ok "Proxy contexto activo en puerto 11435"
+        curl -sf http://127.0.0.1:11435/v1/models | jq '.data[] | select(.id | contains("deepseek")) | {id, context_window}'
+    else
+        log_error "Proxy contexto no responde"
+        exit 1
+    fi
 fi
 
 # 3. Iniciar llama.cpp server (puerto 11436)
-log_info "Iniciando llama.cpp server (puerto 11436)..."
-cd "${BUILD_DIR}"
-python3 llama-cpp-server.py &
-LLAMA_PID=$!
-sleep 3
-
 if curl -sf http://127.0.0.1:11436/health >/dev/null 2>&1; then
-    log_ok "llama.cpp server activo en puerto 11436"
+    log_ok "llama.cpp ya activo en 11436; se reutiliza y no se detendrá"
 else
-    log_warn "llama.cpp server no responde (opcional)"
+    log_info "Iniciando llama.cpp server (puerto 11436)..."
+    cd "${BUILD_DIR}"
+
+    # Optimizaciones llama.cpp (comentadas; ajustar a tu hardware):
+    # export LLAMA_OPENBLAS=1    # Acelera PREFIll (prompts largos); impacto en generación token-a-token limitado/nulo
+    # export LLAMA_N_THREADS=    # Por defecto llama.cpp ya usa núcleos físicos; solo forzar si necesario
+    # export LLAMA_N_GPU_LAYERS=999  # Offload all layers to GPU; bajar de 5 en 5 si OOM
+
+    python3 llama-cpp-server.py &
+    LLAMA_PID=$!
+    sleep 3
+
+    if curl -sf http://127.0.0.1:11436/health >/dev/null 2>&1; then
+        log_ok "llama.cpp server activo en puerto 11436"
+    else
+        log_warn "llama.cpp server no responde (opcional)"
+    fi
 fi
 
 # 3. Verificar Ollama models

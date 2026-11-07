@@ -13,6 +13,7 @@ test_openrouter_result.txt
 test_ollama_result.txt
 test_results.txt
 lessons_context.txt
+demo_output/
 
 # Entornos virtuales
 .venv/

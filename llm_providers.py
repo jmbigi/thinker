@@ -16,8 +16,13 @@ import os
 import random
 import re
 import sys
+import threading
 import time
 from abc import ABC, abstractmethod
+from collections import deque
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional  # noqa: F401
 from urllib.parse import urlparse
 
@@ -239,17 +244,23 @@ class OpenRouterLLM(OpenAILLM):
             except Exception as exc:
                 last_error = exc
                 status = getattr(exc, "status_code", None)
-                # Backoff exponential para 429 (rate limit del free tier)
-                # antes de probar siguiente modelo o reintentar
-                print("[OpenRouterLLM] Rate limit 429, esperando 2s antes de reintentar...", file=sys.stderr)
-                time.sleep(2)
-                # Fallback también en errores no transitorios (403, 404, 401, etc.)
-                if status and (status == 429 or status not in TRANSIENT_STATUS):
-                    print(f"[OpenRouterLLM] Modelo {modelo} falló con {status}, probando siguiente...", file=sys.stderr)
-                    continue  # Probar siguiente modelo
-                else:
-                    # Error de red/timeout (sin status) o 5xx tras reintentos: elevar
+                if status == 401:
+                    print("[OpenRouterLLM] 401: clave inválida; no se "
+                          "prueban más modelos", file=sys.stderr)
                     raise
+                if status == 429:
+                    # La cuota gratuita suele ser por cuenta; probar otro
+                    # modelo puede funcionar si el límite es por modelo.
+                    print("[OpenRouterLLM] 429/cuota; esperando 2 s y "
+                          "probando el siguiente modelo...", file=sys.stderr)
+                    time.sleep(2)
+                    continue
+                if status is not None and status not in TRANSIENT_STATUS:
+                    print(f"[OpenRouterLLM] Modelo {modelo} falló con "
+                          f"{status}, probando siguiente...", file=sys.stderr)
+                    continue
+                # Error de red/timeout (sin status) o 5xx tras reintentos: elevar
+                raise
         
         # Agotados todos los modelos
         raise last_error
@@ -559,5 +570,285 @@ class BudgetLLM(LLMProvider):
                     f"Presupuesto de llamadas LLM agotado ({self.calls}/{self.max_calls})")
             self.calls += 1
         return self.provider.generate(prompt, model=model, **kwargs)
+
+
+# =============================================================================
+# Gate local de tool calls (fail-closed)
+# =============================================================================
+# `LocalToolGate` reimplementa en Python la POLÍTICA del plugin comunitario
+# dsh-agent-gate (AGPL, para DeepSeek Harness): riesgo por herramienta, raíces
+# permitidas, límite por minuto y auditoría JSONL. NO es ese plugin, no habla
+# por HTTP y no usa el puerto 9527 (ese puerto pertenece a deepseek-free-agent).
+# Sirve para agentes que ejecutan herramientas en Python: el agente DEBE llamar
+# a `check()`/`gate_check()` ANTES de ejecutar la herramienta; sin esa llamada
+# el gate no protege nada.
+# =============================================================================
+
+
+class LocalToolGate:
+    """Política local fail-closed para tool calls de un agente.
+
+    - Sin `allowed_roots`, toda herramienta con una ruta se deniega.
+    - `run_shell`/`eval`/... están prohibidas; escritura exige confirmación
+      humana explícita (callback) y, sin callback, se deniega.
+    - Límite deslizante de llamadas por minuto y auditoría JSONL opcional.
+    - No accede a la red ni depende de un servicio externo.
+    """
+
+    READ_ONLY_TOOLS = frozenset(
+        {"read_file", "read", "list_dir", "list", "stat", "search"})
+    FORBIDDEN_TOOLS = frozenset(
+        {"run_shell", "shell", "execute", "exec", "eval", "subprocess",
+         "system", "delete_file"})
+    PATH_KEYS = frozenset(
+        {"path", "file", "filename", "dir", "directory", "cwd", "target",
+         "root", "source", "destination"})
+
+    def __init__(self, allowed_roots=None, allow_tools=None, deny_tools=None,
+                 max_calls_per_minute: int = 30, audit_path=None, confirm=None,
+                 clock=time.monotonic):
+        if allowed_roots is None:
+            crudo = os.environ.get("DSH_AGENT_GATE_ROOTS", "")
+            allowed_roots = [p for p in crudo.split(os.pathsep) if p] if crudo else []
+        self.allowed_roots = tuple(
+            Path(p).expanduser().resolve() for p in allowed_roots)
+        self.allow_tools = frozenset(allow_tools or ())
+        self.deny_tools = frozenset(deny_tools or ())
+        self.max_calls_per_minute = int(max_calls_per_minute)
+        self.audit_path = Path(audit_path).expanduser() if audit_path else None
+        self.confirm = confirm
+        self._clock = clock
+        self._llamadas = deque()
+        self._lock = threading.Lock()
+
+    def _es_clave_de_ruta(self, clave: str) -> bool:
+        k = clave.lower()
+        if k in self.PATH_KEYS or k.endswith(("_path", "_file", "_dir", "_directory")):
+            return True
+        # Claves compuestas en español/inglés: `ruta_hija`, `archivo_origen`,
+        # `source_dir`... El gate no adivina el significado de la herramienta,
+        # pero sí reconoce nombres que declaran una ruta.
+        return any(pista in k for pista in
+                   ("path", "file", "dir", "ruta", "archivo", "directorio"))
+
+    def _iter_paths(self, valor, clave: str = ""):
+        if isinstance(valor, dict):
+            for nombre, hijo in valor.items():
+                yield from self._iter_paths(hijo, str(nombre))
+        elif isinstance(valor, (list, tuple)):
+            for hijo in valor:
+                yield from self._iter_paths(hijo, clave)
+        elif isinstance(valor, str) and self._es_clave_de_ruta(clave):
+            yield clave, valor
+
+    def _violacion_de_ruta(self, args: Dict[str, Any]) -> str:
+        for clave, valor in self._iter_paths(args):
+            if not valor.strip():
+                continue
+            if "\x00" in valor:
+                return f"ruta con byte NUL en '{clave}'"
+            if not self.allowed_roots:
+                return f"sin allowed_roots: '{clave}' denegado (fail-closed)"
+            try:
+                resuelta = Path(valor).expanduser().resolve(strict=False)
+            except (OSError, RuntimeError, ValueError) as exc:
+                return f"ruta '{valor}' no resoluble: {exc}"
+            if not any(resuelta == raiz or raiz in resuelta.parents
+                       for raiz in self.allowed_roots):
+                return f"'{valor}' fuera de allowed_roots"
+        return ""
+
+    def _riesgo(self, tool: str) -> str:
+        if tool in self.deny_tools or tool in self.FORBIDDEN_TOOLS:
+            return "forbidden"
+        if self.allow_tools and tool not in self.allow_tools:
+            return "forbidden"
+        if tool in self.READ_ONLY_TOOLS:
+            return "read_only"
+        return "confirm"
+
+    def _permitir_llamada(self) -> bool:
+        if self.max_calls_per_minute <= 0:
+            return False
+        ahora = self._clock()
+        with self._lock:
+            while self._llamadas and ahora - self._llamadas[0] >= 60:
+                self._llamadas.popleft()
+            if len(self._llamadas) >= self.max_calls_per_minute:
+                return False
+            self._llamadas.append(ahora)
+        return True
+
+    def _auditar(self, resultado: "GateResult") -> str:
+        if self.audit_path is None:
+            return ""
+        resumen = json.dumps(resultado.args, sort_keys=True,
+                             ensure_ascii=False, default=str)
+        registro = {
+            "ts": time.time(),
+            "tool": resultado.tool,
+            "decision": resultado.decision.value,
+            "risk": resultado.risk_level,
+            "reason": resultado.reason,
+            "args_sha256": hashlib.sha256(resumen.encode("utf-8")).hexdigest(),
+        }
+        try:
+            self.audit_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.audit_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(registro, ensure_ascii=False) + "\n")
+        except OSError as exc:
+            return f"auditoría no escribible ({self.audit_path}): {exc}"
+        return ""
+
+    def check(self, tool: str, args: Dict[str, Any] = None) -> "GateResult":
+        """Evalúa una tool call. Nunca lanza por datos del llamante."""
+        tool = str(tool)
+        args = dict(args or {})
+        riesgo = self._riesgo(tool)
+
+        if not self._permitir_llamada():
+            resultado = GateResult(
+                GateDecision.DENY,
+                f"límite de {self.max_calls_per_minute} llamadas/minuto excedido",
+                riesgo, tool, args)
+        elif riesgo == "forbidden":
+            resultado = GateResult(
+                GateDecision.DENY, f"herramienta '{tool}' prohibida",
+                riesgo, tool, args)
+        else:
+            violacion = self._violacion_de_ruta(args)
+            if violacion:
+                resultado = GateResult(
+                    GateDecision.DENY, violacion, riesgo, tool, args)
+            elif riesgo == "confirm":
+                aprobado = False
+                motivo = f"'{tool}' requiere confirmación humana (sin callback: fail-closed)"
+                if self.confirm is not None:
+                    try:
+                        aprobado = bool(self.confirm(tool, args))
+                    except Exception as exc:  # noqa: BLE001 - fallo de confirmación = denegar
+                        motivo = f"confirmación falló para '{tool}': {exc}"
+                    else:
+                        motivo = f"'{tool}' no confirmado por el operador"
+                resultado = GateResult(
+                    GateDecision.ALLOW if aprobado else GateDecision.DENY,
+                    "confirmado" if aprobado else motivo,
+                    riesgo, tool, args)
+            else:
+                resultado = GateResult(
+                    GateDecision.ALLOW, "permitido", riesgo, tool, args)
+
+        error_auditoria = self._auditar(resultado)
+        if error_auditoria:
+            return GateResult(GateDecision.DENY, error_auditoria,
+                              riesgo, tool, args)
+        return resultado
+
+
+_gate_por_defecto: Optional[LocalToolGate] = None
+_gate_lock = threading.Lock()
+
+
+def _obtener_gate_por_defecto() -> LocalToolGate:
+    global _gate_por_defecto
+    with _gate_lock:
+        if _gate_por_defecto is None:
+            _gate_por_defecto = LocalToolGate()
+        return _gate_por_defecto
+
+
+def gate_check(tool: str, args: Dict[str, Any] = None,
+               gate: LocalToolGate = None) -> "GateResult":
+    """Verifica una tool call con un `LocalToolGate`.
+
+    El agente DEBE llamar a esta función (o a `GateCheckedLLM.check_tool`)
+    antes de ejecutar la herramienta. Sin esa llamada, el gate no protege.
+    """
+    return (gate or _obtener_gate_por_defecto()).check(tool, args)
+
+
+class GateDecision(Enum):
+    """Decisiones del gate de seguridad."""
+    ALLOW = "allow"           # Permitido (read_only o confirm aprobado)
+    DENY = "deny"             # Denegado (forbidden, ruta fuera, cuota o confirm)
+    ERROR = "error"           # Error interno; se trata como denegado
+
+
+@dataclass
+class GateResult:
+    """Resultado de una verificación del gate."""
+    decision: GateDecision
+    reason: str
+    risk_level: str = ""          # "read_only" | "confirm" | "forbidden"
+    tool: str = ""
+    args: Dict[str, Any] = field(default_factory=dict)
+    raw_response: Optional[Dict[str, Any]] = None
+
+    @classmethod
+    def from_json(cls, data: Dict[str, Any]) -> "GateResult":
+        """Convierte respuesta JSON del gate a GateResult."""
+        decision_str = str(data.get("decision", "error")).lower()
+        if decision_str == "allow":
+            decision = GateDecision.ALLOW
+        elif decision_str in ("deny", "need_confirm", "forbidden"):
+            decision = GateDecision.DENY
+        else:
+            decision = GateDecision.ERROR
+        return cls(
+            decision=decision,
+            reason=data.get("reason", ""),
+            risk_level=data.get("risk_level", ""),
+            tool=data.get("tool", ""),
+            args=data.get("args", {}),
+            raw_response=data,
+        )
+
+    @classmethod
+    def error(cls, reason: str) -> "GateResult":
+        """Crea un resultado de error (fail-closed: trata error como denegado)."""
+        return cls(decision=GateDecision.ERROR, reason=reason)
+
+
+class GateCheckedLLM(LLMProvider):
+    """Wrapper que fuerza la verificación del gate antes de cada tool call.
+
+    Uso:
+        llm = DeepSeekFreeAgentLLM(..., authorized=True)
+        safe_llm = GateCheckedLLM(llm, gate=LocalToolGate(allowed_roots=["/tmp/work"]))
+
+    `generate()` solo devuelve texto: el proveedor no ejecuta herramientas. La
+    verificación se hace en `check_tool()`, que el agente DEBE llamar antes de
+    ejecutar cualquier herramienta sugerida por el modelo. Sin esa llamada, el
+    gate no protege nada.
+    """
+
+    def __init__(
+        self,
+        provider: LLMProvider,
+        gate: LocalToolGate = None,
+        fail_closed: bool = True,
+    ):
+        self.provider = provider
+        self.gate = gate or LocalToolGate()
+        self.fail_closed = fail_closed
+        self.model = provider.model
+        self.base_url = getattr(provider, "base_url", None)
+
+    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+        """Genera respuesta SIN verificación de gate (solo texto)."""
+        return self.provider.generate(prompt, model=model, **kwargs)
+
+    def check_tool(self, tool: str, args: Dict[str, Any] = None) -> GateResult:
+        """Verifica una tool call con el gate. DEBE llamarse antes de ejecutar."""
+        result = self.gate.check(tool, args)
+        if self.fail_closed and result.decision != GateDecision.ALLOW:
+            raise PermissionError(f"Gate denegó {tool}: {result.reason}")
+        return result
+
+    def get_available_models(self) -> list:
+        return getattr(self.provider, "get_available_models", lambda: [])()
+
+    def estimate_cost(self, prompt: str, model: str = None) -> float:
+        return getattr(self.provider, "estimate_cost", lambda *a, **k: 0.0)(prompt, model)
 
 

@@ -4955,3 +4955,33 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Recomendación**: preferir Ollama/LM Studio para privacidad y ausencia de cuota;
   SambaNova, LLM7 o NVIDIA para cuota cloud; DeepSeek App/Freebuff solo cuando se
   acepten sus condiciones. Evitar automatización web cuando se necesite fiabilidad.
+
+
+### Hallazgo 228: un mock no convierte una API inventada en integración
+
+- **Problema**: el código nuevo de `llm_providers.py` enviaba `POST
+  http://127.0.0.1:9527/gate_check` y llamaba a eso «integración con
+  dsh-agent-gate». El puerto 9527 es de `deepseek-free-agent`; dsh-agent-gate es
+  un plugin Node/TS de DeepSeek Harness que expone una herramienta, no un
+  servicio HTTP. El test lo «verificaba» con un servidor mock que reproducía la
+  API inventada. Además, el plugin Olla usaba `/health` y `/v1`, rutas que no
+  existen (las reales son `/internal/health` y `/olla/proxy/v1`), y
+  `code_evaluator.py` invocaba `proof run` cuando la CLI publicada es
+  `proof-ai check`, con una configuración Promptfoo no comprobada.
+- **Causa**: se confundió el nombre del proyecto con su interfaz, se escribió el
+  test contra la suposición y no se contrastó con la documentación del tercero.
+  Un mock que copia la suposición solo prueba que el código es coherente consigo
+  mismo.
+- **Solución**: `LocalToolGate` reimplementa la política en Python (riesgo,
+  `allowed_roots`, cuota, confirmación y auditoría JSONL), sin red ni puerto, con
+  24 tests unitarios reales. Olla se corrigió a sus rutas publicadas y se probó
+  con un servidor HTTP local (4 tests). `code_evaluator.py` se retiró por
+  duplicar el validador empírico de `code_generator` y no ser verificable.
+  `scripts/start-olla-cluster.sh` se retiró por `pkill`; `start-all.sh` ahora
+  solo detiene los PIDs que inició.
+- **Verificación**: suite **1485/1485** (+34), Ruff 0, preflight 0, docs-check
+  OK. Prueba real del agente DeepSeek 1.11.3 headless: «OK» en 43,2 s.
+- **Lección**: antes de integrar un tercero, leer su interfaz publicada y probar
+  el comando real; si no se puede probar, se declara «no verificado» y no se
+  presenta como integración. Un mock debe declararse como simulación, no como
+  evidencia de la API externa.

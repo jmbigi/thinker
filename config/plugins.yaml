@@ -34,6 +34,21 @@ plugins:
     priority: 10
     params: {}
 
+  # Olla proxy (Apache 2.0, github.com/thushan/olla) - unifica Ollama, vLLM,
+  # llama.cpp y LM Studio. Instalar: go install github.com/thushan/olla@latest
+  # (o docker run -p 40114:40114 ghcr.io/thushan/olla:latest).
+  # Rutas reales: /internal/health y /olla/proxy/v1/*; puerto 40114.
+  olla:
+    enabled: false  # opt-in: requiere Olla instalado y corriendo
+    priority: 120
+    params:
+      base_url: "http://localhost:40114"
+      model: ""  # vacío = primer modelo anunciado por Olla
+      timeout: 120.0
+      max_retries: 3
+      use_cache: true
+      health_check_interval: 30
+
   # Search Providers
   duckduckgo:
     enabled: true
@@ -54,6 +69,10 @@ plugins:
     enabled: true
     priority: 10
     params: {}
+
+  # SOLLOL (MIT, pypi.org/project/sollol) es un orquestador EXTERNO de clusters
+  # Ollama, no un plugin de thinker: no se declara aquí. Ver
+  # docs/INFRAESTRUCTURA-COMPLETA.md para su uso opcional.
 
   # Core Plugins (for future extensions)
   # example_core_plugin:

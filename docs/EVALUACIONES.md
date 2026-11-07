@@ -46,11 +46,13 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1451/1451** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
+Suite **1485/1485** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
 3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
 docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
 loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
-permanece no verificada sin servicio y sesión; no se simuló.
+permanece no verificada sin servicio y sesión; no se simuló. Hallazgo 228:
+`LocalToolGate` fail-closed sin HTTP ficticio, Olla con sus rutas reales y
+`code_evaluator` retirado por no ser verificable.
 
 **Sin red**: 1.000 (27/29; 2 N/A: `v4`, `h5`). En Windows 11
 (Python 3.12.7/3.14.3) la última medición histórica es 750/750 (2026-10-22);
@@ -1465,3 +1467,20 @@ perfecta. La investigación de proveedores confirmó que no hay DeepSeek cloud g
 e ilimitado verificable; OVHcloud devolvió 404 y OpenRouter no lista DeepSeek a precio
 cero. Suite **1451/1451** en Linux, sin cambios funcionales posteriores. Evidencia no
 versionada: `build/deepseek-free-agent-runtime/workspace/resultado-ollama-deepseek.json`.
+
+
+**Actualización 2026-11-07** (gate local, Olla real y depuración de promesas,
+Hallazgo 228): la revisión del código nuevo detectó que `gate_check` enviaba un
+POST HTTP a `127.0.0.1:9527/gate_check`; ese puerto es de deepseek-free-agent y
+dsh-agent-gate es un plugin Node/TS, no un servicio HTTP. Se sustituyó por
+`LocalToolGate` (política local fail-closed: riesgo, `allowed_roots`, cuota,
+confirmación humana y auditoría JSONL), sin red, con **24 tests unittest**. El
+plugin Olla usaba `/health` y `/v1` (rutas inexistentes); ahora usa
+`/internal/health` y `/olla/proxy/v1`, con **4 tests** contra un servidor local.
+`code_evaluator.py` se retiró: asumía `proof run` (la CLI real es `proof-ai
+check`) y una configuración Promptfoo no verificable, y duplicaba el validador
+empírico de `code_generator`. `scripts/start-olla-cluster.sh` se retiró por usar
+`pkill` sobre servicios ajenos; `start-all.sh` ahora solo detiene sus propios
+PIDs. Prueba real del agente DeepSeek 1.11.3 headless: **«OK» en 43,2 s**; no es
+ilimitado. Suite **1485/1485** en Linux (+34: 24 gate, 4 Olla, 4 benchmark, 2 fallback),
+Ruff 0, preflight 0, docs-check OK.

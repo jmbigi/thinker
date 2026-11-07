@@ -233,6 +233,29 @@ class TestLocalFallback(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exige"):
             build_llm(args)
 
+    def test_fallback_generico_para_cuota_agotada(self):
+        args = build_parser().parse_args([
+            "pregunta", "--provider", "openrouter",
+            "--fallback-model", "qwen3:8b",
+        ])
+        llm = build_llm(args)
+        self.assertIsInstance(llm, LocalFallbackLLM)
+        self.assertEqual(llm.fallback.model, "qwen3:8b")
+
+    def test_fallback_generico_no_aplica_a_mock_ni_se_duplica(self):
+        args = build_parser().parse_args(
+            ["pregunta", "--provider", "mock", "--fallback-model", "qwen3:8b"])
+        with self.assertRaisesRegex(ValueError, "no aplica"):
+            build_llm(args)
+        args = build_parser().parse_args([
+            "pregunta", "--provider", "deepseek-free-agent",
+            "--authorize-deepseek-agent",
+            "--deepseek-agent-fallback-model", "deepseek-r1:8b",
+            "--fallback-model", "qwen3:8b",
+        ])
+        with self.assertRaisesRegex(ValueError, "no se combina"):
+            build_llm(args)
+
 
 class TestDeepSeekFreeAgentPlugin(unittest.TestCase):
     def test_configuracion_generacion_y_coste_declarado(self):

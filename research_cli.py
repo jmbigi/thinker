@@ -56,6 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="autoriza egreso a DeepSeek y el riesgo de herramientas externas")
     parser.add_argument("--deepseek-agent-fallback-model", nargs="?", const="deepseek-r1:8b",
                         help="respaldo local Ollama opt-in (defecto si se omite: deepseek-r1:8b)")
+    parser.add_argument("--fallback-model", nargs="?", const="qwen3:8b",
+                        help="si el proveedor principal falla (p. ej. cuota 429), "
+                             "usa este modelo local de Ollama; opt-in y declarado")
     parser.add_argument("--search", choices=(
         "mock", "wikipedia", "duckduckgo", "local", "searxng", "arxiv",
         "pubmed", "semantic_scholar", "mcp"),
@@ -149,6 +152,14 @@ def _base_llm(args, model):
 def build_llm(args):
     from efficiency import CachedLLM, SemanticResponseCache, SpeculativeLLM
     llm = _base_llm(args, args.model)
+    fallback = getattr(args, "fallback_model", None)
+    if fallback:
+        if args.provider == "mock":
+            raise ValueError("--fallback-model no aplica a --provider mock")
+        if isinstance(llm, LocalFallbackLLM):
+            raise ValueError("--fallback-model no se combina con "
+                             "--deepseek-agent-fallback-model")
+        llm = LocalFallbackLLM(llm, _ollama_llm(args, fallback))
     if args.speculative:
         llm = SpeculativeLLM(_base_llm(args, args.draft_model or args.model), llm)
     if args.cache:

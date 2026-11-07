@@ -108,6 +108,83 @@ y *explicit capability* para el permiso de egreso. Los requisitos medibles está
 `docs/REQUISITOS-DEEPSEEK-FREE-AGENT.md`; los gates generales y sus límites están en
 `docs/SALVAGUARDAS.md`.
 
+## Gate de tool calls: qué aplica y qué no
+
+**`DeepSeekFreeAgentLLM` no ejecuta herramientas.** Solo envía un prompt y
+devuelve texto; por eso el adaptador **no necesita** `dsh-agent-gate` ni ningún
+otro gate. El puerto 9527 es del servicio `deepseek-free-agent`, no de un gate.
+
+`dsh-agent-gate` es un plugin comunitario (AGPL) para **DeepSeek Harness**, un
+host Node/TypeScript; no es un servicio HTTP y no se puede invocar desde Python
+como si escuchara en un puerto. Su propio README avisa de que no intercepta
+llamadas: el host debe llamar a `gate_check` antes de cada herramienta.
+
+Para agentes Python que sí ejecutan tool calls, thinker incluye `LocalToolGate`
+en `llm_providers.py`: una **reimplementación local de la política** (riesgo por
+herramienta, `allowed_roots`, límite por minuto, confirmación humana y auditoría
+JSONL), sin red y sin depender del plugin. No es el plugin ni pretende serlo.
+
+| Característica | `LocalToolGate` |
+|----------------|-----------------|
+| Niveles | `read_only` (permitido), `confirm` (callback humano), `forbidden` |
+| Raíces | `allowed_roots`; vacío ⇒ toda ruta se deniega (fail-closed) |
+| Cuota | `max_calls_per_minute` (por defecto 30; 0 ⇒ nada permitido) |
+| Auditoría | JSONL opcional con hash de argumentos, nunca los argumentos crudos |
+| Red | Ninguna: no hay peticiones HTTP ni puerto implicado |
+
+### Uso en thinker (Python)
+
+```python
+from llm_providers import (DeepSeekFreeAgentLLM, GateCheckedLLM,
+                           LocalToolGate, gate_check, GateDecision)
+
+llm = DeepSeekFreeAgentLLM(authorized=True)
+gate = LocalToolGate(allowed_roots=["/workspace"], audit_path="/workspace/gate.jsonl")
+safe_llm = GateCheckedLLM(llm, gate=gate)
+
+response = safe_llm.generate("Hola")  # solo texto; no ejecuta nada
+
+# ANTES de ejecutar CUALQUIER herramienta:
+resultado = safe_llm.check_tool("read_file", {"path": "/workspace/test.py"})
+# fail_closed=True (defecto) lanza PermissionError si el gate deniega
+
+# Alternativa para agentes propios:
+resultado = gate_check("run_shell", {"cmd": "ls -la"}, gate=gate)
+if resultado.decision != GateDecision.ALLOW:
+    raise PermissionError(f"Gate denegado: {resultado.reason}")
+# Solo ejecutar la herramienta tras el visto bueno
+```
+
+### Tests de seguridad
+
+`tests/test_security_gate.py` (unittest, offline, sin red) verifica:
+- sin `allowed_roots` toda ruta se deniega;
+- rutas fuera, `..` y symlinks que escapan se deniegan;
+- `run_shell`/`eval` prohibidas; `write_file` exige confirmación;
+- cuota por minuto y allowlist/denylist;
+- auditoría JSONL sin argumentos crudos y fallo de auditoría ⇒ denegar.
+
+## Verificación real del servicio (2026-11-07)
+
+Con el servicio arrancado en modo headless y una sesión de DeepSeek ya iniciada:
+
+```bash
+# En build/deepseek-free-agent-runtime
+HOME="$PWD/home" TMPDIR="$PWD/tmp" \
+  node node_modules/deepseek-free-agent/src/index.js --headless
+```
+
+```text
+$ python3 -c 'from llm_providers import DeepSeekFreeAgentLLM; \
+  print(DeepSeekFreeAgentLLM(authorized=True).generate("Responde solo: OK"))'
+OK          # 43,2 s de extremo a extremo
+```
+
+La respuesta fue texto plano, sin herramientas. **No es ilimitado**: depende de
+la cuenta de DeepSeek, del navegador y del servicio externo; el agente puede
+tener cola y tardar decenas de segundos por llamada. Para uso masivo, el camino
+local de Ollama es el único sin cuota externa (ver `docs/INFRAESTRUCTURA-COMPLETA.md`).
+
 ## Límites de seguridad y privacidad
 
 La instrucción de solo lectura reduce el riesgo, pero **no es un sandbox ni una

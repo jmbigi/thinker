@@ -320,6 +320,18 @@ python3 test_ollama_real.py         # conexión + pensamiento + pipeline con LLM
 OLLAMA_MODEL=qwen3:8b python3 test_ollama_real.py   # otro modelo local
 ```
 
+Si la cuota gratuita de OpenRouter se agota (429), puedes declarar un respaldo
+local explícito; el cambio se anuncia por `stderr` y no es silencioso:
+
+```bash
+research "¿Qué es RAG?" --provider openrouter --search wikipedia \
+  --fallback-model qwen3:8b
+```
+
+El respaldo no se activa con `--provider mock` ni se combina con
+`--deepseek-agent-fallback-model` (error explícito). Solo cubre fallos
+operativos; un `ValueError` o un `PermissionError` se elevan sin conmutar.
+
 Para usar búsqueda web real en el pipeline:
 
 ```python
