@@ -179,7 +179,7 @@ class CodeEvaluator:
             except json.JSONDecodeError:
                 obtenido = salida
             ok = obtenido == esperado
-            reason = "ok" if ok else f"esperado={esperado!r} obtenido={obtenido!r}"
+            reason = "ok" if ok else f"esperado={_cap(repr(esperado),300)} obtenido={_cap(repr(obtenido),300)}"
         else:
             esperado_txt = str(esperado)
             ok = salida == esperado_txt or salida.strip() == esperado_txt.strip()
