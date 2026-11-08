@@ -104,6 +104,22 @@ commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
 
+## Versión 0.1.24 (2026-11-07) — preparada para publicación
+
+Paquete thinker-research 0.1.24 (wheel y sdist), **en preparación**. Esta
+release corrige incumplimientos de las reglas preexistentes detectados en la
+revisión de las últimas 48 h: DeepSeek Free Agent sin reintento ni fallback
+interno, plugin desactivado y sin autorización por defecto, Forthtrade sin
+`API_KEY` genérica, `code_generator` con entorno mínimo y coherencia
+documental (20 módulos, `code_evaluator` reintroducido, 1514 tests). Detalle
+en el Hallazgo 234 de `docs/EVALUACIONES.md` y
+`docs/LECCIONES-APRENDIDAS.md`.
+
+Validación: suite **1514/1514** en Linux 3.11.9; **7/7 gates PASS**; CI limpia
+sobre `8d1b03b`. Los artefactos se construirán desde el tag `v0.1.24` y sus
+hashes se registrarán tras el build; la confirmación de TestPyPI/PyPI se
+añade **solo después** de verificar la subida real.
+
 ## Versión 0.1.23 (2026-11-04)
 
 Paquete `thinker-research 0.1.23` (wheel y sdist), **publicado en TestPyPI y
