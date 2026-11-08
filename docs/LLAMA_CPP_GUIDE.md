@@ -889,6 +889,8 @@ WantedBy=multi-user.target
 
 ```bash
 # Instalar y habilitar
+# Requiere privilegios de administrador. Es una instalación opcional del
+# sistema; no forma parte de los gates del repo y el agente no debe ejecutarla.
 sudo cp llama-server.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now llama-server

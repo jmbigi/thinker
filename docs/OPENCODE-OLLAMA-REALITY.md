@@ -17,7 +17,7 @@ la revisión citada.** La causa exacta (validación de modelos, `baseURL` o
 | Configuración | Contexto declarado | Estado |
 |---------------|--------------------|--------|
 | **Pipeline Thinker + Ollama directo** | 131k declarado | Funcional (pipeline real; contexto usable limitado por RAM) |
-| **DeepSeek Free Agent + Fallback local** | 131k declarado | Funcional con fallback |
+| **DeepSeek Free Agent (sin fallback interno)** | 131k declarado | Funcional si el servicio está disponible; el fallo se eleva |
 | **Ollama API directo con `num_ctx`** | 131k declarado | Aceptado por Ollama; usable limitado por RAM |
 | **Proxy HTTP Ollama + curl** | 131k declarado | El proxy lo publica; no se midió el uso real |
 
@@ -88,7 +88,7 @@ var ProviderPopularity = map[ModelProvider]int{
 | Solución | Contexto | Cómo funciona |
 |------------|----------|---------------|
 | **Pipeline Thinker + Ollama directo** | 131k tokens | Usa `OllamaLLM` directamente sin validación de OpenCode |
-| **DeepSeek Free Agent + Fallback local** | 131k tokens | Proxy HTTP inyecta `num_ctx=131072` y elimina `max_tokens` |
+| **DeepSeek Free Agent (sin fallback interno)** | 131k declarado | El fallo se eleva; el proxy HTTP es para Ollama, no para DeepSeek |
 | **Ollama API directo con `num_ctx`** | 131k tokens | `curl -d '{"num_ctx":131072}'` |
 | **Proxy HTTP Ollama + curl** | 131k tokens | Proxy inyecta `num_ctx=131072` y elimina `max_tokens` |
 
@@ -111,12 +111,11 @@ research "pregunta" \
 # 77s, 3 claims, 3 evaluaciones, 131k tokens reales
 ```
 
-### 2. DeepSeek Free Agent + Fallback Local
+### 2. DeepSeek Free Agent (sin fallback interno)
 ```bash
 research "pregunta" \
-  --provider deepseek-free-agent --authorize-deepseek-agent \
-  --deepseek-agent-fallback-model deepseek-r1:8b
-# 44s, fallback automático a Ollama local si falla web
+  --provider deepseek-free-agent --authorize-deepseek-agent
+# 44s aprox.; si el servicio falla, eleva el error (regla 17)
 ```
 
 ### 3. Ollama API directo
@@ -138,9 +137,9 @@ curl -X POST http://127.0.0.1:11435/v1/chat/completions \
 **No existe una "IA gratuita, ilimitada y perfecta" integrada en OpenCode/Kimi Code para modelos Ollama arbitrarios.** Las limitaciones son arquitectónicas y hardcodeadas en los binarios.
 
 La solución real, honesta y probada hoy es:
-> **Usar el pipeline Thinker (`research` CLI) con Ollama directo** para investigación local privada, o **DeepSeek Free Agent con fallback local** para acceso web con respaldo local.
+> **Usar el pipeline Thinker (`research` CLI) con Ollama directo** para investigación local privada, o **DeepSeek Free Agent (sin fallback interno)** para acceso web; si el servicio falla, el error se eleva.
 
-Ambas opciones están probadas, documentadas y funcionan con 131k tokens de contexto real.
+Ambas opciones están documentadas; el contexto de 131k está **declarado, no medido de forma general**, y el uso real depende de la RAM y del modelo. No se presenta el fallback local como automático.
 
 ---
 

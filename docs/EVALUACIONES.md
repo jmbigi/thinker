@@ -46,13 +46,15 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1511/1511** en Linux (Python 3.11.9 con openai 3.42.1 y ruff 0.15.14;
-3.12.3/3.14.4 desde el lock con openai 3.45.0 y ruff 0.13.2), preflight 0,
-docs-check OK; Hallazgo 225: deepseek-free-agent con autorización formal, egreso
-loopback, salida no confiable y requisitos trazados. Su disponibilidad/calidad real
-permanece no verificada sin servicio y sesión; no se simuló. Hallazgo 228:
-`LocalToolGate` fail-closed sin HTTP ficticio, Olla con sus rutas reales y
-`code_evaluator` retirado por no ser verificable. Hallazgo 229: escáner de
+Suite **1514/1514** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
+en 3.12.3/3.14.4 desde el lock (openai 3.45.0 y ruff 0.13.2; última medición en
+esas versiones), preflight 0, docs-check OK; Hallazgo 225: deepseek-free-agent
+con autorización formal, egreso loopback, salida no confiable y requisitos
+trazados. Su disponibilidad/calidad real permanece no verificada sin servicio y
+sesión; no se simuló. Hallazgo 228: `LocalToolGate` fail-closed sin HTTP
+ficticio, Olla con sus rutas reales y el enfoque `code_evaluator` basado en
+Proof/Promptfoo retirado por no ser verificable (el evaluador local se
+reintrodujo después, Hallazgo 231). Hallazgo 229: escáner de
 secretos fail-closed, `code_generator` sin éxito vacío y guía llama.cpp
 validada contra la API instalada. Hallazgo 230: Kilo integrado como
 proveedor gratuito (`cohere/north-mini-code:free`, anónimo 200 req/h), con
@@ -1517,3 +1519,24 @@ auto-routing y `KILO_API_KEY` permite modelos de pago. Verificación real:
 **5 fuentes, 3 claims y 3 evaluaciones**. No es privado ni ilimitado. Suite **1511/1511** en Linux (+4 tests: CLI, plugin y acceso anónimo), Ruff 0,
 preflight 0, docs-check OK. Evidencia: `build/kilo-cli-4.json`,
 `build/kilo-cli-4.err` y `build/suite-2026-11-07-g.log`.
+
+
+**Actualización 2026-11-07** (revisión de las últimas 48 h contra las reglas
+preexistentes, Hallazgo 234): se auditaron los 18 commits del 2026-11-06/07 y no
+se eliminó ninguna regla P0/P1 de `AGENTS.md`; solo cambiaron cifras y listas.
+Se corrigieron incumplimientos reales: (a) regla 17/P1.19 — se retiró el
+reintento y el fallback automático de `deepseek-free-agent`, `--fallback-model`
+se rechaza con ese proveedor y el plugin queda `enabled: false`/`authorized:
+false` en la configuración distribuida; (b) P0.6 — `ForthtradeGatewayLLM` ya no
+acepta una `API_KEY` genérica que podría ser de otro servicio; (c) regla 11 —
+`code_evaluator` figura como módulo público (20 en `pyproject.toml`), se aclaró
+que el enfoque Proof/Promptfoo se retiró y el evaluador local se reintrodujo, y
+las cifras 3.11/3.12-3.14 se separan; (d) P1.34 — `start-all.sh` comprueba
+`jq`/`ollama`, usa `pipefail` y solo detiene sus propios PIDs; (e) el validador
+de `code_generator` ejecuta tests sin entorno heredado. La prueba real de
+Forthtrade sigue **NO realizada** (sin clave en el entorno); DeepSeek real no se
+reintentó en esta ventana. Evidencia: `tests/test_deepseek_free_agent.py`
+(22/22), `tests/test_forthtrade_gateway.py` (8/8), `tests/test_code_generator.py`,
+`tests/test_security_gate.py` y CI local sobre copia limpia.
+Suite **1514/1514** en Linux, Ruff 0, preflight 0, docs-check OK, escaneo de
+secretos OK.

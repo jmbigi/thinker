@@ -74,11 +74,10 @@ research "pregunta" --provider ollama --model deepseek-r1:8b --documents ./corpu
 # 77s, 3 claims, 3 evaluaciones; 131k declarado (no medido)
 ```
 
-### 2. DeepSeek Free Agent + Fallback Local
+### 2. DeepSeek Free Agent (sin fallback interno)
 ```bash
-research "pregunta" --provider deepseek-free-agent --authorize-deepseek-agent \
-  --deepseek-agent-fallback-model deepseek-r1:8b
-# 44s, fallback automático a Ollama local si falla web
+research "pregunta" --provider deepseek-free-agent --authorize-deepseek-agent
+# 44s aprox.; si el servicio falla, eleva el error (regla 17)
 ```
 
 ### 3. Ollama Directo (con num_ctx manual)
@@ -90,13 +89,13 @@ curl -X POST http://127.0.0.1:11434/api/generate \
 
 ## Conclusión Honesta
 
-| Herramienta | Contexto Real | Estado |
-|-------------|---------------|--------|
+| Herramienta | Contexto declarado | Estado |
+|-------------|--------------------|--------|
 | OpenCode + Ollama | 4096 (bug arquitec.) | ❌ No usable para contexto largo |
 | Kimi Code + Ollama | 4096 (bug similar) | ❌ |
-| Thinker Pipeline + Ollama | 131072 real | ✅ Funcional |
-| DeepSeek Free Agent + Fallback | 131072 con fallback | ✅ Funcional |
-| Ollama API directo (`num_ctx`) | 131072 real | ✅ Funcional |
+| Thinker Pipeline + Ollama | 131072 declarado | ✅ Funcional; uso real limitado por RAM |
+| DeepSeek Free Agent (sin fallback interno) | 131072 declarado | ✅ Si el servicio está disponible; el fallo se eleva |
+| Ollama API directo (`num_ctx`) | 131072 declarado | ✅ Aceptado; uso real limitado por RAM |
 | Ollama API directo (sin num_ctx) | 4096 (default) | ⚠️ Limitado |
 
 ## Recomendación
@@ -107,11 +106,11 @@ La arquitectura de OpenCode/Kimi Code **no soporta** contexto dinámico desde la
 
 ## Evidencia de Validación
 
-- `docs/RESILIENCIA-DEEPSEEK.md`: Contratos de fallback documentados
-- `docs/LECCIONES-APRENDIDAS.md`: Hallazgo 226, 227 documentados
-- `tests/test_deepseek_free_agent.py`: 19/19 tests pasando (incluye fallback local)
+- `docs/RESILIENCIA-DEEPSEEK.md`: límites y ausencia de fallback documentados
+- `docs/LECCIONES-APRENDIDAS.md`: Hallazgo 226, 227 y 234 documentados
+- `tests/test_deepseek_free_agent.py`: 22/22 tests pasando (incluye rechazo de fallback)
 - `build/ollama-context-proxy.go`: Proxy funcional que enriquece `/v1/models` (pero no usado por OpenCode)
-- Suite completa: **1492/1492 tests pasando**
+- Suite completa: **1514/1514** en Linux 3.11 (cifra vigente en `AGENTS.md` y `README.md`)
 
 ---
 

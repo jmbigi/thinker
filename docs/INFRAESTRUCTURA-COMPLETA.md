@@ -16,7 +16,7 @@
 | Kimi Code | `~/.kimi-code/config.toml`; modelo por defecto gratuito OpenRouter (`nemotron-3-ultra:free`) y Ollama local (`qwen3:8b`) como alternativa. |
 | OpenCode | `~/.config/opencode/opencode.jsonc`; OpenRouter gratuito y proveedor Kilo (`kilo-auto/free`). |
 | Kilo AI Gateway | `research --provider kilo` / plugin `kilo`; `cohere/north-mini-code:free` anónimo (200 req/h por IP), `kilo-auto/free` como auto-routing; `KILO_API_KEY` para el catálogo completo; remoto y con cuota. |
-| DeepSeek Free Agent | Integración opt-in con fallback local declarado; **solo intercambia texto, no ejecuta herramientas**; no es un modelo local. |
+| DeepSeek Free Agent | Integración opt-in **sin fallback automático**: el fallo se eleva; **solo intercambia texto, no ejecuta herramientas**; no es un modelo local. |
 
 ---
 
@@ -64,7 +64,7 @@ privados: los prompts salen de la máquina y sus cuotas/límites aplican.
 |--------|-----|----------|
 | `start-all.sh` | `./start-all.sh` | Levanta Ollama, proxy 11435 (ollama-context-proxy) y llama.cpp 11436. Bloquea hasta Ctrl+C. |
 | `research-local.sh` | `./research-local.sh "pregunta"` | Investigación con Ollama local vía proxy, corpus local, privacidad `private-documents`. |
-| `smart-research.sh` | `./smart-research.sh "pregunta"` | Prueba estrategias (Ollama proxy, DeepSeek Free Agent con fallback local). DeepSeek solo opt-in `SMART_ALLOW_DEEPSEEK=1`. |
+| `smart-research.sh` | `./smart-research.sh "pregunta"` | Prueba estrategias (Ollama proxy, DeepSeek Free Agent sin fallback interno). DeepSeek solo opt-in `SMART_ALLOW_DEEPSEEK=1`. |
 | `scripts/benchmark_llama_cpp.py` | `python3 scripts/benchmark_llama_cpp.py --backend ollama --model qwen3:8b` | Mide prefill, generación, TTFT y latencia contra llama.cpp, Ollama u Olla. |
 | `scripts/scan_secrets.py` | `make secrets` | Escanea credenciales y datos personales en archivos versionados. |
 | `tests/test_security_gate.py` | `python3 -m unittest tests.test_security_gate -v` | Verifica el gate local fail-closed (`LocalToolGate`): raíces, cuota, confirmación y auditoría. |
@@ -217,7 +217,7 @@ el plugin: es una reimplementación local de su política.
 ### Uso en `smart-research.sh`
 ```bash
 SMART_ALLOW_DEEPSEEK=1 ./smart-research.sh "pregunta"
-# DeepSeek solo con autorización explícita; fallback local si falla.
+# DeepSeek solo con autorización explícita; si falla, el error se eleva.
 ```
 
 Ver `docs/DEEPSEEK-FREE-AGENT.md` para el contrato, la verificación real del
@@ -255,7 +255,7 @@ Suite del proyecto: **1492 tests** (registrada en `AGENTS.md`); hook pre-commit 
 
 ---
 
-## Matriz real: coste, cuota y calidad (medido 2026-11-07)
+## Matriz real: coste, cuota y latencia (medido 2026-11-07)
 
 Equipo: 16 CPU, 15 GiB RAM, sin GPU utilizable (`nvidia-smi` falla). Las
 latencias son de **una pasada en frío** (incluye carga de modelo); no son un

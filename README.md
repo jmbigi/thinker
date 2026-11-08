@@ -289,8 +289,9 @@ research "Compara RAG y MCP" \
 ```
 
 Además de seleccionarlo, debes autorizarlo en cada invocación; sin ese flag no se
-crea ninguna tarea. El conector exige loopback, no reintenta, abre un chat nuevo
-y trata la respuesta como texto no confiable, nunca como una orden. Las fuentes y
+crea ninguna tarea. El conector exige loopback, no reintenta ni conmuta a otro
+proveedor, abre un chat nuevo y trata la respuesta como texto no confiable,
+nunca como una orden. Las fuentes y
 citas pasan por las comprobaciones del pipeline, pero eso no elimina alucinaciones
 ni prueba verdad. Thinker no cobra y nunca conmuta a un proveedor pagado: si el
 servicio gratuito falla, eleva el error. **No es local ni ilimitado**: los prompts
@@ -346,8 +347,9 @@ upstream. Rotar la key si se expuso.
   Salud: `GET /health` · Providers/free/cache/audit: según `help.json`.
 - Auth aceptada por el gateway: `Authorization: Bearer <key>`, `api-key`,
   `x-api-key`, query `key`/`api_key`/`apikey`. El cliente de thinker usa
-  `FT_AI_API_KEY`/`API_KEY`/`FREE_AI_API_KEY`/`GATEWAY_API_KEY` (nunca imprime
-  valores) y la envía por cabecera Bearer al endpoint OpenAI-compatible.
+  `FT_AI_API_KEY`/`FREE_AI_API_KEY`/`GATEWAY_API_KEY` (nunca imprime valores)
+  y la envía por cabecera Bearer al endpoint OpenAI-compatible. No se acepta
+  una `API_KEY` genérica: podría ser de otro servicio.
 - Variables opcionales: `FORTHTRADE_BASE_URL`, `FORTHTRADE_MODEL`.
 
 ```bash
@@ -383,9 +385,10 @@ research "¿Qué es RAG?" --provider openrouter --search wikipedia \
   --fallback-model qwen3:8b
 ```
 
-El respaldo no se activa con `--provider mock` ni se combina con
-`--deepseek-agent-fallback-model` (error explícito). Solo cubre fallos
-operativos; un `ValueError` o un `PermissionError` se elevan sin conmutar.
+El respaldo no se activa con `--provider mock` ni con
+`--provider deepseek-free-agent` (error explícito: ese proveedor eleva el fallo).
+Solo cubre fallos operativos (red, timeout, 429, 5xx); un `ValueError`, un
+`PermissionError`, un 401/403 de credenciales o un 400/404/422 no conmutan.
 
 Para usar búsqueda web real en el pipeline:
 
@@ -477,7 +480,7 @@ Resumen actual; cada cifra conserva su fecha, alcance y evidencia en
 | Señal | Estado | Evolución y alcance |
 |---|---:|---|
 | Gates de calidad | **7/7 PASS** | ruff, preflight, docs, tests, holdout, secretos y doctor |
-| Suite Linux | **1511/1511** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 → 1503 → 1504 → 1509 → 1511 tests (**+34,0%** desde 1128); 1511 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
+| Suite Linux | **1514/1514** | 1128 → 1249 → 1299 → 1343 → 1346 → 1350 → 1357 → 1397 → 1399 → 1401 → 1402 → 1406 → 1407 → 1409 → 1451 → 1492 → 1499 → 1500 → 1503 → 1504 → 1509 → 1511 → 1514 tests (**+34,2%** desde 1128); 1514 en 3.11, 1451 en 3.12/3.14 (última medición Linux anterior) |
 | Autoevaluación offline | **1.000** | 27/29 criterios; 2 N/A (`v4`, `h5`); cobertura 93,1% |
 | Evaluador sintético | **F1 1.000** | 57 fixtures, 26/29 criterios; no es campaña real |
 | Holdout del evaluador | **9/9** | 6 proyectos sintéticos; completo 0.889 vs deficiente 0.362 |
@@ -567,7 +570,7 @@ Detalle y límites: [`docs/metricas-calidad.json`](docs/metricas-calidad.json) y
   general, así que no deben interpretarse como probabilidad de acierto (R14).
 - Verificado en Linux (Python 3.11/3.12/3.14) y en Windows 11 (3.12.7/3.14.3,
   750/750; última verificación Windows 2026-10-22); macOS no se ha probado.
-  La suite actual en Linux es **1511/1511** en 3.11 (con `openai 3.42.1`);
+  La suite actual en Linux es **1514/1514** en 3.11 (con `openai 3.42.1`);
   en 3.12/3.14 la última medición es 1451/1451 desde el lock con `openai 3.45.0`; los scripts
   `bash`/`make` se verificaron en Linux y en Windows se ejecutaron los comandos
   Python equivalentes.

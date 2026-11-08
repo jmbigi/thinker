@@ -55,7 +55,7 @@ quedan **0 brechas + 125 equivalencias validadas**.
 
 | Señal | Valor | Cómo se midió |
 |---|---:|---|
-| Suite completa | **1492/1492** en Linux 3.11.9 (2026-11-07) | `python3 -m unittest discover -s tests -q` |
+| Suite completa | **1514/1514** en Linux 3.11.9 (2026-11-07) | `python3 -m unittest discover -s tests -q` |
 | CI local (última copia limpia) | **OK** | copia limpia de HEAD; limpieza Python validada del temporal |
 | Lint / preflight / docs-check | **0 / 0 / OK** | `ruff check .`, `scripts/preflight.py`, `scripts/check_docs.py` |
 | Autoevaluación con red | **1.000** (30/30; 0 N/A) | `python3 evaluar_proyecto.py . --ejecutar-tests --json` |

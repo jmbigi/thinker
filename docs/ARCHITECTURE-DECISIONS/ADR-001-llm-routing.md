@@ -22,7 +22,7 @@ Según una revisión no versionada del código de OpenCode/Kimi Code (derivados 
 
 **No implementar workarounds de red (proxy, MITM, DNS) para sortear validación de modelos en OpenCode/Kimi Code.**
 
-En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research` CLI)** o **DeepSeek Free Agent con fallback local**, que declaran contexto 131k (no se midió el contexto usable real; depende de la RAM).
+En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research` CLI)** o **DeepSeek Free Agent (sin fallback interno)**, que declaran contexto 131k (no se midió el contexto usable real; depende de la RAM). Si DeepSeek falla, el error se eleva; Ollama se usa como proveedor separado.
 
 ---
 
@@ -31,8 +31,8 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 ### Positivos
 - **Cero trabajo en binarios propietarios** - no se modifica binario ni se mantiene fork
 - **Contexto 131k declarado** por el proxy; el uso real de 131k no se midió
-- **Fallback automático** - DeepSeek Free Agent conmuta a Ollama local si falla web
-- **Evidencia verificable** - 1492/1492 tests pasan, 19/19 tests de integración DeepSeek Free Agent
+- **Fallo visible** - DeepSeek Free Agent eleva el error; no conmuta a Ollama
+- **Evidencia verificable** - 1514/1514 tests pasan, 22/22 tests de integración DeepSeek Free Agent
 - **Mantenibilidad** - actualizaciones upstream no rompen la solución
 
 ### Negativos
@@ -63,7 +63,7 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 |----------|--------|-------|
 | No workarounds de red para OpenCode/Kimi Code + Ollama | **Accepted** | 2026-11-06 |
 | Usar Thinker Pipeline (`research` CLI) como interfaz principal | **Accepted** | 2026-11-06 |
-| DeepSeek Free Agent con fallback local como alternativa web | **Accepted** | 2026-11-06 |
+| DeepSeek Free Agent (sin fallback interno) como alternativa web | **Accepted** | 2026-11-06 |
 | Documentar limitaciones en ADR canónico | **Accepted** | 2026-11-06 |
 
 ---
@@ -72,13 +72,13 @@ En su lugar, usar la capa de abstracción superior **Thinker Pipeline (`research
 
 | Componente | Prueba | Estado |
 |------------|--------|--------|
-| Suite de tests | `1492/1492` tests OK | ✅ |
-| DeepSeek Free Agent tests | 17/17 OK (4 tests fallback) | ✅ |
+| Suite de tests | `1514/1514` tests OK | ✅ |
+| DeepSeek Free Agent tests | 22/22 OK (incluye rechazo de fallback) | ✅ |
 | Pipeline local Thinker | 77s, 3 claims, 3 evals; 131k declarado (no medido) | ✅ |
-| DeepSeek Free Agent + fallback | 44s, 4 claims, 4 evals, 0 citas válidas* | ✅ |
+| DeepSeek Free Agent (prueba histórica) | 44s, 4 claims, 4 evals, 0 citas válidas* | ✅ |
 | Proxy HTTP Ollama | Inyecta `num_ctx=131072`, elimina `max_tokens` | ✅ |
 | Ollama directo `num_ctx=131072` | 131k aceptado; uso real no medido | ✅ |
-| Suite completa | Ruff 0, Preflight 0, Docs 0, Tests 1492/1492 | ✅ |
+| Suite completa | Ruff 0, Preflight 0, Docs 0, Tests 1514/1514 | ✅ |
 
 *\* Citas 0/17 por limitación del modelo, no del pipeline*
 

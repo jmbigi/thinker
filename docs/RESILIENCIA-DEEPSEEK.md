@@ -1,97 +1,85 @@
-# Resiliencia local para DeepSeek Free Agent
+# Resiliencia y límites de DeepSeek Free Agent
 
 ## Objetivo
-Garantizar que una tarea de investigación pueda completarse sin depender de la disponibilidad del servicio web de DeepSeek (chat.deepseek.com) ni de la API pagada. El respaldo local usa Ollama con un modelo descargado y se activa solo ante fallos operativos del proveedor principal.
 
-## Contrato del fallback (`LocalFallbackLLM`)
+El conector `deepseek-free-agent` usa el servicio web de DeepSeek sin API key
+ni cobro de thinker. No es un modelo local, no es ilimitado y **no conmuta
+automáticamente** a Ollama ni a otro proveedor: un fallo se eleva para que sea
+visible (regla 17 de `AGENTS.md`).
 
-- **Regla de conmutación**: solo errores operativos del proveedor principal (red, timeout, HTTP 5xx, error JSON, respuestas intermedias) disparan la conmutación. `ValueError` (prompt vacío) y `PermissionError` (sin autorización) **no** conmutan.
-- **Modelo de respaldo**: se especifica explícitamente (`deepseek-r1:8b` por defecto en CLI y plugin). No hay auto-detección ni auto-selección.
-- **Registro**: cada conmutación incrementa `fallback_calls`, guarda el motivo en `last_fallback_reason` y emite una línea a `stderr` con modelo local usado.
-- **Cache**: no hay caché compartida. `LocalFallbackLLM` no cachea; el proveedor
-  principal solo guarda éxitos. Tras conmutar, la siguiente llamada vuelve a
-  intentar el principal y solo usa el local si vuelve a fallar.
-- **Privacidad**: `PrivacyPolicy` valida tanto el proveedor principal como el respaldo; el fallback solo pasa con `public` si **ambos** cumplen la política.
+## Contrato: sin fallback ni reintentos
 
-## Contratos de prueba (`tests/test_deepseek_free_agent.py`)
+- **Sin reintentos**: una tarea se envía una sola vez. Un HTTP 5xx, un timeout,
+  una respuesta no JSON o un texto intermedio de verificación/UI elevan el
+  error; no se repite la tarea ni se abre otro chat.
+- **Sin fallback interno**: `--fallback-model` se rechaza con
+  `--provider deepseek-free-agent`. El plugin no instala `LocalFallbackLLM`.
+- **Sin proveedor de pago**: no se usa DeepSeek API, OpenRouter ni otro
+  proveedor de pago como sustituto.
+- **Sin claves**: el conector no lee ni envía `OPENAI_API_KEY`,
+  `DEEPSEEK_API_KEY` ni una `API_KEY` genérica. Solo habla con el servicio
+  loopback configurado.
 
-- `TestLocalFallback.test_fallo_operativo_usa_local_y_lo_declara`: error operativo conmutado, respuesta local, contador y motivo registrados, stderr llamado.
-- `TestLocalFallback.test_exito_principal_y_errores_de_uso_no_conmutan`: éxito principal devuelve principal; `ValueError`/`PermissionError` no conmutan.
-- `TestLocalFallback.test_cli_y_privacidad_del_fallback`: CLI construye `LocalFallbackLLM` con modelo explícito; `private-documents` rechaza por `chat.deepseek.com`; `--deepseek-agent-fallback-model` sin `--provider deepseek-free-agent` da `ValueError`.
+`LocalFallbackLLM` sigue existiendo para otros proveedores que lo pidan de
+forma explícita con `--fallback-model`; solo conmuta ante fallos operativos
+(red, timeout, 429, 5xx). No conmuta ante 400, 401, 403, 404, 422, `ValueError`
+ni `PermissionError`.
 
-## Política de privacidad (`PrivacyPolicy`)
+## Privacidad
 
-- `LocalFallbackLLM` se valida recorriendo **ambos** proveedores (primario y fallback). Solo pasa si **ambos** cumplen el ámbito:
-  - `public`: siempre permitido.
-  - `local-only` / `private-documents`: rechazado porque `deepseek-free-agent` reenvía a `chat.deepseek.com`.
+`PrivacyPolicy` valida el proveedor antes de la llamada:
 
-## Configuración del proveedor (`DeepSeekFreeAgentPlugin`)
+- `public`: permitido (el prompt sale a `chat.deepseek.com`).
+- `local-only` y `private-documents`: rechazado con `RuntimeError`, porque el
+  servicio reenvía los prompts a DeepSeek.
+
+## Configuración del plugin (`DeepSeekFreeAgentPlugin`)
 
 | Parámetro | Tipo | Defecto | Descripción |
 |---|---|---|---|
 | `base_url` | string | `http://127.0.0.1:9527` | Endpoint loopback del agente |
 | `timeout` | number | `300.0` | Segundos de espera de respuesta |
-| `authorized` | boolean | `false` | Requiere `--authorize-deepseek-agent` o `authorized: true` |
-| `fallback_model` | string | `""` | Modelo Ollama para respaldo (vacío = sin fallback) |
+| `authorized` | boolean | `false` | Autorización explícita; sin ella `initialize()` devuelve `false` |
 
-Si `fallback_model` está vacío o ausente, el plugin carga solo `DeepSeekFreeAgentLLM` sin fallback.
+La configuración distribuida en `config/plugins.yaml` deja el plugin
+`enabled: false` y `authorized: false`. Actívalo solo en tu configuración local
+después de leer `docs/DEEPSEEK-FREE-AGENT.md`.
 
 ## CLI (`research_cli.py`)
 
 | Argumento | Descripción |
 |---|---|
-| `--deepseek-agent-fallback-model` | Modelo Ollama para respaldo (p. ej. `deepseek-r1:8b`). Opcional; si se omite usa `deepseek-r1:8b`; sin valor se ignora. Exige `--provider deepseek-free-agent`. |
+| `--authorize-deepseek-agent` | Autoriza el egreso a DeepSeek. Sin este flag `generate()` eleva `PermissionError`. |
+| `--deepseek-agent-url` | URL loopback alternativa (o `DEEPSEEK_AGENT_URL`). |
+| `--deepseek-agent-timeout` | Timeout de lectura en segundos. |
 
-El CLI construye `LocalFallbackLLM(primary, OllamaLLM(model=args.deepseek_agent_fallback_model))` cuando se proporciona el argumento. Si no se pasa, usa `DeepSeekFreeAgentLLM` sin fallback.
+El flag antiguo `--deepseek-agent-fallback-model` **se eliminó**: ya no forma
+parte de la CLI.
 
-## Plugin `deepseek_free_agent`
+## Respaldo local: estrategia separada
 
-La configuración declarativa en `config/plugins.yaml` incluye `fallback_model`:
-
-```yaml
-deepseek_free_agent:
-  enabled: true
-  priority: 110
-  params:
-    base_url: "http://127.0.0.1:9527"
-    timeout: 300
-    authorized: true
-    fallback_model: "deepseek-r1:8b"
-```
-
-Si `fallback_model` es no vacío, el plugin instancia `LocalFallbackLLM(primary, OllamaLLM(model=fallback_model))`. Sin `fallback_model`, solo `DeepSeekFreeAgentLLM`.
-
-## Verificación (`kimi doctor` y tests)
-
-- `python3 -m unittest tests.test_deepseek_free_agent -v`: 19/19 tests OK (incluye 4 tests de `TestLocalFallback`).
-- `kimi doctor config config.toml`: valida esquema y que el modelo está declarado.
-- `kimi doctor` sobre la config completa: OK.
-
-## Resiliencia operativa (resumen)
-
-| Escenario | Resultado |
-|---|---|
-| Servicio web DeepSeek caído (`RuntimeError`) | Conmuta a Ollama local, registra motivo y modelo, emite stderr, sin caché compartida. |
-| DeepSeek responde `One more step before you proceed...` | Rechazado como texto intermedio; lanza `RuntimeError` → conmuta si hay fallback. |
-| `ERR_NETWORK_CHANGED` / `HTTP 5xx` | Conmuta. |
-| Prompt vacío / sin autorización | **No** conmuta; error explícito visible. |
-| Política `private-documents` | Rechaza antes de cualquier llamada. |
-
-## Activación manual (resumen CLI)
+Si el servicio gratuito no está disponible y quieres usar Ollama, ejecútalo
+como proveedor explícito y separado:
 
 ```bash
-# Solo DeepSeek web (sin fallback)
-research "pregunta" --provider deepseek-free-agent --authorize-deepseek-agent
-
-# Con respaldo local Ollama
-research "pregunta" \
-  --provider deepseek-free-agent --authorize-deepseek-agent \
-  --deepseek-agent-fallback-model deepseek-r1:8b
+research "pregunta" --provider ollama --model deepseek-r1:8b \
+  --documents ./corpus --privacy private-documents
 ```
+
+Eso no es un fallback automático del conector: es otra invocación, con su propio
+ámbito de privacidad y su propio modelo.
+
+## Verificación
+
+- `python3 -m unittest tests.test_deepseek_free_agent -v`: **22/22 OK**
+  (2026-11-07), incluidos autorización, loopback, sin reintentos, sin fallback,
+  rechazo de texto intermedio, caché y privacidad.
+- La suite completa se verifica con `make check` / `bash scripts/ci.sh` sobre una
+  copia limpia de HEAD.
 
 ## Kimi Code (configuración aislada local)
 
-Un archivo `config.toml` mínimo para probar aisladamente:
+Un archivo `config.toml` mínimo para probar Ollama de forma aislada:
 
 ```toml
 default_model = "ollama/deepseek-r1:8b"
@@ -111,8 +99,11 @@ display_name = "DeepSeek R1 8B Local"
 reasoning_key = "reasoning_content"
 ```
 
-Validación: `kimi doctor config <archivo>` → OK.
+Si tienes `kimi` instalado, puedes validar el archivo con
+`kimi doctor config <archivo>`; este ejemplo es local y no forma parte de los
+gates del repo ni se ha verificado en esta revisión.
 
 ---
 
-**Evidencias**: `tests/test_deepseek_free_agent.py` (19/19 OK), `kimi doctor` (OK), `research_cli.py` y `llm_providers.py` (compilación OK), suite completa `1492/1492`.
+**Evidencias**: `tests/test_deepseek_free_agent.py` (22/22 OK, 2026-11-07),
+`llm_providers.py`, `research_cli.py` y `docs/DEEPSEEK-FREE-AGENT.md`.

@@ -198,7 +198,7 @@ mejora de código (`code_design_improvement_tools.py`).
   `python3 scripts/verificar_instalacion.py` — construye el wheel sin red, lo
   instala en un venv temporal y lo comprueba desde un CWD ajeno; offline
   verifica la forma del paquete (`--no-deps`) y `--con-red` además las
-  dependencias, los 19 módulos públicos y los console scripts (Hallazgo 82
+  dependencias, los 20 módulos públicos y los console scripts (Hallazgo 82
   hecho reproducible).
 - API real (opt-in, requiere key y red, coste 0 con modelos `:free`):
   `python3 test_openrouter_real.py` — verifica OpenRouter + pipeline completo
@@ -420,9 +420,10 @@ mejora de código (`code_design_improvement_tools.py`).
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
 - Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
-  **1511/1511 en la suite Linux** (2026-11-07; 3.11 con openai 3.42.1 y `ruff
-  0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y `packaging 26.3` en
-  venv aislados desde el lock; mediciones anteriores: 1409/1409, 1407/1407,
+  **1514/1514 en 3.11.9** y **1451/1451 en 3.12.3/3.14.4** (2026-11-07; 3.11 con
+  openai 3.42.1 y `ruff 0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y
+  `packaging 26.3` en venv aislados desde el lock; 1451 es la última medición
+  en esas versiones; mediciones anteriores: 1409/1409, 1407/1407,
   1399/1399 el 2026-11-04 y 1397/1397 el 2026-11-01); y **Windows 11** con Python
   **3.12.7** (openai 3.37.0) y **3.14.3**
   (openai 1.109.1), **750/750 en ambos** con la suite de esa fecha (2026-10-22;
@@ -496,13 +497,13 @@ mejora de código (`code_design_improvement_tools.py`).
 - Paquete instalable (desde 2026-10-20): `pip install .` o
   `pip install git+https://github.com/jmbigi/thinker.git`. Console scripts:
   `evaluate-project` (evalúa proyectos ajenos), `think`, `research`,
-  `code-design`. Módulos públicos importables: los 18 del núcleo
+  `code-design`. Módulos públicos importables (20 en `pyproject.toml`):
   (`deep_research_system`, `pensamiento_layer`, `code_design_improvement_tools`,
   `thinking_engine`, `llm_providers`, `web_search`, `evaluar_proyecto`,
   `evidence`, `documents`, `research_state`, `research_cli`, `mcp_client`,
   `concept_ncm`, `privacy`, `efficiency`, `neural_concepts`,
-  `citation_verifier`, `source_quality`, `code_generator`) + paquetes
-  `plugins` y `scripts` (este último porque el evaluador importa
+  `citation_verifier`, `source_quality`, `code_generator`, `code_evaluator`)
+  + paquetes `plugins` y `scripts` (este último porque el evaluador importa
   `scripts.preflight`). `tests` no se instala (colisión de nombre raíz en
   site-packages): el benchmark se ejecuta desde el repo con
   `python3 -m tests.benchmarks.run_bench` (Hallazgo 83). El **benchmark

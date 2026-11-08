@@ -5153,3 +5153,31 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   FREE_ONLY según gateway). Una sola API key del gateway; **no** usar claves
   upstream. Rotar si se expuso. Prompts/salidas no confiables; gates verdes ≠
   calidad de producción.
+
+### Hallazgo 234: revisión de 48 h — los cambios deben respetar las reglas previas
+
+- **Fecha**: 2026-11-07
+- **Problema**: los commits recientes añadieron proveedores y ajustes de
+  resiliencia, pero algunos relajaban salvaguardas preexistentes: el conector
+  `deepseek-free-agent` reintentaba y podía conmutar a Ollama en la
+  configuración distribuida (`authorized: true`, `fallback_model`), el gateway
+  Forthtrade aceptaba una `API_KEY` genérica, y la documentación afirmaba que
+  `code_evaluator` estaba retirado cuando ya se había reintroducido. Todo ello
+  contra P0.6, P1.19, la regla 6, la regla 11 y la regla 17.
+- **Decisión**: no se cambió ninguna regla para acomodar el código. Se adaptó el
+  código a las reglas: sin reintento ni fallback para DeepSeek (el fallo se
+  eleva), `--fallback-model` rechazado con ese proveedor, plugin desactivado y
+  sin autorización en la config versionada, claves solo específicas del gateway,
+  y coherencia documental (20 módulos, `code_evaluator`, cifras 3.11 vs.
+  3.12/3.14). `AGENTS.md` solo actualizó cifras/listas; no se eliminó ninguna
+  regla P0/P1.
+- **Verificación**: `tests/test_deepseek_free_agent.py` 22/22;
+  `tests/test_forthtrade_gateway.py` 8/8; `tests/test_code_generator.py`;
+  `tests/test_security_gate.py`; suite completa **1514/1514** en Linux 3.11.9;
+  Ruff 0, preflight 0, docs-check OK, escaneo de secretos OK; CI local sobre
+  copia limpia de HEAD. La prueba real de Forthtrade no se hizo (sin clave) y
+  DeepSeek real no se reintentó: se declaran como no verificadas, no simuladas.
+- **Lección**: una mejora de resiliencia que oculta el fallo o amplía el egreso
+  de credenciales no es una mejora. La regla 17 y P0.6 son límites, no
+  configuraciones por defecto; los históricos fechados se conservan y se corrige
+  el estado presente con una entrada nueva.

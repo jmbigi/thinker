@@ -217,8 +217,9 @@ restricciones de cuenta.
 ## «Gratuito» no significa «ilimitado»
 
 Thinker no cobra ni añade una cuota propia al conector y el plugin estima coste
-directo 0. No hay fallback a DeepSeek API, OpenRouter ni otro proveedor de pago:
-si el servicio gratuito falla, la llamada eleva el error. Sin embargo, no se
+directo 0. No hay fallback a DeepSeek API, OpenRouter, Ollama ni otro proveedor:
+si el servicio gratuito falla, la llamada eleva el error. `--fallback-model` se
+rechaza explícitamente con `--provider deepseek-free-agent`. Sin embargo, no se
 promete disponibilidad ilimitada ni coste cero permanente del tercero: DeepSeek
 puede imponer límites de cuenta, tasa, sesión o servicio; la cola externa procesa
 tareas en serie y el hardware/navegador también tiene límites. Los fallos se
