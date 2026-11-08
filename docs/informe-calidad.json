@@ -1,22 +1,51 @@
 {
-  "generado": "2026-11-07T00:53:52+00:00",
-  "commit": "157d5ac59a7e296ef4cb3044930005822a5ac821",
+  "generado": "2026-11-08T01:48:07+00:00",
+  "commit": "dd532a690d94502d4501e2a9c6d8a7be85f2f5ad",
   "python": "3.11.9",
   "so": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
   "controles": {
+    "ruff": {
+      "estado": "PASS",
+      "codigo": 0,
+      "resumen": "All checks passed!",
+      "duracion_s": 0.0
+    },
+    "preflight": {
+      "estado": "PASS",
+      "codigo": 0,
+      "resumen": "PREFLIGHT: OK (0 hallazgos, 8 warnings)",
+      "duracion_s": 3.0
+    },
     "docs-check": {
       "estado": "PASS",
       "codigo": 0,
       "resumen": "DOCS: OK (cifras y pines de estado presente cuadran)",
       "duracion_s": 0.3
+    },
+    "tests": {
+      "estado": "PASS",
+      "codigo": 0,
+      "resumen": "Ran 1514 tests in 38.116s | OK",
+      "duracion_s": 40.7
+    },
+    "holdout": {
+      "estado": "PASS",
+      "codigo": 0,
+      "resumen": "OK",
+      "duracion_s": 0.2
+    },
+    "secrets": {
+      "estado": "PASS",
+      "codigo": 0,
+      "resumen": "OK: sin secretos ni datos personales en archivos versionados",
+      "duracion_s": 0.3
+    },
+    "doctor": {
+      "estado": "PASS",
+      "codigo": 0,
+      "resumen": "RESULTADO: entorno esencial correcto",
+      "duracion_s": 0.2
     }
   },
-  "no_ejecutados": [
-    "ruff",
-    "preflight",
-    "tests",
-    "holdout",
-    "secrets",
-    "doctor"
-  ]
+  "no_ejecutados": []
 }
