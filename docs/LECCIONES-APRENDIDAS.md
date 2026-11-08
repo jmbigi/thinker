@@ -5197,8 +5197,9 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
 - **Verificación**: wheel `6a5a24ca63e7165bd9af17cf8c47fec5d7d6e5169e426e0069ff74d72b2d8b69`
   y sdist `6a1b0f3cbb6d9d9cf1546bfcdc3570b29ce8c49b7cdf96b9e1338cec4fac4fe3`;
   TestPyPI y PyPI publican esos hashes; instalaciones limpias en ambos índices
-  con `pip check`, imports y consolas; `pip-audit` sin vulnerabilidades; informe
-  7/7 sobre `f30c8ac`.
+  con `pip check`, imports y `evaluate-project --help`; la verificación
+  `--con-red` del tag cubre las cuatro consolas; `pip-audit` sin
+  vulnerabilidades; informe 7/7 sobre `f30c8ac`.
 - **Lección**: `git status` limpio no basta si `build/` (ignorado) contiene
   restos. El build de release se hace siempre desde una copia/worktree limpio
   del tag, y los hashes se comparan antes de subir. Un primer intento de
