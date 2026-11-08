@@ -1540,3 +1540,15 @@ reintentó en esta ventana. Evidencia: `tests/test_deepseek_free_agent.py`
 `tests/test_security_gate.py` y CI local sobre copia limpia.
 Suite **1514/1514** en Linux, Ruff 0, preflight 0, docs-check OK, escaneo de
 secretos OK.
+
+**Actualización 2026-11-07** (publicación de `0.1.24`): artefactos construidos
+desde el tag `v0.1.24` (commit `c4dc0ea`; objeto `defda50`) en un worktree
+limpio, `twine check` PASSED y `pip-audit` sin vulnerabilidades. SHA-256:
+`6a5a24ca63e7165bd9af17cf8c47fec5d7d6e5169e426e0069ff74d72b2d8b69` (wheel) y
+`6a1b0f3cbb6d9d9cf1546bfcdc3570b29ce8c49b7cdf96b9e1338cec4fac4fe3` (sdist);
+TestPyPI y PyPI publican esos hashes. Instalaciones limpias desde ambos
+índices: `pip check`, versión `0.1.24`, imports clave, cuatro consolas y
+`evaluate-project --help`. El primer `pip install` de PyPI no vio la versión; el
+segundo, tras 10 s, pasó (registrado, sin ocultarlo). Informe de calidad 7/7
+sobre `f30c8ac`. Suite **1514/1514** en Linux, Ruff 0, preflight 0, docs-check
+OK.

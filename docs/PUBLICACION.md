@@ -1,11 +1,11 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-04: **versión `0.1.23` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-07: **versión `0.1.24` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20`,
-> `v0.1.21`, `v0.1.22` y `v0.1.23` empujados; `v0.1.2` a `v0.1.23` son anotados. `0.1.2` **no
+> `v0.1.21`, `v0.1.22`, `v0.1.23` y `v0.1.24` empujados; `v0.1.2` a `v0.1.24` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -17,7 +17,7 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.23`
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.24`
   publicada en TestPyPI y PyPI; artefactos, hashes e instalaciones verificados.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
@@ -26,7 +26,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.23*`.
+  `dist/thinker_research-0.1.24*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -75,6 +75,12 @@
 - **Publicación completada de `0.1.22`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.22` (objeto `a6d6618`, commit `dd3e3cb`) e
   instalaciones limpias verificadas; ver la sección 0.1.22.
+- **Publicación completada de `0.1.23`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.23` (objeto `d2b02a4`, commit `29e1420`) e
+  instalaciones limpias verificadas; ver la sección 0.1.23.
+- **Publicación completada de `0.1.24`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.24` (objeto `defda50`, commit `c4dc0ea`) e
+  instalaciones limpias verificadas; ver la sección 0.1.24.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -104,21 +110,33 @@ commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
 
-## Versión 0.1.24 (2026-11-07) — preparada para publicación
+## Versión 0.1.24 (2026-11-07)
 
-Paquete thinker-research 0.1.24 (wheel y sdist), **en preparación**. Esta
-release corrige incumplimientos de las reglas preexistentes detectados en la
-revisión de las últimas 48 h: DeepSeek Free Agent sin reintento ni fallback
-interno, plugin desactivado y sin autorización por defecto, Forthtrade sin
-`API_KEY` genérica, `code_generator` con entorno mínimo y coherencia
-documental (20 módulos, `code_evaluator` reintroducido, 1514 tests). Detalle
-en el Hallazgo 234 de `docs/EVALUACIONES.md` y
+Paquete `thinker-research 0.1.24` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Esta release corrige incumplimientos de las reglas preexistentes
+detectados en la revisión de las últimas 48 h: DeepSeek Free Agent sin
+reintento ni fallback interno, plugin desactivado y sin autorización por
+defecto, Forthtrade sin `API_KEY` genérica, `code_generator` con entorno
+mínimo y coherencia documental (20 módulos, `code_evaluator` reintroducido,
+1514 tests). Detalle en el Hallazgo 234 de `docs/EVALUACIONES.md` y
 `docs/LECCIONES-APRENDIDAS.md`.
 
 Validación: suite **1514/1514** en Linux 3.11.9; **7/7 gates PASS**; CI limpia
-sobre `8d1b03b`. Los artefactos se construirán desde el tag `v0.1.24` y sus
-hashes se registrarán tras el build; la confirmación de TestPyPI/PyPI se
-añade **solo después** de verificar la subida real.
+sobre `8d1b03b` y `c4dc0ea`; `pip-audit` sin vulnerabilidades conocidas. Artefactos
+construidos desde el tag `v0.1.24` (commit `c4dc0ea`; objeto `defda50`) en un
+worktree limpio; `twine check` PASSED. SHA-256:
+`6a5a24ca63e7165bd9af17cf8c47fec5d7d6e5169e426e0069ff74d72b2d8b69` (wheel) y
+`6a1b0f3cbb6d9d9cf1546bfcdc3570b29ce8c49b7cdf96b9e1338cec4fac4fe3` (sdist).
+Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI y
+PyPI pasan `pip check`, versión `0.1.24`, imports clave y
+`evaluate-project --help`; la verificación `--con-red` del tag comprueba 21
+imports obligatorios (19 módulos públicos + `plugins.registry`/`scripts.preflight`;
+`neural_concepts` aparte) y las cuatro consolas. El primer `pip install` de
+PyPI no vio la versión de inmediato; el segundo, tras 10 s, pasó y se registra
+sin ocultarlo (misma clase que el Hallazgo 91). Evidencia:
+`docs/informe-calidad.json` (7/7 PASS sobre `f30c8ac`),
+`build/release24-verificacion.json`, `build/release24-build.log`,
+`build/release24-testpypi.json` y `build/release24-pypi.json`.
 
 ## Versión 0.1.23 (2026-11-04)
 

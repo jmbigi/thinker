@@ -5181,3 +5181,26 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   de credenciales no es una mejora. La regla 17 y P0.6 son límites, no
   configuraciones por defecto; los históricos fechados se conservan y se corrige
   el estado presente con una entrada nueva.
+
+### Hallazgo 235: release 0.1.24 — construir desde el tag, no desde el árbol de trabajo
+
+- **Fecha**: 2026-11-07
+- **Problema**: el primer `python3 -m build` del release se ejecutó por error
+  en el árbol principal, que conserva `build/` de versiones anteriores. Los
+  hashes no coincidieron con el build limpio y el sdist cambió de tamaño,
+  aunque la lista de archivos y el contenido extraído eran idénticos. Publicar
+  ese artefacto habría roto la trazabilidad tag→artefacto.
+- **Decisión**: se reconstruyó en un worktree limpio del tag `v0.1.24`, se
+  verificó `twine check`, se conservó el build principal aparte y se publicaron
+  solo los hashes del build limpio. El contenido se comparó archivo por archivo
+  antes de decidir.
+- **Verificación**: wheel `6a5a24ca63e7165bd9af17cf8c47fec5d7d6e5169e426e0069ff74d72b2d8b69`
+  y sdist `6a1b0f3cbb6d9d9cf1546bfcdc3570b29ce8c49b7cdf96b9e1338cec4fac4fe3`;
+  TestPyPI y PyPI publican esos hashes; instalaciones limpias en ambos índices
+  con `pip check`, imports y consolas; `pip-audit` sin vulnerabilidades; informe
+  7/7 sobre `f30c8ac`.
+- **Lección**: `git status` limpio no basta si `build/` (ignorado) contiene
+  restos. El build de release se hace siempre desde una copia/worktree limpio
+  del tag, y los hashes se comparan antes de subir. Un primer intento de
+  `pip install` que no ve la versión se registra y se reintenta con límite; no
+  se declara éxito hasta que el índice y la instalación coinciden.

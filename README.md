@@ -87,8 +87,8 @@ otros proyectos pueden usarlo como librería o como herramienta de consola.
 ```bash
 pip install .                                  # desde una copia del repo
 pip install git+https://github.com/jmbigi/thinker.git   # directo del remoto
-pip install git+https://github.com/jmbigi/thinker.git@v0.1.23   # tag fijado (verifica el remoto)
-pip install thinker-research==0.1.23            # desde PyPI
+pip install git+https://github.com/jmbigi/thinker.git@v0.1.24   # tag fijado (verifica el remoto)
+pip install thinker-research==0.1.24            # desde PyPI
 ```
 
 `thinker-research` se instala desde PyPI o desde un tag verificado, sin claves
