@@ -2,7 +2,7 @@
 # start-all.sh - Levanta toda la infraestructura IA local
 # Uso: ./start-all.sh
 
-set -e
+set -euo pipefail
 
 # Colores para output
 RED='\033[0;31m'
@@ -31,13 +31,13 @@ LLAMA_PID=""
 
 cleanup() {
     log_info "Deteniendo solo los servicios iniciados por este script..."
-    for pid in "${PROXY_PID}" "${LLAMA_PID}"; do
+    for pid in "${OLLAMA_PID}" "${PROXY_PID}" "${LLAMA_PID}"; do
         if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
             kill "${pid}" 2>/dev/null || true
             wait "${pid}" 2>/dev/null || true
         fi
     done
-    # No matamos ollama serve ni servicios que ya estuvieran corriendo.
+    # Si Ollama ya estaba corriendo, OLLAMA_PID está vacío y no se toca.
     log_ok "Limpieza completada"
 }
 
@@ -45,9 +45,18 @@ trap cleanup EXIT INT TERM
 
 log_info "🚀 Iniciando infraestructura IA local completa..."
 
+if ! command -v jq >/dev/null 2>&1; then
+    log_error "jq no está instalado; es necesario para leer el estado de Ollama."
+    exit 1
+fi
+
 # 1. Verificar Ollama
 log_info "Verificando Ollama..."
 if ! curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+    if ! command -v ollama >/dev/null 2>&1; then
+        log_error "Ollama no está instalado; instálalo o inicia el servicio."
+        exit 1
+    fi
     log_info "Iniciando Ollama daemon..."
     ollama serve &
     OLLAMA_PID=$!

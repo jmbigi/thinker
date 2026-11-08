@@ -56,8 +56,6 @@ def build_parser() -> argparse.ArgumentParser:
                         help="timeout de lectura del agente en segundos (defecto: 300)")
     parser.add_argument("--authorize-deepseek-agent", action="store_true",
                         help="autoriza egreso a DeepSeek y el riesgo de herramientas externas")
-    parser.add_argument("--deepseek-agent-fallback-model", nargs="?", const="deepseek-r1:8b",
-                        help="respaldo local Ollama opt-in (defecto si se omite: deepseek-r1:8b)")
     parser.add_argument("--fallback-model", nargs="?", const="qwen3:8b",
                         help="si el proveedor principal falla (p. ej. cuota 429), "
                              "usa este modelo local de Ollama; opt-in y declarado")
@@ -131,10 +129,6 @@ def _ollama_llm(args, model):
 
 
 def _base_llm(args, model):
-    if (args.deepseek_agent_fallback_model
-            and args.provider != "deepseek-free-agent"):
-        raise ValueError(
-            "--deepseek-agent-fallback-model exige --provider deepseek-free-agent")
     if args.provider == "mock":
         return MockLLM(model=model or "mock-llm")
     if args.provider == "openrouter":
@@ -145,16 +139,12 @@ def _base_llm(args, model):
         from llm_providers import ForthtradeGatewayLLM
         return ForthtradeGatewayLLM(model=model)
     if args.provider == "deepseek-free-agent":
-        primary = DeepSeekFreeAgentLLM(
+        return DeepSeekFreeAgentLLM(
             base_url=args.deepseek_agent_url,
             model=model or "deepseek-free-agent",
             timeout=args.deepseek_agent_timeout,
             authorized=args.authorize_deepseek_agent,
         )
-        if args.deepseek_agent_fallback_model:
-            return LocalFallbackLLM(
-                primary, _ollama_llm(args, args.deepseek_agent_fallback_model))
-        return primary
     return _ollama_llm(args, model)
 
 
@@ -165,9 +155,11 @@ def build_llm(args):
     if fallback:
         if args.provider == "mock":
             raise ValueError("--fallback-model no aplica a --provider mock")
-        if isinstance(llm, LocalFallbackLLM):
-            raise ValueError("--fallback-model no se combina con "
-                             "--deepseek-agent-fallback-model")
+        if args.provider == "deepseek-free-agent":
+            # La regla 17 exige elevar el fallo del servicio gratuito; no se
+            # enmascara con un modelo local.
+            raise ValueError("--fallback-model no aplica a --provider "
+                             "deepseek-free-agent: un fallo se eleva")
         llm = LocalFallbackLLM(llm, _ollama_llm(args, fallback))
     if args.speculative:
         llm = SpeculativeLLM(_base_llm(args, args.draft_model or args.model), llm)

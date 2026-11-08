@@ -27,6 +27,20 @@ MODEL="deepseek-r1:8b"
 # DeepSeek reenvía prompts a un servicio externo: solo opt-in explícito.
 ALLOW_DEEPSEEK="${SMART_ALLOW_DEEPSEEK:-0}"
 
+# Solo se detienen los procesos que inició este script; si Ollama ya estaba
+# corriendo, su PID queda vacío y no se toca.
+OLLAMA_PID=""
+PROXY_PID=""
+cleanup() {
+    for pid in "${OLLAMA_PID:-}" "${PROXY_PID:-}"; do
+        if [ -n "${pid}" ] && kill -0 "${pid}" 2>/dev/null; then
+            kill "${pid}" 2>/dev/null || true
+            wait "${pid}" 2>/dev/null || true
+        fi
+    done
+}
+trap cleanup EXIT INT TERM
+
 # Verificar/Iniciar Ollama
 ensure_ollama() {
     if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
@@ -55,6 +69,10 @@ ensure_proxy() {
     
     log_warn "Proxy no responde, iniciando..."
     cd "${RESEARCH_DIR}/build"
+    if [ ! -x ./ollama-context-proxy ]; then
+        log_error "No existe build/ollama-context-proxy; compílalo o usa la estrategia Ollama directo."
+        return 1
+    fi
     OLLAMA_TARGET=http://127.0.0.1:11434 ./ollama-context-proxy &
     PROXY_PID=$!
     sleep 2
@@ -94,22 +112,17 @@ try_local_proxy() {
     return ${PIPESTATUS[0]}
 }
 
-# Estrategia 2: DeepSeek Free Agent con fallback local
+# Estrategia 2: DeepSeek Free Agent (sin fallback interno: el fallo se eleva)
 try_deepseek_free_agent() {
     local query="$1"
-    log_info "🔄 Estrategia 2: DeepSeek Free Agent + Fallback local"
+    log_info "🔄 Estrategia 2: DeepSeek Free Agent (sin fallback interno)"
     
-    ensure_ollama || return 1
-    
-    log_info "Ejecutando DeepSeek Free Agent con fallback local..."
+    log_info "Ejecutando DeepSeek Free Agent..."
     
     cd "${RESEARCH_DIR}"
     timeout 300 python3 "${RESEARCH_CLI}" "$query" \
         --provider deepseek-free-agent \
         --authorize-deepseek-agent \
-        --deepseek-agent-fallback-model "${MODEL}" \
-        --ollama-base-url "${OLLAMA_URL}" \
-        --ollama-api native \
         --search wikipedia \
         --max-iterations 2 \
         --max-llm-calls 8 \
@@ -205,7 +218,7 @@ main() {
     if [ "$ALLOW_DEEPSEEK" = "1" ]; then
         log_warn "DeepSeek habilitado (SMART_ALLOW_DEEPSEEK=1): egreso a servicio externo"
         STRATEGIES+=(
-            "try_deepseek_free_agent:DeepSeek Free Agent + Fallback local"
+            "try_deepseek_free_agent:DeepSeek Free Agent (sin fallback interno)"
             "try_deepseek_web:DeepSeek Free Agent (solo web)"
         )
     else

@@ -353,19 +353,20 @@ FORTHTRADE_DEFAULT_MODEL = "auto"
 class ForthtradeGatewayLLM(OpenAILLM):
     """Free AI Gateway OpenAI-compatible (ia.forthtrade.com).
 
-    Requiere la API key del gateway (FT_AI_API_KEY, API_KEY, FREE_AI_API_KEY o
-    GATEWAY_API_KEY). No usar claves upstream. "auto" aplica fallback/caché/
-    compresión/FREE_ONLY según el gateway; gratis/controlado ≠ ilimitado
-    (cuotas, rate limits, capacidad).
+    Requiere la API key del gateway (FT_AI_API_KEY, FREE_AI_API_KEY o
+    GATEWAY_API_KEY). No se acepta una `API_KEY` genérica: podría pertenecer a
+    otro servicio y filtrarse a un tercero. No usar claves upstream. "auto"
+    aplica fallback/caché/compresión/FREE_ONLY según el gateway;
+    gratis/controlado ≠ ilimitado (cuotas, rate limits, capacidad).
     """
 
     def generate(self, prompt: str, model: str = None, **kwargs) -> str:
         key = kwargs.get("api_key") or self.api_key
         if not key:
             raise ValueError(
-                "Falta la API key del gateway de Free AI (FT_AI_API_KEY, API_KEY, "
-                "FREE_AI_API_KEY o GATEWAY_API_KEY). No uses claves upstream; "
-                "detalles: https://ia.forthtrade.com/help.json")
+                "Falta la API key del gateway de Free AI (FT_AI_API_KEY, "
+                "FREE_AI_API_KEY o GATEWAY_API_KEY). No uses claves upstream ni "
+                "una API_KEY genérica; detalles: https://ia.forthtrade.com/help.json")
         return super().generate(prompt, model=model, **kwargs)
 
     def __init__(self, api_key: str = None, model: str = None,
@@ -376,7 +377,6 @@ class ForthtradeGatewayLLM(OpenAILLM):
         self.model = (model or os.environ.get("FORTHTRADE_MODEL")
                       or FORTHTRADE_DEFAULT_MODEL)
         key = (api_key or os.environ.get("FT_AI_API_KEY")
-               or os.environ.get("API_KEY")
                or os.environ.get("FREE_AI_API_KEY")
                or os.environ.get("GATEWAY_API_KEY") or "")
         super().__init__(
@@ -475,6 +475,7 @@ class DeepSeekFreeAgentLLM(LLMProvider):
 
     El servicio reenvía los prompts a chat.deepseek.com: no es un LLM local ni
     una garantía de disponibilidad ilimitada. Cada llamada abre un chat nuevo.
+    No reintenta ni conmuta a otro proveedor: un fallo se eleva (regla 17).
     """
 
     def __init__(self, base_url: str = None, model: str = "deepseek-free-agent",
@@ -509,10 +510,10 @@ class DeepSeekFreeAgentLLM(LLMProvider):
         post = self._post or requests.post
         tarea = " ".join((DEEPSEEK_AGENT_READONLY_PREFIX + prompt).split())
 
-        def _pedir(abrir_chat_nuevo: bool) -> str:
+        def _pedir() -> str:
             response = post(
                 f"{self.base_url}/task",
-                json={"task": tarea, "newChat": abrir_chat_nuevo},
+                json={"task": tarea, "newChat": True},
                 timeout=(min(5.0, self.timeout), self.timeout),
                 allow_redirects=False,
                 stream=True,
@@ -544,13 +545,11 @@ class DeepSeekFreeAgentLLM(LLMProvider):
             finally:
                 response.close()
 
-        respuesta = _pedir(True)
+        respuesta = _pedir()
         if _deepseek_agent_intermedio(respuesta):
-            # El servicio bloqueante devolvió verificación/UI intermedia. Un
-            # reintento acotado (misma tarea, sin chat nuevo) puede obtener la
-            # respuesta real; nunca se hacen bucles ni reintentos ciegos.
-            respuesta = _pedir(False)
-        if _deepseek_agent_intermedio(respuesta):
+            # Un texto de verificación/UI no es una respuesta del modelo. La
+            # regla 17 exige elevar el fallo: no se reintenta ni se sustituye
+            # por otro proveedor (eso ocultaría el problema y duplicaría efectos).
             raise RuntimeError(
                 "deepseek-free-agent devolvió una verificación o texto intermedio, "
                 "no una respuesta válida del modelo")
@@ -576,6 +575,12 @@ class LocalFallbackLLM(LLMProvider):
         except (ValueError, PermissionError):
             raise
         except Exception as exc:  # noqa: BLE001 - fallback explícito y registrado
+            # Solo fallos operativos (red/timeout/429/5xx). Una clave inválida
+            # (401/403), una petición mal formada (400/422) o un endpoint
+            # inexistente (404) no se enmascaran con un modelo local.
+            status = getattr(exc, "status_code", None)
+            if status is not None and status not in TRANSIENT_STATUS:
+                raise
             self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
             self.fallback_calls += 1
             print(f"[LocalFallbackLLM] {self.last_fallback_reason}; "

@@ -1,7 +1,8 @@
 """Contrato offline del proveedor Free AI Gateway (ia.forthtrade.com).
 
-Sin red ni API key real. Verifica construcción, selección de clave del gateway
-(sin caer a OPENAI_API_KEY ajena), mensaje claro sin key y wiring de CLI/plugin.
+Sin red ni API key real. Verifica construcción, selección de clave específica
+del gateway (sin caer a OPENAI_API_KEY ni a una API_KEY genérica ajena),
+mensaje claro sin key y wiring de CLI/plugin.
 """
 
 import os
@@ -22,13 +23,24 @@ class TestForthtradeGateway(unittest.TestCase):
         self.assertEqual(llm.model, "auto")
         self.assertEqual(llm.api_key, "")
 
-    def test_acepta_claves_gateway_sin_usar_openai(self):
-        for var in ("FT_AI_API_KEY", "API_KEY", "FREE_AI_API_KEY", "GATEWAY_API_KEY"):
+    def test_acepta_claves_especificas_sin_usar_openai(self):
+        for var in ("FT_AI_API_KEY", "FREE_AI_API_KEY", "GATEWAY_API_KEY"):
             with self.subTest(var=var), patch.dict(
                     os.environ, {"OPENAI_API_KEY": "openai-no-usar", var: "gw"}, clear=True):
                 llm = ForthtradeGatewayLLM()
                 self.assertEqual(llm.api_key, "gw")
                 self.assertEqual(llm.base_url, "https://ia.forthtrade.com/v1")
+
+    def test_no_usa_api_key_generica(self):
+        """`API_KEY` puede ser de otro servicio: no debe enviarse a un tercero."""
+        with patch.dict(os.environ, {
+                "API_KEY": "clave-de-otro-servicio",
+                "OPENAI_API_KEY": "openai-no-usar",
+        }, clear=True):
+            llm = ForthtradeGatewayLLM()
+            self.assertEqual(llm.api_key, "")
+            with self.assertRaises(ValueError):
+                llm.generate("hola")
 
     def test_sin_key_falla_con_mensaje_claro(self):
         with patch.dict(os.environ, {}, clear=True):

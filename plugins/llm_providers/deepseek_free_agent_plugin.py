@@ -24,22 +24,26 @@ class DeepSeekFreeAgentPlugin(LLMProviderPlugin):
                     "base_url": {"type": "string", "default": "http://127.0.0.1:9527"},
                     "timeout": {"type": "number", "default": 300.0},
                     "authorized": {"type": "boolean", "default": False},
-                    "fallback_model": {"type": "string", "default": ""},
                 },
             },
         )
 
     def initialize(self) -> bool:
         try:
-            from llm_providers import DeepSeekFreeAgentLLM, LocalFallbackLLM, OllamaLLM
-            primary = DeepSeekFreeAgentLLM(
+            from llm_providers import DeepSeekFreeAgentLLM
+            authorized = self.config.params.get("authorized", False) is True
+            if not authorized:
+                # Fail-closed: sin autorización explícita el plugin no queda
+                # activo, aunque el servicio local esté disponible.
+                self.metadata.error_message = (
+                    "deepseek-free-agent requiere authorized: true explícito; "
+                    "reenvía prompts a chat.deepseek.com")
+                return False
+            self._llm = DeepSeekFreeAgentLLM(
                 base_url=self.config.params.get("base_url", "http://127.0.0.1:9527"),
                 timeout=self.config.params.get("timeout", 300.0),
-                authorized=self.config.params.get("authorized", False),
+                authorized=True,
             )
-            fallback_model = self.config.params.get("fallback_model", "")
-            self._llm = (LocalFallbackLLM(primary, OllamaLLM(model=fallback_model))
-                         if fallback_model else primary)
             self._initialized = True
             return True
         except Exception as exc:

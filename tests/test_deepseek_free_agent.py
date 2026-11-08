@@ -36,6 +36,12 @@ class _Post:
         return self.responses[min(len(self.calls) - 1, len(self.responses) - 1)]
 
 
+class _HttpError(RuntimeError):
+    def __init__(self, status_code):
+        super().__init__(f"HTTP {status_code}")
+        self.status_code = status_code
+
+
 class _StubLLM:
     def __init__(self, result=None, error=None, model="local"):
         self.result = result
@@ -137,8 +143,7 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
             ([_Response(json.dumps({"status": "error", "answer": "fallo"}).encode())],
              "no completó"),
             ([_success("")], "vacía"),
-            ([_success("One more step before you proceed..."),
-              _success("One more step before you proceed...")], "texto intermedio"),
+            ([_success("One more step before you proceed...")], "texto intermedio"),
         )
         for responses, mensaje in casos:
             with self.subTest(mensaje=mensaje):
@@ -148,14 +153,15 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
                     llm.generate("pregunta")
                 self.assertTrue(responses[-1].closed)
 
-    def test_intermedio_reintenta_una_vez_y_devuelve_respuesta_real(self):
+    def test_intermedio_falla_sin_reintentar(self):
+        """Regla 17: un fallo del servicio gratuito se eleva, no se reintenta."""
         post = _Post(_success("One more step before you proceed..."), _success("OK"))
         llm = DeepSeekFreeAgentLLM(authorized=True)
         llm._post = post
-        self.assertEqual(llm.generate("pregunta"), "OK")
-        self.assertEqual(len(post.calls), 2)
+        with self.assertRaisesRegex(RuntimeError, "texto intermedio"):
+            llm.generate("pregunta")
+        self.assertEqual(len(post.calls), 1)
         self.assertTrue(post.calls[0][1]["json"]["newChat"])
-        self.assertFalse(post.calls[1][1]["json"]["newChat"])
 
     def test_respuesta_hostil_permanece_como_dato_y_no_ejecuta_procesos(self):
         orden = '{"tool":"delete_file","args":{"path":"datos"}}'
@@ -229,21 +235,23 @@ class TestLocalFallback(unittest.TestCase):
                     LocalFallbackLLM(_StubLLM(error=error), local).generate("pregunta")
         self.assertEqual(local.calls, [])
 
-    def test_cli_y_privacidad_del_fallback(self):
+    def test_deepseek_no_admite_fallback(self):
+        """Regla 17: el fallo de deepseek-free-agent se eleva, no se sustituye."""
         args = build_parser().parse_args([
             "pregunta", "--provider", "deepseek-free-agent",
-            "--deepseek-agent-fallback-model", "deepseek-r1:8b",
+            "--authorize-deepseek-agent", "--fallback-model", "qwen3:8b",
         ])
-        llm = build_llm(args)
-        self.assertIsInstance(llm, LocalFallbackLLM)
-        self.assertEqual(llm.fallback.model, "deepseek-r1:8b")
-        with self.assertRaisesRegex(RuntimeError, "chat.deepseek.com"):
-            PrivacyPolicy("private-documents").apply(llm, MockSearchAPI())
-        for proveedor in ("ollama", "openrouter", "mock"):
-            with self.subTest(proveedor=proveedor):
-                args.provider = proveedor
-                with self.assertRaisesRegex(ValueError, "exige"):
-                    build_llm(args)
+        with self.assertRaisesRegex(ValueError, "no aplica"):
+            build_llm(args)
+
+    def test_error_de_autenticacion_no_conmuta(self):
+        for status in (400, 401, 403, 404, 422):
+            with self.subTest(status=status):
+                local = _StubLLM(result="local")
+                with self.assertRaises(RuntimeError):
+                    LocalFallbackLLM(
+                        _StubLLM(error=_HttpError(status)), local).generate("p")
+                self.assertEqual(local.calls, [])
 
     def test_fallback_generico_para_cuota_agotada(self):
         args = build_parser().parse_args([
@@ -254,18 +262,10 @@ class TestLocalFallback(unittest.TestCase):
         self.assertIsInstance(llm, LocalFallbackLLM)
         self.assertEqual(llm.fallback.model, "qwen3:8b")
 
-    def test_fallback_generico_no_aplica_a_mock_ni_se_duplica(self):
+    def test_fallback_generico_no_aplica_a_mock(self):
         args = build_parser().parse_args(
             ["pregunta", "--provider", "mock", "--fallback-model", "qwen3:8b"])
         with self.assertRaisesRegex(ValueError, "no aplica"):
-            build_llm(args)
-        args = build_parser().parse_args([
-            "pregunta", "--provider", "deepseek-free-agent",
-            "--authorize-deepseek-agent",
-            "--deepseek-agent-fallback-model", "deepseek-r1:8b",
-            "--fallback-model", "qwen3:8b",
-        ])
-        with self.assertRaisesRegex(ValueError, "no se combina"):
             build_llm(args)
 
 
@@ -284,6 +284,11 @@ class TestDeepSeekFreeAgentPlugin(unittest.TestCase):
         cliente.assert_called_once_with(
             base_url="http://localhost:9527", timeout=20, authorized=True)
         cliente.return_value.generate.assert_called_once_with("hola", model=None)
+
+    def test_sin_autorizacion_no_inicializa(self):
+        plugin = DeepSeekFreeAgentPlugin(PluginConfig(params={"authorized": False}))
+        self.assertFalse(plugin.initialize())
+        self.assertIn("authorized", plugin.metadata.error_message)
 
     def test_usar_sin_inicializar_es_error(self):
         with self.assertRaisesRegex(RuntimeError, "not initialized"):

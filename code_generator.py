@@ -19,6 +19,7 @@ Arquitectura:
 - Modo offline por defecto (MockLLM), opt-in real con proveedores
 """
 
+import os
 import re
 import sys
 import time
@@ -477,11 +478,18 @@ class EmpiricalValidator:
             # __init__.py para imports
             (tmp / "__init__.py").write_text("", encoding="utf-8")
 
+            # Aislamiento limitado: sin entorno heredado (evita filtrar claves y
+            # PYTHONPATH). No se usa `-I` porque unittest necesita importar los
+            # tests del cwd temporal. No es un sandbox.
+            env = {"PATH": os.environ.get("PATH", ""),
+                   "PYTHONIOENCODING": "utf-8",
+                   "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
             try:
                 result = subprocess.run(
                     [sys.executable, "-m", "unittest",
                      f"test_{module_name}", "-v"],
-                    cwd=tmpdir, capture_output=True, text=True, timeout=60
+                    cwd=tmpdir, capture_output=True, text=True, timeout=60,
+                    env=env, shell=False,
                 )
                 passed = result.returncode == 0
                 return {

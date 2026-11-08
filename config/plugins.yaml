@@ -32,14 +32,16 @@ plugins:
       max_retries: 3
       base_url: "https://api.deepseek.com/v1"
 
+  # Opt-in estricto: reenvía prompts a DeepSeek y no debe quedar autorizado
+  # en una configuración distribuida. Actívalo solo en tu config local tras
+  # revisar docs/DEEPSEEK-FREE-AGENT.md; un fallo se eleva (sin fallback).
   deepseek_free_agent:
-    enabled: true
+    enabled: false
     priority: 110
     params:
       base_url: "http://127.0.0.1:9527"
       timeout: 300
-      authorized: true  # Activado explícitamente por el usuario el 2026-11-06.
-      fallback_model: "deepseek-r1:8b"  # respaldo local si el servicio falla
+      authorized: false
 
   mock_llm:
     enabled: true
