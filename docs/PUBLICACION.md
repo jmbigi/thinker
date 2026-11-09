@@ -1,7 +1,8 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-07: **versión `0.1.24` publicada en TestPyPI y PyPI**.
+> Estado al 2026-11-09: **versión `0.1.25` en preparación** (aún no subida).
+> Última publicada: `0.1.24` (2026-11-07) en TestPyPI y PyPI.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20`,
@@ -17,8 +18,8 @@
 
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
-- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.24`
-  publicada en TestPyPI y PyPI; artefactos, hashes e instalaciones verificados.
+- `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.25`
+  preparada para TestPyPI y PyPI; la última publicada es `0.1.24`.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -26,7 +27,7 @@
   `python3 -m twine check dist/thinker_research-0.1.3*` PASA. Los
   artefactos `0.1.0`, `0.1.1` y `0.1.2` se conservan intactos.
 - **No subir `dist/*`**: incluye versiones antiguas. Subir solo
-  `dist/thinker_research-0.1.24*`.
+  `dist/thinker_research-0.1.25*`.
 - **Publicación completada de `0.1.3`**: está en TestPyPI y PyPI; el tag
   anotado `v0.1.3` está empujado y los hashes de PyPI coinciden con los
   artefactos generados desde el tag.
@@ -109,6 +110,19 @@ ya la sirvan (misma clase de retardo que el Hallazgo 91); el endpoint
 commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
+
+## Versión 0.1.25 (2026-11-09) — en preparación
+
+Paquete `thinker-research 0.1.25` (wheel y sdist), **preparado; subida en
+curso**. Esta release no cambia los módulos distribuidos: recoge los cambios
+de repositorio posteriores a `0.1.24` (subproyectos de investigación
+`proyecto_crdt`/`dsl`/`saga`/`temporal` con su configuración de pytest, demo
+`calculadora_gui.py`, capa `ai_worm_defense.py` y hook de pre-commit con
+preflight ignorando los subproyectos). Nada de eso se empaqueta: el contenido
+del wheel es el de `0.1.24` y solo cambia la versión declarada.
+
+Pendiente de completar tras la subida: hashes SHA-256, tag anotado, hashes en
+ambos índices e instalaciones limpias verificadas.
 
 ## Versión 0.1.24 (2026-11-07)
 
