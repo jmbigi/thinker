@@ -1,0 +1,13 @@
+[project]
+name = "proyecto-crdt-editor"
+version = "0.1.0"
+description = "Editor colaborativo offline-first con CRDTs"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends._legacy:_legacy"
