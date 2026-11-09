@@ -1,6 +1,6 @@
 {
-  "generado": "2026-11-08T02:22:35+00:00",
-  "commit": "24ce8e249387bfdd25cad12a9603cd93b0ef2846",
+  "generado": "2026-11-09T16:12:22+00:00",
+  "commit": "271558be6a97448bd43490db6e161ad92f2894f9",
   "python": "3.11.9",
   "so": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
   "controles": {
@@ -14,7 +14,7 @@
       "estado": "PASS",
       "codigo": 0,
       "resumen": "PREFLIGHT: OK (0 hallazgos, 8 warnings)",
-      "duracion_s": 2.0
+      "duracion_s": 3.2
     },
     "docs-check": {
       "estado": "PASS",
@@ -25,8 +25,8 @@
     "tests": {
       "estado": "PASS",
       "codigo": 0,
-      "resumen": "Ran 1514 tests in 18.452s | OK",
-      "duracion_s": 21.2
+      "resumen": "Ran 1562 tests in 40.891s | OK",
+      "duracion_s": 43.6
     },
     "holdout": {
       "estado": "PASS",
@@ -38,13 +38,13 @@
       "estado": "PASS",
       "codigo": 0,
       "resumen": "OK: sin secretos ni datos personales en archivos versionados",
-      "duracion_s": 0.3
+      "duracion_s": 0.4
     },
     "doctor": {
       "estado": "PASS",
       "codigo": 0,
       "resumen": "RESULTADO: entorno esencial correcto",
-      "duracion_s": 0.1
+      "duracion_s": 0.2
     }
   },
   "no_ejecutados": []
