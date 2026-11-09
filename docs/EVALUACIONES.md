@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1514/1514** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
+Suite **1562/1562** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
 en 3.12.3/3.14.4 desde el lock (openai 3.45.0 y ruff 0.13.2; última medición en
 esas versiones), preflight 0, docs-check OK; Hallazgo 225: deepseek-free-agent
 con autorización formal, egreso loopback, salida no confiable y requisitos
@@ -1538,7 +1538,7 @@ Forthtrade sigue **NO realizada** (sin clave en el entorno); DeepSeek real no se
 reintentó en esta ventana. Evidencia: `tests/test_deepseek_free_agent.py`
 (22/22), `tests/test_forthtrade_gateway.py` (8/8), `tests/test_code_generator.py`,
 `tests/test_security_gate.py` y CI local sobre copia limpia.
-Suite **1514/1514** en Linux, Ruff 0, preflight 0, docs-check OK, escaneo de
+Suite **1562/1562** en Linux, Ruff 0, preflight 0, docs-check OK, escaneo de
 secretos OK.
 
 **Actualización 2026-11-07** (publicación de `0.1.24`): artefactos construidos
@@ -1551,5 +1551,5 @@ TestPyPI y PyPI publican esos hashes. Instalaciones limpias desde ambos
 `evaluate-project --help`; la verificación `--con-red` del tag cubre las cuatro
 consolas. El primer `pip install` de PyPI no vio la versión; el
 segundo, tras 10 s, pasó (registrado, sin ocultarlo). Informe de calidad 7/7
-sobre `f30c8ac`. Suite **1514/1514** en Linux, Ruff 0, preflight 0, docs-check
+sobre `f30c8ac`. Suite **1562/1562** en Linux, Ruff 0, preflight 0, docs-check
 OK.
