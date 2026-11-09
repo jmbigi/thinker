@@ -1553,3 +1553,15 @@ consolas. El primer `pip install` de PyPI no vio la versión; el
 segundo, tras 10 s, pasó (registrado, sin ocultarlo). Informe de calidad 7/7
 sobre `f30c8ac`. Suite **1562/1562** en Linux, Ruff 0, preflight 0, docs-check
 OK.
+
+**Actualización 2026-11-09** (publicación de `0.1.25`): release sin cambios en
+los módulos distribuidos (solo metadatos de versión). Artefactos construidos
+desde el tag `v0.1.25` (commit `9476bf5`; objeto `974bb44`) en un worktree
+limpio y `twine check` PASSED. SHA-256:
+`74edf0b9c05bb81753ef6f3f84209ba05a532d6caf73e1feafafe8e55ae171ba` (wheel) y
+`58424275c1d8422ab06b7f0af9ed44c139aaa020df0d5d2794997efe63f7c77c` (sdist);
+TestPyPI y PyPI publican esos hashes. Instalaciones limpias desde ambos
+índices: `pip check`, versión `0.1.25`, las cuatro consolas y 21 imports base
+(`neural_concepts` exige el extra `ml`). El primer `pip install` desde PyPI no
+dejó metadatos en el venv; el segundo, con salida visible, pasó (registrado,
+sin ocultarlo). Informe de calidad **7/7 PASS** sobre `271558b`. Suite **1562/1562** en Linux, Ruff 0, preflight 0, docs-check OK.

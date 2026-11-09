@@ -5205,3 +5205,25 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   del tag, y los hashes se comparan antes de subir. Un primer intento de
   `pip install` que no ve la versión se registra y se reintenta con límite; no
   se declara éxito hasta que el índice y la instalación coinciden.
+### Hallazgo 236: release 0.1.25 — la verificación se hace desde un CWD ajeno
+
+- **Fecha**: 2026-11-09
+- **Problema**: la primera verificación de `pip install thinker-research==0.1.25`
+  en el venv limpio informó `version: 0.1.24`. La causa no era la subida: el
+  comando se ejecutó desde el árbol del repo, cuyo `thinker_research.egg-info`
+  registra la versión del árbol y sombrea la metadata instalada. Además, el
+  primer `pip install -q ... | tail` no dejó metadatos en el venv y el `-q`
+  ocultó el detalle; solo al repetirlo con salida visible se pudo comprobar que
+  la instalación no había ocurrido.
+- **Decisión**: repetir la instalación sin `-q`, consultar `pip show` y
+  `importlib.metadata.version` desde `/tmp` (CWD ajeno al repo), y registrar el
+  primer intento fallido sin ocultarlo. Los hashes se compararon antes de dar la
+  subida por buena.
+- **Verificación**: venv `/tmp/venv-pypi-0125` desde PyPI y
+  `/tmp/venv-testpypi-0125` desde TestPyPI, ambos con `version: 0.1.25`,
+  `pip check` limpio, las cuatro consolas y 21 imports base; los índices
+  publican `74edf0b9...` (wheel) y `58424275...` (sdist).
+- **Lección**: la versión de un paquete instalado se comprueba desde un
+  directorio fuera del repo (o con `pip show` dentro del venv); `egg-info` en el
+  CWD puede falsear `importlib.metadata`. Los comandos de verificación no se
+  silencian con `-q` hasta que han pasado una vez.

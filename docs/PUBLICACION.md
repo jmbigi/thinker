@@ -1,12 +1,12 @@
 # Publicación en PyPI — `thinker-research`
 
 > Guía durable para publicar y mantener el paquete en PyPI.
-> Estado al 2026-11-09: **versión `0.1.25` en preparación** (aún no subida).
-> Última publicada: `0.1.24` (2026-11-07) en TestPyPI y PyPI.
+> Estado al 2026-11-09: **versión `0.1.25` publicada en TestPyPI y PyPI**.
 > Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.1.3`, `v0.1.4`, `v0.1.5`, `v0.1.6`,
 > `v0.1.7`, `v0.1.8`, `v0.1.9`, `v0.1.10`, `v0.1.11`, `v0.1.12`, `v0.1.13`,
 > `v0.1.14`, `v0.1.15`, `v0.1.16`, `v0.1.17`, `v0.1.18`, `v0.1.19`, `v0.1.20`,
-> `v0.1.21`, `v0.1.22`, `v0.1.23` y `v0.1.24` empujados; `v0.1.2` a `v0.1.24` son anotados. `0.1.2` **no
+> `v0.1.21`, `v0.1.22`, `v0.1.23`, `v0.1.24` y `v0.1.25` empujados; `v0.1.2`
+> a `v0.1.25` son anotados. `0.1.2` **no
 > se publicó**: su README decía que PyPI estaba pendiente y la ficha se habría
 > contradicho; `0.1.3` corrige el texto con una formulación durable. No se usa
 > la CLI `gh` ni se crean GitHub Releases desde el repositorio (regla propia
@@ -19,7 +19,7 @@
 - Nombre: **`thinker-research`** (`thinker` está ocupado desde 2017 por otro
   autor — verificado contra la API de PyPI el 2026-10-20).
 - `pyproject.toml` lleva `name = "thinker-research"`, versión `0.1.25`
-  preparada para TestPyPI y PyPI; la última publicada es `0.1.24`.
+  publicada en TestPyPI y PyPI; artefactos, hashes e instalaciones verificados.
 - `0.1.3` es una release **solo de documentación**: README durable, guía de
   publicación sin CLI de GitHub ni GitHub Releases y versión actualizada. No
   cambia código.
@@ -82,6 +82,9 @@
 - **Publicación completada de `0.1.24`**: TestPyPI y PyPI, con hashes
   coincidentes, tag anotado `v0.1.24` (objeto `defda50`, commit `c4dc0ea`) e
   instalaciones limpias verificadas; ver la sección 0.1.24.
+- **Publicación completada de `0.1.25`**: TestPyPI y PyPI, con hashes
+  coincidentes, tag anotado `v0.1.25` (objeto `974bb44`, commit `9476bf5`) e
+  instalaciones limpias verificadas; ver la sección 0.1.25.
 - **Pendiente administrativo**: crear el token limitado a
   `thinker-research` y revocar el token global.
 - **Sin GitHub Release**: la distribución no la requiere; no se crea ni se
@@ -111,18 +114,30 @@ commit posterior a la publicación, para no alterar los artefactos ya
 verificados. Tag anotado `v0.1.4` (commit `858bdf8`) creado y empujado;
 `git ls-remote` confirma el tag y su objeto.
 
-## Versión 0.1.25 (2026-11-09) — en preparación
+## Versión 0.1.25 (2026-11-09)
 
-Paquete `thinker-research 0.1.25` (wheel y sdist), **preparado; subida en
-curso**. Esta release no cambia los módulos distribuidos: recoge los cambios
+Paquete `thinker-research 0.1.25` (wheel y sdist), **publicado en TestPyPI y
+PyPI**. Esta release no cambia los módulos distribuidos: recoge los cambios
 de repositorio posteriores a `0.1.24` (subproyectos de investigación
 `proyecto_crdt`/`dsl`/`saga`/`temporal` con su configuración de pytest, demo
 `calculadora_gui.py`, capa `ai_worm_defense.py` y hook de pre-commit con
 preflight ignorando los subproyectos). Nada de eso se empaqueta: el contenido
 del wheel es el de `0.1.24` y solo cambia la versión declarada.
 
-Pendiente de completar tras la subida: hashes SHA-256, tag anotado, hashes en
-ambos índices e instalaciones limpias verificadas.
+Validación: suite **1562/1562** en Linux 3.11.9; gates `ruff`, `preflight`,
+`docs-check`, `tests`, `holdout`, `secrets` y `doctor` en verde; informe de
+calidad **7/7 PASS** sobre `271558b` (`docs/informe-calidad.json`). Artefactos
+construidos desde el tag `v0.1.25` (commit `9476bf5`; objeto `974bb44`) en un
+worktree limpio; `twine check` PASSED. SHA-256:
+`74edf0b9c05bb81753ef6f3f84209ba05a532d6caf73e1feafafe8e55ae171ba` (wheel) y
+`58424275c1d8422ab06b7f0af9ed44c139aaa020df0d5d2794997efe63f7c77c` (sdist).
+Ambos índices publican esos hashes. Instalaciones limpias desde TestPyPI y
+PyPI pasan `pip check`, versión `0.1.25`, las cuatro consolas
+(`evaluate-project`, `think`, `research`, `code-design`) y 21 imports base
+(19 módulos públicos + `plugins.registry` y `scripts.preflight`);
+`neural_concepts` sigue exigiendo el extra `ml` (`torch`). El primer intento
+de instalación desde PyPI no dejó metadatos en el venv; el segundo, con salida
+visible, instaló correctamente y se registra sin ocultarlo.
 
 ## Versión 0.1.24 (2026-11-07)
 

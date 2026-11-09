@@ -66,7 +66,7 @@ quedan **0 brechas + 125 equivalencias validadas**.
 | Mutación global | **95,2%** (3635/3819; 2026-10-24) | `make mutation`; **excluye** evaluador y preflight |
 | Mutación preflight | **95,18%** (967/1016; 49 supervivientes, 0 timeouts; 2026-10-26) | `python3 scripts/mutacion.py --objetivo preflight` |
 | Mutación evaluador | **80,98%** (4846/5984; 1138 supervivientes: 1131 brechas + 7 equivalencias, 0 timeouts; 2026-10-28) | `python3 scripts/mutacion.py --objetivo evaluar` |
-| Paquete actual | **0.1.25** (2026-11-09; preparado para TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
+| Paquete actual | **0.1.25** (2026-11-09; publicado en TestPyPI y PyPI) | `pyproject.toml` / `docs/PUBLICACION.md` |
 
 Lectura: el proyecto está sano en tests, CI y cobertura (91% en evaluador y
 preflight). La deuda histórica de **mutación** de esos dos módulos (R3) quedó
