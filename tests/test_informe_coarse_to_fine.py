@@ -51,6 +51,19 @@ class TestInformeCoarseToFine(unittest.TestCase):
                       llm.prompts[0])
         self.assertNotIn("Design the outline", llm.prompts[0])
 
+    def test_auditoria_llega_al_esquema_y_a_las_secciones(self):
+        llm = StubLLM(responder_por_etapas(
+            '{"secciones": [{"titulo": "Uno"}]}',
+            {"Uno": "Contenido [1]"}))
+        ctx = contexto()
+        ctx.claims.append({"claim": "c3"})
+
+        ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
+
+        for prompt in (llm.prompts[0], llm.prompts[1]):
+            self.assertIn("- Unverified (not evaluated): 1", prompt)
+            self.assertIn("Do not present them as findings", prompt)
+
     def test_activo_genera_esquema_y_una_llamada_por_seccion(self):
         llm = StubLLM(responder_por_etapas(
             '{"secciones": [{"titulo": "Uno"}, {"titulo": "Dos"}]}',

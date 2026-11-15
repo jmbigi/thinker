@@ -33,6 +33,10 @@ class TestResearchCLI(unittest.TestCase):
         self.assertEqual(datos["question"], "Energía solar")
         self.assertIn("SIMULADO", errores)
         self.assertIn("Completado:", errores)
+        self.assertEqual(datos["pipeline_audit"]["claims"],
+                         len(datos["claims"]))
+        self.assertIn("sin_evaluar=", errores)
+        self.assertIn("cuello=", errores)
 
     def test_documentos_locales_conservan_procedencia(self):
         documento = self.raiz / "solar.txt"

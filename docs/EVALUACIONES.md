@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1562/1562** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
+Suite **1572/1572** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
 en 3.12.3/3.14.4 desde el lock (openai 3.45.0 y ruff 0.13.2; última medición en
 esas versiones), preflight 0, docs-check OK; Hallazgo 225: deepseek-free-agent
 con autorización formal, egreso loopback, salida no confiable y requisitos
@@ -1565,3 +1565,51 @@ TestPyPI y PyPI publican esos hashes. Instalaciones limpias desde ambos
 (`neural_concepts` exige el extra `ml`). El primer `pip install` desde PyPI no
 dejó metadatos en el venv; el segundo, con salida visible, pasó (registrado,
 sin ocultarlo). Informe de calidad **7/7 PASS** sobre `271558b`. Suite **1562/1562** en Linux, Ruff 0, preflight 0, docs-check OK.
+
+**Actualización 2026-11-15** (auditoría de pass-through, Chen & Stratton):
+se incorporó la referencia verificada del job market paper *Artificial
+Intelligence in the Firm: Bottlenecks in Software Production*
+(https://fion.ac/jellyfish.pdf, 14-11-2026) y se implementó su lección
+medible: `ResearchContext.pipeline_audit()` cuenta claims extraídos,
+evaluados, respaldados, contradichos y sin evaluar, calcula cobertura,
+`support_rate` y `verified_yield`, y señala la etapa con mayor pérdida
+(`evaluation` o `evidence`). `ReportGenerator` añade una auditoría interna al
+prompt y una instrucción explícita para no citar claims `not evaluated`;
+`decision_log` registra `pipeline_audit`; el estado JSON incluye la auditoría
+como campo derivado y la CLI resume `verificados`, `sin_evaluar` y `cuello` en
+stderr. Sin llamadas nuevas y sin cambios en `to_dict()`. La mejora de calidad
+del informe no se atribuye sin medirla: el
+benchmark offline con `MockLLM` no mide calidad real. Evidencia:
+`tests/test_deep_research_system.py` 223/223 (9 tests nuevos) y
+`tests/test_informe_coarse_to_fine.py` 21/21 (+1), Ruff 0, preflight 0,
+docs-check OK. Suite **1572/1572** en Linux, Ruff 0, preflight 0,
+docs-check OK.
+
+### Avances y pendientes (2026-11-15)
+
+**Avances verificados:**
+- Referencia Chen & Stratton (2026) revisada desde el PDF descargado
+  (`pdftotext`, 6.034 líneas) e incorporada a `docs/REFERENCIAS-IA.md` §4.6.
+- `ResearchContext.pipeline_audit()`: pass-through determinista de claims
+  extraídos a verificados, con cobertura, tasa de respaldo, rendimiento
+  verificado y cuello declarado (`evaluation`/`evidence`/`None`).
+- Auditoría en el prompt de informe (pasada única, coarse-to-fine y NCM) con
+  prohibición explícita de citar claims `not evaluated`; registro en
+  `decision_log`; campo derivado en el estado JSON y resumen en la CLI.
+- 10 tests nuevos y suite completa **1572/1572**; Ruff 0, preflight 0,
+  docs-check OK; autoevaluación 1.000; demo offline correcta.
+
+**Pendientes declarados (no se presentan como hechos):**
+- **Calidad real del informe**: sin medir. El benchmark offline con `MockLLM`
+  no mide calidad; falta una campaña opt-in con LLM real (`:free`), `n`
+  declarado, rúbricas comparables y coste/errores registrados.
+- **Mutación**: la lógica nueva (`pipeline_audit`, `_auditoria_texto` y las
+  ramas del prompt) añade mutantes que no se han triado; no hay tasa nueva.
+- **PDF de referencia**: `jellyfish.pdf` no se versiona (material de terceros
+  sin licencia de redistribución en este repo); se ignora con una regla
+  específica y se reproduce desde https://fion.ac/jellyfish.pdf.
+- **Esquema de estado**: `pipeline_audit` es aditivo y derivado; se mantiene
+  `STATE_SCHEMA_VERSION = 1` porque se ignora al restaurar. Revisar si un
+  consumidor externo exige subir la versión.
+- **`docs/informe-calidad.json`**: se regenera sobre el commit de código para
+  que las cifras de gates y suite no queden desfasadas.

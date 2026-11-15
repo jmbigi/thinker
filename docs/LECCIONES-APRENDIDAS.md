@@ -5227,3 +5227,31 @@ con fecha, problema, solución y evidencia. Anonimizado (P0.9).
   directorio fuera del repo (o con `pip show` dentro del venv); `egg-info` en el
   CWD puede falsear `importlib.metadata`. Los comandos de verificación no se
   silencian con `-q` hasta que han pasado una vez.
+### Hallazgo 237: el output intermedio no es el output final (pass-through)
+
+- **Fecha**: 2026-11-15
+- **Problema**: thinker reportaba fuentes, claims y evaluaciones como conteos
+  separados, pero no cuántos claims extraídos llegaban a estar **verificados**.
+  Un informe podía presentar claims `not evaluated` con el mismo formato que los
+  respaldados, y nada en el `decision_log` señalaba esa pérdida. El paper de
+  Chen & Stratton (2026) documenta el mismo patrón en producción de software:
+  el código generado sube mucho y el output final poco; la revisión se convierte
+  en cuello de botella.
+- **Decisión**: añadir `ResearchContext.pipeline_audit()` (determinista, sin
+  llamadas nuevas) con cobertura de evaluación, tasa de respaldo y rendimiento
+  verificado, y una heurística declarada de cuello por mayor pérdida absoluta
+  (`evaluation` o `evidence`). `ReportGenerator` incluye una auditoría interna
+  cuando hay cuello y prohíbe citar claims `not evaluated`; `decision_log`
+  registra `pipeline_audit`; el estado JSON lo expone como campo derivado y la
+  CLI resume verificados, sin evaluar y cuello. No se cambió `to_dict()` ni se
+  añadieron dependencias.
+- **Verificación**: 10 tests nuevos (9 en `test_deep_research_system`, 1 en
+  `test_informe_coarse_to_fine`); 223/223 y 21/21; suite completa **1572/1572**
+  en Linux 3.11.9; Ruff 0, preflight 0, docs-check OK; demo offline completa.
+  Autoevaluación `evaluar_proyecto.py . --sin-red` **1.000** (6/6 dimensiones).
+  El benchmark con `MockLLM` no mide calidad real:
+  la mejora del informe con la instrucción queda pendiente de una campaña
+  opt-in con LLM real.
+- **Lección**: contar output intermedio no demuestra progreso. Toda etapa que
+  pueda limitar el resultado final debe exponer su pérdida y su cobertura, y lo
+  no verificado debe declararse como tal, no mezclarse con lo respaldado.

@@ -287,9 +287,13 @@ def main(argv=None) -> int:
             destino.write_text(contenido, encoding="utf-8")
             print(f"Informe escrito: {destino}", file=sys.stderr)
         resumen = context.to_dict()
+        auditoria = context.pipeline_audit()
         print(
             f"Completado: {resumen['duration_seconds']}s | fuentes={resumen['num_sources']} "
             f"claims={resumen['num_claims']} evaluaciones={resumen['num_evaluations']} "
+            f"verificados={auditoria['supported_claims']} "
+            f"sin_evaluar={auditoria['unverified_claims']} "
+            f"cuello={auditoria['bottleneck'] or 'ninguno'} "
             f"decisiones={resumen['decisions']}", file=sys.stderr)
         return 0
     except Exception as exc:

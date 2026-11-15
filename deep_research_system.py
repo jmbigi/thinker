@@ -88,6 +88,69 @@ class ResearchContext:
             "duration_seconds": round(time.time() - self.start_time, 3),
         }
 
+    def pipeline_audit(self) -> Dict[str, Any]:
+        """Audita el paso de claims extraídos a claims verificados.
+
+        Inspirado en Chen & Stratton (2026): el output intermedio (fuentes,
+        claims) no es el output final; la capacidad de verificación puede ser
+        el cuello de botella. Es una heurística determinista, no una estimación
+        estructural: cuenta claims por texto, igual que `ReportGenerator`.
+        """
+        veredictos_por_claim: Dict[str, List[str]] = {}
+        for evaluacion in self.evaluations:
+            texto = evaluacion.get("claim", "")
+            veredictos_por_claim.setdefault(texto, []).append(
+                evaluacion.get("verdict", "not_addressed"))
+
+        evaluadas = 0
+        soportadas = 0
+        contradichas = 0
+        no_abordadas = 0
+        sin_evaluar = 0
+        for claim in self.claims:
+            texto = claim.get("claim", "")
+            veredictos = veredictos_por_claim.get(texto)
+            if veredictos is None:
+                sin_evaluar += 1
+                continue
+            evaluadas += 1
+            if "supported" in veredictos:
+                soportadas += 1
+            if "contradicted" in veredictos:
+                contradichas += 1
+            if all(v == "not_addressed" for v in veredictos):
+                no_abordadas += 1
+
+        total = len(self.claims)
+        perdida_evaluacion = sin_evaluar
+        perdida_evidencia = evaluadas - soportadas
+        if perdida_evaluacion == 0 and perdida_evidencia == 0:
+            cuello = None
+        elif perdida_evaluacion >= perdida_evidencia:
+            cuello = "evaluation"
+        else:
+            cuello = "evidence"
+
+        return {
+            "subquestions": len(self.subquestions),
+            "sources": len(self.sources),
+            "claims": total,
+            "evaluations": len(self.evaluations),
+            "evaluated_claims": evaluadas,
+            "supported_claims": soportadas,
+            "contradicted_claims": contradichas,
+            "not_addressed_claims": no_abordadas,
+            "unverified_claims": sin_evaluar,
+            "evaluation_coverage": (round(evaluadas / total, 3)
+                                    if total else None),
+            "support_rate": (round(soportadas / evaluadas, 3)
+                             if evaluadas else None),
+            "verified_yield": (round(soportadas / total, 3)
+                               if total else None),
+            "bottleneck": cuello,
+            "bottleneck_loss": max(perdida_evaluacion, perdida_evidencia),
+        }
+
 
 class DecisionEngine(ABC):
     """Abstract base class for decision-making components."""
@@ -671,6 +734,9 @@ class ReportGenerator(DecisionEngine):
             e.get("verdict") == "supported" for e in context.evaluations
             if e.get("claim") == c.get("claim"))]
 
+        auditoria = context.pipeline_audit()
+        auditoria_txt = self._auditoria_texto(auditoria)
+
         # Grounding: el informe debe poder citar lo recuperado. Sin fuentes ni
         # claims en el prompt, el modelo inventaría las citas exigidas (P0.2).
         fuentes_txt = ""
@@ -722,7 +788,7 @@ Source data:
 
 Evidence evaluations: {len(context.evaluations)}
 
-Generate the full report in markdown format with proper citations [1], [2] etc.
+{auditoria_txt}Generate the full report in markdown format with proper citations [1], [2] etc.
 matching the sources retrieved. Be factual and acknowledge uncertainties."""
 
         if self.coarse_to_fine:
@@ -738,6 +804,14 @@ matching the sources retrieved. Be factual and acknowledge uncertainties."""
         context.conclusions = self._extract_conclusions(report)
         context.add_decision("report_generation", "generate",
                              f"Report generated with {len(context.conclusions)} conclusion sections")
+        context.add_decision(
+            "pipeline_audit", "assess",
+            f"claims={auditoria['claims']}; "
+            f"evaluadas={auditoria['evaluated_claims']}; "
+            f"verificadas={auditoria['supported_claims']}; "
+            f"sin_evaluar={auditoria['unverified_claims']}; "
+            f"cuello={auditoria['bottleneck'] or 'ninguno'}; "
+            f"perdida={auditoria['bottleneck_loss']}")
         contexto_citas = context.citation_checks
         context.add_decision(
             "citation_verification", "verify",
@@ -750,11 +824,34 @@ matching the sources retrieved. Be factual and acknowledge uncertainties."""
             f"duplicados={len(context.source_quality.get('grupos_duplicados', []))}")
         return report
 
+    @staticmethod
+    def _auditoria_texto(auditoria: Dict[str, Any]) -> str:
+        """Auditoría interna del pass-through para el prompt, o cadena vacía."""
+        if auditoria["bottleneck"] is None:
+            return ""
+        cobertura = auditoria["evaluation_coverage"]
+        cobertura_txt = "n/a" if cobertura is None else f"{cobertura:.1%}"
+        texto = (
+            "Pipeline audit (internal; do not include these counts in the report):\n"
+            f"- Claims evaluated: {auditoria['evaluated_claims']}/"
+            f"{auditoria['claims']} (coverage {cobertura_txt})\n"
+            f"- Verified (supported): {auditoria['supported_claims']}\n"
+            f"- Unverified (not evaluated): {auditoria['unverified_claims']}\n"
+            f"- Bottleneck: {auditoria['bottleneck']} "
+            f"(largest stage loss: {auditoria['bottleneck_loss']})\n\n")
+        if auditoria["unverified_claims"]:
+            texto += (
+                "Claims marked `not evaluated` are unverified. Do not present "
+                "them as findings\nor cite them as evidence; if relevant, list "
+                "them under Limitations as open\nquestions.\n\n")
+        return texto
+
     def _generar_coarse_to_fine(self, context: ResearchContext,
                                 prompt_unica: str, fuentes_txt: str,
                                 claims_txt: str) -> str:
         """Esquema primero, secciones después; si el esquema falla, pasada única."""
         subpreguntas = "\n".join(f"- {s}" for s in context.subquestions)
+        auditoria_txt = self._auditoria_texto(context.pipeline_audit())
         prompt_esquema = f"""Design the outline for a research report answering: {context.question}
 
 Sub-questions:
@@ -762,7 +859,7 @@ Sub-questions:
 
 Evaluated claims:
 {claims_txt}
-Return ONLY valid JSON with this shape:
+{auditoria_txt}Return ONLY valid JSON with this shape:
 {{"secciones": [{{"titulo": "...", "subpregunta": "...", "claims": ["..."]}}]}}
 Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON."""
 
@@ -926,7 +1023,11 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
     def _prompt_seccion(self, seccion: Dict[str, Any],
                         context: ResearchContext, fuentes_txt: str,
                         claims_txt: str) -> str:
-        """Prompt de una sección; filtra claims si el esquema los declara."""
+        """Prompt de una sección; filtra claims si el esquema los declara.
+
+        Incluye la auditoría de pass-through: el NCM y el coarse-to-fine
+        reutilizan este método y también deben saber qué claims no se evaluaron.
+        """
         seleccion = claims_txt
         if seccion["claims"]:
             lineas = [linea for linea in claims_txt.splitlines()
@@ -935,6 +1036,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
             if lineas:
                 seleccion = "\n".join(lineas)
         foco = seccion["subpregunta"] or "(not specified)"
+        auditoria_txt = self._auditoria_texto(context.pipeline_audit())
         return f"""Write the section "{seccion['titulo']}" of a research report for: {context.question}
 
 Sub-question: {foco}
@@ -951,7 +1053,7 @@ Retrieved sources:
 Relevant evaluated claims:
 {seleccion}
 
-Return only the section body in markdown, without repeating the section title."""
+{auditoria_txt}Return only the section body in markdown, without repeating the section title."""
 
     def _extract_conclusions(self, report: str) -> List[Dict[str, Any]]:
         sections = re.split(r'\n#+\s*', report)

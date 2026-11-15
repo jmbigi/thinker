@@ -48,6 +48,9 @@ def context_to_state(context: ResearchContext, report: str = "",
         "processed_source_keys": list(context.processed_source_keys),
         "evaluated_claim_keys": list(context.evaluated_claim_keys),
         "duration_seconds": round(time.time() - context.start_time, 3),
+        # Derivado, no fuente de verdad: se recalcula al cargar y se ignora al
+        # restaurar. Expone el pass-through para no contar solo output intermedio.
+        "pipeline_audit": context.pipeline_audit(),
         "report": report,
         "completed": completed,
     }

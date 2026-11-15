@@ -477,6 +477,155 @@ class TestResearchContext(unittest.TestCase):
         self.assertEqual(resumen["num_claims"], 0)
 
 
+class TestPipelineAudit(unittest.TestCase):
+    def test_auditoria_vacia(self):
+        auditoria = ResearchContext("q").pipeline_audit()
+
+        self.assertEqual(auditoria, {
+            "subquestions": 0,
+            "sources": 0,
+            "claims": 0,
+            "evaluations": 0,
+            "evaluated_claims": 0,
+            "supported_claims": 0,
+            "contradicted_claims": 0,
+            "not_addressed_claims": 0,
+            "unverified_claims": 0,
+            "evaluation_coverage": None,
+            "support_rate": None,
+            "verified_yield": None,
+            "bottleneck": None,
+            "bottleneck_loss": 0,
+        })
+
+    def test_cobertura_y_cuello_de_evaluacion(self):
+        ctx = ResearchContext("q")
+        ctx.subquestions = ["s1", "s2"]
+        ctx.sources = [{"url": "u1"}, {"url": "u2"}]
+        ctx.claims = [{"claim": "c1"}, {"claim": "c2"}, {"claim": "c3"}]
+        ctx.evaluations = [
+            {"claim": "c1", "verdict": "supported"},
+            {"claim": "c2", "verdict": "contradicted"},
+        ]
+
+        auditoria = ctx.pipeline_audit()
+
+        self.assertEqual(auditoria["subquestions"], 2)
+        self.assertEqual(auditoria["sources"], 2)
+        self.assertEqual(auditoria["evaluated_claims"], 2)
+        self.assertEqual(auditoria["supported_claims"], 1)
+        self.assertEqual(auditoria["contradicted_claims"], 1)
+        self.assertEqual(auditoria["unverified_claims"], 1)
+        self.assertEqual(auditoria["evaluation_coverage"], 0.667)
+        self.assertEqual(auditoria["support_rate"], 0.5)
+        self.assertEqual(auditoria["verified_yield"], 0.333)
+        self.assertEqual(auditoria["bottleneck"], "evaluation")
+        self.assertEqual(auditoria["bottleneck_loss"], 1)
+
+    def test_cuello_de_evidencia_y_no_abordados(self):
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}, {"claim": "c2"}, {"claim": "c3"}]
+        ctx.evaluations = [
+            {"claim": "c1", "verdict": "supported"},
+            {"claim": "c2", "verdict": "contradicted"},
+            {"claim": "c3"},
+        ]
+
+        auditoria = ctx.pipeline_audit()
+
+        self.assertEqual(auditoria["evaluated_claims"], 3)
+        self.assertEqual(auditoria["supported_claims"], 1)
+        self.assertEqual(auditoria["contradicted_claims"], 1)
+        self.assertEqual(auditoria["not_addressed_claims"], 1)
+        self.assertEqual(auditoria["unverified_claims"], 0)
+        self.assertEqual(auditoria["bottleneck"], "evidence")
+        self.assertEqual(auditoria["bottleneck_loss"], 2)
+        self.assertEqual(auditoria["verified_yield"], 0.333)
+
+    def test_sin_cuello_cuando_todo_esta_respaldado(self):
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}, {"claim": "c2"}]
+        ctx.evaluations = [
+            {"claim": "c1", "verdict": "supported"},
+            {"claim": "c2", "verdict": "supported"},
+        ]
+
+        auditoria = ctx.pipeline_audit()
+
+        self.assertIsNone(auditoria["bottleneck"])
+        self.assertEqual(auditoria["bottleneck_loss"], 0)
+        self.assertEqual(auditoria["verified_yield"], 1.0)
+
+    def test_evaluacion_huerfana_no_cubre_el_claim(self):
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}]
+        ctx.evaluations = [{"claim": "otro", "verdict": "supported"}]
+
+        auditoria = ctx.pipeline_audit()
+
+        self.assertEqual(auditoria["evaluated_claims"], 0)
+        self.assertEqual(auditoria["unverified_claims"], 1)
+        self.assertIsNone(auditoria["support_rate"])
+        self.assertEqual(auditoria["bottleneck"], "evaluation")
+
+    def test_prompt_audita_claims_sin_evaluar(self):
+        llm = StubLLM(lambda p: "informe")
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}, {"claim": "c2"}]
+        ctx.evaluations = [{"claim": "c1", "verdict": "supported"}]
+
+        ReportGenerator(llm).decide(ctx)
+
+        prompt = llm.prompts[0]
+        self.assertIn(
+            "Pipeline audit (internal; do not include these counts in the report):",
+            prompt)
+        self.assertIn("- Claims evaluated: 1/2 (coverage 50.0%)", prompt)
+        self.assertIn("- Verified (supported): 1", prompt)
+        self.assertIn("- Unverified (not evaluated): 1", prompt)
+        self.assertIn("- Bottleneck: evaluation (largest stage loss: 1)", prompt)
+        self.assertIn("Claims marked `not evaluated` are unverified.", prompt)
+
+    def test_prompt_sin_huecos_no_anade_auditoria(self):
+        llm = StubLLM(lambda p: "informe")
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}]
+        ctx.evaluations = [{"claim": "c1", "verdict": "supported"}]
+
+        ReportGenerator(llm).decide(ctx)
+
+        self.assertNotIn("Pipeline audit", llm.prompts[0])
+
+    def test_prompt_audita_cuello_de_evidencia_sin_claims_sin_evaluar(self):
+        llm = StubLLM(lambda p: "informe")
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}, {"claim": "c2"}]
+        ctx.evaluations = [{"claim": "c1", "verdict": "supported"},
+                           {"claim": "c2", "verdict": "contradicted"}]
+
+        ReportGenerator(llm).decide(ctx)
+
+        prompt = llm.prompts[0]
+        self.assertIn("- Claims evaluated: 2/2 (coverage 100.0%)", prompt)
+        self.assertIn("- Bottleneck: evidence (largest stage loss: 1)", prompt)
+        self.assertNotIn("Claims marked `not evaluated` are unverified.", prompt)
+
+    def test_decision_registra_auditoria(self):
+        ctx = ResearchContext("q")
+        ctx.claims = [{"claim": "c1"}]
+
+        ReportGenerator(StubLLM(lambda p: "informe")).decide(ctx)
+
+        decisiones = [d for d in ctx.decision_log
+                      if d["step"] == "pipeline_audit"]
+        self.assertEqual(len(decisiones), 1)
+        self.assertEqual(decisiones[0]["decision"], "assess")
+        self.assertEqual(
+            decisiones[0]["rationale"],
+            "claims=1; evaluadas=0; verificadas=0; sin_evaluar=1; "
+            "cuello=evaluation; perdida=1")
+
+
 class TestDecisionEngines(unittest.TestCase):
     def test_decision_engine_es_abstracto(self):
         with self.assertRaises(TypeError):
@@ -1860,6 +2009,12 @@ Source data:
 - Total sources retrieved: 1
 
 Evidence evaluations: 2
+
+Pipeline audit (internal; do not include these counts in the report):
+- Claims evaluated: 2/2 (coverage 100.0%)
+- Verified (supported): 1
+- Unverified (not evaluated): 0
+- Bottleneck: evidence (largest stage loss: 1)
 
 Generate the full report in markdown format with proper citations [1], [2] etc.
 matching the sources retrieved. Be factual and acknowledge uncertainties.""")

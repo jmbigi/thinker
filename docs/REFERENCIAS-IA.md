@@ -1,7 +1,8 @@
 # Estudio de teoría y práctica de IA aplicada a thinker
 
 **Fecha de verificación:** 2026-10-16; **ampliado el 2026-10-23** con fuentes
-primarias re-verificadas (§4). **Método:** cada referencia de arXiv se
+primarias re-verificadas (§4) y el **2026-11-15** con Chen & Stratton (§4.6).
+**Método:** cada referencia de arXiv se
 comprobó contra la API oficial (`export.arxiv.org`, título/año/autores reales) y
 cada guía de ingeniería con una petición HTTP real (código 200 y contenido). No
 hay citas de memoria: una de las candidatas resultó ser OTRO paper (el id
@@ -214,6 +215,74 @@ comprobaciones (API de arXiv/GitHub, Crossref y PyPI).
 - **Límite:** no se instaló ni ejecutó ninguna de las librerías; la guía verifica
   existencia, licencia, versión y, en Avalanche/CapyMOA, la clase NCM en el
   código fuente.
+
+### 4.6. Cuellos de botella y pass-through (Chen & Stratton, 2026-11-15)
+
+**Fuente:** F. Chen y J. Stratton, *Artificial Intelligence in the Firm:
+Bottlenecks in Software Production*, job market paper, 14-11-2026,
+https://fion.ac/jellyfish.pdf. Descargado el 2026-11-15 y convertido a texto con
+`pdftotext`; el PDF conserva título, autores, fecha y las cifras citadas. El
+archivo **no se versiona** (material de terceros sin licencia de
+redistribución); se ignora con una regla específica y se reproduce desde la URL.
+No se replica su identificación causal ni se presentan sus resultados como
+válidos para thinker.
+
+**Hallazgo central (reportado por el paper):** con 720.542 trabajadores de 655
+empresas, los asistentes de IA aumentan el código producido (+30,4% líneas,
++16,8% commits, +20,9% PRs) pero el output final queda casi nulo (−1,5% issues,
++3,4% epics); los agentes aumentan más el código (+44,0% líneas, +36,0% commits,
++35,7% PRs) y solo +13,7% issues y +18,0% epics. El tiempo de revisión sube
++56,1%, el backlog +59,9% y los comentarios por cambio +38,6%; la productividad
+de coding sube +73,7% y la de revisión baja −7,0%. El *pass-through* estimado de
+coding a output final es **0,233**. La revisión se convierte en el cuello de
+botella.
+
+**Qué se adopta en thinker (analogía declarada, no identidad):** el pipeline de
+investigación también es una cadena de etapas complementarias: recuperar →
+extraer claims → evaluar evidencia → redactar. Fuentes y claims son output
+intermedio; el output final es un claim **evaluado y respaldado**. Si la
+evaluación no da abasto, extraer más claims solo aumenta el backlog y el consumo
+de cuota, no la calidad del informe. Es coherente con el cuello ya medido en
+thinker: el cupo del tier gratuito (Hallazgo 57), no la falta de paralelismo.
+
+**Cambio implementado (determinista, sin llamadas nuevas):**
+- `ResearchContext.pipeline_audit()` cuenta claims evaluados, respaldados,
+  contradichos, no abordados y sin evaluar (por texto, igual que
+  `ReportGenerator`), y calcula `evaluation_coverage`, `support_rate` y
+  `verified_yield` (respaldados / extraídos).
+- Cuando hay cuello (`evaluation` o `evidence`), el prompt de `ReportGenerator`
+  añade una auditoría interna; si además hay claims sin evaluar, añade la
+  instrucción explícita de que los `not evaluated` no se presentan como
+  hallazgos ni se citan como evidencia. La auditoría no se muestra en el
+  informe.
+- `decision_log` registra `pipeline_audit` con conteos, cuello y pérdida para
+  trazabilidad.
+- El estado JSON (`context_to_state`) incluye `pipeline_audit` como campo
+  derivado, y la CLI resume `verificados`, `sin_evaluar` y `cuello` en stderr.
+  Se ignora al restaurar: no es fuente de verdad.
+
+**Heurística declarada:** el cuello es la etapa con mayor pérdida absoluta:
+`evaluation` si hay más claims sin evaluar que evaluados sin respaldo;
+`evidence` en caso contrario; `None` si no hay pérdida. No es una estimación
+estructural, no mide tiempos de espera ni capacidad real, y no calcula
+elasticidades. Un claim con veredictos contradictorios puede contar a la vez
+como respaldado y contradicho; el audit lo expone, no lo resuelve.
+
+**Verificación:** 9 tests nuevos en `tests/test_deep_research_system.py`
+(auditoría vacía, cobertura, cuello de evaluación, cuello de evidencia, sin
+cuello, evaluación huérfana, prompt con y sin huecos, prompt de cuello de
+evidencia y registro en `decision_log`) y 1 en
+`tests/test_informe_coarse_to_fine.py` (la auditoría llega al esquema y a las
+secciones); `test_deep_research_system` 223/223, `test_informe_coarse_to_fine`
+21/21 y suite completa **1572/1572**. El benchmark offline con
+`MockLLM` no mide calidad real: la mejora del informe con esta instrucción
+queda **pendiente** de una campaña opt-in con LLM real y rúbricas comparables.
+No se atribuye una mejora no medida.
+
+**Límite de la fuente:** las proyecciones de +57,8% y +341,4% a 2031 son
+escenarios del modelo, no resultados medidos; no se reproducen aquí ni se usan
+para justificar el cambio. La lección que se adopta es cualitativa y se apoya en
+las tablas de revisión y *pass-through*, no en los escenarios extremos.
 
 ## 5. Límites y responsabilidad
 

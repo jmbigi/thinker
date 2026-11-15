@@ -40,3 +40,6 @@ _local_debug/
 build/
 dist/
 *.egg-info/
+
+# PDF de referencia descargado: material de terceros, no se redistribuye
+jellyfish.pdf

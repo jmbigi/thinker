@@ -420,7 +420,8 @@ mejora de código (`code_design_improvement_tools.py`).
   contextos revisados, sin brechas abiertas. La campaña de 6144 mutantes del
   Hallazgo 217 no aporta una tasa global válida.
 - Plataformas verificadas: Linux con Python **3.11.9**, **3.12.3** y **3.14.4**:
-  **1562/1562 en 3.11.9** y **1451/1451 en 3.12.3/3.14.4** (2026-11-07; 3.11 con
+  **1572/1572 en 3.11.9** (2026-11-15, auditoría de pass-through) y
+  **1451/1451 en 3.12.3/3.14.4** (2026-11-07; 3.11 con
   openai 3.42.1 y `ruff 0.15.14`; 3.12/3.14 con openai 3.45.0, `ruff 0.13.2` y
   `packaging 26.3` en venv aislados desde el lock; 1451 es la última medición
   en esas versiones; mediciones anteriores: 1409/1409, 1407/1407,
