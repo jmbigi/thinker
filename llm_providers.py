@@ -430,8 +430,8 @@ class FlywheelGatewayLLM(OpenAILLM):
     con el formato OpenAI Responses API (input: string | list de mensajes), con
     reintentos, backoff y timeout explícitos.
 
-    El modelo se especifica con el prefijo del proveedor, ej: `openrouter/...`,
-    `ollama/qwen3:1.7b`, `openai/gpt-4o-mini`. El gateway filtra por endpoints
+    El modelo se especifica con el prefijo del proveedor, ej: `openrouter:cohere/north-mini-code:free`,
+    `ollama:qwen3:1.7b`, `openai:gpt-4o-mini`. El gateway filtra por endpoints
     declarados: si el modelo no es un endpoint del gateway, responde 404 con el
     mensaje que sugiere listar modelos en GET /v1/models.
     """
