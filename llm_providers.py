@@ -415,7 +415,7 @@ class DeepSeekLLM(OpenAILLM):
 
 # Flywheel Gateway implementation (local gateway with OpenAI-compatible API)
 FLYWHEEL_DEFAULT_BASE_URL = "http://127.0.0.1:8799/v1"
-FLYWHEEL_DEFAULT_MODEL = "openrouter/poolside/laguna-xs-2.1:free"
+FLYWHEEL_DEFAULT_MODEL = "openrouter:cohere/north-mini-code:free"
 
 
 class FlywheelGatewayLLM(OpenAILLM):
@@ -509,22 +509,34 @@ class FlywheelGatewayLLM(OpenAILLM):
 
     @staticmethod
     def _extraer_texto(data: Dict[str, Any]) -> str:
-        """Extrae el texto de la respuesta de la Responses API."""
+        """Extrae el texto de la respuesta de la Responses API.
+
+        Soporta ambos formatos:
+        1) output[].content[].type == "output_text"  (formato Responses API nativo)
+        2) output[].content[].type == "message".content[].type == "text"  (fallback)
+        """
         salida = ""
+        # Intento 1: formato output_text nativo (respuestas del gateway)
         output = data.get("output") or []
         if isinstance(output, list):
             for item in output:
                 if not isinstance(item, dict):
                     continue
-                if item.get("type") != "message":
-                    continue
-                for content in item.get("content") or []:
-                    if isinstance(content, dict) and content.get("type") == "text":
-                        texto = content.get("text") or ""
-                        if isinstance(texto, str):
-                            salida += texto
+                if item.get("type") == "message":
+                    for content in item.get("content") or []:
+                        if isinstance(content, dict):
+                            # Sub-intento A: texto plano directo
+                            if content.get("type") == "text":
+                                t = content.get("text") or ""
+                                if isinstance(t, str):
+                                    salida += t
+                            # Sub-intento B: output_text (formato Responses API)
+                            if content.get("type") == "output_text":
+                                t = content.get("text") or ""
+                                if isinstance(t, str):
+                                    salida += t
         if not salida.strip():
-            # Fallback: maybe it's a simple chat completion format
+            # Intento 2: fallback al formato chat completions (choices)
             choices = data.get("choices") or []
             if choices:
                 msg = choices[0].get("message") or {}
