@@ -422,14 +422,18 @@ class FlywheelGatewayLLM(OpenAILLM):
     """Cliente para Flywheel Gateway local (http://127.0.0.1:8799/v1).
 
     Flywheel Gateway unifica múltiples proveedores (OpenRouter, OpenAI, DeepSeek,
-    Ollama, etc.) bajo una sola API compatible con OpenAI. El gateway se inicia
-    con `flywheel up` y las claves se gestionan con `flywheel setup` y
-    `flywheel gateway-key create`.
+    Ollama, etc.) bajo una sola API local. La clave de gateway (`fwk_...`) se pasa
+    como `api_key` o mediante la variable de entorno `FLYWHEEL_GATEWAY_KEY`.
 
-    La clave de gateway (`fwk_...`) se pasa como `api_key` o mediante la
-    variable de entorno `FLYWHEEL_GATEWAY_KEY`. El modelo se especifica con el
-    prefijo del proveedor, ej: `openrouter/poolside/laguna-xs-2.1:free`,
-    `ollama/qwen3:1.7b`, `openai/gpt-4o-mini`.
+    El gateway **solo abre** los endpoints `/v1/messages` y `/v1/responses` (no
+    `/v1/chat/completions`). Por eso esta clase llama directamente a `/v1/responses`
+    con el formato OpenAI Responses API (input: string | list de mensajes), con
+    reintentos, backoff y timeout explícitos.
+
+    El modelo se especifica con el prefijo del proveedor, ej: `openrouter/...`,
+    `ollama/qwen3:1.7b`, `openai/gpt-4o-mini`. El gateway filtra por endpoints
+    declarados: si el modelo no es un endpoint del gateway, responde 404 con el
+    mensaje que sugiere listar modelos en GET /v1/models.
     """
 
     def __init__(self, api_key: str = None, model: str = None,
@@ -450,6 +454,82 @@ class FlywheelGatewayLLM(OpenAILLM):
         )
         # Evitar fuga a OPENAI_API_KEY por la lógica base de OpenAILLM.
         self.api_key = key
+
+    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+        key = kwargs.get("api_key") or self.api_key
+        if not key:
+            raise ValueError(
+                "Falta la clave del Flywheel Gateway (fwk_...). Pásala como "
+                "api_key, define FLYWHEEL_GATEWAY_KEY, o usa --flywheel-key. "
+                "Crea una con: flywheel gateway-key create NOMBRE")
+        modelo = model or self.model
+        base_url = kwargs.get("base_url") or self.base_url
+        url = f"{base_url.rstrip('/')}/responses"
+        entrada = prompt if isinstance(prompt, str) else json.dumps(prompt)
+        payload = {
+            "model": modelo,
+            "input": entrada,
+            "max_tokens": kwargs.get("max_tokens", 4096),
+            "temperature": kwargs.get("temperature", 0.7),
+        }
+        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+        max_retries = kwargs.get("max_retries") or self.max_retries
+        timeout = kwargs.get("timeout") or self.timeout
+        cache = kwargs.get("cache", self.cache)
+        label = "FlywheelGatewayLLM"
+
+        if cache is not None:
+            guardada = cache.get(modelo, prompt)
+            if guardada is not None:
+                return guardada
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                import requests
+                response = requests.post(url, headers=headers, json=payload, timeout=timeout)
+                if response.status_code == 429:
+                    raise RuntimeError(f"{response.status_code} rate limited")
+                response.raise_for_status()
+                data = response.json()
+                salida = self._extraer_texto(data)
+                if cache is not None:
+                    cache.set(modelo, prompt, salida)
+                return salida
+            except Exception as exc:
+                status = getattr(exc, "response", None)
+                status_code = getattr(status, "status_code", None) if status is not None else None
+                transient = status_code is None or status_code in TRANSIENT_STATUS
+                if attempt >= max_retries or not transient:
+                    raise
+                delay = (2 ** attempt) + random.uniform(0, 1)
+                print(f"[{label}] error transitorio ({status_code or type(exc).__name__}); "
+                      f"reintento {attempt}/{max_retries - 1} en {delay:.1f}s",
+                      file=sys.stderr)
+                time.sleep(delay)
+
+    @staticmethod
+    def _extraer_texto(data: Dict[str, Any]) -> str:
+        """Extrae el texto de la respuesta de la Responses API."""
+        salida = ""
+        output = data.get("output") or []
+        if isinstance(output, list):
+            for item in output:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("type") != "message":
+                    continue
+                for content in item.get("content") or []:
+                    if isinstance(content, dict) and content.get("type") == "text":
+                        texto = content.get("text") or ""
+                        if isinstance(texto, str):
+                            salida += texto
+        if not salida.strip():
+            # Fallback: maybe it's a simple chat completion format
+            choices = data.get("choices") or []
+            if choices:
+                msg = choices[0].get("message") or {}
+                salida = msg.get("content") or ""
+        return salida
 
 
 DEEPSEEK_AGENT_MAX_RESPONSE_BYTES = 1_000_000
