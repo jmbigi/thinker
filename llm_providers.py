@@ -413,6 +413,45 @@ class DeepSeekLLM(OpenAILLM):
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
 
 
+# Flywheel Gateway implementation (local gateway with OpenAI-compatible API)
+FLYWHEEL_DEFAULT_BASE_URL = "http://127.0.0.1:8799/v1"
+FLYWHEEL_DEFAULT_MODEL = "openrouter/poolside/laguna-xs-2.1:free"
+
+
+class FlywheelGatewayLLM(OpenAILLM):
+    """Cliente para Flywheel Gateway local (http://127.0.0.1:8799/v1).
+
+    Flywheel Gateway unifica múltiples proveedores (OpenRouter, OpenAI, DeepSeek,
+    Ollama, etc.) bajo una sola API compatible con OpenAI. El gateway se inicia
+    con `flywheel up` y las claves se gestionan con `flywheel setup` y
+    `flywheel gateway-key create`.
+
+    La clave de gateway (`fwk_...`) se pasa como `api_key` o mediante la
+    variable de entorno `FLYWHEEL_GATEWAY_KEY`. El modelo se especifica con el
+    prefijo del proveedor, ej: `openrouter/poolside/laguna-xs-2.1:free`,
+    `ollama/qwen3:1.7b`, `openai/gpt-4o-mini`.
+    """
+
+    def __init__(self, api_key: str = None, model: str = None,
+                 base_url: str = None, max_retries: int = 3,
+                 timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
+        self.base_url = (base_url or os.environ.get("FLYWHEEL_GATEWAY_URL")
+                          or FLYWHEEL_DEFAULT_BASE_URL)
+        self.model = (model or os.environ.get("FLYWHEEL_MODEL")
+                      or FLYWHEEL_DEFAULT_MODEL)
+        key = (api_key or os.environ.get("FLYWHEEL_GATEWAY_KEY") or "")
+        super().__init__(
+            api_key=key,
+            model=self.model,
+            base_url=self.base_url,
+            max_retries=max_retries,
+            timeout=timeout,
+            use_cache=use_cache,
+        )
+        # Evitar fuga a OPENAI_API_KEY por la lógica base de OpenAILLM.
+        self.api_key = key
+
+
 DEEPSEEK_AGENT_MAX_RESPONSE_BYTES = 1_000_000
 DEEPSEEK_AGENT_READONLY_PREFIX = (
     "Instrucción de seguridad: responde únicamente con texto, sin herramientas, "

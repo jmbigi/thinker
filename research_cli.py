@@ -10,9 +10,9 @@ from pathlib import Path
 
 from deep_research_system import ResearchOrchestrator
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, KiloGatewayLLM,
-                           LocalFallbackLLM, MockLLM, OllamaLLM, OpenAILLM,
-                           OpenRouterLLM)
+from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, FlywheelGatewayLLM,
+                           KiloGatewayLLM, LocalFallbackLLM, MockLLM, OllamaLLM,
+                           OpenAILLM, OpenRouterLLM)
 from mcp_client import MCPSearchAPI
 from research_state import context_to_state
 from web_search import (ArxivSearchAPI, DuckDuckGoSearchAPI, MockSearchAPI,
@@ -41,8 +41,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("question", nargs="?", help="pregunta de investigación")
     parser.add_argument("--provider",
                         choices=("mock", "openrouter", "kilo", "forthtrade", "ollama",
-                                 "deepseek-free-agent"),
+                                 "deepseek-free-agent", "flywheel"),
                         default="mock", help="proveedor LLM (defecto: mock offline)")
+    parser.add_argument("--flywheel-url",
+                        help="URL base del Flywheel Gateway (defecto: http://127.0.0.1:8799/v1; "
+                             "o variable FLYWHEEL_GATEWAY_URL)")
+    parser.add_argument("--flywheel-key",
+                        help="clave del Flywheel Gateway (fwk_...; o variable FLYWHEEL_GATEWAY_KEY)")
     parser.add_argument("--model", help="modelo del proveedor")
     parser.add_argument("--ollama-base-url",
                         help="URL base de Ollama (defecto: http://localhost:11434; "
@@ -144,6 +149,12 @@ def _base_llm(args, model):
             model=model or "deepseek-free-agent",
             timeout=args.deepseek_agent_timeout,
             authorized=args.authorize_deepseek_agent,
+        )
+    if args.provider == "flywheel":
+        return FlywheelGatewayLLM(
+            api_key=args.flywheel_key,
+            model=model,
+            base_url=args.flywheel_url,
         )
     return _ollama_llm(args, model)
 
