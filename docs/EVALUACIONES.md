@@ -46,7 +46,7 @@ lleva tope oculto.
 | **Global** | **1.000** | |
 
 **Con red**: 1.000 (30/30 criterios con `--ejecutar-tests`; sin N/A).
-Suite **1572/1572** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
+Suite **1577/1577** en Python 3.11.9 (openai 3.42.1 y ruff 0.15.14); **1451/1451**
 en 3.12.3/3.14.4 desde el lock (openai 3.45.0 y ruff 0.13.2; última medición en
 esas versiones), preflight 0, docs-check OK; Hallazgo 225: deepseek-free-agent
 con autorización formal, egreso loopback, salida no confiable y requisitos
@@ -1582,7 +1582,7 @@ del informe no se atribuye sin medirla: el
 benchmark offline con `MockLLM` no mide calidad real. Evidencia:
 `tests/test_deep_research_system.py` 223/223 (9 tests nuevos) y
 `tests/test_informe_coarse_to_fine.py` 21/21 (+1), Ruff 0, preflight 0,
-docs-check OK. Suite **1572/1572** en Linux, Ruff 0, preflight 0,
+docs-check OK. Suite **1577/1577** en Linux, Ruff 0, preflight 0,
 docs-check OK.
 
 ### Avances y pendientes (2026-11-15)
@@ -1596,7 +1596,7 @@ docs-check OK.
 - Auditoría en el prompt de informe (pasada única, coarse-to-fine y NCM) con
   prohibición explícita de citar claims `not evaluated`; registro en
   `decision_log`; campo derivado en el estado JSON y resumen en la CLI.
-- 10 tests nuevos y suite completa **1572/1572**; Ruff 0, preflight 0,
+- 10 tests nuevos y suite completa **1577/1577**; Ruff 0, preflight 0,
   docs-check OK; autoevaluación 1.000; demo offline correcta.
 
 **Pendientes declarados (no se presentan como hechos):**
