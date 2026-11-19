@@ -6,9 +6,16 @@ from unittest.mock import MagicMock, patch
 
 import requests
 
-from web_search import (DuckDuckGoSearchAPI, MockSearchAPI, SearchAPI,
-                        USER_AGENT, WikipediaSearchAPI, _es_host_publico,
-                        _strip_html, formulate_query)
+from web_search import (
+    USER_AGENT,
+    DuckDuckGoSearchAPI,
+    MockSearchAPI,
+    SearchAPI,
+    WikipediaSearchAPI,
+    _es_host_publico,
+    _strip_html,
+    formulate_query,
+)
 
 
 def fake_http_response(json_data=None, text=""):

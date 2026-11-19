@@ -31,14 +31,15 @@ import json
 import re
 import sys
 import tomllib
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from evidence import EvidenceKind  # noqa: E402
+from evidence import EvidenceKind
 
 IGNORAR = {
     ".git", ".venv", "venv", "__pycache__", "node_modules", ".mypy_cache",
@@ -110,7 +111,7 @@ class Hallazgo:
     severidad: str = "media"
     tipo_evidencia: EvidenceKind = EvidenceKind.VERIFIED_REAL
 
-    def a_dict(self) -> Dict[str, Any]:
+    def a_dict(self) -> dict[str, Any]:
         return {
             "gate": self.gate,
             "archivo": self.archivo,
@@ -126,14 +127,14 @@ class ResultadoGate:
     """Hallazgos y warnings de una comprobación concreta."""
 
     nombre: str
-    hallazgos: List[Hallazgo] = field(default_factory=list)
-    advertencias: List[Hallazgo] = field(default_factory=list)
+    hallazgos: list[Hallazgo] = field(default_factory=list)
+    advertencias: list[Hallazgo] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
         return not self.hallazgos
 
-    def a_dict(self) -> Dict[str, Any]:
+    def a_dict(self) -> dict[str, Any]:
         return {
             "nombre": self.nombre,
             "ok": self.ok,
@@ -142,7 +143,7 @@ class ResultadoGate:
         }
 
 
-def archivos_python(root: Path) -> List[Path]:
+def archivos_python(root: Path) -> list[Path]:
     """Archivos ``*.py`` bajo ``root``, excluyendo directorios generados."""
     return sorted(
         p for p in root.rglob("*.py")
@@ -159,15 +160,15 @@ def _normalizar(nombre: str) -> str:
 
 
 def cargar_modulos(root: Path,
-                   archivos: Optional[Iterable[Path]] = None
-                   ) -> Tuple[Dict[Path, ast.Module], ResultadoGate]:
+                   archivos: Iterable[Path] | None = None
+                   ) -> tuple[dict[Path, ast.Module], ResultadoGate]:
     """Parsea cada archivo una sola vez; un error de sintaxis es un hallazgo.
 
     ``archivos`` permite al evaluador limitar el gate AST al código de
     producción de un paquete (sin tests/docs/ejemplos).
     """
     resultado = ResultadoGate("sintaxis")
-    modulos: Dict[Path, ast.Module] = {}
+    modulos: dict[Path, ast.Module] = {}
     objetivo = sorted(archivos) if archivos is not None else archivos_python(root)
     for ruta in objetivo:
         try:
@@ -186,7 +187,7 @@ def cargar_modulos(root: Path,
     return modulos, resultado
 
 
-def _nombre_requisito(linea: str) -> Optional[str]:
+def _nombre_requisito(linea: str) -> str | None:
     """Nombre de un requisito PEP 508/requirements; ``None`` si no aplica."""
     linea = linea.split("#", 1)[0].strip()
     if not linea or linea.startswith("-"):
@@ -195,13 +196,13 @@ def _nombre_requisito(linea: str) -> Optional[str]:
     return coincidencia.group(1) if coincidencia else None
 
 
-def _leer_requisitos(archivo: Path, vistos: Set[Path]) -> Set[str]:
+def _leer_requisitos(archivo: Path, vistos: set[Path]) -> set[str]:
     """Nombres de un requirements, siguiendo ``-r`` sin ciclos."""
     archivo = archivo.resolve()
     if archivo in vistos or not archivo.is_file():
         return set()
     vistos.add(archivo)
-    nombres: Set[str] = set()
+    nombres: set[str] = set()
     try:
         texto = archivo.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
@@ -219,7 +220,7 @@ def _leer_requisitos(archivo: Path, vistos: Set[Path]) -> Set[str]:
     return nombres
 
 
-def _nombres_de_lista(items: Any) -> Set[str]:
+def _nombres_de_lista(items: Any) -> set[str]:
     nombres = set()
     if not isinstance(items, list):
         return nombres
@@ -231,9 +232,9 @@ def _nombres_de_lista(items: Any) -> Set[str]:
     return nombres
 
 
-def _nombres_setup(valor: Any) -> Set[str]:
+def _nombres_setup(valor: Any) -> set[str]:
     """Nombres de dependencias en listas/dicts de setup.py (no las claves)."""
-    nombres: Set[str] = set()
+    nombres: set[str] = set()
     if isinstance(valor, dict):
         for lista in valor.values():
             nombres.update(_nombres_setup(lista))
@@ -246,16 +247,16 @@ def _nombres_setup(valor: Any) -> Set[str]:
     return nombres
 
 
-def dependencias_declaradas(root: Path) -> Tuple[Set[str], List[Hallazgo]]:
+def dependencias_declaradas(root: Path) -> tuple[set[str], list[Hallazgo]]:
     """Dependencias directas declaradas en TODOS los manifiestos Python.
 
     Cubre pyproject (PEP 621, PEP 735, Poetry/PDM), requirements anidados con
     ``-r``, setup.cfg y setup.py. Los tests/docs que importan dependencias de
     desarrollo dejan de ser falsos positivos de h6.
     """
-    declaradas: Set[str] = set()
-    hallazgos: List[Hallazgo] = []
-    vistos_req: Set[Path] = set()
+    declaradas: set[str] = set()
+    hallazgos: list[Hallazgo] = []
+    vistos_req: set[Path] = set()
 
     for archivo in sorted(p for p in root.rglob("*")
                           if p.is_file() and not any(
@@ -364,14 +365,14 @@ def dependencias_declaradas(root: Path) -> Tuple[Set[str], List[Hallazgo]]:
     return declaradas, hallazgos
 
 
-def modulos_locales(root: Path) -> Set[str]:
+def modulos_locales(root: Path) -> set[str]:
     """Módulos importables del propio proyecto (incluye layout ``src/``).
 
     Ruff y la convención de packaging consideran primera parte tanto la raíz
     como ``src/``; ignorar ``src/`` convertía ``import flask`` en un import de
     terceros sin declarar en proyectos con ese layout.
     """
-    locales = {p.stem for p in root.glob("*.py")}
+    locales = {p.stem for p in root.iterdir() if p.suffix == ".py"}
     for base in (root, root / "src"):
         if not base.is_dir():
             continue
@@ -394,8 +395,8 @@ def modulos_locales(root: Path) -> Set[str]:
     return locales
 
 
-def _import_declarado(modulo: str, stdlib: Set[str], locales: Set[str],
-                      declaradas: Set[str], permitidos: Set[str]) -> bool:
+def _import_declarado(modulo: str, stdlib: set[str], locales: set[str],
+                      declaradas: set[str], permitidos: set[str]) -> bool:
     if modulo in stdlib or modulo in STDLIB_FUTURA or modulo in locales:
         return True
     normalizado = _normalizar(ALIAS_IMPORTACION.get(modulo, modulo))
@@ -411,9 +412,9 @@ def _nombre_excepcion(nodo: Any) -> str:
     return ""
 
 
-def _lineas_import_opcional(arbol: ast.Module) -> Set[int]:
+def _lineas_import_opcional(arbol: ast.Module) -> set[int]:
     """Líneas de imports dentro de ``try: import ... except ImportError``."""
-    lineas: Set[int] = set()
+    lineas: set[int] = set()
     for nodo in ast.walk(arbol):
         if not isinstance(nodo, ast.Try):
             continue
@@ -430,9 +431,9 @@ def _lineas_import_opcional(arbol: ast.Module) -> Set[int]:
     return lineas
 
 
-def _lineas_condicionales(arbol: ast.Module) -> Set[int]:
+def _lineas_condicionales(arbol: ast.Module) -> set[int]:
     """Imports bajo flags ``has_*`` (dependencia opcional ya detectada)."""
-    lineas: Set[int] = set()
+    lineas: set[int] = set()
     for nodo in ast.walk(arbol):
         if not isinstance(nodo, ast.If) \
                 or not isinstance(nodo.test, ast.Name) \
@@ -459,9 +460,9 @@ def _es_main(nodo: Any) -> bool:
         and nodo.comparators[0].value == "__main__"
 
 
-def _lineas_no_runtime(arbol: ast.Module) -> Set[int]:
+def _lineas_no_runtime(arbol: ast.Module) -> set[int]:
     """Imports de ``TYPE_CHECKING`` y de ``if __name__ == '__main__'``."""
-    lineas: Set[int] = set()
+    lineas: set[int] = set()
     for nodo in ast.walk(arbol):
         if not isinstance(nodo, ast.If) \
                 or not (_es_type_checking(nodo.test) or _es_main(nodo.test)):
@@ -473,18 +474,18 @@ def _lineas_no_runtime(arbol: ast.Module) -> Set[int]:
     return lineas
 
 
-def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
-                    permitidos: Optional[Iterable[str]] = None,
+def revisar_imports(root: Path, modulos: dict[Path, ast.Module],
+                    permitidos: Iterable[str] | None = None,
                     ignorar_opcionales: bool = False) -> ResultadoGate:
     resultado = ResultadoGate("imports")
     declaradas, hallazgos_manifiesto = dependencias_declaradas(root)
     resultado.hallazgos.extend(hallazgos_manifiesto)
     stdlib = set(sys.stdlib_module_names)
     locales = modulos_locales(root)
-    locales_por_directorio: Dict[Path, Set[str]] = {}
+    locales_por_directorio: dict[Path, set[str]] = {}
     permitidos_norm = {_normalizar(m) for m in (permitidos or ())}
-    vistos: Set[Tuple[Path, str]] = set()
-    dinámicos: List[Tuple[Path, int, str]] = []
+    vistos: set[tuple[Path, str]] = set()
+    dinámicos: list[tuple[Path, int, str]] = []
 
     for ruta, arbol in sorted(modulos.items()):
         directorio = ruta.parent
@@ -501,7 +502,7 @@ def revisar_imports(root: Path, modulos: Dict[Path, ast.Module],
             opcionales |= _lineas_import_opcional(arbol)
             opcionales |= _lineas_condicionales(arbol)
         for nodo in ast.walk(arbol):
-            importados: List[Tuple[str, int]] = []
+            importados: list[tuple[str, int]] = []
             if isinstance(nodo, ast.Import):
                 importados = [(alias.name.split(".")[0], nodo.lineno)
                               for alias in nodo.names]
@@ -547,23 +548,17 @@ def _es_import_dinamico(nodo: ast.Call) -> bool:
     # importlib.import_module, importlib.util.spec_from_loader, etc.
     if isinstance(nodo.func.value, ast.Name) and nodo.func.value.id == "importlib":
         return True
-    if (isinstance(nodo.func.value, ast.Attribute)
-            and nodo.func.value.attr == "util"
-            and isinstance(nodo.func.value.value, ast.Name)
-            and nodo.func.value.value.id == "importlib"):
-        return True
-    return False
+    return bool(isinstance(nodo.func.value, ast.Attribute) and nodo.func.value.attr == "util" and isinstance(nodo.func.value.value, ast.Name) and nodo.func.value.value.id == "importlib")
 
 
-def _extraer_nombre_import_dinamico(nodo: ast.Call) -> Optional[str]:
+def _extraer_nombre_import_dinamico(nodo: ast.Call) -> str | None:
     """Intenta extraer el nombre del módulo en imports dinámicos."""
     # __import__ se reporta por su nombre de función
     if isinstance(nodo.func, ast.Name) and nodo.func.id == "__import__":
         return "__import__"
     # spec_from_loader/spec_from_file_location se reportan por su nombre de función
-    if isinstance(nodo.func, ast.Attribute):
-        if nodo.func.attr in ("spec_from_loader", "spec_from_file_location"):
-            return nodo.func.attr
+    if isinstance(nodo.func, ast.Attribute) and nodo.func.attr in ("spec_from_loader", "spec_from_file_location"):
+        return nodo.func.attr
     if not nodo.args:
         return "<dinámico>"
     arg = nodo.args[0]
@@ -581,7 +576,7 @@ _MARCA_SILENCIO = re.compile(
     r"#\s*noqa:\s*silent\s*:\s*(?P<motivo>.+?)\s*$")
 
 
-def _cuerpo_silencioso(cuerpo: List[ast.stmt]) -> bool:
+def _cuerpo_silencioso(cuerpo: list[ast.stmt]) -> bool:
     if len(cuerpo) != 1:
         return False
     unico = cuerpo[0]
@@ -593,7 +588,7 @@ def _cuerpo_silencioso(cuerpo: List[ast.stmt]) -> bool:
 
 
 def revisar_silencios(root: Path,
-                      modulos: Dict[Path, ast.Module]) -> ResultadoGate:
+                      modulos: dict[Path, ast.Module]) -> ResultadoGate:
     resultado = ResultadoGate("silencios")
     for ruta, arbol in sorted(modulos.items()):
         try:
@@ -619,9 +614,9 @@ def revisar_silencios(root: Path,
 
 
 def revisar_duplicados(root: Path,
-                       modulos: Dict[Path, ast.Module]) -> ResultadoGate:
+                       modulos: dict[Path, ast.Module]) -> ResultadoGate:
     resultado = ResultadoGate("duplicados")
-    vistos: Dict[str, Tuple[Path, int, str]] = {}
+    vistos: dict[str, tuple[Path, int, str]] = {}
     for ruta, arbol in sorted(modulos.items()):
         for nodo in ast.walk(arbol):
             if not isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -644,10 +639,10 @@ def revisar_duplicados(root: Path,
     return resultado
 
 
-def _alias_asyncio(arbol: ast.Module) -> Tuple[Set[str], Dict[str, str]]:
+def _alias_asyncio(arbol: ast.Module) -> tuple[set[str], dict[str, str]]:
     """Alias de ``asyncio`` y de sus funciones de creación de tareas."""
     alias_modulo = {"asyncio"}
-    alias_funcion: Dict[str, str] = {}
+    alias_funcion: dict[str, str] = {}
     for nodo in ast.walk(arbol):
         if isinstance(nodo, ast.Import):
             for alias in nodo.names:
@@ -661,8 +656,8 @@ def _alias_asyncio(arbol: ast.Module) -> Tuple[Set[str], Dict[str, str]]:
     return alias_modulo, alias_funcion
 
 
-def _nombre_tarea(func: ast.expr, alias_modulo: Set[str],
-                  alias_funcion: Dict[str, str]) -> Optional[str]:
+def _nombre_tarea(func: ast.expr, alias_modulo: set[str],
+                  alias_funcion: dict[str, str]) -> str | None:
     if isinstance(func, ast.Name) and func.id in alias_funcion:
         return f"asyncio.{alias_funcion[func.id]}"
     if isinstance(func, ast.Attribute) and func.attr in (
@@ -676,7 +671,7 @@ def _nombre_tarea(func: ast.expr, alias_modulo: Set[str],
 
 
 def revisar_tareas(root: Path,
-                   modulos: Dict[Path, ast.Module]) -> ResultadoGate:
+                   modulos: dict[Path, ast.Module]) -> ResultadoGate:
     resultado = ResultadoGate("tareas")
     for ruta, arbol in sorted(modulos.items()):
         alias_modulo, alias_funcion = _alias_asyncio(arbol)
@@ -694,7 +689,7 @@ def revisar_tareas(root: Path,
     return resultado
 
 
-def ejecutar(root: Path, permitidos: Optional[Iterable[str]] = None) -> Dict[str, Any]:
+def ejecutar(root: Path, permitidos: Iterable[str] | None = None) -> dict[str, Any]:
     """Ejecuta todos los gates y devuelve un informe serializable."""
     modulos, sintaxis = cargar_modulos(root)
     gates = [
@@ -717,7 +712,7 @@ def ejecutar(root: Path, permitidos: Optional[Iterable[str]] = None) -> Dict[str
     }
 
 
-def imprimir(informe: Dict[str, Any]) -> None:
+def imprimir(informe: dict[str, Any]) -> None:
     print(f"PREFLIGHT (offline, read-only): {informe['root']}")
     print(f"Python: {informe['archivos_python']} archivos | "
           f"evidencia: {EvidenceKind(informe['evidencia']).marcador} "
@@ -740,7 +735,7 @@ def imprimir(informe: Dict[str, Any]) -> None:
           f"{informe.get('total_advertencias', 0)} warnings)")
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Preflight determinista y offline del código Python.")
     parser.add_argument(

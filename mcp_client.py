@@ -10,7 +10,8 @@ import os
 import queue
 import subprocess
 import threading
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from web_search import SearchAPI, _url_publica
 
@@ -24,8 +25,8 @@ class MCPStdioClient:
 
     def __init__(self, command: Iterable[str], timeout: float = 10.0,
                  max_output_bytes: int = 1024 * 1024,
-                 allowed_tools: Optional[Iterable[str]] = None,
-                 env: Optional[Dict[str, str]] = None):
+                 allowed_tools: Iterable[str] | None = None,
+                 env: dict[str, str] | None = None):
         if isinstance(command, (str, bytes)):
             raise TypeError("command debe ser una secuencia de argumentos, no shell")
         self.command = list(command)
@@ -37,7 +38,7 @@ class MCPStdioClient:
         self.max_output_bytes = max_output_bytes
         self.allowed_tools = set(allowed_tools) if allowed_tools is not None else None
         self.env = dict(env) if env is not None else {}
-        self.audit_log: List[Dict[str, Any]] = []
+        self.audit_log: list[dict[str, Any]] = []
         self._process = None
         self._responses = None
         self._stderr = bytearray()
@@ -101,7 +102,7 @@ class MCPStdioClient:
         except (OSError, ValueError):
             return
 
-    def _enviar(self, mensaje: Dict[str, Any]) -> None:
+    def _enviar(self, mensaje: dict[str, Any]) -> None:
         if self._process is None or self._process.stdin is None:
             raise RuntimeError("Servidor MCP no iniciado")
         try:
@@ -110,7 +111,7 @@ class MCPStdioClient:
         except (OSError, BrokenPipeError) as exc:
             raise RuntimeError(f"No se pudo escribir al servidor MCP: {exc}") from exc
 
-    def _respuesta(self, identificador: int) -> Dict[str, Any]:
+    def _respuesta(self, identificador: int) -> dict[str, Any]:
         while True:
             try:
                 linea = self._responses.get(timeout=self.timeout)
@@ -118,7 +119,7 @@ class MCPStdioClient:
                 self._process.kill()
                 raise TimeoutError(f"Timeout MCP ({self.timeout}s)") from exc
             if isinstance(linea, BaseException):
-                raise RuntimeError(f"Fallo de transporte MCP: {linea}")
+                raise TypeError(f"Fallo de transporte MCP: {linea}")
             try:
                 mensaje = json.loads(linea)
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -132,10 +133,10 @@ class MCPStdioClient:
             if "error" in mensaje:
                 raise RuntimeError(f"Error MCP: {mensaje['error']}")
             if not isinstance(mensaje.get("result"), dict):
-                raise RuntimeError("Respuesta MCP sin result objeto")
+                raise TypeError("Respuesta MCP sin result objeto")
             return mensaje["result"]
 
-    def _request(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self._next_id += 1
         identificador = self._next_id
         self.audit_log.append({"method": method, "params": params})
@@ -143,7 +144,7 @@ class MCPStdioClient:
                       "method": method, "params": params})
         return self._respuesta(identificador)
 
-    def initialize(self) -> Dict[str, Any]:
+    def initialize(self) -> dict[str, Any]:
         if self._initialized:
             raise RuntimeError("La sesión MCP ya estaba inicializada")
         resultado = self._request("initialize", {
@@ -160,18 +161,18 @@ class MCPStdioClient:
         self._initialized = True
         return resultado
 
-    def list_tools(self) -> List[Dict[str, Any]]:
+    def list_tools(self) -> list[dict[str, Any]]:
         if not self._initialized:
             raise RuntimeError("MCP no inicializado")
         herramientas = self._request("tools/list", {}).get("tools")
         if not isinstance(herramientas, list):
-            raise RuntimeError("tools/list no devolvió una lista")
+            raise TypeError("tools/list no devolvió una lista")
         if self.allowed_tools is not None:
             herramientas = [h for h in herramientas
                             if h.get("name") in self.allowed_tools]
         return herramientas
 
-    def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if not self._initialized:
             raise RuntimeError("MCP no inicializado")
         if self.allowed_tools is not None and name not in self.allowed_tools:
@@ -214,7 +215,7 @@ class MCPSearchAPI(SearchAPI):
         self.max_output_bytes = max_output_bytes
 
     @staticmethod
-    def _contenido(resultado: Dict[str, Any]) -> Any:
+    def _contenido(resultado: dict[str, Any]) -> Any:
         if "structuredContent" in resultado:
             return resultado["structuredContent"]
         contenido = resultado.get("content", [])
@@ -228,7 +229,7 @@ class MCPSearchAPI(SearchAPI):
         except json.JSONDecodeError:
             return {"results": [{"title": "Resultado MCP", "snippet": texto}]}
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         with MCPStdioClient(
@@ -241,7 +242,7 @@ class MCPSearchAPI(SearchAPI):
         if isinstance(datos, dict):
             datos = datos.get("results", [])
         if not isinstance(datos, list):
-            raise RuntimeError("Resultado MCP no contiene una lista de fuentes")
+            raise TypeError("Resultado MCP no contiene una lista de fuentes")
         resultados = []
         descartados = 0
         for indice, hit in enumerate(datos, start=1):

@@ -45,8 +45,8 @@ class TestHerramientasContrato(unittest.TestCase):
         self.assertTrue(dim.criterios["h1_manifiesto"])
         self.assertEqual(
             dim.notas,
-            ["manifiestos (9): Cargo.toml, build.gradle, build.gradle.kts, "
-             "go.mod, package.json, pom.xml, pyproject.toml, setup.cfg…"])
+            [("manifiestos (9): Cargo.toml, build.gradle, build.gradle.kts, "
+             "go.mod, package.json, pom.xml, pyproject.toml, setup.cfg…")])
 
     def test_manifiestos_exactamente_ocho_sin_puntos(self):
         raiz = crear_proyecto(self, {
@@ -91,8 +91,8 @@ class TestHerramientasContrato(unittest.TestCase):
         dim = _dim(raiz)
         self.assertTrue(dim.criterios["h4_runner_de_tests_declarado"])
         self.assertEqual(dim.notas, [
-            "runner declarado: build.sh "
-            "(comando no inspeccionado para ejecución)"])
+            ("runner declarado: build.sh "
+            "(comando no inspeccionado para ejecución)")])
 
     def test_tox_y_noxfile_se_detectan_por_deteccion_no_por_runner_extra(self):
         # detectar_comando_tests reconoce tox.ini y noxfile.py siempre, así que

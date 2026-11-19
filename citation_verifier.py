@@ -24,10 +24,11 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 CITA_RE = re.compile(r"\[(\d{1,3})\]")
@@ -77,7 +78,7 @@ def _tiene_negacion(texto: str) -> bool:
                 & _NEGACIONES)
 
 
-def _texto_fuente(source: Dict[str, Any]) -> str:
+def _texto_fuente(source: dict[str, Any]) -> str:
     """Contenido verificable de una fuente, sin inventar campos."""
     partes = []
     for clave in ("content", "texto", "snippet", "summary", "abstract"):
@@ -108,13 +109,13 @@ def _normalizar_url(url: str) -> str:
         return ""
 
 
-def extraer_citas(texto: str) -> List[int]:
+def extraer_citas(texto: str) -> list[int]:
     """Números de cita en orden de aparición (puede haber repetidos)."""
     return [int(numero) for numero in CITA_RE.findall(texto or "")]
 
 
-def _claim_para_fuente(source: Dict[str, Any],
-                       claims: Optional[Sequence[Dict[str, Any]]]) -> str:
+def _claim_para_fuente(source: dict[str, Any],
+                       claims: Sequence[dict[str, Any]] | None) -> str:
     """Asocia un claim a la fuente por URL o por ``source_id``.
 
     No inventa una asociación: si no hay coincidencia, devuelve "".
@@ -169,11 +170,11 @@ class CitationCheck:
     fragmento_verificado: bool = False
     claim: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-def verificar_cita(numero: int, sources: Sequence[Dict[str, Any]],
+def verificar_cita(numero: int, sources: Sequence[dict[str, Any]],
                    claim: str = "", fragmento: str = "",
                    ocurrencias: int = 1) -> CitationCheck:
     """Verifica una cita ``[numero]`` contra la lista de fuentes (1-based)."""
@@ -216,8 +217,8 @@ def verificar_cita(numero: int, sources: Sequence[Dict[str, Any]],
         fragmento_verificado=fragmento_verificado, claim=claim)
 
 
-def _grupos_duplicados(sources: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    grupos: Dict[str, List[int]] = {}
+def _grupos_duplicados(sources: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    grupos: dict[str, list[int]] = {}
     for indice, source in enumerate(sources, 1):
         clave = _normalizar_url(str(source.get("url", "") or ""))
         if clave:
@@ -228,12 +229,12 @@ def _grupos_duplicados(sources: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]
     ]
 
 
-def verificar_informe(report: str, sources: Sequence[Dict[str, Any]],
-                      claims: Optional[Sequence[Dict[str, Any]]] = None,
-                      verificado_en: Optional[str] = None) -> Dict[str, Any]:
+def verificar_informe(report: str, sources: Sequence[dict[str, Any]],
+                      claims: Sequence[dict[str, Any]] | None = None,
+                      verificado_en: str | None = None) -> dict[str, Any]:
     """Verifica todas las citas de un informe y devuelve un resumen explícito."""
     numeros = extraer_citas(report)
-    ocurrencias: Dict[int, int] = {}
+    ocurrencias: dict[int, int] = {}
     for numero in numeros:
         ocurrencias[numero] = ocurrencias.get(numero, 0) + 1
 
@@ -273,7 +274,7 @@ def verificar_informe(report: str, sources: Sequence[Dict[str, Any]],
             f"{len(sources) - fuentes_citadas} fuentes recuperadas no citadas")
 
     return {
-        "verificado_en": verificado_en or datetime.now(timezone.utc).isoformat(
+        "verificado_en": verificado_en or datetime.now(UTC).isoformat(
             timespec="seconds"),
         "metodo": ("comprobación léxica determinista; no es una prueba "
                    "semántica ni una medida de verdad"),
@@ -290,7 +291,7 @@ def verificar_informe(report: str, sources: Sequence[Dict[str, Any]],
     }
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Verifica citas de un informe contra fuentes JSON.")
     parser.add_argument("--report", required=True, help="informe Markdown/TXT")

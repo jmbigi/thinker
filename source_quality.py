@@ -22,9 +22,10 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 from citation_verifier import _normalizar_url
@@ -87,7 +88,7 @@ def _host(url: str) -> str:
         host = (urlparse(url).hostname or "").lower()
     except ValueError:
         return ""
-    return host[4:] if host.startswith("www.") else host
+    return host.removeprefix("www.")
 
 
 def _coincide(host: str, sufijos: Sequence[str]) -> bool:
@@ -96,7 +97,7 @@ def _coincide(host: str, sufijos: Sequence[str]) -> bool:
                for sufijo in sufijos)
 
 
-def _autoridad(url: str) -> Dict[str, Any]:
+def _autoridad(url: str) -> dict[str, Any]:
     host = _host(url)
     if not host:
         return {"valor": None, "metodo": "heurística de dominio",
@@ -114,7 +115,7 @@ def _autoridad(url: str) -> Dict[str, Any]:
             "detalle": f"dominio no clasificado: {host}"}
 
 
-def _parse_fecha(source: Dict[str, Any]) -> Optional[datetime]:
+def _parse_fecha(source: dict[str, Any]) -> datetime | None:
     for clave in ("published_at", "publicado", "date", "fecha",
                   "fetched_at", "recuperado_en"):
         valor = source.get(clave)
@@ -128,19 +129,19 @@ def _parse_fecha(source: Dict[str, Any]) -> Optional[datetime]:
             if not coincidencia:
                 continue
             fecha = datetime(int(coincidencia.group()), 1, 1,
-                             tzinfo=timezone.utc)
+                             tzinfo=UTC)
         if fecha.tzinfo is None:
-            fecha = fecha.replace(tzinfo=timezone.utc)
+            fecha = fecha.replace(tzinfo=UTC)
         return fecha
     return None
 
 
-def _actualidad(source: Dict[str, Any]) -> Dict[str, Any]:
+def _actualidad(source: dict[str, Any]) -> dict[str, Any]:
     fecha = _parse_fecha(source)
     if fecha is None:
         return {"valor": None, "dias": None, "metodo": "fecha declarada",
                 "detalle": "sin fecha legible: no evaluable"}
-    dias = (datetime.now(timezone.utc) - fecha).days
+    dias = (datetime.now(UTC) - fecha).days
     if dias < 0:
         return {"valor": None, "dias": dias, "metodo": "fecha declarada",
                 "detalle": "fecha futura: no evaluable como vigencia"}
@@ -156,7 +157,7 @@ def _actualidad(source: Dict[str, Any]) -> Dict[str, Any]:
             "detalle": detalle}
 
 
-def _texto(source: Dict[str, Any]) -> str:
+def _texto(source: dict[str, Any]) -> str:
     partes = []
     for clave in ("title", "titulo", "snippet", "content", "texto",
                   "summary", "abstract"):
@@ -166,8 +167,8 @@ def _texto(source: Dict[str, Any]) -> str:
     return "\n".join(partes)
 
 
-def _claims_para_fuente(source: Dict[str, Any],
-                        claims: Optional[Sequence[Dict[str, Any]]]) -> List[str]:
+def _claims_para_fuente(source: dict[str, Any],
+                        claims: Sequence[dict[str, Any]] | None) -> list[str]:
     if not claims:
         return []
     url = _normalizar_url(str(source.get("url", "") or ""))
@@ -189,7 +190,7 @@ def _claims_para_fuente(source: Dict[str, Any],
     return propios
 
 
-def _dimension_soporte(claims: Sequence[str], contenido: str) -> Dict[str, Any]:
+def _dimension_soporte(claims: Sequence[str], contenido: str) -> dict[str, Any]:
     if not claims:
         return {"valor": None, "cobertura": None,
                 "metodo": "solapamiento léxico",
@@ -211,7 +212,7 @@ def _dimension_soporte(claims: Sequence[str], contenido: str) -> Dict[str, Any]:
     }
 
 
-def _trazabilidad(source: Dict[str, Any]) -> Dict[str, Any]:
+def _trazabilidad(source: dict[str, Any]) -> dict[str, Any]:
     campos = [clave for clave in ("url", "snippet", "content", "sha256")
               if source.get(clave)]
     tiene_url = bool(source.get("url"))
@@ -225,11 +226,11 @@ def _trazabilidad(source: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def evaluar_fuentes(sources: Sequence[Dict[str, Any]], query: str = "",
-                    claims: Optional[Sequence[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def evaluar_fuentes(sources: Sequence[dict[str, Any]], query: str = "",
+                    claims: Sequence[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Devuelve dimensiones separadas por fuente y un resumen de diversidad."""
-    grupos_url: Dict[str, List[int]] = {}
-    grupos_independencia: Dict[str, List[int]] = {}
+    grupos_url: dict[str, list[int]] = {}
+    grupos_independencia: dict[str, list[int]] = {}
     fuentes = []
     for indice, source in enumerate(sources, 1):
         url = str(source.get("url", "") or "")
@@ -325,7 +326,7 @@ def evaluar_fuentes(sources: Sequence[Dict[str, Any]], query: str = "",
     }
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Evalúa dimensiones separadas de calidad de fuentes.")
     parser.add_argument("--sources", required=True,

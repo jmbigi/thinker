@@ -8,14 +8,15 @@ import json
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import ClassVar
 
 from plugins.interfaces import PluginConfig
 from plugins.llm_providers.olla_plugin import OllaPlugin
 
 
 class _Handler(BaseHTTPRequestHandler):
-    health_status = 200
-    modelos = ["qwen3:8b"]
+    health_status: ClassVar = 200
+    modelos: ClassVar = ["qwen3:8b"]
 
     def _json(self, status, payload):
         cuerpo = json.dumps(payload).encode("utf-8")

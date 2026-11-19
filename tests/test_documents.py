@@ -8,8 +8,14 @@ from pathlib import Path
 
 import requests
 
-from documents import (CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI,
-                       PassageIndex, load_document, load_documents)
+from documents import (
+    CompositeSearchAPI,
+    FullTextSearchAPI,
+    LocalDocumentSearchAPI,
+    PassageIndex,
+    load_document,
+    load_documents,
+)
 from tests.helpers import StubSearch
 
 
@@ -17,8 +23,8 @@ def _pdf_minimo(texto: str) -> bytes:
     objetos = [
         "<< /Type /Catalog /Pages 2 0 R >>",
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-        "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        ("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>"),
         None,
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     ]

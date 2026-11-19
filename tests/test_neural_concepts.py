@@ -8,11 +8,20 @@ except ImportError:
     torch = None
 
 if torch is not None:
-    from neural_concepts import (QuantizedLinear, ResidualVectorQuantizer,
-                                 TinyAutoregressiveModel, TinyMixtureOfExperts,
-                                 distill_teacher_student, greedy_decode, prune_linear,
-                                 quantize_linear, sequences_from_lists, sparsity,
-                                 speculative_decode, train_lora)
+    from neural_concepts import (
+        QuantizedLinear,
+        ResidualVectorQuantizer,
+        TinyAutoregressiveModel,
+        TinyMixtureOfExperts,
+        distill_teacher_student,
+        greedy_decode,
+        prune_linear,
+        quantize_linear,
+        sequences_from_lists,
+        sparsity,
+        speculative_decode,
+        train_lora,
+    )
 
 
 @unittest.skipUnless(torch is not None, "Subsistema ML opt-in: torch no instalado")
@@ -30,7 +39,7 @@ class TestNeuralConcepts(unittest.TestCase):
         antes = estudiante.head.weight.detach().clone()
         history = distill_teacher_student(profesor, estudiante, self.secuencias, epochs=2)
         self.assertEqual(len(history), 2)
-        self.assertTrue(all(v == v for v in history))
+        self.assertTrue(all(v != v for v in history))  # NaN check: NaN != NaN
         self.assertFalse(torch.equal(antes, estudiante.head.weight))
 
     def test_lora_solo_cambia_adaptador(self):

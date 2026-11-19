@@ -9,14 +9,15 @@ import math
 import re
 import struct
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 
 from documents import PassageIndex
 from llm_providers import LLMProvider
 
 
-def _tokens(text: str) -> List[str]:
+def _tokens(text: str) -> list[str]:
     return [word for word in re.findall(r"[^\W\d_]+", text.casefold()) if len(word) > 1]
 
 
@@ -24,14 +25,14 @@ def _tokens(text: str) -> List[str]:
 class AdaptivePlan:
     level: str
     score: float
-    reasons: Tuple[str, ...]
+    reasons: tuple[str, ...]
     max_iterations: int
     verificacion_independiente: bool
     muestras_consenso: int
     ncm_residual: bool
     use_tot: bool
 
-    def orchestrator_options(self) -> Dict[str, Any]:
+    def orchestrator_options(self) -> dict[str, Any]:
         return {
             "max_iterations": self.max_iterations,
             "verificacion_independiente": self.verificacion_independiente,
@@ -86,7 +87,7 @@ class ContextPruner:
         self.max_chars = max_chars
         self.min_score = min_score
 
-    def prune(self, query: str, sources: Iterable[Dict[str, Any]]):
+    def prune(self, query: str, sources: Iterable[dict[str, Any]]):
         originales = list(sources)
         if not originales:
             return [], {"input_passages": 0, "output_passages": 0,
@@ -162,7 +163,7 @@ class QuantizedVector:
             datos.append((alto << 4) | bajo)
         return bytes(datos)
 
-    def dequantize(self) -> List[float]:
+    def dequantize(self) -> list[float]:
         limite = 7 if self.bits == 4 else 127
         return [v / limite * self.scale for v in self.values]
 
@@ -175,7 +176,7 @@ class QuantizedVector:
         nb = math.sqrt(sum(x * x for x in b))
         return dot / (na * nb) if na and nb else 0.0
 
-    def memory_bytes(self) -> Dict[str, Any]:
+    def memory_bytes(self) -> dict[str, Any]:
         comprimido = len(self.pack())
         original = len(self.values) * 8
         return {"float64": original, "compressed": comprimido,
@@ -188,13 +189,13 @@ class SemanticResponseCache:
     def __init__(self, max_entries: int = 128, bits: int = 8):
         self.max_entries = max_entries
         self.bits = bits
-        self.entries: Dict[Tuple[str, str], str] = {}
-        self.vectors: Dict[Tuple[str, str], Tuple[QuantizedVector, List[str]]] = {}
+        self.entries: dict[tuple[str, str], str] = {}
+        self.vectors: dict[tuple[str, str], tuple[QuantizedVector, list[str]]] = {}
         self.hits_exact = 0
         self.hits_semantic = 0
         self.misses = 0
 
-    def get(self, model: str, prompt: str, semantic_threshold: float = None):
+    def get(self, model: str, prompt: str, semantic_threshold: float | None = None):
         clave = (model, prompt)
         if clave in self.entries:
             self.hits_exact += 1
@@ -231,14 +232,14 @@ class SemanticResponseCache:
 
 class CachedLLM(LLMProvider):
     def __init__(self, provider: LLMProvider, cache: SemanticResponseCache,
-                 semantic_threshold: float = None):
+                 semantic_threshold: float | None = None):
         if semantic_threshold is not None and not 0 <= semantic_threshold <= 1:
             raise ValueError("semantic_threshold debe estar entre 0 y 1")
         self.provider = provider
         self.cache = cache
         self.semantic_threshold = semantic_threshold
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         modelo = model or getattr(self.provider, "model", "unknown")
         encontrado = self.cache.get(modelo, prompt, self.semantic_threshold)
         if encontrado is not None:
@@ -251,15 +252,15 @@ class CachedLLM(LLMProvider):
 class ExpertRouterLLM(LLMProvider):
     """Enrutamiento a expertos por dominio; no es MoE dentro de la red."""
 
-    def __init__(self, experts: Dict[str, Tuple[LLMProvider, Tuple[str, ...]]],
+    def __init__(self, experts: dict[str, tuple[LLMProvider, tuple[str, ...]]],
                  fallback: LLMProvider):
         if not experts:
             raise ValueError("Se exige al menos un experto")
         self.experts = experts
         self.fallback = fallback
-        self.routes: List[str] = []
+        self.routes: list[str] = []
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         texto = prompt.casefold()
         puntuaciones = {nombre: sum(texto.count(k.casefold()) for k in keywords)
                           for nombre, (_, keywords) in self.experts.items()}
@@ -282,7 +283,7 @@ class SpeculativeLLM(LLMProvider):
         self.drafts = 0
         self.verifications = 0
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         self.drafts += 1
         candidato = self.draft.generate(prompt, model=model, **kwargs)
         self.verifications += 1

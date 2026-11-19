@@ -2,7 +2,7 @@
 
 import unittest
 
-from scripts.mutacion import (_ignorar, configurar, parsear_resultados)
+from scripts.mutacion import _ignorar, configurar, parsear_resultados
 
 
 class TestMutacion(unittest.TestCase):

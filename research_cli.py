@@ -10,14 +10,28 @@ from pathlib import Path
 
 from deep_research_system import ResearchOrchestrator
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, FlywheelGatewayLLM,
-                           KiloGatewayLLM, LocalFallbackLLM, MockLLM, OllamaLLM,
-                           OpenAILLM, OpenRouterLLM)
+from llm_providers import (
+    BudgetLLM,
+    DeepSeekFreeAgentLLM,
+    FlywheelGatewayLLM,
+    KiloGatewayLLM,
+    LocalFallbackLLM,
+    MockLLM,
+    OllamaLLM,
+    OpenAILLM,
+    OpenRouterLLM,
+)
 from mcp_client import MCPSearchAPI
 from research_state import context_to_state
-from web_search import (ArxivSearchAPI, DuckDuckGoSearchAPI, MockSearchAPI,
-                        PubMedSearchAPI, SemanticScholarSearchAPI, SearXNGSearchAPI,
-                        WikipediaSearchAPI)
+from web_search import (
+    ArxivSearchAPI,
+    DuckDuckGoSearchAPI,
+    MockSearchAPI,
+    PubMedSearchAPI,
+    SearXNGSearchAPI,
+    SemanticScholarSearchAPI,
+    WikipediaSearchAPI,
+)
 
 
 def _entero_positivo(valor: str) -> int:
@@ -307,7 +321,7 @@ def main(argv=None) -> int:
             f"cuello={auditoria['bottleneck'] or 'ninguno'} "
             f"decisiones={resumen['decisions']}", file=sys.stderr)
         return 0
-    except Exception as exc:
+    except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError) as exc:
         print(f"ERROR {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 

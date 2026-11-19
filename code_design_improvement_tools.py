@@ -19,7 +19,7 @@ import re
 import sys
 import time
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from thinking_engine import StepThinkingEngine
 
@@ -38,15 +38,15 @@ class CodeAnalysisContext:
     def __init__(self, project_path: str, max_issues: int = 20):
         self.project_path = project_path
         self.max_issues = max_issues
-        self.issues: List[Dict[str, Any]] = []
-        self.metrics: Dict[str, Any] = {}
-        self.design_decisions: List[Dict[str, Any]] = []
+        self.issues: list[dict[str, Any]] = []
+        self.metrics: dict[str, Any] = {}
+        self.design_decisions: list[dict[str, Any]] = []
         self.start_time = time.time()
-        self.thinking_steps: List[Dict[str, Any]] = []
+        self.thinking_steps: list[dict[str, Any]] = []
 
     def add_issue(self, category: str, severity: str, description: str,
-                  line: Optional[int] = None, file: Optional[str] = None,
-                  suggestion: Optional[str] = None, thinking_reasoning: str = ""):
+                  line: int | None = None, file: str | None = None,
+                  suggestion: str | None = None, thinking_reasoning: str = ""):
         issue = {
             "category": category,
             "severity": severity,  # "critical", "high", "medium", "low"
@@ -71,7 +71,7 @@ class CodeAnalysisContext:
             "timestamp": time.time()
         })
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "project_path": self.project_path,
             "total_issues": len(self.issues),
@@ -112,14 +112,14 @@ class ThinkingDecisionEngine(StepThinkingEngine):
         self.max_thinking_steps = max_steps
 
     def decide(self, context: CodeAnalysisContext, prompt: str,
-               progress=None) -> Dict[str, Any]:
+               progress=None) -> dict[str, Any]:
         """Ejecuta un ciclo de pensamiento para tomar una decisión de diseño."""
         self.step_count = 0
         return self._execute_thinking_cycle(context, prompt, progress)
 
     @abstractmethod
     def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str,
-                                progress=None) -> Dict[str, Any]:
+                                progress=None) -> dict[str, Any]:
         pass  # pragma: no cover - cuerpo abstracto, nunca se ejecuta
 
     def _validate_thought(self, thought: str) -> bool:
@@ -149,7 +149,7 @@ class CodeDesignThinker(ThinkingDecisionEngine):
     _ETIQUETAS_PASOS = ("ANÁLISIS", "OBJETIVOS", "OPCIONES", "EVALUACIÓN",
                         "SELECCIÓN", "PLAN", "VALIDACIÓN")
 
-    def _resultado_valido(self, steps: List[Tuple[str, str]]) -> Dict[str, Any]:
+    def _resultado_valido(self, steps: list[tuple[str, str]]) -> dict[str, Any]:
         self.step_count = len(steps)
         return {
             "thought": self._render_steps(steps),
@@ -162,8 +162,8 @@ class CodeDesignThinker(ThinkingDecisionEngine):
             "error": None,
         }
 
-    def _resultado_invalido(self, steps: List[Tuple[str, str]],
-                            nombre: str) -> Dict[str, Any]:
+    def _resultado_invalido(self, steps: list[tuple[str, str]],
+                            nombre: str) -> dict[str, Any]:
         numero = self._NOMBRES_PASOS.index(nombre) + 1
         self.step_count = len(steps)
         return {
@@ -177,7 +177,7 @@ class CodeDesignThinker(ThinkingDecisionEngine):
             "error": f"Paso {numero} inválido: {nombre}",
         }
 
-    def _render_steps(self, steps: List[Tuple[str, str]]) -> str:
+    def _render_steps(self, steps: list[tuple[str, str]]) -> str:
         if not steps:
             return ""
         lines = [
@@ -196,8 +196,8 @@ class CodeDesignThinker(ThinkingDecisionEngine):
         ])
         return "\n".join(lines)
 
-    def _registrar(self, steps: List[Tuple[str, str]], nombre: str, contenido: str,
-                   progress) -> Optional[Dict[str, Any]]:
+    def _registrar(self, steps: list[tuple[str, str]], nombre: str, contenido: str,
+                   progress) -> dict[str, Any] | None:
         """Valida y registra un paso; devuelve el cierre si hay que parar.
 
         Validación antes de avanzar (regla 2 del proyecto): un paso inválido
@@ -214,7 +214,7 @@ class CodeDesignThinker(ThinkingDecisionEngine):
         return None
 
     def _execute_thinking_cycle(self, context: CodeAnalysisContext, prompt: str,
-                                progress=None) -> Dict[str, Any]:
+                                progress=None) -> dict[str, Any]:
         """Ciclo de 7 pasos de pensamiento para diseño de código."""
 
         steps = []
@@ -415,9 +415,9 @@ class CodeImprovementOrchestrator:
         self.thinking = thinking_engine
         self.source_code = source_code
         self.context = CodeAnalysisContext("project_analysis")
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
 
-    def run_analysis(self, progress=None) -> Dict[str, Any]:
+    def run_analysis(self, progress=None) -> dict[str, Any]:
         """Núcleo del análisis: SIN impresión, sólo lógica y resultados.
 
         `progress` es un callback opcional (recibe el texto del paso) para que
@@ -469,7 +469,7 @@ class CodeImprovementOrchestrator:
             "implementation_plan": "implementation_plan",
             "validation": "validation_criteria",
         }
-        resultados: Dict[str, Any] = {}
+        resultados: dict[str, Any] = {}
         for nombre, contenido in ciclo["steps"]:
             resultados[claves.get(nombre, nombre)] = {
                 "thought": contenido,
@@ -490,7 +490,7 @@ class CodeImprovementOrchestrator:
         }
         return self.results
 
-    def analyze_and_improve(self) -> Dict[str, Any]:
+    def analyze_and_improve(self) -> dict[str, Any]:
         """Ejecuta el ciclo completo y muestra el progreso por consola."""
 
         print("=" * 70)
@@ -519,7 +519,7 @@ class CodeImprovementOrchestrator:
 
         return self.results
 
-    def report_lines(self) -> List[str]:
+    def report_lines(self) -> list[str]:
         """Líneas del reporte markdown (sin unir): núcleo comprobable."""
         r = self.results
         lines = [
@@ -588,7 +588,7 @@ def _max_nesting(tree: ast.AST) -> int:
                  ast.TryStar, ast.With, ast.AsyncWith, ast.Match)
 
     def profundidad(nodo: ast.AST, nivel: int,
-                    padre: Optional[ast.AST] = None) -> int:
+                    padre: ast.AST | None = None) -> int:
         es_elif = (
             isinstance(nodo, ast.If)
             and isinstance(padre, ast.If)
@@ -604,7 +604,7 @@ def _max_nesting(tree: ast.AST) -> int:
     return profundidad(tree, 0)
 
 
-def analyze_python_source(source_code: str) -> Dict[str, Any]:
+def analyze_python_source(source_code: str) -> dict[str, Any]:
     """Analiza código Python (string) y retorna métricas estructuradas."""
     try:
         tree = ast.parse(source_code)
@@ -676,7 +676,7 @@ def analyze_python_source(source_code: str) -> Dict[str, Any]:
     }
 
 
-def analyze_python_code(file_path: str) -> Dict[str, Any]:
+def analyze_python_code(file_path: str) -> dict[str, Any]:
     """Analiza un archivo Python real leyéndolo desde `file_path`."""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:

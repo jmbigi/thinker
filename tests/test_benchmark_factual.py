@@ -23,7 +23,7 @@ class _LLMFijo:
         if isinstance(self.veredictos, str):
             veredicto = self.veredictos
         else:
-            coincidencia = re.search(r"^Claim: (.*)$", prompt, re.M)
+            coincidencia = re.search(r"^Claim: (.*)$", prompt, re.MULTILINE)
             claim = coincidencia.group(1).strip() if coincidencia else ""
             veredicto = self.veredictos.get(claim, "not_addressed")
         return json.dumps({"verdict": veredicto, "credibility": 0.9,

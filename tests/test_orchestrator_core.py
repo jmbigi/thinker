@@ -6,8 +6,7 @@ comprobar por valores y efectos exactos en vez de por "no revienta".
 
 import unittest
 
-from code_design_improvement_tools import (CodeDesignThinker,
-                                           CodeImprovementOrchestrator)
+from code_design_improvement_tools import CodeDesignThinker, CodeImprovementOrchestrator
 from deep_research_system import MockLLM
 from tests.helpers import StubLLM
 

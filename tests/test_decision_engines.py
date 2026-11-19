@@ -10,9 +10,14 @@ comprobaba su comportamiento exacto. Aquí se fijan esas conductas.
 import json
 import unittest
 
-from deep_research_system import (ClaimExtractor, EvidenceEvaluator,
-                                  MockLLM, ReportGenerator, ResearchContext,
-                                  SourceRetriever)
+from deep_research_system import (
+    ClaimExtractor,
+    EvidenceEvaluator,
+    MockLLM,
+    ReportGenerator,
+    ResearchContext,
+    SourceRetriever,
+)
 from tests.helpers import StubLLM, StubSearch
 
 

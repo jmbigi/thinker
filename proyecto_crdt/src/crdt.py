@@ -1,7 +1,8 @@
 import uuid
 
+
 class Node:
-    __slots__ = ('id', 'value', 'timestamp', 'is_deleted')
+    __slots__ = ('id', 'is_deleted', 'timestamp', 'value')
     def __init__(self, id, value, timestamp, is_deleted=False):
         self.id = id
         self.value = value

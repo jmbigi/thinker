@@ -9,9 +9,10 @@ import argparse
 import json
 import sys
 import time
+from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
 from deep_research_system import EvidenceEvaluator, ResearchContext, ResearchOrchestrator
 from llm_providers import MockLLM, OllamaLLM, OpenRouterLLM
@@ -29,7 +30,7 @@ DOMINIOS = {
 }
 
 
-def load_jsonl(path: str) -> List[Dict[str, Any]]:
+def load_jsonl(path: str) -> list[dict[str, Any]]:
     registros = []
     ruta = Path(path)
     try:
@@ -44,14 +45,14 @@ def load_jsonl(path: str) -> List[Dict[str, Any]]:
         except json.JSONDecodeError as exc:
             raise ValueError(f"JSONL inválido en {ruta}:{numero}: {exc}") from exc
         if not isinstance(registro, dict):
-            raise ValueError(f"Se esperaba un objeto en {ruta}:{numero}")
+            raise TypeError(f"Se esperaba un objeto en {ruta}:{numero}")
         registros.append(registro)
     if not registros:
         raise ValueError(f"Dataset vacío: {ruta}")
     return registros
 
 
-def load_drb_tasks(path: str, max_tasks: int = None) -> List[BenchmarkTask]:
+def load_drb_tasks(path: str, max_tasks: int | None = None) -> list[BenchmarkTask]:
     registros = load_jsonl(path)
     tareas = []
     for registro in registros:
@@ -75,7 +76,7 @@ def load_drb_tasks(path: str, max_tasks: int = None) -> List[BenchmarkTask]:
     return tareas[:max_tasks] if max_tasks else tareas
 
 
-def load_attribution_cases(path: str) -> List[Dict[str, Any]]:
+def load_attribution_cases(path: str) -> list[dict[str, Any]]:
     casos = []
     for registro in load_jsonl(path):
         claim = registro.get("claim")
@@ -92,7 +93,7 @@ def load_attribution_cases(path: str) -> List[Dict[str, Any]]:
     return casos
 
 
-def evaluar_atribucion(casos: Iterable[Dict[str, Any]], llm=None) -> Dict[str, Any]:
+def evaluar_atribucion(casos: Iterable[dict[str, Any]], llm=None) -> dict[str, Any]:
     simulado = llm is None
     llm = llm or MockLLM()
     evaluador = EvidenceEvaluator(llm)
@@ -127,7 +128,7 @@ def evaluar_atribucion(casos: Iterable[Dict[str, Any]], llm=None) -> Dict[str, A
     }
 
 
-def run_drb(tareas: List[BenchmarkTask], research_function, output_dir: str) -> Dict[str, Any]:
+def run_drb(tareas: list[BenchmarkTask], research_function, output_dir: str) -> dict[str, Any]:
     """Ejecuta tareas y emite también el JSONL crudo aceptado por DRB."""
     articulos = {}
 
@@ -159,7 +160,7 @@ def run_drb(tareas: List[BenchmarkTask], research_function, output_dir: str) -> 
     }
 
 
-def _proveedor(nombre: str, model: str = None):
+def _proveedor(nombre: str, model: str | None = None):
     if nombre == "mock":
         return MockLLM(model=model or "mock-llm"), MockSearchAPI()
     if nombre == "openrouter":

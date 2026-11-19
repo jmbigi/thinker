@@ -2,12 +2,13 @@
 
 import json
 import time
-from dataclasses import dataclass, asdict
-from typing import Dict, List, Any, Callable
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
-from .tasks import BenchmarkTask, BENCHMARK_TASKS
 from .rubrics import evaluar_fidelidad, evaluate_all_dimensions, get_rubrics_for_domain
+from .tasks import BENCHMARK_TASKS, BenchmarkTask
 
 
 @dataclass
@@ -18,11 +19,11 @@ class BenchmarkResult:
     complexity: str
     question: str
     report: str
-    evaluation: Dict[str, Any]
+    evaluation: dict[str, Any]
     latency_seconds: float
     tokens_estimated: int
     timestamp: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
 
 @dataclass
@@ -32,9 +33,9 @@ class BenchmarkSummary:
     completed: int
     failed: int
     overall_score: float
-    by_domain: Dict[str, Dict[str, float]]
-    by_complexity: Dict[str, Dict[str, float]]
-    by_dimension: Dict[str, float]
+    by_domain: dict[str, dict[str, float]]
+    by_complexity: dict[str, dict[str, float]]
+    by_dimension: dict[str, float]
     latency_avg: float
     timestamp: str
 
@@ -59,7 +60,7 @@ class LLMEvaluator:
         criterion_desc: str,
         dimension: str,
         task_question: str,
-        expected_keywords: List[str]
+        expected_keywords: list[str]
     ) -> int:
         """Evalúa un criterio individual: retorna 1 (pass) o 0 (fail)."""
         
@@ -75,7 +76,7 @@ class LLMEvaluator:
         try:
             response = self.llm.generate(prompt)
             score = self._parse_judge_response(response)
-        except Exception:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError):
             score = 0  # Fail safe
         
         self._cache[cache_key] = score
@@ -88,7 +89,7 @@ class LLMEvaluator:
         criterion_desc: str,
         dimension: str,
         task_question: str,
-        expected_keywords: List[str]
+        expected_keywords: list[str]
     ) -> str:
         """Construye prompt para LLM-as-judge."""
         return f"""Eres un evaluador experto de informes de investigación profunda.
@@ -127,11 +128,11 @@ RESPUESTA (1 o 0):"""
 
 
 def run_benchmark(
-    research_function: Callable[[str], Dict[str, Any]],
-    tasks: List[BenchmarkTask] = None,
+    research_function: Callable[[str], dict[str, Any]],
+    tasks: list[BenchmarkTask] | None = None,
     llm_judge: LLMEvaluator = None,
     output_dir: str = "benchmark_results",
-    max_tasks: int = None,
+    max_tasks: int | None = None,
 ) -> BenchmarkSummary:
     """
     Ejecuta benchmark completo.
@@ -209,7 +210,7 @@ def run_benchmark(
                   f"| fid:{evaluation['fidelidad']['fidelidad']:.2f} "
                   f"| {latency:.1f}s")
             
-        except Exception as e:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
             failed += 1
             print(f"  ✗ ERROR: {e}")
             results.append(BenchmarkResult(
@@ -248,8 +249,8 @@ def _evaluate_with_llm_judge(
     judge: LLMEvaluator,
     report: str,
     task: BenchmarkTask,
-    expected: Dict[str, List[str]]
-) -> Dict[str, Any]:
+    expected: dict[str, list[str]]
+) -> dict[str, Any]:
     """Evalúa usando LLM-as-judge para cada criterio (incluye rúbricas dominio)."""
     # Obtener rúbricas específicas del dominio
     domain_rubrics = get_rubrics_for_domain(task.domain)
@@ -292,7 +293,7 @@ def _evaluate_with_llm_judge(
     }
 
 
-def _compute_summary(results: List[BenchmarkResult]) -> BenchmarkSummary:
+def _compute_summary(results: list[BenchmarkResult]) -> BenchmarkSummary:
     """Calcula resumen agregado."""
     completed = [r for r in results if not r.metadata.get("error")]
     failed = len(results) - len(completed)

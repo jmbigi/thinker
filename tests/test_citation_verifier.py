@@ -2,8 +2,7 @@
 
 import unittest
 
-from citation_verifier import (_normalizar_url, extraer_citas, verificar_cita,
-                               verificar_informe)
+from citation_verifier import _normalizar_url, extraer_citas, verificar_cita, verificar_informe
 
 
 class TestExtraerCitas(unittest.TestCase):
@@ -237,26 +236,26 @@ class TestCoberturaLineas(unittest.TestCase):
 
     def test_clasificar_soporte_parcial(self):
         from citation_verifier import _clasificar_soporte
-        soporte, cobertura, motivo = _clasificar_soporte(
+        soporte, cobertura, _motivo = _clasificar_soporte(
             "energia solar fotovoltaica concentrada", "la energia solar es renovable")
         self.assertEqual(soporte, "PARTIALLY_SUPPORTED")
         self.assertGreater(cobertura, 0.0)
 
     def test_clasificar_soporte_sin_claim(self):
         from citation_verifier import _clasificar_soporte
-        soporte, cobertura, motivo = _clasificar_soporte("", "contenido")
+        soporte, cobertura, _motivo = _clasificar_soporte("", "contenido")
         self.assertEqual(soporte, "UNVERIFIABLE")
         self.assertEqual(cobertura, 0.0)
 
     def test_clasificar_soporte_sin_contenido(self):
         from citation_verifier import _clasificar_soporte
-        soporte, cobertura, motivo = _clasificar_soporte("claim", "")
+        soporte, cobertura, _motivo = _clasificar_soporte("claim", "")
         self.assertEqual(soporte, "UNVERIFIABLE")
         self.assertEqual(cobertura, 0.0)
 
     def test_clasificar_soporte_sin_solapamiento(self):
         from citation_verifier import _clasificar_soporte
-        soporte, cobertura, motivo = _clasificar_soporte(
+        soporte, cobertura, _motivo = _clasificar_soporte(
             "motor diesel", "energia solar")
         self.assertEqual(soporte, "UNVERIFIABLE")
         self.assertEqual(cobertura, 0.0)
@@ -311,9 +310,9 @@ class TestCoberturaLineas(unittest.TestCase):
         self.assertTrue(any("sin contenido verificable" in a for a in informe["advertencias"]))
 
     def test_main_cli_con_json(self):
-        import tempfile
         import json
         import os
+        import tempfile
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Texto [1]")
             reporte = f.name
@@ -321,9 +320,10 @@ class TestCoberturaLineas(unittest.TestCase):
             json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
             sources = f.name
         try:
-            from citation_verifier import main
             import io
             import sys
+
+            from citation_verifier import main
             salida = io.StringIO()
             original = sys.stdout
             sys.stdout = salida
@@ -338,9 +338,9 @@ class TestCoberturaLineas(unittest.TestCase):
             os.unlink(sources)
 
     def test_main_cli_sin_json(self):
-        import tempfile
         import json
         import os
+        import tempfile
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Texto [1]")
             reporte = f.name
@@ -348,9 +348,10 @@ class TestCoberturaLineas(unittest.TestCase):
             json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
             sources = f.name
         try:
-            from citation_verifier import main
             import io
             import sys
+
+            from citation_verifier import main
             salida = io.StringIO()
             original = sys.stdout
             sys.stdout = salida
@@ -365,9 +366,9 @@ class TestCoberturaLineas(unittest.TestCase):
             os.unlink(sources)
 
     def test_main_cli_sources_no_lista(self):
-        import tempfile
         import json
         import os
+        import tempfile
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Texto [1]")
             reporte = f.name
@@ -375,9 +376,10 @@ class TestCoberturaLineas(unittest.TestCase):
             json.dump({"no": "lista"}, f)
             sources = f.name
         try:
-            from citation_verifier import main
             import io
             import sys
+
+            from citation_verifier import main
             salida = io.StringIO()
             original = sys.stderr
             sys.stderr = salida
@@ -391,9 +393,9 @@ class TestCoberturaLineas(unittest.TestCase):
             os.unlink(sources)
 
     def test_main_cli_con_claims(self):
-        import tempfile
         import json
         import os
+        import tempfile
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Texto [1]")
             reporte = f.name
@@ -404,9 +406,10 @@ class TestCoberturaLineas(unittest.TestCase):
             json.dump([{"claim": "texto", "source_url": "https://example.org"}], f)
             claims = f.name
         try:
-            from citation_verifier import main
             import io
             import sys
+
+            from citation_verifier import main
             salida = io.StringIO()
             original = sys.stdout
             sys.stdout = salida
@@ -421,9 +424,9 @@ class TestCoberturaLineas(unittest.TestCase):
             os.unlink(claims)
 
     def test_main_cli_con_not_found(self):
-        import tempfile
         import json
         import os
+        import tempfile
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Texto [99]")
             reporte = f.name
@@ -431,9 +434,10 @@ class TestCoberturaLineas(unittest.TestCase):
             json.dump([{"url": "https://example.org", "snippet": "texto"}], f)
             sources = f.name
         try:
-            from citation_verifier import main
             import io
             import sys
+
+            from citation_verifier import main
             salida = io.StringIO()
             original = sys.stdout
             sys.stdout = salida

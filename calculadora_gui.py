@@ -12,9 +12,9 @@ Características:
 - Precisión decimal configurable
 """
 
+import math
 import tkinter as tk
 from tkinter import messagebox
-import math
 
 
 class Calculadora:
@@ -122,7 +122,7 @@ class Calculadora:
             messagebox.showerror("Error", "No se puede dividir entre cero")
             self.display.delete(0, tk.END)
             self.display.insert(0, "0")
-        except Exception as e:
+        except (SyntaxError, NameError, TypeError, ValueError) as e:
             messagebox.showerror("Error", f"Error en la expresión: {str(e)[:50]}")
             self.display.delete(0, tk.END)
             self.display.insert(0, "0")

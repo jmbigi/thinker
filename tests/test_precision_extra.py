@@ -9,11 +9,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from code_design_improvement_tools import (CodeDesignThinker,
-                                           CodeImprovementOrchestrator,
-                                           analyze_python_source)
-from deep_research_system import (ClaimExtractor, EvidenceEvaluator, MockLLM,
-                                  ResearchContext, SourceRetriever)
+from code_design_improvement_tools import CodeDesignThinker, CodeImprovementOrchestrator, analyze_python_source
+from deep_research_system import ClaimExtractor, EvidenceEvaluator, MockLLM, ResearchContext, SourceRetriever
 from pensamiento_layer import DeepResearchThinkingLayer
 from tests.helpers import StubLLM, StubSearch
 from web_search import WikipediaSearchAPI

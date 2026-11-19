@@ -4,10 +4,10 @@ Plugin Dashboard for Deep Research System.
 Provides CLI and data structures for monitoring plugin health, performance, and usage.
 """
 
-import time
 import json
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, asdict
+import time
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from .registry import plugin_registry
 
@@ -18,11 +18,11 @@ class DashboardMetrics:
     timestamp: float
     total_plugins: int
     loaded_plugins: int
-    active_llm: Optional[str]
-    active_search: Optional[str]
+    active_llm: str | None
+    active_search: str | None
     total_requests: int
     total_errors: int
-    plugins: List[Dict[str, Any]]
+    plugins: list[dict[str, Any]]
 
 
 class PluginDashboard:
@@ -31,8 +31,8 @@ class PluginDashboard:
     def __init__(self, registry=None):
         self.registry = registry or plugin_registry
         self._start_time = time.perf_counter()
-        self._request_counts: Dict[str, int] = {}
-        self._error_counts: Dict[str, int] = {}
+        self._request_counts: dict[str, int] = {}
+        self._error_counts: dict[str, int] = {}
 
     def record_request(self, plugin_name: str) -> None:
         """Record a request to a plugin."""
@@ -103,7 +103,7 @@ class PluginDashboard:
         metrics = self.get_metrics()
         return json.dumps(asdict(metrics), indent=2)
 
-    def health_summary(self) -> Dict[str, Any]:
+    def health_summary(self) -> dict[str, Any]:
         """Get a health summary for monitoring systems."""
         metrics = self.get_metrics()
         

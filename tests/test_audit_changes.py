@@ -7,8 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.audit_changes import (OpcionesAuditoria, auditar_diff,
-                                   informe_texto, main, parsear_diff)
+from scripts.audit_changes import OpcionesAuditoria, auditar_diff, informe_texto, main, parsear_diff
 
 
 def _diff(ruta, lineas=(), nuevo=False, borrado=False):

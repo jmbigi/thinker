@@ -6,7 +6,6 @@ gratis/controlado ≠ ilimitado (cuotas, rate limits, capacidad).
 """
 
 import time
-from typing import List
 
 from plugins.interfaces import LLMProviderPlugin, PluginMetadata, PluginType
 from plugins.registry import plugin_registry
@@ -54,24 +53,24 @@ class ForthtradeGatewayPlugin(LLMProviderPlugin):
             )
             self._initialized = True
             return True
-        except Exception as exc:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
             self.metadata.error_message = str(exc)
             return False
 
     def shutdown(self) -> None:
         self._initialized = False
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         if not self._initialized:
             raise RuntimeError("Plugin forthtrade no inicializado")
         self.metadata.usage_count += 1
         self.metadata.last_used = time.time()
         return self._llm.generate(prompt, model=model, **kwargs)
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         return ["auto"]
 
-    def estimate_cost(self, prompt: str, model: str = None) -> float:
+    def estimate_cost(self, prompt: str, model: str | None = None) -> float:
         # El gateway aplica política FREE_ONLY/cuotas; coste monetario directo
         # para el cliente no se infiere aquí.
         return 0.0

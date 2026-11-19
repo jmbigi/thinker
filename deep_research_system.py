@@ -14,15 +14,22 @@ import json
 import re
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from web_search import (DuckDuckGoSearchAPI, MockSearchAPI, SearchAPI,  # noqa: F401
-                        WikipediaSearchAPI, formulate_query)
-from llm_providers import (DEFAULT_FREE_MODEL, KiloGatewayLLM,  # noqa: F401
-                           LLMProvider, MockLLM, OllamaLLM, OpenAILLM,
-                           OpenRouterLLM, TRANSIENT_STATUS, _chat_completion)
 from citation_verifier import verificar_informe
+from llm_providers import (  # noqa: F401
+    DEFAULT_FREE_MODEL,
+    TRANSIENT_STATUS,
+    KiloGatewayLLM,
+    LLMProvider,
+    MockLLM,
+    OllamaLLM,
+    OpenAILLM,
+    OpenRouterLLM,
+    _chat_completion,
+)
 from source_quality import evaluar_fuentes
+from web_search import DuckDuckGoSearchAPI, MockSearchAPI, SearchAPI, WikipediaSearchAPI, formulate_query  # noqa: F401
 
 # Citas del informe: [1], [12]... Se excluyen años como [2026] a propósito.
 _CITA_RE = re.compile(r"\[(\d{1,2})\]")
@@ -51,18 +58,18 @@ class ResearchContext:
         self.max_iterations = max_iterations
         self.iteration = 0
         self.decomposed = False
-        self.subquestions: List[str] = []
-        self.sources: List[Dict[str, Any]] = []
-        self.claims: List[Dict[str, Any]] = []
-        self.evaluations: List[Dict[str, Any]] = []
-        self.conclusions: List[Dict[str, Any]] = []
-        self.decision_log: List[Dict[str, Any]] = []
-        self.retrieved_subquestions: List[str] = []
-        self.retrieval_cache: Dict[str, List[Dict[str, Any]]] = {}
-        self.processed_source_keys: List[str] = []
-        self.evaluated_claim_keys: List[str] = []
-        self.citation_checks: Dict[str, Any] = {}
-        self.source_quality: Dict[str, Any] = {}
+        self.subquestions: list[str] = []
+        self.sources: list[dict[str, Any]] = []
+        self.claims: list[dict[str, Any]] = []
+        self.evaluations: list[dict[str, Any]] = []
+        self.conclusions: list[dict[str, Any]] = []
+        self.decision_log: list[dict[str, Any]] = []
+        self.retrieved_subquestions: list[str] = []
+        self.retrieval_cache: dict[str, list[dict[str, Any]]] = {}
+        self.processed_source_keys: list[str] = []
+        self.evaluated_claim_keys: list[str] = []
+        self.citation_checks: dict[str, Any] = {}
+        self.source_quality: dict[str, Any] = {}
         self.start_time = time.time()
 
     def add_decision(self, step: str, decision: str, rationale: str = ""):
@@ -74,7 +81,7 @@ class ResearchContext:
             "iteration": self.iteration
         })
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "question": self.question,
             "decomposed": self.decomposed,
@@ -88,7 +95,7 @@ class ResearchContext:
             "duration_seconds": round(time.time() - self.start_time, 3),
         }
 
-    def pipeline_audit(self) -> Dict[str, Any]:
+    def pipeline_audit(self) -> dict[str, Any]:
         """Audita el paso de claims extraídos a claims verificados.
 
         Inspirado en Chen & Stratton (2026): el output intermedio (fuentes,
@@ -96,7 +103,7 @@ class ResearchContext:
         el cuello de botella. Es una heurística determinista, no una estimación
         estructural: cuenta claims por texto, igual que `ReportGenerator`.
         """
-        veredictos_por_claim: Dict[str, List[str]] = {}
+        veredictos_por_claim: dict[str, list[str]] = {}
         for evaluacion in self.evaluations:
             texto = evaluacion.get("claim", "")
             veredictos_por_claim.setdefault(texto, []).append(
@@ -166,7 +173,7 @@ class QuestionDecomposer(DecisionEngine):
     def __init__(self, llm_provider):
         self.llm_provider = llm_provider
 
-    def decide(self, context: ResearchContext) -> List[str]:
+    def decide(self, context: ResearchContext) -> list[str]:
         if not context.decomposed:
             prompt = f"""Research Question: {context.question}
 
@@ -203,7 +210,7 @@ class RelevanceJudge:
         self.llm_provider = llm_provider
 
     def evaluar(self, subquestion: str,
-                resultados: List[Dict[str, Any]]) -> Optional[float]:
+                resultados: list[dict[str, Any]]) -> float | None:
         muestras = "\n".join(
             f"- {r.get('title', '')}: {r.get('snippet', '')[:150]}"
             for r in resultados[:3])
@@ -239,7 +246,7 @@ class SourceRetriever(DecisionEngine):
         self.umbral_relevancia = umbral_relevancia
 
     def _relevante(self, context: ResearchContext, subquestion: str,
-                   candidatos: List[Dict[str, Any]]) -> bool:
+                   candidatos: list[dict[str, Any]]) -> bool:
         """Sin evaluador, todo es relevante; con él, se consulta al juez."""
         if self.evaluador_relevancia is None:
             return True
@@ -251,7 +258,7 @@ class SourceRetriever(DecisionEngine):
             return True
         return puntuacion >= self.umbral_relevancia
 
-    def decide(self, context: ResearchContext, subquestion: str) -> List[Dict[str, Any]]:
+    def decide(self, context: ResearchContext, subquestion: str) -> list[dict[str, Any]]:
         context.iteration += 1
 
         # Los buscadores por palabras clave no entienden preguntas largas:
@@ -271,7 +278,7 @@ class SourceRetriever(DecisionEngine):
                                  "Sin consulta posible (subpregunta vacía)")
             return []
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for posicion, query in enumerate(queries):
             candidatos = self.search_api.search(query)
             if candidatos:
@@ -364,7 +371,7 @@ class ClaimExtractor(DecisionEngine):
     def __init__(self, llm_provider):
         self.llm_provider = llm_provider
 
-    def decide(self, context: ResearchContext, source: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def decide(self, context: ResearchContext, source: dict[str, Any]) -> list[dict[str, Any]]:
         prompt = f"""Extract factual claims from this text snippet. For each claim, provide:
 1. The claim statement
 2. A confidence score (0-1) based on how well-supported it appears
@@ -438,7 +445,7 @@ class EvidenceEvaluator(DecisionEngine):
         self.descomponer_claims = descomponer_claims
 
     @staticmethod
-    def _prompt_evaluacion(claim: Dict[str, Any], fuentes: List[Dict[str, Any]]) -> str:
+    def _prompt_evaluacion(claim: dict[str, Any], fuentes: list[dict[str, Any]]) -> str:
         source_parts = ""
         for i, s in enumerate(fuentes):
             source_parts += (f"Source {i+1}: {s.get('title', 'Unknown')}: "
@@ -459,7 +466,7 @@ Return ONLY JSON (no markdown fences, no extra text):
 {{"verdict": "supported|contradicted|not_addressed", "credibility": 0-1, "confidence": 0-1, "reasoning": "..."}}"""
 
     @staticmethod
-    def _partir_claim(texto: str) -> List[str]:
+    def _partir_claim(texto: str) -> list[str]:
         """Divide un claim compuesto por conjunciones simples (opt-in R13-C).
 
         Es una heurística declarada, no una descomposición semántica: solo
@@ -469,8 +476,8 @@ Return ONLY JSON (no markdown fences, no extra text):
         return [p.strip(" .;,") for p in partes if len(p.split()) >= 2]
 
     @staticmethod
-    def _agregar_subclaims(claim: Dict[str, Any],
-                           evaluaciones: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _agregar_subclaims(claim: dict[str, Any],
+                           evaluaciones: list[dict[str, Any]]) -> dict[str, Any]:
         veredictos = [e.get("verdict", "not_addressed") for e in evaluaciones]
         if "contradicted" in veredictos:
             veredicto = "contradicted"
@@ -493,7 +500,7 @@ Return ONLY JSON (no markdown fences, no extra text):
             "descomposicion": "heuristica-opt-in",
         }
 
-    def decide(self, context: ResearchContext, claim: Dict[str, Any]) -> Dict[str, Any]:
+    def decide(self, context: ResearchContext, claim: dict[str, Any]) -> dict[str, Any]:
         if self.descomponer_claims:
             partes = self._partir_claim(claim.get("claim", ""))
             if len(partes) > 1:
@@ -522,7 +529,7 @@ Return ONLY JSON (no markdown fences, no extra text):
         return evaluation
 
     @staticmethod
-    def _normalizar_credibilidad(valor: Any) -> Tuple[float, Optional[str]]:
+    def _normalizar_credibilidad(valor: Any) -> tuple[float, str | None]:
         """Convierte la credibilidad a float en [0, 1] sin tumbar el pipeline.
 
         Los modelos reales devuelven a veces `"0.75"` (string), `null` u otro
@@ -546,8 +553,8 @@ Return ONLY JSON (no markdown fences, no extra text):
         return (self.llm_verificador is not None
                 and self.llm_verificador is not self.llm_provider)
 
-    def _evaluar(self, context: ResearchContext, claim: Dict[str, Any]
-                 ) -> Tuple[Dict[str, Any], List[str]]:
+    def _evaluar(self, context: ResearchContext, claim: dict[str, Any]
+                 ) -> tuple[dict[str, Any], list[str]]:
         # Origen verificado por el pipeline (`source_id` lo fija el extractor
         # con la URL real de la fuente); `source_url` es solo lo que dijo el
         # modelo y puede faltar, dejando el claim sin su fuente. Mismo criterio
@@ -606,9 +613,9 @@ Return ONLY JSON (no markdown fences, no extra text):
             return eval_result, fuentes_usadas
 
     def _consolidar_consenso(self, context: ResearchContext,
-                             evaluation: Dict[str, Any],
-                             claim: Dict[str, Any],
-                             fuentes: List[Dict[str, Any]]) -> None:
+                             evaluation: dict[str, Any],
+                             claim: dict[str, Any],
+                             fuentes: list[dict[str, Any]]) -> None:
         """Muestreo adicional del MISMO prompt: veredictos divergentes = señal.
 
         Una evaluación que cambia entre muestras idénticas delata un juicio
@@ -646,10 +653,10 @@ Return ONLY JSON (no markdown fences, no extra text):
                 f"{self.muestras_consenso}/{self.muestras_consenso} muestras "
                 f"coinciden: {veredictos[0]}")
 
-    def _evaluar_independiente(self, context: ResearchContext, claim: Dict[str, Any],
+    def _evaluar_independiente(self, context: ResearchContext, claim: dict[str, Any],
                                verdict_principal: str,
-                               fuentes_usadas: Tuple[str, ...] = ()
-                               ) -> Optional[Dict[str, Any]]:
+                               fuentes_usadas: tuple[str, ...] = ()
+                               ) -> dict[str, Any] | None:
         """Segunda pasada CoVe contra fuentes que NO vio la pasada principal.
 
         Excluye las fuentes que ya usó `_evaluar` (`fuentes_usadas`): si el
@@ -825,7 +832,7 @@ matching the sources retrieved. Be factual and acknowledge uncertainties."""
         return report
 
     @staticmethod
-    def _auditoria_texto(auditoria: Dict[str, Any]) -> str:
+    def _auditoria_texto(auditoria: dict[str, Any]) -> str:
         """Auditoría interna del pass-through para el prompt, o cadena vacía."""
         if auditoria["bottleneck"] is None:
             return ""
@@ -911,7 +918,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
             try:
                 contenido = self.llm_provider.generate(self._prompt_seccion(
                     seccion, context, fuentes_txt, claims_txt)).strip()
-            except Exception as exc:  # aislamiento por sección; se registra
+            except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
                 contenido = ""
                 fallo = f"{type(exc).__name__}: {exc}"
             contenido = self._sin_encabezado_repetido(
@@ -970,7 +977,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
 
     @staticmethod
     def _validar_citas(context: ResearchContext, texto: str,
-                       alcance: str) -> List[int]:
+                       alcance: str) -> list[int]:
         """Comprueba que las citas [n] apunten a fuentes existentes.
 
         No corrige el texto: registra `cita_fuera_de_rango` en el
@@ -987,10 +994,10 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
         return numeros
 
     @staticmethod
-    def _normalizar_secciones(datos: Any) -> Tuple[List[Dict[str, Any]], int]:
-        """Valida el esquema y limita a 5 secciones; eleva ValueError si no sirve."""
+    def _normalizar_secciones(datos: Any) -> tuple[list[dict[str, Any]], int]:
+        """Valida el esquema y limita a 5 secciones; eleva TypeError si no sirve."""
         if not isinstance(datos, dict):
-            raise ValueError("el esquema no es un objeto JSON")
+            raise TypeError("el esquema no es un objeto JSON")
         secciones = datos.get("secciones")
         if not isinstance(secciones, list) or not secciones:
             raise ValueError("'secciones' debe ser una lista no vacía")
@@ -998,7 +1005,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
         normalizadas = []
         for seccion in secciones[:5]:
             if not isinstance(seccion, dict):
-                raise ValueError("cada sección debe ser un objeto")
+                raise TypeError("cada sección debe ser un objeto")
             titulo = seccion.get("titulo")
             if not isinstance(titulo, str) or not titulo.strip():
                 raise ValueError("cada sección necesita un 'titulo' no vacío")
@@ -1010,7 +1017,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
                 raise ValueError(f"título de sección duplicado: {titulo!r}")
             claims = seccion.get("claims") or []
             if not isinstance(claims, list):
-                raise ValueError("'claims' debe ser una lista")
+                raise TypeError("'claims' debe ser una lista")
             if not all(isinstance(c, str) for c in claims):
                 raise ValueError("'claims' debe contener solo textos")
             normalizadas.append({
@@ -1020,7 +1027,7 @@ Use 3-5 sections. Cover the sub-questions and do not add prose outside the JSON.
             })
         return normalizadas, len(secciones)
 
-    def _prompt_seccion(self, seccion: Dict[str, Any],
+    def _prompt_seccion(self, seccion: dict[str, Any],
                         context: ResearchContext, fuentes_txt: str,
                         claims_txt: str) -> str:
         """Prompt de una sección; filtra claims si el esquema los declara.
@@ -1055,7 +1062,7 @@ Relevant evaluated claims:
 
 {auditoria_txt}Return only the section body in markdown, without repeating the section title."""
 
-    def _extract_conclusions(self, report: str) -> List[Dict[str, Any]]:
+    def _extract_conclusions(self, report: str) -> list[dict[str, Any]]:
         sections = re.split(r'\n#+\s*', report)
         conclusions = []
         for section in sections[-3:] if len(sections) >= 3 else sections:
@@ -1192,7 +1199,7 @@ class ResearchOrchestrator:
                 "La pregunta no coincide con el estado; usa otro state_path")
         return context, report, completed
 
-    def research(self, question: str) -> Tuple[str, ResearchContext]:
+    def research(self, question: str) -> tuple[str, ResearchContext]:
         """Execute the full research pipeline, resuming checkpoints if enabled."""
         restaurado = self._restore(question)
         self.context = (restaurado[0] if restaurado else
@@ -1277,11 +1284,12 @@ class ResearchOrchestrator:
 
         return report, self.context
 
-    def _retrieve_parallel(self, subquestions: List[str]) -> None:
+    def _retrieve_parallel(self, subquestions: list[str]) -> None:
         """Recupera/extrae en contextos aislados y fusiona en orden estable."""
-        from concurrent.futures import ThreadPoolExecutor
-        from research_state import source_key
         import threading
+        from concurrent.futures import ThreadPoolExecutor
+
+        from research_state import source_key
 
         trabajos = []
         iteracion = self.context.iteration
@@ -1327,7 +1335,7 @@ class ResearchOrchestrator:
                 return {"sq": sq, "results": resultados, "cache": cache,
                         "iteration": numero, "local": local,
                         "extracciones": extracciones}
-            except Exception as exc:
+            except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
                 return {"sq": sq, "error": exc}
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -1353,9 +1361,10 @@ class ResearchOrchestrator:
 
     def _evaluate_parallel(self) -> None:
         """Evalúa claims con fuentes de solo lectura y fusiona en orden."""
-        from concurrent.futures import ThreadPoolExecutor
-        from research_state import claim_key
         import copy
+        from concurrent.futures import ThreadPoolExecutor
+
+        from research_state import claim_key
 
         pendientes = [claim for claim in self.context.claims[:]
                       if claim_key(claim) not in self.context.evaluated_claim_keys]
@@ -1370,7 +1379,7 @@ class ResearchOrchestrator:
                 self._hook("post_evaluation", claim=claim, evaluation=evaluation)
                 return {"claim": claim, "evaluation": evaluation,
                         "decisions": local.decision_log}
-            except Exception as exc:
+            except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
                 return {"claim": claim, "error": exc}
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:

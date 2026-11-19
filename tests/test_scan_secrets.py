@@ -1,14 +1,14 @@
 """Tests del escáner de secretos portable (scripts/scan_secrets.py)."""
 
-import io
 import contextlib
+import io
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 
-from tests.helpers import crear_proyecto
 import scripts.scan_secrets as scan
+from tests.helpers import crear_proyecto
 
 
 def _ejecutar(raiz):
@@ -63,7 +63,7 @@ class TestScanSecrets(unittest.TestCase):
         })
         script = Path(__file__).resolve().parent.parent / "scripts" / "scan_secrets.py"
         proc = subprocess.run(
-            [sys.executable, str(script)], cwd=raiz,
+            [sys.executable, str(script)], check=False, cwd=raiz,
             capture_output=True, text=True, timeout=30)
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn("fuga.py", proc.stdout + proc.stderr)

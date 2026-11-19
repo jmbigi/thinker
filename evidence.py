@@ -14,9 +14,9 @@ Los tres tipos son deliberadamente excluyentes:
 Este módulo no ejecuta nada ni accede a la red: solo modela la evidencia.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Iterable, Union
 
 
 class EvidenceKind(str, Enum):
@@ -76,7 +76,7 @@ def puede_promocionar(evidence: Evidence, *, permitir_sintetica: bool = False,
 
 
 def resumen_evidencias(
-        evidencias: Iterable[Union[Evidence, EvidenceKind]]) -> Dict[str, int]:
+        evidencias: Iterable[Evidence | EvidenceKind]) -> dict[str, int]:
     """Cuenta evidencias por tipo; siempre devuelve las tres claves."""
     conteo = {kind.value: 0 for kind in EvidenceKind}
     for item in evidencias:
@@ -87,7 +87,7 @@ def resumen_evidencias(
     return conteo
 
 
-def formato_resumen(conteo: Dict[str, int]) -> str:
+def formato_resumen(conteo: dict[str, int]) -> str:
     """Formatea un resumen de evidencias para un informe de texto."""
     return " | ".join(
         f"{kind.marcador} {conteo.get(kind.value, 0)}" for kind in EvidenceKind)

@@ -69,9 +69,9 @@ class TestBusquedaConConfiguracion(unittest.TestCase):
 
     def test_buscar_sin_initialize_es_un_error_explicito(self):
         for clase in (WikipediaSearchPlugin, DuckDuckGoSearchPlugin):
-            with self.subTest(plugin=clase.__name__):
-                with self.assertRaisesRegex(RuntimeError, "not initialized"):
-                    clase().search("consulta")
+            with self.subTest(plugin=clase.__name__), \
+                 self.assertRaisesRegex(RuntimeError, "not initialized"):
+                clase().search("consulta")
 
     def test_dependencias_declaradas_solo_las_que_se_usan(self):
         self.assertEqual(WikipediaSearchPlugin().metadata.dependencies, ["requests"])

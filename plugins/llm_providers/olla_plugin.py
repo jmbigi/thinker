@@ -15,7 +15,6 @@ con el 9527 (deepseek-free-agent).
 
 import sys
 import time
-from typing import List
 
 import requests
 
@@ -117,7 +116,7 @@ class OllaPlugin(LLMProviderPlugin):
             )
             self._initialized = True
             return True
-        except Exception as exc:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
             self.metadata.error_message = str(exc)
             return False
 
@@ -143,14 +142,14 @@ class OllaPlugin(LLMProviderPlugin):
     def shutdown(self) -> None:
         self._initialized = False
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         if not self._initialized:
             raise RuntimeError("Plugin Olla no inicializado")
         self.metadata.usage_count += 1
         self.metadata.last_used = time.time()
         return self._llm.generate(prompt, model=model, **kwargs)
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         if not self._initialized:
             return []
         if (self._health_check_interval > 0
@@ -159,7 +158,7 @@ class OllaPlugin(LLMProviderPlugin):
             self._refresh_models()
         return list(self._available_models)
 
-    def estimate_cost(self, prompt: str, model: str = None) -> float:
+    def estimate_cost(self, prompt: str, model: str | None = None) -> float:
         # Olla proxy a backends locales = coste 0
         return 0.0
 

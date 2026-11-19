@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import os
 import logging
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +28,7 @@ def pensar_codigo(prompt: str) -> str:
     try:
         resultado = ft_llm.generate(prompt)
         return resultado
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
         return f"❌ Error: {type(e).__name__}"
 
 if __name__ == "__main__":

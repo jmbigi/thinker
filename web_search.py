@@ -16,7 +16,7 @@ import ipaddress
 import re
 import socket
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import requests
@@ -46,7 +46,7 @@ STOPWORDS = {
 
 
 def formulate_query(question: str, max_terms: int = 4,
-                    anchor_terms: List[str] = None) -> str:
+                    anchor_terms: list[str] | None = None) -> str:
     """Convierte una pregunta natural en una consulta de palabras clave.
 
     Los motores de búsqueda por palabras clave devuelven 0 resultados ante
@@ -79,7 +79,7 @@ class SearchAPI(ABC):
     """Interfaz de proveedores de búsqueda."""
 
     @abstractmethod
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         """Devuelve una lista de {title, url, snippet, source}."""
 
 
@@ -138,7 +138,7 @@ class MockSearchAPI(SearchAPI):
     el pipeline sin conexión.
     """
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         return [{
             "title": f"Article about {query}",
             "url": f"https://example.com/{query.replace(' ', '-')}",
@@ -158,7 +158,7 @@ class WikipediaSearchAPI(SearchAPI):
         self.endpoint = f"https://{language}.wikipedia.org/w/api.php"
         self.timeout = timeout
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         response = requests.get(
@@ -209,7 +209,7 @@ class DuckDuckGoSearchAPI(SearchAPI):
         self.endpoint = "https://html.duckduckgo.com/html/"
         self.timeout = timeout
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         response = requests.post(
@@ -290,7 +290,7 @@ class SearXNGSearchAPI(SearchAPI):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         response = requests.get(
@@ -300,7 +300,7 @@ class SearXNGSearchAPI(SearchAPI):
         response.raise_for_status()
         datos = _json_response(response, "SearXNG")
         if not isinstance(datos, dict) or not isinstance(datos.get("results"), list):
-            raise RuntimeError("Respuesta inesperada de SearXNG: falta results")
+            raise TypeError("Respuesta inesperada de SearXNG: falta results")
         resultados = []
         for hit in datos["results"]:
             url = hit.get("url", "")
@@ -324,7 +324,7 @@ class ArxivSearchAPI(SearchAPI):
         self.endpoint = "https://export.arxiv.org/api/query"
         self.timeout = timeout
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         from xml.etree import ElementTree as ET
@@ -360,7 +360,7 @@ class PubMedSearchAPI(SearchAPI):
         self.base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
         self.timeout = timeout
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         busqueda = requests.get(
@@ -405,7 +405,7 @@ class SemanticScholarSearchAPI(SearchAPI):
         self.endpoint = "https://api.semanticscholar.org/graph/v1/paper/search"
         self.timeout = timeout
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         response = requests.get(
@@ -416,7 +416,7 @@ class SemanticScholarSearchAPI(SearchAPI):
         response.raise_for_status()
         datos = _json_response(response, "Semantic Scholar")
         if not isinstance(datos, dict) or not isinstance(datos.get("data"), list):
-            raise RuntimeError("Respuesta inesperada de Semantic Scholar")
+            raise TypeError("Respuesta inesperada de Semantic Scholar")
         resultados = []
         for hit in datos["data"]:
             url = hit.get("url") or f"https://www.semanticscholar.org/paper/{hit.get('paperId', '')}"

@@ -6,9 +6,10 @@ All plugins must implement one of these interfaces for type safety and hot-swapp
 
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List
 from enum import Enum
+from typing import Any
 
 
 class PluginType(Enum):
@@ -36,8 +37,8 @@ class PluginMetadata:
     plugin_type: PluginType
     description: str = ""
     author: str = ""
-    dependencies: List[str] = field(default_factory=list)
-    config_schema: Dict[str, Any] = field(default_factory=dict)
+    dependencies: list[str] = field(default_factory=list)
+    config_schema: dict[str, Any] = field(default_factory=dict)
     status: PluginStatus = PluginStatus.UNLOADED
     error_message: str = ""
     load_time: float = 0.0
@@ -50,7 +51,7 @@ class PluginConfig:
     """Runtime configuration for a plugin instance."""
     enabled: bool = True
     priority: int = 0  # Higher = preferred
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
 
 
 class PluginBase(ABC):
@@ -79,7 +80,7 @@ class PluginBase(ABC):
         """Clean shutdown of the plugin."""
         self._initialized = False
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Return health status. Override for custom checks."""
         return {
             "status": "healthy" if self._initialized else "not_initialized",
@@ -87,7 +88,7 @@ class PluginBase(ABC):
             "version": self.metadata.version,
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Return usage statistics."""
         return {
             "name": self.metadata.name,
@@ -109,19 +110,16 @@ class LLMProviderPlugin(PluginBase):
         self.metadata.plugin_type = PluginType.LLM_PROVIDER
 
     @abstractmethod
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         """Generate a response from the LLM."""
-        pass
 
     @abstractmethod
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         """Return list of available model names."""
-        pass
 
     @abstractmethod
-    def estimate_cost(self, prompt: str, model: str = None) -> float:
+    def estimate_cost(self, prompt: str, model: str | None = None) -> float:
         """Estimate cost in USD for a prompt. Return 0 for free models."""
-        pass
 
 
 class SearchProviderPlugin(PluginBase):
@@ -136,7 +134,7 @@ class SearchProviderPlugin(PluginBase):
         self.metadata.plugin_type = PluginType.SEARCH_PROVIDER
         self._search = None
 
-    def search(self, query: str, max_results: int = None) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int | None = None) -> list[dict[str, Any]]:
         """Perform a web search and return results.
 
         `max_results` explícito tiene prioridad; si es `None` se usa
@@ -152,7 +150,6 @@ class SearchProviderPlugin(PluginBase):
     @abstractmethod
     def get_source_name(self) -> str:
         """Return the name of the search source (e.g., 'DuckDuckGo', 'Wikipedia')."""
-        pass
 
 
 class CorePlugin(PluginBase):
@@ -163,7 +160,7 @@ class CorePlugin(PluginBase):
         self.metadata.plugin_type = PluginType.CORE
 
     @abstractmethod
-    def get_hooks(self) -> Dict[str, Callable]:
+    def get_hooks(self) -> dict[str, Callable]:
         """
         Return a dict of hook_name -> callable.
         
@@ -182,4 +179,3 @@ class CorePlugin(PluginBase):
         'pre_thinking_step' and 'post_thinking_step' are reserved for thinking
         engines; StepThinkingEngine does not currently emit them.
         """
-        pass

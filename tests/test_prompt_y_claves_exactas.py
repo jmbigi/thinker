@@ -10,8 +10,7 @@ import json
 import unittest
 
 from code_design_improvement_tools import CodeImprovementOrchestrator
-from deep_research_system import (ClaimExtractor, EvidenceEvaluator,
-                                  MockLLM, ResearchContext)
+from deep_research_system import ClaimExtractor, EvidenceEvaluator, MockLLM, ResearchContext
 from tests.helpers import StubLLM
 
 

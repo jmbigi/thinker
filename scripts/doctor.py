@@ -113,8 +113,10 @@ def main(argv=None) -> int:
     print("\nHerramientas externas:")
     for herramienta in ("git", "make"):
         ruta = shutil.which(herramienta)
-        (d.check if ruta else d.info)(ruta is not None and True, herramienta,
-                                      ruta or "no encontrada")
+        if ruta:
+            d.check(True, herramienta, f"en {ruta}")
+        else:
+            d.check(False, herramienta, "no encontrada")
 
     print("\nProveedores LLM (solo presencia; valores nunca se muestran):")
     for variable in VARIABLES_PROVEEDORES:

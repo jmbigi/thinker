@@ -1,5 +1,5 @@
-from dsl import (Subject, Resource, Action, AccessRule, AccessPolicy,
-                 rule, has_role)
+from dsl import AccessPolicy, AccessRule, Action, Resource, Subject, has_role, rule
+
 
 class TestSubject:
     def test_user_match(self):

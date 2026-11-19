@@ -4,26 +4,27 @@ Plugin Registry for the Deep Research System.
 Handles plugin discovery, loading, unloading, hot-swapping, and configuration management.
 """
 
+import importlib
+import importlib.util
 import os
 import sys
 import time
 import tomllib
-import importlib
-import importlib.util
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Callable
-from dataclasses import dataclass
 from collections import defaultdict
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from .interfaces import (
-    PluginBase,
-    PluginMetadata,
-    PluginConfig,
-    PluginType,
-    PluginStatus,
-    LLMProviderPlugin,
-    SearchProviderPlugin,
     CorePlugin,
+    LLMProviderPlugin,
+    PluginBase,
+    PluginConfig,
+    PluginMetadata,
+    PluginStatus,
+    PluginType,
+    SearchProviderPlugin,
 )
 
 # Las rutas por defecto se resuelven respecto al PAQUETE, no al directorio de
@@ -39,13 +40,13 @@ _DIR_PLUGINS = Path(__file__).resolve().parent
 class PluginEntry:
     """Registry entry for a plugin."""
     metadata: PluginMetadata
-    plugin_class: Type[PluginBase]
+    plugin_class: type[PluginBase]
     config: PluginConfig
-    instance: Optional[PluginBase] = None
+    instance: PluginBase | None = None
     module_path: str = ""
     # Config pasada explícitamente a `load_plugin`; se conserva en el
     # hot-reload sobre la configuración releída del archivo (nunca al revés).
-    runtime_config: Optional[PluginConfig] = None
+    runtime_config: PluginConfig | None = None
 
 
 class PluginRegistry:
@@ -56,7 +57,7 @@ class PluginRegistry:
     Supports declarative configuration via config files.
     """
 
-    def __init__(self, plugin_dirs: List[str] = None, config_path: str = None):
+    def __init__(self, plugin_dirs: list[str] | None = None, config_path: str | None = None):
         self.plugin_dirs = plugin_dirs or [
             str(_DIR_PLUGINS / "llm_providers"),
             str(_DIR_PLUGINS / "search_providers"),
@@ -65,13 +66,13 @@ class PluginRegistry:
         self.config_path = config_path or str(_DIR_PLUGINS.parent
                                               / "config" / "plugins.yaml")
         
-        self._plugins: Dict[str, PluginEntry] = {}
-        self._hooks: Dict[str, List[Callable]] = defaultdict(list)
-        self._plugin_hooks: Dict[str, Dict[str, Callable]] = {}
-        self._active_llm: Optional[str] = None
-        self._active_search: Optional[str] = None
-        self._config_cache: Optional[Dict[str, Any]] = None
-        self._config_mtime_ns: Optional[int] = None
+        self._plugins: dict[str, PluginEntry] = {}
+        self._hooks: dict[str, list[Callable]] = defaultdict(list)
+        self._plugin_hooks: dict[str, dict[str, Callable]] = {}
+        self._active_llm: str | None = None
+        self._active_search: str | None = None
+        self._config_cache: dict[str, Any] | None = None
+        self._config_mtime_ns: int | None = None
         
         # Los directorios de plugins NO se crean aquí: `discover_plugins` ya
         # omite los que no existen, y crear carpetas al importar el módulo
@@ -96,7 +97,7 @@ class PluginRegistry:
                     try:
                         discovered = self._load_plugin_module(module_name, module_path)
                         count += discovered
-                    except Exception as e:
+                    except (ImportError, SyntaxError, ModuleNotFoundError) as e:
                         print(f"[PluginRegistry] Failed to load {module_name}: {e}", file=sys.stderr)
         if not existentes:
             # Cero directorios existentes es casi siempre una mala resolución
@@ -120,18 +121,17 @@ class PluginRegistry:
         count = 0
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
-            if (isinstance(attr, type) and issubclass(attr, PluginBase) 
+            if (isinstance(attr, type) and issubclass(attr, PluginBase)
                 and attr is not PluginBase
                 and attr is not LLMProviderPlugin
                 and attr is not SearchProviderPlugin
-                and attr is not CorePlugin):
-                # Only register concrete classes (no abstract methods)
-                if not getattr(attr, '__abstractmethods__', None):
-                    self._register_plugin_class(attr, module_path)
-                    count += 1
+                and attr is not CorePlugin
+                and not getattr(attr, '__abstractmethods__', None)):
+                self._register_plugin_class(attr, module_path)
+                count += 1
         return count
 
-    def _register_plugin_class(self, plugin_class: Type[PluginBase], module_path: str) -> None:
+    def _register_plugin_class(self, plugin_class: type[PluginBase], module_path: str) -> None:
         """Register a plugin class (not instance)."""
         # Create temporary instance to get metadata
         temp_instance = plugin_class()
@@ -207,7 +207,7 @@ class PluginRegistry:
             print(f"[PluginRegistry] Loaded plugin: {name} v{entry.metadata.version}")
             return True
             
-        except Exception as e:
+        except (ImportError, RuntimeError, ValueError, TypeError) as e:
             entry.metadata.status = PluginStatus.ERROR
             entry.metadata.error_message = str(e)
             print(f"[PluginRegistry] Failed to load {name}: {e}", file=sys.stderr)
@@ -222,7 +222,7 @@ class PluginRegistry:
         if entry.instance:
             try:
                 entry.instance.shutdown()
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError) as e:
                 print(f"[PluginRegistry] Error shutting down {name}: {e}", file=sys.stderr)
         
         # Unregister hooks
@@ -276,7 +276,7 @@ class PluginRegistry:
         
         return base_config
 
-    def _load_config_file(self) -> Dict[str, Any]:
+    def _load_config_file(self) -> dict[str, Any]:
         """Load plugin configuration from YAML/TOML file.
 
         Un archivo ilegible o una dependencia ausente NO se ignoran en
@@ -319,7 +319,7 @@ class PluginRegistry:
         
         plugins_config = config.get("plugins", {})
         if not isinstance(plugins_config, dict):
-            raise RuntimeError(
+            raise TypeError(
                 f"`plugins` en {self.config_path} debe ser un mapa, no "
                 f"{type(plugins_config).__name__}."
             )
@@ -347,7 +347,7 @@ class PluginRegistry:
             if hook_func in self._hooks[hook_name]:
                 self._hooks[hook_name].remove(hook_func)
 
-    def _find_first_loaded(self, plugin_type: PluginType) -> Optional[str]:
+    def _find_first_loaded(self, plugin_type: PluginType) -> str | None:
         """Find first loaded plugin of given type."""
         for name, entry in self._plugins.items():
             if (entry.metadata.plugin_type == plugin_type 
@@ -355,12 +355,12 @@ class PluginRegistry:
                 return name
         return None
 
-    def get_plugin(self, name: str) -> Optional[PluginBase]:
+    def get_plugin(self, name: str) -> PluginBase | None:
         """Get a loaded plugin instance."""
         entry = self._plugins.get(name)
         return entry.instance if entry else None
 
-    def get_active_llm(self) -> Optional[LLMProviderPlugin]:
+    def get_active_llm(self) -> LLMProviderPlugin | None:
         """Get the currently active LLM provider."""
         if self._active_llm:
             entry = self._plugins.get(self._active_llm)
@@ -372,7 +372,7 @@ class PluginRegistry:
             return self._plugins[self._active_llm].instance
         return None
 
-    def get_active_search(self) -> Optional[SearchProviderPlugin]:
+    def get_active_search(self) -> SearchProviderPlugin | None:
         """Get the currently active search provider."""
         if self._active_search:
             entry = self._plugins.get(self._active_search)
@@ -407,18 +407,18 @@ class PluginRegistry:
         self._active_search = name
         return True
 
-    def trigger_hook(self, hook_name: str, *args, **kwargs) -> List[Any]:
+    def trigger_hook(self, hook_name: str, *args, **kwargs) -> list[Any]:
         """Trigger all registered hooks for a given name."""
         results = []
         for hook in self._hooks.get(hook_name, []):
             try:
                 result = hook(*args, **kwargs)
                 results.append(result)
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError) as e:
                 print(f"[PluginRegistry] Hook {hook_name} failed: {e}", file=sys.stderr)
         return results
 
-    def list_plugins(self, plugin_type: PluginType = None) -> List[Dict[str, Any]]:
+    def list_plugins(self, plugin_type: PluginType = None) -> list[dict[str, Any]]:
         """List all plugins with their status."""
         result = []
         for name, entry in self._plugins.items():
@@ -437,7 +437,7 @@ class PluginRegistry:
                 result.append(stats)
         return result
 
-    def get_dashboard_data(self) -> Dict[str, Any]:
+    def get_dashboard_data(self) -> dict[str, Any]:
         """Get comprehensive dashboard data."""
         return {
             "plugins": self.list_plugins(),
@@ -451,7 +451,7 @@ class PluginRegistry:
             ),
         }
 
-    def load_all(self, plugin_type: PluginType = None) -> Dict[str, bool]:
+    def load_all(self, plugin_type: PluginType = None) -> dict[str, bool]:
         """Load all discovered plugins that are enabled (or of specific type).
 
         El `enabled` se consulta en la configuración YA FUSIONADA con el
@@ -462,9 +462,9 @@ class PluginRegistry:
         """
         results = {}
         for name, entry in self._plugins.items():
-            if plugin_type is None or entry.metadata.plugin_type == plugin_type:
-                if self._merge_config(name).enabled:
-                    results[name] = self.load_plugin(name)
+            if (plugin_type is None or entry.metadata.plugin_type == plugin_type) \
+               and self._merge_config(name).enabled:
+                results[name] = self.load_plugin(name)
         return results
 
     def shutdown_all(self) -> None:

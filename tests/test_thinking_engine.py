@@ -6,8 +6,7 @@ from contextlib import redirect_stderr
 
 from deep_research_system import MockLLM
 from tests.helpers import StubLLM
-from thinking_engine import (SearchStrategy, StepThinkingEngine, ThinkingNode,
-                             ToTEngine)
+from thinking_engine import SearchStrategy, StepThinkingEngine, ThinkingNode, ToTEngine
 
 
 class TinyEngine(StepThinkingEngine):
@@ -81,8 +80,11 @@ class TestExtractDecision(unittest.TestCase):
         self.assertIsNone(StepThinkingEngine._extract_decision(steps))
 
 
+from typing import ClassVar
+
+
 class TestRunCycle(unittest.TestCase):
-    CLAVES = {"thought", "decision", "confidence", "valid",
+    CLAVES: ClassVar = {"thought", "decision", "confidence", "valid",
               "invalid_steps", "steps", "step_count", "error"}
 
     def test_ciclo_completo_valido(self):
@@ -566,8 +568,8 @@ class TestVotoPorConsenso(unittest.TestCase):
                 # La minoría ('beta') puntúa MEJOR: si ganara el score, el test
                 # no discriminaría el voto.
                 valor = "10" if "beta" in prompt else "5"
-                return ('{"relevance": %s, "depth": %s, "coherence": %s, '
-                        '"reasoning": %s}' % (valor, valor, valor, valor))
+                return (f'{{"relevance": {valor}, "depth": {valor}, "coherence": {valor}, '
+                        f'"reasoning": {valor}}}')
             return cola.pop(0)
 
         class ToTUnPaso(TinyToT):
@@ -616,8 +618,8 @@ def _juez_fijo(puntuacion):
     def responder(prompt):
         if "evaluador experto" in prompt:
             p = puntuacion
-            return ('{"relevance": %s, "depth": %s, "coherence": %s, '
-                    '"reasoning": %s}' % (p, p, p, p))
+            return (f'{{"relevance": {p}, "depth": {p}, "coherence": {p}, '
+                    f'"reasoning": {p}}}')
         return "contenido sustancial y largo"
     return StubLLM(responder)
 
@@ -726,7 +728,7 @@ class TestBloqueFasesCongeladasExacto(unittest.TestCase):
 
 
 class TestThinkTotContrato(unittest.TestCase):
-    CLAVES_TOT = {"thought", "decision", "confidence", "valid", "invalid_steps",
+    CLAVES_TOT: ClassVar = {"thought", "decision", "confidence", "valid", "invalid_steps",
                   "steps", "step_count", "error", "best_path", "explored_nodes",
                   "pruned_nodes", "best_score", "consenso", "hojas_votadas",
                   "congelacion_fases"}
@@ -960,8 +962,8 @@ class TestBusquedasFrontera(unittest.TestCase):
                 evaluado = prompt.split("PENSAMIENTO A EVALUAR:\n", 1)[1]
                 evaluado = evaluado.split("\n\nCONTEXTO PREVIO", 1)[0]
                 valor = "10" if "beta" in evaluado else "5"
-                return ('{"relevance": %s, "depth": %s, "coherence": %s, '
-                        '"reasoning": %s}' % (valor, valor, valor, valor))
+                return (f'{{"relevance": {valor}, "depth": {valor}, "coherence": {valor}, '
+                        f'"reasoning": {valor}}}')
             return cola.pop(0)
 
         engine = TinyToT(llm_provider=StubLLM(responder), branch_factor=2,
@@ -980,8 +982,8 @@ class TestBusquedasFrontera(unittest.TestCase):
             if "evaluador experto" in prompt:
                 valor = ("10" if "gamma" in prompt
                          else "8" if "beta" in prompt else "5")
-                return ('{"relevance": %s, "depth": %s, "coherence": %s, '
-                        '"reasoning": %s}' % (valor, valor, valor, valor))
+                return (f'{{"relevance": {valor}, "depth": {valor}, "coherence": {valor}, '
+                        f'"reasoning": {valor}}}')
             return cola.pop(0)
 
         class UnPaso(TinyToT):
@@ -999,8 +1001,8 @@ class TestBusquedasFrontera(unittest.TestCase):
         def juez(prompt):
             if "evaluador experto" in prompt:
                 valor = "8" if "PASO ACTUAL: uno" in prompt else "3"
-                return ('{"relevance": %s, "depth": %s, "coherence": %s, '
-                        '"reasoning": %s}' % (valor, valor, valor, valor))
+                return (f'{{"relevance": {valor}, "depth": {valor}, "coherence": {valor}, '
+                        f'"reasoning": {valor}}}')
             return "contenido sustancial y largo"
 
         engine = TinyToT(llm_provider=StubLLM(juez), branch_factor=1,

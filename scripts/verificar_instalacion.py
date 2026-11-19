@@ -60,7 +60,7 @@ def _python_venv(venv_dir: Path) -> Path:
 
 
 def _ejecutar(comando, cwd=None):
-    return subprocess.run(comando, cwd=cwd, capture_output=True, text=True,
+    return subprocess.run(comando, check=False, cwd=cwd, capture_output=True, text=True,
                           timeout=300)
 
 

@@ -18,7 +18,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 def _cap(texto: Any, limite: int = 4000) -> str:
@@ -36,8 +36,8 @@ class TestCase:
     expected_output: Any = None
     expected_error: bool = False
     timeout_seconds: float = 30.0
-    args: List[str] = field(default_factory=list)
-    stdin: Optional[str] = None
+    args: list[str] = field(default_factory=list)
+    stdin: str | None = None
 
 
 @dataclass
@@ -46,22 +46,22 @@ class EvalResult:
 
     passed: bool
     syntax_ok: bool
-    failures: List[str] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)
     duration_seconds: float = 0.0
-    cases: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    cases: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CodeEvaluator:
     """Evalúa código Python generado sin herramientas externas."""
 
-    def __init__(self, python_executable: Optional[str] = None):
+    def __init__(self, python_executable: str | None = None):
         self.python_executable = python_executable or sys.executable
 
     def evaluate_generated_code(
         self,
         code: str,
-        test_cases: Optional[List[TestCase]] = None,
+        test_cases: list[TestCase] | None = None,
         language: str = "python",
     ) -> EvalResult:
         inicio = time.monotonic()
@@ -95,8 +95,8 @@ class CodeEvaluator:
                 metadata=meta,
             )
 
-        failures: List[str] = []
-        cases: List[Dict[str, Any]] = []
+        failures: list[str] = []
+        cases: list[dict[str, Any]] = []
         with tempfile.TemporaryDirectory(prefix="thinker-codeeval-") as tmp:
             ruta = Path(tmp) / "generated.py"
             ruta.write_text(code, encoding="utf-8")
@@ -120,7 +120,7 @@ class CodeEvaluator:
             },
         )
 
-    def _run_case(self, ruta: Path, caso: TestCase) -> Dict[str, Any]:
+    def _run_case(self, ruta: Path, caso: TestCase) -> dict[str, Any]:
         args = [self.python_executable, "-I", str(ruta)] + list(caso.args)
         if caso.input_data is not None and not caso.args:
             # Compatibilidad con el formato simple del archivo archivado.

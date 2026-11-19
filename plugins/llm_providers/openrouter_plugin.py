@@ -5,7 +5,6 @@ Wraps the existing OpenRouterLLM for plugin system compatibility.
 """
 
 import time
-from typing import List
 
 from plugins.interfaces import LLMProviderPlugin, PluginMetadata, PluginType
 from plugins.registry import plugin_registry
@@ -46,26 +45,26 @@ class OpenRouterPlugin(LLMProviderPlugin):
             self._llm.max_retries = max_retries
             self._initialized = True
             return True
-        except Exception as e:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
             self.metadata.error_message = str(e)
             return False
 
     def shutdown(self) -> None:
         self._initialized = False
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         if not self._initialized:
             raise RuntimeError("Plugin not initialized")
         self.metadata.usage_count += 1
         self.metadata.last_used = time.time()
         return self._llm.generate(prompt, model=model, **kwargs)
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         # Return the fallback chain from OpenRouterLLM
         from llm_providers import OPENROUTER_FALLBACK_CHAIN
         return OPENROUTER_FALLBACK_CHAIN
 
-    def estimate_cost(self, prompt: str, model: str = None) -> float:
+    def estimate_cost(self, prompt: str, model: str | None = None) -> float:
         # OpenRouter free models have 0 cost
         return 0.0
 

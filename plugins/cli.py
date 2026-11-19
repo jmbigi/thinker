@@ -4,13 +4,12 @@ Plugin System CLI.
 Command-line interface for managing and monitoring plugins.
 """
 
-import sys
-import json
 import argparse
-from typing import List
+import json
+import sys
 
-from .registry import plugin_registry
 from .dashboard import dashboard
+from .registry import plugin_registry
 
 
 def cmd_discover(args: argparse.Namespace) -> int:
@@ -141,7 +140,7 @@ def cmd_test(args: argparse.Namespace) -> int:
             result = plugin.generate(prompt)
             print(f"Response: {result[:200]}")
             return 0
-        except Exception as e:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
     
@@ -154,7 +153,7 @@ def cmd_test(args: argparse.Namespace) -> int:
                 print(f"     {r.get('url', 'N/A')}")
                 print(f"     {r.get('snippet', 'N/A')[:100]}")
             return 0
-        except Exception as e:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
     
@@ -163,7 +162,7 @@ def cmd_test(args: argparse.Namespace) -> int:
         return 1
 
 
-def main(argv: List[str] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(prog="plugins", description="Plugin System CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)

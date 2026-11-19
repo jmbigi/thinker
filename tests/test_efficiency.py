@@ -3,8 +3,15 @@
 import unittest
 
 from deep_research_system import ResearchOrchestrator
-from efficiency import (AdaptiveRouter, CachedLLM, ContextPruner, ExpertRouterLLM,
-                        QuantizedVector, SemanticResponseCache, SpeculativeLLM)
+from efficiency import (
+    AdaptiveRouter,
+    CachedLLM,
+    ContextPruner,
+    ExpertRouterLLM,
+    QuantizedVector,
+    SemanticResponseCache,
+    SpeculativeLLM,
+)
 from llm_providers import MockLLM
 from tests.helpers import StubSearch
 

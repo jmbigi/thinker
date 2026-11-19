@@ -5,8 +5,7 @@ No usa red ni API keys: `StubLLM` es un doble SIMULADO y determinista.
 
 import unittest
 
-from deep_research_system import (ReportGenerator, ResearchContext,
-                                  ResearchOrchestrator)
+from deep_research_system import ReportGenerator, ResearchContext, ResearchOrchestrator
 from llm_providers import MockLLM
 from tests.helpers import StubLLM
 from web_search import MockSearchAPI
@@ -114,8 +113,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 2)
         self.assertIn("Generate a comprehensive research report",
                       llm.prompts[1])
-        fallback = [d for d in ctx.decision_log
-                    if d["step"] == "report_outline"][0]
+        fallback = next(d for d in ctx.decision_log
+                    if d["step"] == "report_outline")
         self.assertEqual(fallback["decision"], "fallback_single_pass")
         self.assertIn("Esquema inválido", fallback["rationale"])
         self.assertNotIn("report_section",
@@ -131,8 +130,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
 
         self.assertIn("## Uno\n\n(No content generated for this section.)",
                       informe)
-        seccion = [d for d in ctx.decision_log
-                   if d["decision"] == "empty"][0]
+        seccion = next(d for d in ctx.decision_log
+                   if d["decision"] == "empty")
         self.assertEqual(seccion["step"], "report_section")
         self.assertEqual(seccion["rationale"], "Section: Uno")
 
@@ -174,9 +173,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
             {"secciones": [{"titulo": "T"}, {"titulo": " t "}]},
         ]
         for datos in invalidos:
-            with self.subTest(datos=datos):
-                with self.assertRaises(ValueError):
-                    ReportGenerator._normalizar_secciones(datos)
+            with self.subTest(datos=datos), self.assertRaises(ValueError):
+                ReportGenerator._normalizar_secciones(datos)
 
     def test_claims_del_esquema_inexistentes_se_registran(self):
         llm = StubLLM(responder_por_etapas(
@@ -186,8 +184,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
 
         informe = ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
 
-        aviso = [d for d in ctx.decision_log
-                 if d["decision"] == "claims_no_encontrados"][0]
+        aviso = next(d for d in ctx.decision_log
+                 if d["decision"] == "claims_no_encontrados")
         self.assertEqual(aviso["step"], "report_section")
         self.assertIn("fantasma", aviso["rationale"])
         # No se oculta evidencia: al no encontrar el claim, se usan todos.
@@ -241,8 +239,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
 
         ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
 
-        aviso = [d for d in ctx.decision_log
-                 if d["decision"] == "sin_citas"][0]
+        aviso = next(d for d in ctx.decision_log
+                 if d["decision"] == "sin_citas")
         self.assertEqual(aviso["step"], "report_section")
         self.assertEqual(aviso["rationale"], "Section: Uno")
 
@@ -254,8 +252,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
 
         ReportGenerator(llm, coarse_to_fine=True).decide(ctx)
 
-        aviso = [d for d in ctx.decision_log
-                 if d["step"] == "report_validation"][0]
+        aviso = next(d for d in ctx.decision_log
+                 if d["step"] == "report_validation")
         self.assertEqual(aviso["decision"], "cita_fuera_de_rango")
         self.assertIn("Sección Uno: [7]", aviso["rationale"])
 
@@ -276,8 +274,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
         self.assertIn("## Uno\n\nContenido uno [1]", informe)
         self.assertIn("## Dos\n\n(No content generated for this section.)",
                       informe)
-        error = [d for d in ctx.decision_log
-                 if d["decision"] == "error"][0]
+        error = next(d for d in ctx.decision_log
+                 if d["decision"] == "error")
         self.assertEqual(error["step"], "report_section")
         self.assertIn("RuntimeError: fallo simulado", error["rationale"])
         self.assertIn("report_generation",
@@ -293,8 +291,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
 
         self.assertEqual(informe.count("## Uno"), 1)
         self.assertIn("## Uno\n\nContenido [1]", informe)
-        aviso = [d for d in ctx.decision_log
-                 if d["decision"] == "titulo_repetido"][0]
+        aviso = next(d for d in ctx.decision_log
+                 if d["decision"] == "titulo_repetido")
         self.assertEqual(aviso["step"], "report_section")
         self.assertEqual(aviso["rationale"], "Section: Uno")
 
@@ -309,8 +307,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
             StubLLM(responder), coarse_to_fine=True).decide(ctx)
 
         self.assertEqual(informe, "Dato [9]")
-        aviso = [d for d in ctx.decision_log
-                 if d["step"] == "report_validation"][0]
+        aviso = next(d for d in ctx.decision_log
+                 if d["step"] == "report_validation")
         self.assertEqual(aviso["decision"], "cita_fuera_de_rango")
         self.assertIn("Informe completo (fallback)", aviso["rationale"])
         self.assertIn("[9]", aviso["rationale"])
@@ -328,8 +326,8 @@ class TestInformeCoarseToFine(unittest.TestCase):
             StubLLM(responder), coarse_to_fine=True).decide(ctx)
 
         self.assertEqual(informe, "Dato [9]")
-        aviso = [d for d in ctx.decision_log
-                 if d["step"] == "report_validation"][0]
+        aviso = next(d for d in ctx.decision_log
+                 if d["step"] == "report_validation")
         self.assertEqual(aviso["decision"], "cita_fuera_de_rango")
         self.assertIn("Informe completo (fallback)", aviso["rationale"])
 

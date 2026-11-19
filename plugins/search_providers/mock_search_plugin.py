@@ -4,9 +4,9 @@ Mock Search Provider Plugin.
 Provides deterministic offline search results for testing and demos.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
-from plugins.interfaces import SearchProviderPlugin, PluginMetadata, PluginType
+from plugins.interfaces import PluginMetadata, PluginType, SearchProviderPlugin
 from plugins.registry import plugin_registry
 
 
@@ -16,7 +16,7 @@ class _BusquedaSimulada:
     ella, igual que los plugins reales delegan en su API de `web_search`.
     """
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         return [{
             "title": f"Mock Result {i + 1} for: {query[:50]}",
             "url": f"https://example.com/mock-result-{i + 1}",

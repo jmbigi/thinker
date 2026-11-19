@@ -15,14 +15,14 @@ import json
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from evaluar_proyecto import evaluar  # noqa: E402
-from tests.helpers import entorno_git  # noqa: E402
+from evaluar_proyecto import evaluar
+from tests.helpers import entorno_git
 
 # Cada caso declara un criterio objetivo. Los demás hallazgos se ignoran: el
 # benchmark mide el criterio, no la limpieza global de la fixture.
@@ -546,7 +546,7 @@ def _tiene_hallazgo(informe, criterio):
 
 def _crear_historial_git(raiz: Path, dias: int) -> None:
     """Commit sintético con fecha relativa, para medir v3 sin depender del reloj."""
-    fecha = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
+    fecha = (datetime.now(UTC) - timedelta(days=dias)).isoformat()
     entorno = entorno_git({
         "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
         "GIT_AUTHOR_NAME": "Bench", "GIT_AUTHOR_EMAIL": "bench@example.invalid",

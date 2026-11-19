@@ -21,22 +21,22 @@ import platform
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
-from scripts.check_docs import contar_tests  # noqa: E402
-from tests.benchmarks.calibracion_confianza import evaluar as evaluar_calibracion  # noqa: E402
-from tests.benchmarks.evaluador_holdout import evaluar_holdout  # noqa: E402
-from tests.benchmarks.evaluador_precision import evaluar_corpus  # noqa: E402
-from tests.benchmarks.rag_retrieval import evaluar as evaluar_rag  # noqa: E402
-from tests.benchmarks.rendimiento import ejecutar as ejecutar_rendimiento  # noqa: E402
+from scripts.check_docs import contar_tests
+from tests.benchmarks.calibracion_confianza import evaluar as evaluar_calibracion
+from tests.benchmarks.evaluador_holdout import evaluar_holdout
+from tests.benchmarks.evaluador_precision import evaluar_corpus
+from tests.benchmarks.rag_retrieval import evaluar as evaluar_rag
+from tests.benchmarks.rendimiento import ejecutar as ejecutar_rendimiento
 
 
-def _commit() -> Optional[str]:
+def _commit() -> str | None:
     try:
         return subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=RAIZ, check=True,
@@ -45,7 +45,7 @@ def _commit() -> Optional[str]:
         return None
 
 
-def _cobertura_ramas() -> Dict[str, Any]:
+def _cobertura_ramas() -> dict[str, Any]:
     """Ejecuta la suite con coverage --branch y devuelve el total agregado."""
     with tempfile.TemporaryDirectory() as tmp:
         datos = Path(tmp) / ".coverage"
@@ -53,15 +53,15 @@ def _cobertura_ramas() -> Dict[str, Any]:
         entorno = {"COVERAGE_FILE": str(datos)}
         comando = [sys.executable, "-m", "coverage", "run", "--branch",
                    "--source=.", "-m", "unittest", "discover", "-s", "tests"]
-        ejecucion = subprocess.run(comando, cwd=RAIZ, capture_output=True,
-                                   text=True, env={**os.environ, **entorno},
-                                   timeout=1800)
+        ejecucion = subprocess.run(comando, check=False, cwd=RAIZ, capture_output=True,
+                                     text=True, env={**os.environ, **entorno},
+                                     timeout=1800)
         if ejecucion.returncode != 0:
             return {"estado": "FAIL", "motivo": ejecucion.stdout[-500:]
                     + ejecucion.stderr[-500:]}
         exportar = subprocess.run(
             [sys.executable, "-m", "coverage", "json", "-o", str(informe)],
-            cwd=RAIZ, capture_output=True, text=True,
+            check=False, cwd=RAIZ, capture_output=True, text=True,
             env={**os.environ, **entorno}, timeout=120)
         if exportar.returncode != 0 or not informe.exists():
             return {"estado": "FAIL", "motivo": exportar.stderr[-500:]}
@@ -84,13 +84,13 @@ def _cobertura_ramas() -> Dict[str, Any]:
     }
 
 
-def recolectar(con_cobertura: bool = False) -> Dict[str, Any]:
+def recolectar(con_cobertura: bool = False) -> dict[str, Any]:
     precision = evaluar_corpus()
     holdout = evaluar_holdout()
     rag = evaluar_rag()
     calibracion = evaluar_calibracion()
     rendimiento = ejecutar_rendimiento()
-    metricas: Dict[str, Any] = {
+    metricas: dict[str, Any] = {
         "tests_estaticos": {
             "valor": contar_tests(RAIZ),
             "metodo": "conteo AST de métodos test_* en TestCase",
@@ -141,7 +141,7 @@ def recolectar(con_cobertura: bool = False) -> Dict[str, Any]:
         metricas["cobertura_ramas"] = _cobertura_ramas()
     return {
         "schema_version": 1,
-        "generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generado": datetime.now(UTC).isoformat(timespec="seconds"),
         "commit": _commit(),
         "python": platform.python_version(),
         "so": platform.platform(),
@@ -149,7 +149,7 @@ def recolectar(con_cobertura: bool = False) -> Dict[str, Any]:
     }
 
 
-def _actualizar_historial(informe: Dict[str, Any]) -> Dict[str, Any]:
+def _actualizar_historial(informe: dict[str, Any]) -> dict[str, Any]:
     destino = RAIZ / "docs" / "metricas-calidad.json"
     historial = []
     if destino.exists():

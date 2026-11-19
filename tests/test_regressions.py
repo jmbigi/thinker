@@ -5,6 +5,7 @@ si el bug reaparece, el test falla.
 """
 
 import unittest
+from typing import ClassVar
 
 from code_design_improvement_tools import CodeAnalysisContext, CodeDesignThinker
 from pensamiento_layer import DeepResearchThinkingLayer
@@ -17,7 +18,7 @@ class TestContratoDeResultadoDelCiclo(unittest.TestCase):
     Un camino de error con forma distinta provoca `KeyError` en el consumidor.
     """
 
-    CLAVES = {"thought", "decision", "confidence", "valid", "invalid_steps",
+    CLAVES: ClassVar = {"thought", "decision", "confidence", "valid", "invalid_steps",
               "steps", "step_count"}
 
     def test_pensamiento_rama_invalida_tiene_todas_las_claves(self):

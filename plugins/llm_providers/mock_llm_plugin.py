@@ -5,7 +5,6 @@ Wraps the existing MockLLM (llm_providers.py) for plugin system compatibility.
 """
 
 import time
-from typing import List
 
 from plugins.interfaces import LLMProviderPlugin, PluginMetadata, PluginType
 from plugins.registry import plugin_registry
@@ -36,17 +35,17 @@ class MockLLMPlugin(LLMProviderPlugin):
     def shutdown(self) -> None:
         self._initialized = False
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         if not self._initialized:
             raise RuntimeError("Plugin not initialized")
         self.metadata.usage_count += 1
         self.metadata.last_used = time.time()
         return self._mock.generate(prompt, model=model, **kwargs)
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         return ["mock-llm"]
 
-    def estimate_cost(self, prompt: str, model: str = None) -> float:
+    def estimate_cost(self, prompt: str, model: str | None = None) -> float:
         return 0.0
 
 

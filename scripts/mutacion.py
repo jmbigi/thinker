@@ -31,8 +31,8 @@ OBJETIVOS = {
         "also_copy": ["evidence.py"],
         "seleccion": [
             "tests/test_preflight.py",
-            "--deselect=tests/test_preflight.py::TestPreflight::"
-            "test_el_repositorio_real_pasa_su_propio_preflight",
+            ("--deselect=tests/test_preflight.py::TestPreflight::"
+            "test_el_repositorio_real_pasa_su_propio_preflight"),
         ],
     },
     "evaluar": {
@@ -42,11 +42,11 @@ OBJETIVOS = {
             "tests/test_evaluar_proyecto.py",
             "tests/test_evaluador_corpus.py",
             "tests/test_evaluador_precision.py",
-            "--deselect=tests/test_evaluar_proyecto.py::"
-            "TestAutoevaluacionDeThinker",
-            "--deselect=tests/test_evaluar_proyecto.py::"
+            ("--deselect=tests/test_evaluar_proyecto.py::"
+            "TestAutoevaluacionDeThinker"),
+            ("--deselect=tests/test_evaluar_proyecto.py::"
             "TestCoberturaDeRamasDelEvaluador::"
-            "test_informe_texto_renderiza_requisitos_sintesis_e_investigacion",
+            "test_informe_texto_renderiza_requisitos_sintesis_e_investigacion"),
         ],
     },
     "citas": {
@@ -70,17 +70,17 @@ def configurar(texto, objetivo):
     datos = OBJETIVOS[objetivo]
     texto = re.sub(r"source_paths = \[.*?\]",
                    "source_paths = " + json.dumps(datos["source_paths"]),
-                   texto, flags=re.S)
+                   texto, flags=re.DOTALL)
     copia = "also_copy = " + json.dumps(datos["also_copy"], indent=4)
-    if re.search(r"^also_copy\s*=", texto, re.M):
-        texto = re.sub(r"also_copy = \[.*?\]", copia, texto, flags=re.S)
+    if re.search(r"^also_copy\s*=", texto, re.MULTILINE):
+        texto = re.sub(r"also_copy = \[.*?\]", copia, texto, flags=re.DOTALL)
     else:
         texto = texto.replace("[tool.mutmut]\n",
                               "[tool.mutmut]\n" + copia + "\n", 1)
     return re.sub(r"pytest_add_cli_args_test_selection = \[.*?\]",
                   "pytest_add_cli_args_test_selection = "
                   + json.dumps(datos["seleccion"], indent=4),
-                  texto, flags=re.S)
+                  texto, flags=re.DOTALL)
 
 
 def parsear_resultados(texto):
@@ -120,10 +120,10 @@ def ejecutar(objetivo, timeout=1200, max_children=4):
     proceso = subprocess.run(
         [sys.executable, "-m", "mutmut", "run",
          "--max-children", str(max_children)],
-        cwd=destino, capture_output=True, text=True, timeout=timeout)
+         check=False, cwd=destino, capture_output=True, text=True, timeout=timeout)
     resultados = subprocess.run(
         [sys.executable, "-m", "mutmut", "results", "--all", "true"],
-        cwd=destino, capture_output=True, text=True, timeout=120)
+        check=False, cwd=destino, capture_output=True, text=True, timeout=120)
     resumen = parsear_resultados(resultados.stdout + resultados.stderr)
     resumen.update({
         "objetivo": objetivo,

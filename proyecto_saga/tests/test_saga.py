@@ -1,4 +1,5 @@
-from orquestador import PasoSaga, OrquestadorSaga
+from orquestador import OrquestadorSaga, PasoSaga
+
 
 def test_paso_saga_run_success():
     paso = PasoSaga("step1")

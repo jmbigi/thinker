@@ -2,8 +2,9 @@
 """CLI para ejecutar benchmarks de Deep Research."""
 
 import argparse
-import sys
 import os
+import sys
+
 from dotenv import load_dotenv
 
 # Añadir path del proyecto
@@ -11,9 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv(".env")
 
-from tests.benchmarks import run_benchmark, LLMEvaluator, list_tasks, get_domains, get_complexities  # noqa: E402
-from deep_research_system import MockLLM, MockSearchAPI, ResearchOrchestrator, OpenRouterLLM  # noqa: E402
-from pensamiento_layer import DeepResearchThinkingLayer, ResearchOrchestratorWithThinking  # noqa: E402
+from deep_research_system import MockLLM, MockSearchAPI, OpenRouterLLM, ResearchOrchestrator
+from pensamiento_layer import DeepResearchThinkingLayer, ResearchOrchestratorWithThinking
+from tests.benchmarks import LLMEvaluator, get_complexities, get_domains, list_tasks, run_benchmark
 
 try:
     from llm_providers import DeepSeekLLM

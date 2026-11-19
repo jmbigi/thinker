@@ -29,11 +29,17 @@ check("1. Sintaxis válida en los 3 módulos", t1)
 
 
 def t2():
-    from deep_research_system import (OpenAILLM, OpenRouterLLM, OllamaLLM,
-                                      KiloGatewayLLM, MockLLM, MockSearchAPI,
-                                      ResearchOrchestrator)
-    from pensamiento_layer import DeepResearchThinkingLayer
     from code_design_improvement_tools import CodeDesignThinker, analyze_python_source
+    from deep_research_system import (
+        KiloGatewayLLM,
+        MockLLM,
+        MockSearchAPI,
+        OllamaLLM,
+        OpenAILLM,
+        OpenRouterLLM,
+        ResearchOrchestrator,
+    )
+    from pensamiento_layer import DeepResearchThinkingLayer
     assert all(x is not None for x in (
         OpenAILLM, OpenRouterLLM, OllamaLLM, KiloGatewayLLM, MockLLM,
         MockSearchAPI, ResearchOrchestrator, DeepResearchThinkingLayer,
@@ -52,8 +58,8 @@ check("3. Pipeline de investigación end-to-end (MockLLM)", t3)
 
 
 def t4():
-    from pensamiento_layer import DeepResearchThinkingLayer
     from deep_research_system import MockLLM
+    from pensamiento_layer import DeepResearchThinkingLayer
     r = DeepResearchThinkingLayer(MockLLM()).think("¿pregunta de prueba?")
     assert r["valid"] and r["step_count"] == 7, f"ciclo inválido: {r.get('error')}"
 check("4. ThinkingLayer ejecuta 7 pasos válidos", t4)

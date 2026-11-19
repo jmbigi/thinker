@@ -19,19 +19,19 @@ Arquitectura:
 - Modo offline por defecto (MockLLM), opt-in real con proveedores
 """
 
+import json
 import os
 import re
-import sys
-import time
-import json
 import subprocess
+import sys
 import tempfile
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Callable
+from typing import Any
 
 from thinking_engine import StepThinkingEngine
-
 
 # =====================================================================
 # ESTADO Y CONTEXTO
@@ -44,10 +44,10 @@ class GenerationContext:
     requirements: str = ""
     target_language: str = "python"
     max_steps: int = 7
-    issues: List[Dict[str, Any]] = field(default_factory=list)
-    thinking_steps: List[Dict[str, Any]] = field(default_factory=list)
-    generated_files: Dict[str, str] = field(default_factory=dict)
-    validation_results: Dict[str, Any] = field(default_factory=dict)
+    issues: list[dict[str, Any]] = field(default_factory=list)
+    thinking_steps: list[dict[str, Any]] = field(default_factory=list)
+    generated_files: dict[str, str] = field(default_factory=dict)
+    validation_results: dict[str, Any] = field(default_factory=dict)
     start_time: float = field(default_factory=time.time)
     mode: str = "offline"  # "offline" | "online"
 
@@ -60,7 +60,7 @@ class GenerationContext:
         })
 
     def add_issue(self, severity: str, description: str, file: str = "",
-                  line: Optional[int] = None, suggestion: str = ""):
+                  line: int | None = None, suggestion: str = ""):
         self.issues.append({
             "severity": severity,
             "description": description,
@@ -70,7 +70,7 @@ class GenerationContext:
             "detected_at": time.time()
         })
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "project_path": self.project_path,
             "requirements": self.requirements,
@@ -114,18 +114,18 @@ class CodeGeneratorThinker(StepThinkingEngine):
         self._step_index = 0
 
     # Implementar métodos abstractos de StepThinkingEngine
-    def _step_builders(self) -> List[Tuple[str, Callable[[Dict[str, Any]], str]]]:
+    def _step_builders(self) -> list[tuple[str, Callable[[dict[str, Any]], str]]]:
         """Construye los prompts para cada paso del ciclo."""
         # El ciclo lineal usa _execute_generation_cycle, pero estos son
         # requeridos por la clase base. Devolvemos builders vacíos
         # porque nuestra lógica personalizada maneja los 7 pasos.
         return []
 
-    def _render_thought(self, steps: List[Tuple[str, str]]) -> str:
+    def _render_thought(self, steps: list[tuple[str, str]]) -> str:
         """Renderiza el pensamiento (usado por la clase base)."""
         return self._render_steps(steps)
 
-    def think(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def think(self, prompt: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         """Compatibilidad con interfaz base: delega a generate()."""
         gen_context = context.get("generation_context") if context else None
         if gen_context:
@@ -134,13 +134,13 @@ class CodeGeneratorThinker(StepThinkingEngine):
         return super().think(prompt, context)
 
     def generate(self, context: GenerationContext, prompt: str,
-                 progress: Optional[Callable] = None) -> Dict[str, Any]:
+                 progress: Callable | None = None) -> dict[str, Any]:
         """Ejecuta ciclo completo de 7 pasos para generar código."""
         self._step_index = 0
         return self._execute_generation_cycle(context, prompt, progress)
 
     def _execute_generation_cycle(self, context: GenerationContext, prompt: str,
-                                   progress: Optional[Callable]) -> Dict[str, Any]:
+                                   progress: Callable | None) -> dict[str, Any]:
         steps = []
         _decir = progress or (lambda _m: None)
 
@@ -340,8 +340,8 @@ JSON:
 
         return self._resultado_valido(steps)
 
-    def _registrar(self, steps: List[Tuple[str, str]], nombre: str, contenido: str,
-                   progress) -> Optional[Dict[str, Any]]:
+    def _registrar(self, steps: list[tuple[str, str]], nombre: str, contenido: str,
+                   progress) -> dict[str, Any] | None:
         if not self.validate_step(contenido):
             return self._resultado_invalido(steps, nombre)
         steps.append((nombre, contenido))
@@ -351,7 +351,7 @@ JSON:
             return self._resultado_valido(steps)
         return None
 
-    def _resultado_valido(self, steps: List[Tuple[str, str]]) -> Dict[str, Any]:
+    def _resultado_valido(self, steps: list[tuple[str, str]]) -> dict[str, Any]:
         return {
             "thought": self._render_steps(steps),
             "decision": self._extract_decision(steps),
@@ -363,7 +363,7 @@ JSON:
             "error": None,
         }
 
-    def _resultado_invalido(self, steps: List[Tuple[str, str]], nombre: str) -> Dict[str, Any]:
+    def _resultado_invalido(self, steps: list[tuple[str, str]], nombre: str) -> dict[str, Any]:
         numero = self._NOMBRES_PASOS.index(nombre) + 1
         return {
             "thought": self._render_steps(steps),
@@ -376,7 +376,7 @@ JSON:
             "error": f"Paso {numero} inválido: {nombre}",
         }
 
-    def _render_steps(self, steps: List[Tuple[str, str]]) -> str:
+    def _render_steps(self, steps: list[tuple[str, str]]) -> str:
         if not steps:
             return ""
         lines = [f"        CODE GENERATOR THINKER: {self.name}", "        =================================", ""]
@@ -388,7 +388,7 @@ JSON:
                        f"        CONFIANZA: {self._compute_confidence(steps)}"])
         return "\n".join(lines)
 
-    def _extract_decision(self, steps: List[Tuple[str, str]]) -> str:
+    def _extract_decision(self, steps: list[tuple[str, str]]) -> str:
         """Extrae la decisión final del último paso válido."""
         for nombre, contenido in reversed(steps):
             if nombre == "final_review":
@@ -397,7 +397,7 @@ JSON:
                 return "Código generado"
         return "En progreso"
 
-    def _compute_confidence(self, steps: List[Tuple[str, str]]) -> float:
+    def _compute_confidence(self, steps: list[tuple[str, str]]) -> float:
         """Confianza heurística: pasos completados / total."""
         if not steps:
             return 0.0
@@ -418,7 +418,7 @@ class EmpiricalValidator:
     """
 
     @staticmethod
-    def validate_syntax(code: str, filename: str = "generated.py") -> Dict[str, Any]:
+    def validate_syntax(code: str, filename: str = "generated.py") -> dict[str, Any]:
         """py_compile - sintaxis válida con la herramienta real."""
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -428,7 +428,7 @@ class EmpiricalValidator:
                 temp_path.write_text(code, encoding="utf-8")
                 result = subprocess.run(
                     [sys.executable, "-m", "py_compile", str(temp_path)],
-                    capture_output=True, text=True, timeout=30
+                    check=False, capture_output=True, text=True, timeout=30
                 )
                 return {
                     "passed": result.returncode == 0,
@@ -439,7 +439,7 @@ class EmpiricalValidator:
             return {"passed": False, "tool": "py_compile", "errors": [str(exc)]}
 
     @staticmethod
-    def validate_ruff(code: str, filename: str = "generated.py") -> Dict[str, Any]:
+    def validate_ruff(code: str, filename: str = "generated.py") -> dict[str, Any]:
         """ruff check - lint 0 errores."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False,
                                          encoding="utf-8") as f:
@@ -448,7 +448,7 @@ class EmpiricalValidator:
         try:
             result = subprocess.run(
                 ["ruff", "check", temp_path],
-                capture_output=True, text=True, timeout=30
+                check=False, capture_output=True, text=True, timeout=30
             )
             return {
                 "passed": result.returncode == 0,
@@ -467,7 +467,7 @@ class EmpiricalValidator:
 
     @staticmethod
     def validate_unittest(test_code: str, source_code: str,
-                          module_name: str = "generated") -> Dict[str, Any]:
+                          module_name: str = "generated") -> dict[str, Any]:
         """Ejecuta tests unitarios reales."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
@@ -488,7 +488,7 @@ class EmpiricalValidator:
                 result = subprocess.run(
                     [sys.executable, "-m", "unittest",
                      f"test_{module_name}", "-v"],
-                    cwd=tmpdir, capture_output=True, text=True, timeout=60,
+                    check=False, cwd=tmpdir, capture_output=True, text=True, timeout=60,
                     env=env, shell=False,
                 )
                 passed = result.returncode == 0
@@ -507,8 +507,8 @@ class EmpiricalValidator:
                         "errors": ["Timeout (>60s)"]}
 
     @staticmethod
-    def validate_all(source_files: Dict[str, str],
-                     test_files: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    def validate_all(source_files: dict[str, str],
+                     test_files: dict[str, str] | None = None) -> dict[str, Any]:
         """Valida todo el proyecto generado."""
         if test_files is None:
             # Los tests pueden venir en el mismo dict de archivos generados.
@@ -563,11 +563,11 @@ class CodeGeneratorOrchestrator:
         self.validator = EmpiricalValidator()
 
     def generate_and_validate(self, requirements: str,
-                              progress: Optional[Callable] = None) -> Dict[str, Any]:
+                              progress: Callable | None = None) -> dict[str, Any]:
         """Ciclo completo: Thinker → Generación → Validación real."""
         _decir = progress or (lambda _m: None)
 
-        _decir(">>> Iniciando generador de código (modo: {})".format(self.context.mode))
+        _decir(f">>> Iniciando generador de código (modo: {self.context.mode})")
         _decir(">>> Capa de pensamiento: 7 pasos estructurados")
 
         # 1. CICLO THINKER (7 pasos)
@@ -611,14 +611,14 @@ class CodeGeneratorOrchestrator:
         }
 
     @staticmethod
-    def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
+    def _try_parse_json(text: str) -> dict[str, Any] | None:
         """Intenta parsear JSON, retorna None si falla."""
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             return None
 
-    def _parse_generated_code(self, step_content: str) -> Dict[str, Any]:
+    def _parse_generated_code(self, step_content: str) -> dict[str, Any]:
         """Extrae JSON del contenido del paso 5."""
         # 1. Buscar bloque JSON en markdown ```json ... ``` (requiere ```json al inicio de línea)
         match = re.search(r'(?m)^```json\s*(\{.*?\})\s*```', step_content, re.DOTALL)
@@ -656,7 +656,7 @@ class CodeGeneratorOrchestrator:
                 return parsed
         return {"archivos": {}}
 
-    def save_generated(self, output_dir: str, overwrite: bool = False) -> List[str]:
+    def save_generated(self, output_dir: str, overwrite: bool = False) -> list[str]:
         """Guarda archivos generados en disco, sin salir del directorio.
 
         Por defecto NO sobrescribe archivos existentes: exige `overwrite=True`

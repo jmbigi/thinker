@@ -23,7 +23,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional  # noqa: F401
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 
@@ -55,14 +55,14 @@ class ResponseCache:
     """
 
     def __init__(self) -> None:
-        self.entradas: Dict[str, str] = {}
+        self.entradas: dict[str, str] = {}
         self.hits = 0
 
     @staticmethod
     def _clave(model: str, prompt: str) -> str:
-        return hashlib.sha256(f"{model}\x00{prompt}".encode("utf-8")).hexdigest()
+        return hashlib.sha256(f"{model}\x00{prompt}".encode()).hexdigest()
 
-    def get(self, model: str, prompt: str) -> Optional[str]:
+    def get(self, model: str, prompt: str) -> str | None:
         respuesta = self.entradas.get(self._clave(model, prompt))
         if respuesta is not None:
             self.hits += 1
@@ -103,7 +103,7 @@ def _chat_completion(client, model: str, prompt: str, max_retries: int, label: s
             if cache is not None:
                 cache.set(model, prompt, salida)
             return salida
-        except Exception as exc:  # noqa: BLE001 - se reeleva tras agotar
+        except Exception as exc:
             status = getattr(exc, "status_code", None)
             transient = status is None or status in TRANSIENT_STATUS
             if attempt >= max_retries or not transient:
@@ -115,8 +115,8 @@ def _chat_completion(client, model: str, prompt: str, max_retries: int, label: s
             time.sleep(delay)
 
 
-def _cliente_openai(cache_clientes: Dict[Any, Any], key: str,
-                    base_url: Optional[str]):
+def _cliente_openai(cache_clientes: dict[Any, Any], key: str,
+                    base_url: str | None):
     """Cliente del SDK reutilizado por (clave, base_url).
 
     Antes se creaba un `OpenAI(...)` por llamada: eso tiraba el pool de
@@ -142,8 +142,8 @@ class OpenAILLM(LLMProvider):
     activa la caché de respuestas por instancia (medible con `self.cache.hits`).
     """
 
-    def __init__(self, api_key: str = None, model: str = "gpt-4o-mini",
-                 base_url: str = None, max_retries: int = 3,
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini",
+                 base_url: str | None = None, max_retries: int = 3,
                  timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.model = model
@@ -151,10 +151,10 @@ class OpenAILLM(LLMProvider):
         self.max_retries = max_retries
         self.timeout = timeout
         self.use_cache = use_cache
-        self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
-        self._clientes: Dict[Any, Any] = {}
+        self.cache: ResponseCache | None = ResponseCache() if use_cache else None
+        self._clientes: dict[Any, Any] = {}
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         key = kwargs.pop("api_key", None) or self.api_key
         base_url = kwargs.pop("base_url", None) or self.base_url
         if not key:
@@ -199,7 +199,7 @@ class OpenRouterLLM(OpenAILLM):
     OPENROUTER_FALLBACK_CHAIN hasta agotar opciones (fallo ruidoso).
     """
 
-    def __init__(self, api_key: str = None, model: str = None,
+    def __init__(self, api_key: str | None = None, model: str | None = None,
                  base_url: str = "https://openrouter.ai/api/v1",
                  use_fallback: bool = True):
         self._fallback_chain = OPENROUTER_FALLBACK_CHAIN
@@ -218,7 +218,7 @@ class OpenRouterLLM(OpenAILLM):
         # (openrouter.ai): no se debe enviar allí la clave de OpenAI.
         self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY", "")
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         # Si se pasa modelo explícito, usarlo sin fallback (compatibilidad)
         if model is not None:
             return super().generate(prompt, model=model, **kwargs)
@@ -272,7 +272,7 @@ class OllamaLLM(LLMProvider):
         self.base_url = base_url
         self.model = model
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         import requests
         url = f"{self.base_url}/api/generate"
         payload = {"model": model or self.model, "prompt": prompt, "stream": False}
@@ -310,8 +310,8 @@ class KiloGatewayLLM(LLMProvider):
     - BYOK: la clave del proveedor se configura en Kilo, no aquí.
     """
 
-    def __init__(self, api_key: str = None, model: str = None,
-                 base_url: str = None, max_retries: int = 3,
+    def __init__(self, api_key: str | None = None, model: str | None = None,
+                 base_url: str | None = None, max_retries: int = 3,
                  timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
         self.api_key = (api_key if api_key is not None
                         else os.environ.get("KILO_API_KEY", ""))
@@ -322,10 +322,10 @@ class KiloGatewayLLM(LLMProvider):
         self.max_retries = max_retries
         self.timeout = timeout
         self.use_cache = use_cache
-        self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
-        self._clientes: Dict[Any, Any] = {}
+        self.cache: ResponseCache | None = ResponseCache() if use_cache else None
+        self._clientes: dict[Any, Any] = {}
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         modelo = model or self.model
         key = kwargs.pop("api_key", None)
         if key is None:
@@ -360,7 +360,7 @@ class ForthtradeGatewayLLM(OpenAILLM):
     gratis/controlado ≠ ilimitado (cuotas, rate limits, capacidad).
     """
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         key = kwargs.get("api_key") or self.api_key
         if not key:
             raise ValueError(
@@ -369,8 +369,8 @@ class ForthtradeGatewayLLM(OpenAILLM):
                 "una API_KEY genérica; detalles: https://ia.forthtrade.com/help.json")
         return super().generate(prompt, model=model, **kwargs)
 
-    def __init__(self, api_key: str = None, model: str = None,
-                 base_url: str = None, max_retries: int = 3,
+    def __init__(self, api_key: str | None = None, model: str | None = None,
+                 base_url: str | None = None, max_retries: int = 3,
                  timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
         self.base_url = (base_url or os.environ.get("FORTHTRADE_BASE_URL")
                          or FORTHTRADE_DEFAULT_BASE_URL)
@@ -398,7 +398,7 @@ class DeepSeekLLM(OpenAILLM):
     Modelos principales: deepseek-chat, deepseek-coder, deepseek-reasoner.
     """
 
-    def __init__(self, api_key: str = None, model: str = "deepseek-chat",
+    def __init__(self, api_key: str | None = None, model: str = "deepseek-chat",
                  base_url: str = "https://api.deepseek.com/v1",
                  max_retries: int = 3):
         super().__init__(
@@ -436,8 +436,8 @@ class FlywheelGatewayLLM(OpenAILLM):
     mensaje que sugiere listar modelos en GET /v1/models.
     """
 
-    def __init__(self, api_key: str = None, model: str = None,
-                 base_url: str = None, max_retries: int = 3,
+    def __init__(self, api_key: str | None = None, model: str | None = None,
+                 base_url: str | None = None, max_retries: int = 3,
                  timeout: float = DEFAULT_TIMEOUT, use_cache: bool = True):
         self.base_url = (base_url or os.environ.get("FLYWHEEL_GATEWAY_URL")
                           or FLYWHEEL_DEFAULT_BASE_URL)
@@ -455,7 +455,7 @@ class FlywheelGatewayLLM(OpenAILLM):
         # Evitar fuga a OPENAI_API_KEY por la lógica base de OpenAILLM.
         self.api_key = key
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         key = kwargs.get("api_key") or self.api_key
         if not key:
             raise ValueError(
@@ -508,7 +508,7 @@ class FlywheelGatewayLLM(OpenAILLM):
                 time.sleep(delay)
 
     @staticmethod
-    def _extraer_texto(data: Dict[str, Any]) -> str:
+    def _extraer_texto(data: dict[str, Any]) -> str:
         """Extrae el texto de la respuesta de la Responses API.
 
         Soporta ambos formatos:
@@ -609,7 +609,7 @@ class DeepSeekFreeAgentLLM(LLMProvider):
     No reintenta ni conmuta a otro proveedor: un fallo se eleva (regla 17).
     """
 
-    def __init__(self, base_url: str = None, model: str = "deepseek-free-agent",
+    def __init__(self, base_url: str | None = None, model: str = "deepseek-free-agent",
                  timeout: float = 300.0, use_cache: bool = True,
                  authorized: bool = False):
         self.base_url = _deepseek_agent_loopback_url(
@@ -620,10 +620,10 @@ class DeepSeekFreeAgentLLM(LLMProvider):
             raise ValueError("timeout de deepseek-free-agent debe ser un número > 0")
         self.use_cache = use_cache
         self.authorized = authorized is True
-        self.cache: Optional[ResponseCache] = ResponseCache() if use_cache else None
+        self.cache: ResponseCache | None = ResponseCache() if use_cache else None
         self._post = None
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt de deepseek-free-agent no puede estar vacío")
         if not self.authorized:
@@ -700,12 +700,12 @@ class LocalFallbackLLM(LLMProvider):
         self.fallback_calls = 0
         self.last_fallback_reason = ""
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         try:
             return self.primary.generate(prompt, model=model, **kwargs)
         except (ValueError, PermissionError):
             raise
-        except Exception as exc:  # noqa: BLE001 - fallback explícito y registrado
+        except Exception as exc:
             # Solo fallos operativos (red/timeout/429/5xx). Una clave inválida
             # (401/403), una petición mal formada (400/422) o un endpoint
             # inexistente (404) no se enmascaran con un modelo local.
@@ -732,15 +732,11 @@ class MockLLM(LLMProvider):
     def __init__(self, model: str = "mock-llm"):
         self.model = model
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         p = prompt.lower()
 
         if "decompose this into" in p:
-            return "\n".join([
-                "¿Cuáles son los avances recientes documentados sobre el tema?",
-                "¿Qué fuentes primarias describen el estado actual?",
-                "¿Qué limitaciones, riesgos e incertidumbres se reportan?",
-            ])
+            return "¿Cuáles son los avances recientes documentados sobre el tema?\n¿Qué fuentes primarias describen el estado actual?\n¿Qué limitaciones, riesgos e incertidumbres se reportan?"
 
         if "extract factual claims" in p:
             return json.dumps([{
@@ -805,7 +801,7 @@ class BudgetLLM(LLMProvider):
         self.calls = 0
         self._lock = threading.Lock()
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         with self._lock:
             if self.calls >= self.max_calls:
                 raise RuntimeError(
@@ -883,7 +879,7 @@ class LocalToolGate:
         elif isinstance(valor, str) and self._es_clave_de_ruta(clave):
             yield clave, valor
 
-    def _violacion_de_ruta(self, args: Dict[str, Any]) -> str:
+    def _violacion_de_ruta(self, args: dict[str, Any]) -> str:
         for clave, valor in self._iter_paths(args):
             if not valor.strip():
                 continue
@@ -942,7 +938,7 @@ class LocalToolGate:
             return f"auditoría no escribible ({self.audit_path}): {exc}"
         return ""
 
-    def check(self, tool: str, args: Dict[str, Any] = None) -> "GateResult":
+    def check(self, tool: str, args: dict[str, Any] | None = None) -> "GateResult":
         """Evalúa una tool call. Nunca lanza por datos del llamante."""
         tool = str(tool)
         args = dict(args or {})
@@ -987,7 +983,7 @@ class LocalToolGate:
         return resultado
 
 
-_gate_por_defecto: Optional[LocalToolGate] = None
+_gate_por_defecto: LocalToolGate | None = None
 _gate_lock = threading.Lock()
 
 
@@ -999,7 +995,7 @@ def _obtener_gate_por_defecto() -> LocalToolGate:
         return _gate_por_defecto
 
 
-def gate_check(tool: str, args: Dict[str, Any] = None,
+def gate_check(tool: str, args: dict[str, Any] | None = None,
                gate: LocalToolGate = None) -> "GateResult":
     """Verifica una tool call con un `LocalToolGate`.
 
@@ -1023,11 +1019,11 @@ class GateResult:
     reason: str
     risk_level: str = ""          # "read_only" | "confirm" | "forbidden"
     tool: str = ""
-    args: Dict[str, Any] = field(default_factory=dict)
-    raw_response: Optional[Dict[str, Any]] = None
+    args: dict[str, Any] = field(default_factory=dict)
+    raw_response: dict[str, Any] | None = None
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> "GateResult":
+    def from_json(cls, data: dict[str, Any]) -> "GateResult":
         """Convierte respuesta JSON del gate a GateResult."""
         decision_str = str(data.get("decision", "error")).lower()
         if decision_str == "allow":
@@ -1076,11 +1072,11 @@ class GateCheckedLLM(LLMProvider):
         self.model = provider.model
         self.base_url = getattr(provider, "base_url", None)
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         """Genera respuesta SIN verificación de gate (solo texto)."""
         return self.provider.generate(prompt, model=model, **kwargs)
 
-    def check_tool(self, tool: str, args: Dict[str, Any] = None) -> GateResult:
+    def check_tool(self, tool: str, args: dict[str, Any] | None = None) -> GateResult:
         """Verifica una tool call con el gate. DEBE llamarse antes de ejecutar."""
         result = self.gate.check(tool, args)
         if self.fail_closed and result.decision != GateDecision.ALLOW:
@@ -1088,9 +1084,9 @@ class GateCheckedLLM(LLMProvider):
         return result
 
     def get_available_models(self) -> list:
-        return getattr(self.provider, "get_available_models", lambda: [])()
+        return getattr(self.provider, "get_available_models", list)()
 
-    def estimate_cost(self, prompt: str, model: str = None) -> float:
+    def estimate_cost(self, prompt: str, model: str | None = None) -> float:
         return getattr(self.provider, "estimate_cost", lambda *a, **k: 0.0)(prompt, model)
 
 

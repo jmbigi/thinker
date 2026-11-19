@@ -9,8 +9,7 @@ from pathlib import Path
 
 from deep_research_system import ResearchContext, ResearchOrchestrator
 from llm_providers import MockLLM
-from research_state import (context_from_state, context_to_state, load_research_state,
-                            save_research_state)
+from research_state import context_from_state, context_to_state, load_research_state, save_research_state
 from web_search import MockSearchAPI
 
 

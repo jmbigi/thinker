@@ -19,7 +19,7 @@ import platform
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -48,8 +48,8 @@ def _git_commit():
 def _ejecutar_control(nombre, comando, timeout=900):
     inicio = time.monotonic()
     try:
-        proc = subprocess.run(comando, cwd=RAIZ, capture_output=True,
-                              text=True, timeout=timeout)
+        proc = subprocess.run(comando, check=False, cwd=RAIZ, capture_output=True,
+                               text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"estado": "NOT_RUN", "motivo": f"{type(exc).__name__}: {exc}",
                 "duracion_s": round(time.monotonic() - inicio, 1)}
@@ -76,7 +76,7 @@ def generar(solo=None):
     for nombre, comando in controles:
         resultados[nombre] = _ejecutar_control(nombre, comando)
     return {
-        "generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generado": datetime.now(UTC).isoformat(timespec="seconds"),
         "commit": _git_commit(),
         "python": platform.python_version(),
         "so": platform.platform(),

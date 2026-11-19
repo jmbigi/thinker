@@ -10,8 +10,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from llm_providers import (DeepSeekLLM, KiloGatewayLLM, MockLLM, OllamaLLM,
-                           OpenAILLM, OpenRouterLLM)
+from llm_providers import DeepSeekLLM, KiloGatewayLLM, MockLLM, OllamaLLM, OpenAILLM, OpenRouterLLM
 from tests.helpers import FakeAPIError, make_chat_client, ok_chat_response
 
 
@@ -40,9 +39,8 @@ class TestErroresNormalizados(unittest.TestCase):
             with self.subTest(proveedor=clase.__name__):
                 cliente = make_chat_client([FakeAPIError("no", status_code=404)])
                 llm = clase(api_key="k")
-                with patch("openai.OpenAI", return_value=cliente):
-                    with self.assertRaises(FakeAPIError):
-                        llm.generate("hola")
+                with patch("openai.OpenAI", return_value=cliente), self.assertRaises(FakeAPIError):
+                    llm.generate("hola")
                 self.assertEqual(len(cliente.calls), 1)
 
     def test_error_transitorio_agota_reintentos_y_eleva_el_ultimo(self):
@@ -54,9 +52,8 @@ class TestErroresNormalizados(unittest.TestCase):
                      FakeAPIError("503-3", status_code=503)])
                 llm = clase(api_key="k", max_retries=3)
                 with patch("openai.OpenAI", return_value=cliente), \
-                        patch("time.sleep"):
-                    with self.assertRaises(FakeAPIError) as ctx:
-                        llm.generate("hola")
+                        patch("time.sleep"), self.assertRaises(FakeAPIError) as ctx:
+                    llm.generate("hola")
                 self.assertEqual(str(ctx.exception), "503-3")
                 self.assertEqual(len(cliente.calls), 3)
 

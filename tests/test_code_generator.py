@@ -13,10 +13,10 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from code_generator import (
-    GenerationContext,
-    CodeGeneratorThinker,
     CodeGeneratorOrchestrator,
+    CodeGeneratorThinker,
     EmpiricalValidator,
+    GenerationContext,
     MockLLM,
 )
 
@@ -218,7 +218,7 @@ class TestCodeGeneratorOrchestrator(unittest.TestCase):
         result = orchestrator.generate_and_validate("test")
 
         self.assertGreater(len(result["generated"]), 0)
-        for fname, content in result["generated"].items():
+        for content in result["generated"].values():
             self.assertIsInstance(content, str)
             self.assertGreater(len(content), 0)
 

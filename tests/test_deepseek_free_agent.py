@@ -4,8 +4,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from llm_providers import (DEEPSEEK_AGENT_READONLY_PREFIX, DeepSeekFreeAgentLLM,
-                           LocalFallbackLLM)
+from llm_providers import DEEPSEEK_AGENT_READONLY_PREFIX, DeepSeekFreeAgentLLM, LocalFallbackLLM
 from plugins.interfaces import PluginConfig
 from plugins.llm_providers.deepseek_free_agent_plugin import DeepSeekFreeAgentPlugin
 from privacy import PrivacyPolicy
@@ -103,17 +102,15 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
                     "http://user:password@localhost:9527", "http://localhost:9527/task",
                     "http://localhost:9527?x=1", "http://localhost:9527#x",
                     "http://[::1%lo]:9527", "http://localhost:99999"):
-            with self.subTest(url=url):
-                with self.assertRaises(ValueError):
-                    DeepSeekFreeAgentLLM(base_url=url)
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                DeepSeekFreeAgentLLM(base_url=url)
 
     def test_configuracion_por_entorno_y_timeout_validado(self):
         with patch.dict("os.environ", {"DEEPSEEK_AGENT_URL": "http://localhost:9999"}):
             self.assertEqual(DeepSeekFreeAgentLLM().base_url, "http://localhost:9999")
         for timeout in (0, -1, float("nan"), float("inf")):
-            with self.subTest(timeout=timeout):
-                with self.assertRaises(ValueError):
-                    DeepSeekFreeAgentLLM(timeout=timeout)
+            with self.subTest(timeout=timeout), self.assertRaises(ValueError):
+                DeepSeekFreeAgentLLM(timeout=timeout)
 
     def test_http_error_no_reintenta_y_cierra(self):
         response = _Response(status_code=500)
@@ -176,9 +173,9 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
         response = _Response(chunks=[b"12345"])
         llm = DeepSeekFreeAgentLLM(authorized=True)
         llm._post = _Post(response)
-        with patch("llm_providers.DEEPSEEK_AGENT_MAX_RESPONSE_BYTES", 4):
-            with self.assertRaisesRegex(RuntimeError, "demasiado grande"):
-                llm.generate("pregunta")
+        with patch("llm_providers.DEEPSEEK_AGENT_MAX_RESPONSE_BYTES", 4), \
+             self.assertRaisesRegex(RuntimeError, "demasiado grande"):
+            llm.generate("pregunta")
         self.assertTrue(response.closed)
 
     def test_prompt_vacio_no_crea_tarea(self):
@@ -186,16 +183,14 @@ class TestDeepSeekFreeAgent(unittest.TestCase):
         llm = DeepSeekFreeAgentLLM(authorized=True)
         llm._post = post
         for prompt in ("", "  ", None):
-            with self.subTest(prompt=prompt):
-                with self.assertRaises(ValueError):
-                    llm.generate(prompt)
+            with self.subTest(prompt=prompt), self.assertRaises(ValueError):
+                llm.generate(prompt)
         self.assertEqual(post.calls, [])
 
     def test_privacidad_no_lo_confunde_con_modelo_local(self):
         for scope in ("local-only", "private-documents"):
-            with self.subTest(scope=scope):
-                with self.assertRaisesRegex(RuntimeError, "chat.deepseek.com"):
-                    PrivacyPolicy(scope).apply(DeepSeekFreeAgentLLM(), MockSearchAPI())
+            with self.subTest(scope=scope), self.assertRaisesRegex(RuntimeError, "chat.deepseek.com"):
+                PrivacyPolicy(scope).apply(DeepSeekFreeAgentLLM(), MockSearchAPI())
         llm, _ = PrivacyPolicy("public").apply(DeepSeekFreeAgentLLM(), MockSearchAPI())
         self.assertEqual(llm.scope, "public")
 
@@ -230,9 +225,8 @@ class TestLocalFallback(unittest.TestCase):
             _StubLLM(result="web"), local).generate("pregunta"), "web")
         self.assertEqual(local.calls, [])
         for error in (ValueError("prompt"), PermissionError("sin permiso")):
-            with self.subTest(error=type(error).__name__):
-                with self.assertRaises(type(error)):
-                    LocalFallbackLLM(_StubLLM(error=error), local).generate("pregunta")
+            with self.subTest(error=type(error).__name__), self.assertRaises(type(error)):
+                LocalFallbackLLM(_StubLLM(error=error), local).generate("pregunta")
         self.assertEqual(local.calls, [])
 
     def test_deepseek_no_admite_fallback(self):

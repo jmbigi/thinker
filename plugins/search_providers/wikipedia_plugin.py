@@ -4,7 +4,7 @@ Wikipedia Search Provider Plugin.
 Wraps the existing WikipediaSearchAPI for plugin system compatibility.
 """
 
-from plugins.interfaces import SearchProviderPlugin, PluginMetadata, PluginType
+from plugins.interfaces import PluginMetadata, PluginType, SearchProviderPlugin
 from plugins.registry import plugin_registry
 
 
@@ -40,7 +40,7 @@ class WikipediaSearchPlugin(SearchProviderPlugin):
             self._search = WikipediaSearchAPI(language=language, timeout=timeout)
             self._initialized = True
             return True
-        except Exception as e:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
             self.metadata.error_message = str(e)
             return False
 

@@ -6,7 +6,8 @@ Incluye destilación, LoRA, cuantización, poda, MoE, speculative decoding y VQ.
 """
 
 import math
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 import torch
 from torch import nn
@@ -51,7 +52,7 @@ def sequences_from_lists(items: Iterable[Iterable[int]], vocab_size: int = 32) -
 def distill_teacher_student(teacher: TinyAutoregressiveModel,
                             student: TinyAutoregressiveModel,
                             sequences: torch.Tensor, epochs: int = 2,
-                            lr: float = 0.001) -> List[float]:
+                            lr: float = 0.001) -> list[float]:
     """Destilación real con distribuciones blandas del profesor."""
     if epochs < 1 or lr <= 0:
         raise ValueError("epochs/lr inválidos")
@@ -90,7 +91,7 @@ class LoRALinear(nn.Module):
 
 
 def train_lora(model: TinyAutoregressiveModel, sequences: torch.Tensor,
-               rank: int = 2, epochs: int = 2, lr: float = 0.01) -> Dict[str, Any]:
+               rank: int = 2, epochs: int = 2, lr: float = 0.01) -> dict[str, Any]:
     """Entrena solo un adaptador LoRA de la cabeza de salida."""
     model.head = LoRALinear(model.head, rank=rank)
     for param in model.parameters():
@@ -132,7 +133,7 @@ class QuantizedLinear(nn.Module):
         pesos = self.weight_q.float() / self.limite * self.scale
         return x @ pesos.T + (self.bias if self.bias is not None else 0)
 
-    def memory_bytes(self) -> Dict[str, float]:
+    def memory_bytes(self) -> dict[str, float]:
         original = self.weight_q.numel() * 4
         comprimido = self.weight_q.numel() if self.bits == 8 else (self.weight_q.numel() + 1) // 2
         return {"float32": original, "compressed": comprimido,
@@ -189,7 +190,7 @@ def _next_greedy(model, tokens: torch.Tensor) -> int:
         return int(model(tokens)[0, -1].argmax())
 
 
-def greedy_decode(model, prefix: Iterable[int], steps: int) -> List[int]:
+def greedy_decode(model, prefix: Iterable[int], steps: int) -> list[int]:
     tokens = list(prefix)
     for _ in range(steps):
         tokens.append(_next_greedy(model, torch.tensor([tokens], dtype=torch.long)))
@@ -197,7 +198,7 @@ def greedy_decode(model, prefix: Iterable[int], steps: int) -> List[int]:
 
 
 def speculative_decode(target, draft, prefix: Iterable[int], steps: int,
-                       draft_k: int = 2) -> Dict[str, Any]:
+                       draft_k: int = 2) -> dict[str, Any]:
     """Decodificación especulativa verificada; greedy equivale al target."""
     if steps < 1 or draft_k < 1:
         raise ValueError("steps/draft_k inválidos")
@@ -271,7 +272,7 @@ class ResidualVectorQuantizer:
             residual = residual - centroides
         return self
 
-    def encode(self, vectores: torch.Tensor) -> List[torch.Tensor]:
+    def encode(self, vectores: torch.Tensor) -> list[torch.Tensor]:
         residual = vectores.float().clone()
         niveles = []
         for codebook in self.codebooks:
@@ -280,7 +281,7 @@ class ResidualVectorQuantizer:
             residual = residual - centroides
         return niveles
 
-    def decode(self, niveles: List[torch.Tensor]) -> torch.Tensor:
+    def decode(self, niveles: list[torch.Tensor]) -> torch.Tensor:
         if len(niveles) != len(self.codebooks):
             raise ValueError("Número de niveles incorrecto")
         return sum((codebook[indices] for codebook, indices in zip(self.codebooks, niveles)),

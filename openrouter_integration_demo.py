@@ -88,7 +88,7 @@ def main():
         result = llm.generate(test_prompt)
         print(f"  ✓ generate() exitosa — {len(result)} caracteres")
         print(f"   - Comienza por: {result[:80]}")
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
         print(f"  ✗ Error en generate(): {type(e).__name__}: {e}")
         sys.exit(1)
 
@@ -102,7 +102,7 @@ def main():
         print(f"  ✓ Pasos completados: {result['step_count']}/7")
         print(f"   - Confianza: {result['confidence']:.2f}")
         print(f"   - Válido: {result['valid']}")
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
         print(f"  ✗ Error: {type(e).__name__}: {e}")
         sys.exit(1)
 
@@ -125,7 +125,7 @@ def main():
             print("   - Issues destacados:")
             for issue in issues[:3]:
                 print(f"     - [{issue['severity']}] {issue['description']}")
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
         print(f"  ✗ Error: {type(e).__name__}: {e}")
         sys.exit(1)
 

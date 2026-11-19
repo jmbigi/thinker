@@ -17,9 +17,9 @@ import argparse
 import json
 import subprocess
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from evaluar_proyecto import evaluar
 from tests.helpers import entorno_git
@@ -130,7 +130,7 @@ CASOS = [
 
 
 def _crear_git(raiz: Path) -> None:
-    fecha = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    fecha = (datetime.now(UTC) - timedelta(days=1)).isoformat()
     entorno = entorno_git({
         "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
         "GIT_AUTHOR_NAME": "Holdout", "GIT_AUTHOR_EMAIL": "holdout@example.invalid",
@@ -143,7 +143,7 @@ def _crear_git(raiz: Path) -> None:
                        env=entorno)
 
 
-def evaluar_caso(caso: Dict[str, Any]) -> Dict[str, Any]:
+def evaluar_caso(caso: dict[str, Any]) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmp:
         raiz = Path(tmp)
         for nombre, contenido in caso["archivos"].items():
@@ -164,7 +164,7 @@ def evaluar_caso(caso: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def evaluar_holdout(casos: List[Dict[str, Any]] = CASOS) -> Dict[str, Any]:
+def evaluar_holdout(casos: list[dict[str, Any]] = CASOS) -> dict[str, Any]:
     resultados = [evaluar_caso(caso) for caso in casos]
     por_nombre = {resultado["nombre"]: resultado for resultado in resultados}
     comprobaciones = []

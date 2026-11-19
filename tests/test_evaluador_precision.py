@@ -2,9 +2,7 @@
 
 import unittest
 
-from tests.benchmarks.evaluador_precision import (CASOS, calcular_metricas,
-                                                  cobertura_de_criterios,
-                                                  evaluar_corpus)
+from tests.benchmarks.evaluador_precision import CASOS, calcular_metricas, cobertura_de_criterios, evaluar_corpus
 
 
 class TestEvaluadorPrecision(unittest.TestCase):

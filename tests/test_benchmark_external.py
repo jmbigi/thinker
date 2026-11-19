@@ -16,7 +16,7 @@ class _LLMPerfecto:
         self.veredictos = veredictos
 
     def generate(self, prompt, model=None, **kwargs):
-        coincidencia = re.search(r"^Claim: (.*)$", prompt, re.M)
+        coincidencia = re.search(r"^Claim: (.*)$", prompt, re.MULTILINE)
         claim = coincidencia.group(1).strip() if coincidencia else ""
         return json.dumps({
             "verdict": self.veredictos.get(claim, "not_addressed"),

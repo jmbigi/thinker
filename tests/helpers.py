@@ -3,7 +3,7 @@
 import os
 import subprocess
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -35,7 +35,7 @@ def entorno_git(extra=None):
 
 def crear_historial_git(raiz, dias):
     """Un commit sintético con fecha relativa (v3 medible sin depender del reloj)."""
-    fecha = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
+    fecha = (datetime.now(UTC) - timedelta(days=dias)).isoformat()
     entorno = entorno_git({
         "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha,
         "GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.invalid",

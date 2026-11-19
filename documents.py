@@ -15,9 +15,10 @@ import sys
 import time
 import zipfile
 from collections import Counter
+from collections.abc import Iterable
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 from urllib.parse import quote, urljoin, urlparse
 from xml.etree import ElementTree as ET
 
@@ -43,12 +44,12 @@ def _ahora() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def _tokens(text: str) -> List[str]:
+def _tokens(text: str) -> list[str]:
     return [word for word in re.findall(r"[^\W\d_]+", text.lower(), flags=re.UNICODE)
             if len(word) > 1]
 
 
-def _fragmentos(text: str, size: int = PASSAGE_SIZE) -> Iterable[Tuple[str, int, int]]:
+def _fragmentos(text: str, size: int = PASSAGE_SIZE) -> Iterable[tuple[str, int, int]]:
     start = 0
     while start < len(text):
         end = min(start + size, len(text))
@@ -63,7 +64,7 @@ def _fragmentos(text: str, size: int = PASSAGE_SIZE) -> Iterable[Tuple[str, int,
 
 
 def _resultados_texto(titulo: str, url: str, texto: str, fuente: str,
-                      sha256: str, ubicacion: str) -> List[Dict[str, Any]]:
+                      sha256: str, ubicacion: str) -> list[dict[str, Any]]:
     texto = re.sub(r"\s+", " ", texto).strip()
     resultados = []
     for fragmento, inicio, fin in _fragmentos(texto):
@@ -83,7 +84,7 @@ def _resultados_texto(titulo: str, url: str, texto: str, fuente: str,
 class _HTMLTexto(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.partes: List[str] = []
+        self.partes: list[str] = []
         self._ignorar = 0
 
     def handle_starttag(self, tag, attrs):
@@ -125,7 +126,7 @@ def _xml(data: bytes) -> ET.Element:
     return ET.fromstring(data)
 
 
-def _docx_texto(archivo: zipfile.ZipFile) -> List[Tuple[str, str]]:
+def _docx_texto(archivo: zipfile.ZipFile) -> list[tuple[str, str]]:
     raiz = _xml(archivo.read("word/document.xml"))
     ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
     partes = []
@@ -136,7 +137,7 @@ def _docx_texto(archivo: zipfile.ZipFile) -> List[Tuple[str, str]]:
     return partes
 
 
-def _pptx_texto(archivo: zipfile.ZipFile) -> List[Tuple[str, str]]:
+def _pptx_texto(archivo: zipfile.ZipFile) -> list[tuple[str, str]]:
     ns = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
     nombres = sorted(
         (nombre for nombre in archivo.namelist()
@@ -153,9 +154,9 @@ def _pptx_texto(archivo: zipfile.ZipFile) -> List[Tuple[str, str]]:
     return partes
 
 
-def _xlsx_texto(archivo: zipfile.ZipFile) -> List[Tuple[str, str]]:
+def _xlsx_texto(archivo: zipfile.ZipFile) -> list[tuple[str, str]]:
     main_ns = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
-    compartidas: List[str] = []
+    compartidas: list[str] = []
     if "xl/sharedStrings.xml" in archivo.namelist():
         raiz = _xml(archivo.read("xl/sharedStrings.xml"))
         compartidas = ["".join(nodo.text or "" for nodo in item.iter(f"{main_ns}t"))
@@ -184,7 +185,7 @@ def _xlsx_texto(archivo: zipfile.ZipFile) -> List[Tuple[str, str]]:
     return partes
 
 
-def _pdf_texto(data: bytes) -> List[Tuple[str, str]]:
+def _pdf_texto(data: bytes) -> list[tuple[str, str]]:
     try:
         from pypdf import PdfReader
     except ImportError as exc:
@@ -208,7 +209,7 @@ def _url_documento(ruta: Path, sha256: str) -> str:
     return f"document://{sha256[:12]}/{quote(ruta.name)}"
 
 
-def load_document(path: str) -> List[Dict[str, Any]]:
+def load_document(path: str) -> list[dict[str, Any]]:
     """Extrae pasajes de un documento, con error explícito si no hay texto."""
     ruta = Path(path).expanduser().resolve()
     if not ruta.is_file():
@@ -249,7 +250,7 @@ def load_document(path: str) -> List[Dict[str, Any]]:
     return resultados
 
 
-def load_documents(paths: Iterable[str]) -> List[Dict[str, Any]]:
+def load_documents(paths: Iterable[str]) -> list[dict[str, Any]]:
     """Carga archivos o directorios en orden determinista."""
     resultados = []
     for valor in paths:
@@ -274,7 +275,7 @@ def load_documents(paths: Iterable[str]) -> List[Dict[str, Any]]:
 class PassageIndex:
     """Índice en memoria con puntuación híbrida BM25 + coseno léxico."""
 
-    def __init__(self, passages: Iterable[Dict[str, Any]]):
+    def __init__(self, passages: Iterable[dict[str, Any]]):
         self.passages = list(passages)
         if not self.passages:
             raise ValueError("El índice exige al menos un pasaje")
@@ -289,7 +290,7 @@ class PassageIndex:
             self._df.update(doc.keys())
         self._avgdl = sum(self._lengths) / len(self._lengths)
 
-    def _bm25(self, query: Counter) -> List[float]:
+    def _bm25(self, query: Counter) -> list[float]:
         total = len(self._docs)
         scores = []
         for doc, length in zip(self._docs, self._lengths):
@@ -304,7 +305,7 @@ class PassageIndex:
             scores.append(score)
         return scores
 
-    def _cosine(self, query: Counter) -> List[float]:
+    def _cosine(self, query: Counter) -> list[float]:
         qnorm = math.sqrt(sum((1 + math.log(freq)) ** 2 for freq in query.values()))
         if not qnorm:
             return [0.0] * len(self._docs)
@@ -317,7 +318,7 @@ class PassageIndex:
             scores.append(producto / (qnorm * norm) if norm else 0.0)
         return scores
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         consulta = Counter(_tokens(query))
@@ -349,7 +350,7 @@ class LocalDocumentSearchAPI(SearchAPI):
         self.passages = load_documents(paths)
         self.index = PassageIndex(self.passages)
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         return self.index.search(query, max_results)
 
 
@@ -361,7 +362,7 @@ class CompositeSearchAPI(SearchAPI):
         if not self.providers:
             raise ValueError("CompositeSearchAPI exige al menos un proveedor")
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         resultados = []
         vistos = set()
         for provider in self.providers:
@@ -386,7 +387,7 @@ class FullTextSearchAPI(SearchAPI):
         self.timeout = timeout
         self.max_sources = max_sources
         self.max_bytes = max_bytes
-        self.errors: List[str] = []
+        self.errors: list[str] = []
 
     def _get(self, url: str):
         parsed = urlparse(url)
@@ -395,7 +396,7 @@ class FullTextSearchAPI(SearchAPI):
         return requests.get(url, headers={"User-Agent": USER_AGENT},
                             timeout=self.timeout, allow_redirects=False, stream=True)
 
-    def _fetch(self, url: str) -> Tuple[bytes, str, str]:
+    def _fetch(self, url: str) -> tuple[bytes, str, str]:
         actual = url
         for _ in range(4):
             response = self._get(actual)
@@ -420,7 +421,7 @@ class FullTextSearchAPI(SearchAPI):
                 response.close()
         raise RuntimeError("Demasiadas redirecciones")
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         if max_results <= 0:
             return []
         self.errors = []

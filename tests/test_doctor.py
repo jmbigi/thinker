@@ -9,7 +9,7 @@ import re
 import unittest
 from pathlib import Path
 
-import scripts.doctor as doctor
+from scripts import doctor
 
 RAIZ = Path(__file__).resolve().parent.parent
 
@@ -62,7 +62,7 @@ class TestDoctor(unittest.TestCase):
         import subprocess
         proc = subprocess.run(
             [__import__("sys").executable, "scripts/doctor.py"],
-            cwd=RAIZ, capture_output=True, encoding="cp1252",
+            check=False, cwd=RAIZ, capture_output=True, encoding="cp1252",
             errors="replace",
             env={**__import__("os").environ, "PYTHONIOENCODING": "cp1252"},
             timeout=120)

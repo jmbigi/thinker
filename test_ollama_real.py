@@ -31,7 +31,7 @@ print(f"Servidor: {BASE_URL} | modelo: {MODELO}")
 # 1. ¿Está el servidor y el modelo?
 try:
     tags = requests.get(f"{BASE_URL}/api/tags", timeout=5).json()
-except Exception as e:
+except (requests.RequestException, ValueError) as e:
     print(f"\n[0] Servidor Ollama no disponible ({type(e).__name__}): prueba OMITIDA")
     print("    Arranca Ollama ('ollama serve') o define OLLAMA_BASE_URL.")
     sys.exit(0)
@@ -54,7 +54,7 @@ def check(name, fn):
         results.append((name, True, detalle or ""))
         print(f"  ✓ {name}" + (f" — {detalle}" if detalle else ""))
         lineas.append(f"OK: {name} — {detalle}")
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, TimeoutError, requests.RequestException) as e:
         detalle = f"{type(e).__name__}: {str(e)[:200]}"
         results.append((name, False, detalle))
         print(f"  ✗ {name} -> {detalle}")
@@ -62,23 +62,26 @@ def check(name, fn):
 
 
 print("\n[1] Conexión básica...")
+respuesta = llm.generate("Responde exactamente con la palabra: OK")
 check("generate() responde", lambda: (
-    lambda r: f"{len(r)} caracteres" if r.strip() else (_ for _ in ()).throw(AssertionError("vacío"))
-)(llm.generate("Responde exactamente con la palabra: OK")))
+    f"{len(respuesta)} caracteres" if respuesta.strip() else (_ for _ in ()).throw(AssertionError("vacío"))
+))
 
 print("\n[2] Capa de pensamiento (7 pasos) con modelo local...")
+layer = DeepResearchThinkingLayer(llm_provider=llm, name="ollama_test")
+resultado_think = layer.think("¿Cuál es el estado actual de la fusión nuclear?")
 check("ThinkingLayer 7 pasos", lambda: (
-    lambda r: f"7 pasos, válido={r['valid']}, confianza={r['confidence']}"
-)(DeepResearchThinkingLayer(llm_provider=llm, name="ollama_test")
-  .think("¿Cuál es el estado actual de la fusión nuclear?")))
+    f"7 pasos, válido={resultado_think['valid']}, confianza={resultado_think['confidence']}"
+))
 
 print("\n[3] Pipeline de investigación (LLM local + búsqueda mock)...")
+orchestrator = ResearchOrchestrator(llm, MockSearchAPI(), max_iterations=3)
+reporte, ctx = orchestrator.research("¿Cuál es el estado actual de la fusión nuclear?")
 check("Investigación end-to-end", lambda: (
-    lambda par: (f"{len(par[1].subquestions)} subpreguntas, {len(par[1].claims)} claims, "
-                 f"reporte {len(par[0])} chars") if len(par[0]) > 100
-    else (_ for _ in ()).throw(AssertionError(f"reporte corto: {len(par[0])}"))
-)(ResearchOrchestrator(llm, MockSearchAPI(), max_iterations=3)
-  .research("¿Cuál es el estado actual de la fusión nuclear?")))
+    f"{len(ctx.subquestions)} subpreguntas, {len(ctx.claims)} claims, "
+    f"reporte {len(reporte)} chars" if len(reporte) > 100
+    else (_ for _ in ()).throw(AssertionError(f"reporte corto: {len(reporte)}"))
+))
 
 with open("test_ollama_result.txt", "w", encoding="utf-8") as f:
     f.write(f"Test real Ollama — modelo: {MODELO}\n")

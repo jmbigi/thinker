@@ -6,8 +6,7 @@ import unittest
 
 import pensamiento_layer as pl
 from deep_research_system import MockLLM
-from pensamiento_layer import (DeepResearchThinkingLayer,
-                               ResearchOrchestratorWithThinking, ThinkingLayer)
+from pensamiento_layer import DeepResearchThinkingLayer, ResearchOrchestratorWithThinking, ThinkingLayer
 from tests.helpers import StubLLM
 from thinking_engine import StepThinkingEngine
 from web_search import MockSearchAPI

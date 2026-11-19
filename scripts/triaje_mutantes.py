@@ -21,7 +21,6 @@ from difflib import unified_diff
 from pathlib import Path
 
 
-
 def _rangos_de_funciones(fuente: str):
     arbol = ast.parse(fuente)
     rangos = {}
@@ -41,10 +40,16 @@ def clasificar(destino: Path, ruta_cobertura: Path) -> dict:
     ruta_cobertura = ruta_cobertura.resolve()
     anterior = os.getcwd()
     os.chdir(destino)
-    from mutmut.__main__ import (Config, SourceFileMutationData, cst,
-                                 read_mutant_function, read_mutants_module,
-                                 read_original_function, status_by_exit_code,
-                                 walk_mutatable_files)
+    from mutmut.__main__ import (
+        Config,
+        SourceFileMutationData,
+        cst,
+        read_mutant_function,
+        read_mutants_module,
+        read_original_function,
+        status_by_exit_code,
+        walk_mutatable_files,
+    )
     Config.ensure_loaded()
     path = next(iter(walk_mutatable_files()))
     data = SourceFileMutationData(path=path)
@@ -59,8 +64,7 @@ def clasificar(destino: Path, ruta_cobertura: Path) -> dict:
         if estado not in ("survived", "timeout"):
             continue
         funcion = nombre.split(".")[-1].rsplit("__mutmut", 1)[0]
-        if funcion.startswith("x_"):
-            funcion = funcion[2:]
+        funcion = funcion.removeprefix("x_")
         lineas = rangos.get(funcion, [])
         cubierta = bool(lineas and any(linea in ejecutadas for linea in lineas))
         if estado == "timeout":

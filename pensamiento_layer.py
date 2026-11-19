@@ -18,7 +18,7 @@ Principios clave:
 4. Patrón anti-repitencia: si un paso falla, el ciclo se detiene y se reporta
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from deep_research_system import ResearchOrchestrator
 from thinking_engine import StepThinkingEngine, ToTEngine
@@ -46,7 +46,7 @@ class DeepResearchThinkingLayer(ToTEngine):
         """Compatibilidad: delega en el validador común."""
         return self.validate_step(thought)
 
-    def think(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def think(self, prompt: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         """Ciclo lineal; con `use_tot=True` delega en `think_tot`.
 
         El flag `use_tot` era decorativo: se guardaba y nunca se consultaba.
@@ -55,7 +55,7 @@ class DeepResearchThinkingLayer(ToTEngine):
             return self.think_tot(prompt, context)
         return super().think(prompt, context)
 
-    def think_tot(self, prompt: str, context: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+    def think_tot(self, prompt: str, context: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]:
         """
         Ejecuta pensamiento con Tree of Thoughts (ToT).
         
@@ -107,7 +107,7 @@ class DeepResearchThinkingLayer(ToTEngine):
             self.min_score_threshold = orig_threshold
             self.max_depth = orig_depth
 
-    def _step_builders(self) -> List[Tuple[str, Any]]:
+    def _step_builders(self) -> list[tuple[str, Any]]:
         def step1(o):
             return f"""
 PASO 1 - ANÁLISIS DE PREGUNTA:
@@ -282,7 +282,7 @@ Formato JSON:
             ("synthesis", step7),
         ]
 
-    def _render_thought(self, steps: List[Tuple[str, str]]) -> str:
+    def _render_thought(self, steps: list[tuple[str, str]]) -> str:
         by_name = dict(steps)
         lines = [
             f"        CAPA DE PENSAMIENTO: {self.name}",
@@ -335,7 +335,7 @@ class ResearchOrchestratorWithThinking:
         self.muestras_consenso = muestras_consenso
         self.results = None
 
-    def research_with_thinking(self, question: str) -> Dict[str, Any]:
+    def research_with_thinking(self, question: str) -> dict[str, Any]:
         """Ejecuta el pensamiento estructurado y luego el pipeline real."""
 
         print("\n=== INICIANDO INVESTIGACIÓN CON CAPA DE PENSAMIENTO ===")

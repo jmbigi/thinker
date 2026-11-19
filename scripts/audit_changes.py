@@ -16,14 +16,14 @@ import json
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from evidence import EvidenceKind, formato_resumen, resumen_evidencias  # noqa: E402
+from evidence import EvidenceKind, formato_resumen, resumen_evidencias
 
 SEVERIDADES = ("alta", "media", "baja")
 ORDEN_SEVERIDAD = {severidad: indice for indice, severidad in
@@ -55,14 +55,14 @@ _SUPPR_ESPECIFICA = re.compile(
     r"#\[allow\([^)]+\)\])")
 _COV = re.compile(
     r"(fail_under|coverageThreshold|cov-fail-under|fail-under)\D*(\d+)",
-    re.I)
+    re.IGNORECASE)
 _CONFIG_BLOQUEO = re.compile(
     r"([\"']?(?:strict|noimplicitany)[\"']?\s*[:=]\s*false|"
     r"[\"']?ignore_errors[\"']?\s*[:=]\s*true|"
-    r"continue-on-error\s*:\s*true|allow_failure\s*:\s*true)", re.I)
+    r"continue-on-error\s*:\s*true|allow_failure\s*:\s*true)", re.IGNORECASE)
 _CONFIG_REVISION = re.compile(
     r"(--ignore\b|extend-ignore|[\"']?exclude[\"']?\s*[:=]|"
-    r"[\"']?omit[\"']?\s*[:=]|ignorepatterns|coverage\s*:\s*false)", re.I)
+    r"[\"']?omit[\"']?\s*[:=]|ignorepatterns|coverage\s*:\s*false)", re.IGNORECASE)
 _DEP_TXT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]+\])?\s*([<>=!~].*)?$")
 _DEP_PYPROJECT = re.compile(
     r'^\s*"[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]+\])?\s*[<>=!~]')
@@ -105,7 +105,7 @@ CONFIGS = {
 
 @dataclass
 class OpcionesAuditoria:
-    permitir: List[str] = field(default_factory=list)
+    permitir: list[str] = field(default_factory=list)
     max_archivos: int = 20
     max_lineas: int = 800
 
@@ -125,8 +125,8 @@ class ArchivoDiff:
     nuevo: bool = False
     borrado: bool = False
     binario: bool = False
-    agregadas: List[LineaDiff] = field(default_factory=list)
-    eliminadas: List[LineaDiff] = field(default_factory=list)
+    agregadas: list[LineaDiff] = field(default_factory=list)
+    eliminadas: list[LineaDiff] = field(default_factory=list)
 
 
 @dataclass
@@ -151,10 +151,10 @@ class Hallazgo:
         }
 
 
-def parsear_diff(texto: str) -> List[ArchivoDiff]:
+def parsear_diff(texto: str) -> list[ArchivoDiff]:
     """Parsea un diff unificado de git; no ejecuta nada."""
-    archivos: List[ArchivoDiff] = []
-    actual: Optional[ArchivoDiff] = None
+    archivos: list[ArchivoDiff] = []
+    actual: ArchivoDiff | None = None
     nueva_linea = 0
     en_hunk = False
     for linea in texto.splitlines():
@@ -173,19 +173,18 @@ def parsear_diff(texto: str) -> List[ArchivoDiff]:
         if not en_hunk and linea.startswith("deleted file mode "):
             actual.borrado = True
             continue
-        if not en_hunk and (linea.startswith("Binary files ")
-                            or linea.startswith("GIT binary patch")):
+        if not en_hunk and (linea.startswith(("Binary files ", "GIT binary patch"))):
             actual.binario = True
             continue
         if not en_hunk and linea.startswith("--- "):
             ruta = linea[4:].strip()
             if ruta != "/dev/null":
-                actual.ruta = ruta[2:] if ruta.startswith("a/") else ruta
+                actual.ruta = ruta.removeprefix("a/")
             continue
         if not en_hunk and linea.startswith("+++ "):
             ruta = linea[4:].strip()
             if ruta != "/dev/null":
-                actual.ruta = ruta[2:] if ruta.startswith("b/") else ruta
+                actual.ruta = ruta.removeprefix("b/")
             continue
         hunk = _HUNK.match(linea)
         if hunk:
@@ -217,9 +216,7 @@ def _es_test(ruta: str) -> bool:
     if p.suffix.lower() not in EXTENSIONES_TEST:
         return False
     partes = {parte.lower() for parte in p.parts[:-1]}
-    return bool(partes & RUTAS_TEST) or nombre.startswith("test_") \
-        or nombre.endswith("_test.py") or nombre.endswith("_test.go") \
-        or ".test." in nombre or ".spec." in nombre
+    return bool(partes & RUTAS_TEST) or nombre.startswith("test_") or nombre.endswith(("_test.py", "_test.go")) or ".test." in nombre or ".spec." in nombre
 
 
 def _es_codigo(ruta: str) -> bool:
@@ -282,14 +279,14 @@ def _es_literal(texto: str) -> bool:
     return texto.strip().startswith(('"', "'"))
 
 
-def _add(hallazgos: List[Hallazgo], regla: str, severidad: str, archivo: str,
+def _add(hallazgos: list[Hallazgo], regla: str, severidad: str, archivo: str,
          linea: int, descripcion: str, evidencia: str) -> None:
     hallazgos.append(Hallazgo(regla, severidad, archivo, linea, descripcion,
                               _redactar(evidencia)))
 
 
 def _revisar_rutas(ad: ArchivoDiff, opciones: OpcionesAuditoria,
-                   hallazgos: List[Hallazgo]) -> None:
+                   hallazgos: list[Hallazgo]) -> None:
     ruta = ad.ruta
     if _es_test(ruta) and ad.borrado:
         _add(hallazgos, "test_borrado", "alta", ruta, 0,
@@ -310,8 +307,7 @@ def _revisar_rutas(ad: ArchivoDiff, opciones: OpcionesAuditoria,
         _add(hallazgos, "ruta_sensible", "alta", ruta, 0,
              "archivo sensible modificado", ruta)
         return
-    if (ruta.startswith(".github/") or ruta.startswith("scripts/hooks/")
-            or nombre in {".gitlab-ci.yml", ".pre-commit-config.yaml"}):
+    if (ruta.startswith((".github/", "scripts/hooks/")) or nombre in {".gitlab-ci.yml", ".pre-commit-config.yaml"}):
         _add(hallazgos, "ci_hooks", "alta", ruta, 0,
              "configuración de CI/hooks modificada", ruta)
         return
@@ -355,7 +351,7 @@ def _es_assert(linea: LineaDiff) -> bool:
     return bool(_ASSERT.search(texto))
 
 
-def _revisar_tests(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
+def _revisar_tests(ad: ArchivoDiff, hallazgos: list[Hallazgo]) -> None:
     removed_funcs = sum(1 for linea in ad.eliminadas
                         if _TEST_FUNC.search(linea.texto))
     added_funcs = sum(1 for linea in ad.agregadas
@@ -395,7 +391,7 @@ def _revisar_tests(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
              "archivo de test nuevo sin aserciones detectadas", "diff")
 
 
-def _valores(patron: re.Pattern, lineas: List[LineaDiff]) -> List[int]:
+def _valores(patron: re.Pattern, lineas: list[LineaDiff]) -> list[int]:
     valores = []
     for linea in lineas:
         if _es_comentario(linea.texto):
@@ -404,7 +400,7 @@ def _valores(patron: re.Pattern, lineas: List[LineaDiff]) -> List[int]:
     return valores
 
 
-def _revisar_cobertura(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
+def _revisar_cobertura(ad: ArchivoDiff, hallazgos: list[Hallazgo]) -> None:
     eliminadas = _valores(_COV, ad.eliminadas)
     agregadas = _valores(_COV, ad.agregadas)
     if eliminadas and not agregadas:
@@ -419,16 +415,14 @@ def _revisar_cobertura(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
              "umbral de cobertura añadido; revisar intención", "diff")
 
 
-def _revisar_dependencias(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
-    nuevas: List[LineaDiff] = []
+def _revisar_dependencias(ad: ArchivoDiff, hallazgos: list[Hallazgo]) -> None:
+    nuevas: list[LineaDiff] = []
     for linea in ad.agregadas:
         texto = linea.texto.strip()
         if not texto or texto.startswith(("#", "-", "//", "git+", "http",
                                          "file:")):
             continue
-        if ad.ruta.endswith((".txt", ".in")) and _DEP_TXT.match(texto):
-            nuevas.append(linea)
-        elif ad.ruta.endswith("pyproject.toml") \
+        if ad.ruta.endswith((".txt", ".in")) and _DEP_TXT.match(texto) or ad.ruta.endswith("pyproject.toml") \
                 and _DEP_PYPROJECT.match(texto):
             nuevas.append(linea)
     if nuevas:
@@ -439,7 +433,7 @@ def _revisar_dependencias(ad: ArchivoDiff, hallazgos: List[Hallazgo]) -> None:
 
 
 def _revisar_contenido(ad: ArchivoDiff,
-                       hallazgos: List[Hallazgo]) -> None:
+                       hallazgos: list[Hallazgo]) -> None:
     if ad.borrado:
         return
     ruta = ad.ruta
@@ -502,9 +496,9 @@ def _revisar_contenido(ad: ArchivoDiff,
                      "eval/exec añadido en código", linea.texto)
 
 
-def _revisar_presupuesto(archivos: List[ArchivoDiff],
+def _revisar_presupuesto(archivos: list[ArchivoDiff],
                          opciones: OpcionesAuditoria,
-                         hallazgos: List[Hallazgo]) -> None:
+                         hallazgos: list[Hallazgo]) -> None:
     if opciones.max_archivos > 0 and len(archivos) > opciones.max_archivos:
         _add(hallazgos, "presupuesto_archivos", "media", "", 0,
              f"{len(archivos)} archivos > {opciones.max_archivos}", "diff")
@@ -514,11 +508,11 @@ def _revisar_presupuesto(archivos: List[ArchivoDiff],
              f"{total} líneas cambiadas > {opciones.max_lineas}", "diff")
 
 
-def auditar_diff(texto: str, opciones: Optional[OpcionesAuditoria] = None):
+def auditar_diff(texto: str, opciones: OpcionesAuditoria | None = None):
     """Devuelve el informe de señales del diff; no escribe ni ejecuta nada."""
     opciones = opciones or OpcionesAuditoria()
     archivos = parsear_diff(texto)
-    hallazgos: List[Hallazgo] = []
+    hallazgos: list[Hallazgo] = []
     for ad in archivos:
         _revisar_rutas(ad, opciones, hallazgos)
         _revisar_contenido(ad, hallazgos)
@@ -556,9 +550,9 @@ def informe_texto(informe) -> str:
         f"{max_lineas if max_lineas > 0 else 'sin límite'} líneas")
     lineas = [
         f"AUDITORÍA DE CAMBIOS (read-only): {informe.get('fuente', '?')}",
-        f"Archivos: {informe['archivos']} | "
+        (f"Archivos: {informe['archivos']} | "
         f"+{informe['lineas_agregadas']}/-{informe['lineas_eliminadas']} | "
-        f"presupuesto: {presupuesto}",
+        f"presupuesto: {presupuesto}"),
         "",
     ]
     if not informe["hallazgos"]:
@@ -580,7 +574,7 @@ def informe_texto(informe) -> str:
     return "\n".join(lineas)
 
 
-def _obtener_diff(args) -> Tuple[str, str]:
+def _obtener_diff(args) -> tuple[str, str]:
     if args.diff is not None:
         if args.diff == "-":
             return sys.stdin.read(), "stdin"
@@ -619,7 +613,7 @@ def _codigo_salida(veredicto: str, umbral: str) -> int:
     return 0 if veredicto == "OK" else 1
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Audita un diff en busca de señales de cambios no deseados "
                     "(read-only, offline).")

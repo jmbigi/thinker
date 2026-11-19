@@ -12,15 +12,21 @@ import os
 import tempfile
 import unittest
 import warnings
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import evaluar_proyecto
-from evaluar_proyecto import (archivos_python, detectar_comando_tests, ejecutar_tests,
-                              evaluar, informe_texto, main, parsear_requisitos)
-from tests.helpers import (StubLLM, StubSearch, crear_historial_git,
-                           crear_proyecto)
+from evaluar_proyecto import (
+    archivos_python,
+    detectar_comando_tests,
+    ejecutar_tests,
+    evaluar,
+    informe_texto,
+    main,
+    parsear_requisitos,
+)
+from tests.helpers import StubLLM, StubSearch, crear_historial_git, crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
 
@@ -129,8 +135,8 @@ class TestEvaluadorDeProyectos(unittest.TestCase):
         ]}
 
         self.assertEqual(plan_texto(informe), [
-            "Plan de mejora: 4 propuestas (2 alta, 1 media, 1 baja); "
-            "ordenadas por prioridad, secuencia y esfuerzo."])
+            ("Plan de mejora: 4 propuestas (2 alta, 1 media, 1 baja); "
+            "ordenadas por prioridad, secuencia y esfuerzo.")])
 
     def test_sintesis_llm_marca_el_respaldo_de_cada_propuesta(self):
         from evaluar_proyecto import sintetizar_con_llm
@@ -1391,9 +1397,8 @@ class TestSinRedNoTocaPyPI(unittest.TestCase):
         with patch.object(evaluar_proyecto, "ultima_version_pypi",
                           side_effect=AssertionError("red")), \
                 patch.object(evaluar_proyecto, "licencia_pypi",
-                             side_effect=AssertionError("red")):
-            with contextlib.redirect_stdout(salida):
-                codigo = main([str(raiz), "--sin-red", "--json"])
+                             side_effect=AssertionError("red")), contextlib.redirect_stdout(salida):
+            codigo = main([str(raiz), "--sin-red", "--json"])
 
         self.assertEqual(codigo, 0)
         self.assertIn("schema_version", json.loads(salida.getvalue()))
@@ -2796,8 +2801,8 @@ class TestContratosR3Doscientos(unittest.TestCase):
         self.assertEqual(informe["items"][0]["avisos"],
                          ["base", "criterio demasiado corto para ser medible"])
         self.assertEqual(informe["no_verificado"], [
-            "1 requisito(s) CUBIERTO(S): evidencia estática declarada, "
-            "no comportamiento verificado",
+            ("1 requisito(s) CUBIERTO(S): evidencia estática declarada, "
+            "no comportamiento verificado"),
             "1 requisito(s) NO VERIFICABLE(S): revisar criterio o método",
         ])
         self.assertEqual(informe["nota"],
@@ -3031,8 +3036,8 @@ class TestInformeTextoContrato(unittest.TestCase):
         self.assertEqual(informe_texto(informe), [
             "EVALUACIÓN DE PROYECTO (read-only): /tmp/demo",
             "Python: 2 archivos / 20 líneas",
-            "Cobertura: 5 criterios evaluados, 1 N/A (nivel alta); "
-            "lenguajes: Python",
+            ("Cobertura: 5 criterios evaluados, 1 N/A (nivel alta); "
+            "lenguajes: Python"),
             "",
             "== CALIDAD — 0.50 ==",
             "  [OK ] c1",
@@ -3045,8 +3050,8 @@ class TestInformeTextoContrato(unittest.TestCase):
             "Aviso: cobertura 50%",
             "Lenguajes: Python: AST y criterios nativos",
             "Nota: nota global",
-            "Evidencia: [VERIFIED-REAL] 2 | [VERIFIED-SYNTHETIC] 0 | "
-            "[UNVERIFIED] 0",
+            ("Evidencia: [VERIFIED-REAL] 2 | [VERIFIED-SYNTHETIC] 0 | "
+            "[UNVERIFIED] 0"),
             "",
             "== LICENCIAS NO RUNTIME (informativas; no puntúan h5) ==",
             "  - pytest [dev] MIT (real)",
@@ -3060,19 +3065,19 @@ class TestInformeTextoContrato(unittest.TestCase):
             "      evidencia: app.py",
             "      motivo: existe",
             "      aviso: aviso",
-            "  Resumen: 0 CUMPLE | 1 CUBIERTO | 0 NO CUMPLE | "
-            "0 NO VERIFICABLE",
+            ("  Resumen: 0 CUMPLE | 1 CUBIERTO | 0 NO CUMPLE | "
+            "0 NO VERIFICABLE"),
             "  Nota: CUBIERTO no es CUMPLE",
             "",
-            "Plan de mejora: 1 propuestas (1 alta); ordenadas por prioridad, "
-            "secuencia y esfuerzo.",
+            ("Plan de mejora: 1 propuestas (1 alta); ordenadas por prioridad, "
+            "secuencia y esfuerzo."),
             "== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==",
             "  [ alta] calidad: Mejorar",
             "          sitios: 2 | esfuerzo: bajo",
             "          verificación: test",
             "",
-            "== PROPUESTAS DEL MODELO (m) — juicio, no medición; sin respaldo "
-            "medido: 1 ==",
+            ("== PROPUESTAS DEL MODELO (m) — juicio, no medición; sin respaldo "
+            "medido: 1 =="),
             "  [calidad] P (SIN RESPALDO)",
             "          por qué: pq",
             "          evidencia citada: ev",
@@ -3102,13 +3107,13 @@ class TestInformeTextoContrato(unittest.TestCase):
         self.assertEqual(informe_texto(informe), [
             "EVALUACIÓN DE PROYECTO (read-only): x",
             "Python: 0 archivos / 0 líneas",
-            "Cobertura: ? criterios evaluados, ? N/A (nivel ?); "
-            "lenguajes: ninguno",
+            ("Cobertura: ? criterios evaluados, ? N/A (nivel ?); "
+            "lenguajes: ninguno"),
             "",
             "GLOBAL: N/A (cobertura ?, 0% de criterios)",
             "Nota: ",
-            "Evidencia: [VERIFIED-REAL] 0 | [VERIFIED-SYNTHETIC] 0 | "
-            "[UNVERIFIED] 0",
+            ("Evidencia: [VERIFIED-REAL] 0 | [VERIFIED-SYNTHETIC] 0 | "
+            "[UNVERIFIED] 0"),
             "",
             "Plan de mejora: nada que proponer (todos los criterios cumplen).",
             "== MEJORAS PROPUESTAS (por prioridad, con su verificación) ==",
@@ -3249,11 +3254,11 @@ class TestDimensionesContrato(unittest.TestCase):
                  "criterio": "h7_decisiones_documentadas"}],
             "notas": [
                 "manifiestos (1): pyproject.toml",
-                f"runner: {evaluar_proyecto.sys.executable} -m unittest "
-                "discover -s tests (convención: existe tests/)",
+                (f"runner: {evaluar_proyecto.sys.executable} -m unittest "
+                "discover -s tests (convención: existe tests/)"),
                 "licencias de dependencias OMITIDAS (--sin-red)",
-                "h6 sobre 2 archivos de producción "
-                "(tests/docs/scripts excluidos)"]})
+                ("h6 sobre 2 archivos de producción "
+                "(tests/docs/scripts excluidos)")]})
 
     def test_herramientas_sin_manifiesto_ni_licencia(self):
         raiz = crear_proyecto(self, {
@@ -3300,8 +3305,8 @@ class TestDimensionesContrato(unittest.TestCase):
                                 "consultable",
                  "evidencia": str(raiz), "tipo_evidencia": "verified-real",
                  "criterio": "h7_decisiones_documentadas"}],
-            "notas": ["h6 sobre 1 archivos de producción "
-                      "(tests/docs/scripts excluidos)"]})
+            "notas": [("h6 sobre 1 archivos de producción "
+                      "(tests/docs/scripts excluidos)")]})
 
     def test_calidad_proyecto_con_silencio(self):
         raiz = crear_proyecto(self, {
@@ -3633,8 +3638,8 @@ class TestVigenciaContrato(unittest.TestCase):
                 {"criterio": "v4_dependencias_al_dia",
                  "motivo": "sin dependencias Python runtime que comparar"}],
             "hallazgos": [],
-            "notas": [f"último commit: {fecha}; commits totales: 1; "
-                      "últimos 180 días: 1"]})
+            "notas": [(f"último commit: {fecha}; commits totales: 1; "
+                      "últimos 180 días: 1")]})
 
     def test_v3_repo_git_antiguo(self):
         """Repo con 1 commit de hace 400 días: v3 False y hallazgo exacto."""
@@ -3661,8 +3666,8 @@ class TestVigenciaContrato(unittest.TestCase):
                  "evidencia": f"git: {fecha}",
                  "tipo_evidencia": "verified-real",
                  "criterio": "v3_actividad_reciente"}],
-            "notas": [f"último commit: {fecha}; commits totales: 1; "
-                      "últimos 180 días: 0"]})
+            "notas": [(f"último commit: {fecha}; commits totales: 1; "
+                      "últimos 180 días: 0")]})
 
     def test_v3_nota_commits_no_contados(self):
         """Si rev-list falla, la nota declara '?' en vez de inventar el dato."""
@@ -3682,8 +3687,8 @@ class TestVigenciaContrato(unittest.TestCase):
 
         self.assertEqual(
             dimension.a_dict()["notas"],
-            ["último commit: 2026-10-20; commits totales: ?; "
-             "últimos 180 días: 1"])
+            [("último commit: 2026-10-20; commits totales: ?; "
+             "últimos 180 días: 1")])
 
     def test_v4_sin_versiones_que_comparar(self):
         """Sin == ni lock: v4 False, no se llama a PyPI y se declara."""
@@ -3758,8 +3763,8 @@ class TestVigenciaContrato(unittest.TestCase):
                  "evidencia": str(raiz), "tipo_evidencia": "verified-real",
                  "criterio": "v2_lockfile"}],
             "notas": ["locks: ninguno", "sin git: actividad no evaluable",
-                      "comparadas 2/3 dependencias: las que no tienen versión "
-                      "no se pueden comparar"]})
+                      ("comparadas 2/3 dependencias: las que no tienen versión "
+                      "no se pueden comparar")]})
 
     def test_v4_versiones_pep440_equivalentes(self):
         for declarada, publicada in (("2.31", "2.31.0"), ("2.31.0", "2.31"),
@@ -3784,11 +3789,11 @@ class TestVigenciaContrato(unittest.TestCase):
         casos = (
             ("2.0", "1.0", True, []),
             ("1.0", "no-version", False,
-             ["No se pudo comprobar en PyPI: requests "
-              "(versión no PEP 440: 1.0 -> no-version)"]),
+             [("No se pudo comprobar en PyPI: requests "
+              "(versión no PEP 440: 1.0 -> no-version)")]),
             ("1.0", None, False,
-             ["No se pudo comprobar en PyPI: requests "
-              "(versión no PEP 440: 1.0 -> None)"]),
+             [("No se pudo comprobar en PyPI: requests "
+              "(versión no PEP 440: 1.0 -> None)")]),
         )
         for declarada, publicada, esperado, errores in casos:
             with self.subTest(declarada=declarada, publicada=publicada):
@@ -4525,9 +4530,8 @@ class TestPuntosDeEntradaYMain(unittest.TestCase):
     def test_main_json_llama_evaluar_y_serializa(self):
         salida = io.StringIO()
         with patch("evaluar_proyecto.evaluar",
-                   return_value={"b": 2, "a": 1}) as evaluar_mock:
-            with contextlib.redirect_stdout(salida):
-                codigo = main(["proyecto", "--json", "--sin-red"])
+                   return_value={"b": 2, "a": 1}) as evaluar_mock, contextlib.redirect_stdout(salida):
+            codigo = main(["proyecto", "--json", "--sin-red"])
 
         self.assertEqual(codigo, 0)
         self.assertEqual(json.loads(salida.getvalue()), {"b": 2, "a": 1})
@@ -4568,8 +4572,8 @@ class TestEficienciaLLMContrato(unittest.TestCase):
             "no_aplica": [], "hallazgos": [],
             "notas": ["imports perezosos detectados: 1",
                       "llamadas de carga de modelo: 1",
-                      "sin medición en vivo: no se ejecuta código del proyecto "
-                      "evaluado (P0.8)"]})
+                      ("sin medición en vivo: no se ejecuta código del proyecto "
+                      "evaluado (P0.8)")]})
 
     def test_eficiencia_llm_sin_perezoso_ni_mediciones(self):
         raiz = crear_proyecto(self, {
@@ -4610,8 +4614,8 @@ class TestEficienciaLLMContrato(unittest.TestCase):
                  "criterio": "e3_mediciones_documentadas"}],
             "notas": ["imports perezosos detectados: 0",
                       "llamadas de carga de modelo: 0",
-                      "sin medición en vivo: no se ejecuta código del proyecto "
-                      "evaluado (P0.8)"]})
+                      ("sin medición en vivo: no se ejecuta código del proyecto "
+                      "evaluado (P0.8)")]})
 
     def test_eficiencia_api_llm_sin_modelo_local_no_aplica_e2(self):
         raiz = crear_proyecto(self, {
@@ -4872,9 +4876,8 @@ class TestMainRamas(unittest.TestCase):
         with patch.object(evaluar_proyecto, "evaluar",
                           return_value={"x": 1}), \
                 patch.object(evaluar_proyecto, "informe_texto",
-                             return_value=["linea1", "linea2"]):
-            with contextlib.redirect_stdout(salida):
-                codigo = main([".", "--sin-red"])
+                             return_value=["linea1", "linea2"]), contextlib.redirect_stdout(salida):
+            codigo = main([".", "--sin-red"])
 
         self.assertEqual(codigo, 0)
         self.assertEqual(salida.getvalue(), "linea1\nlinea2\n")
@@ -4896,15 +4899,15 @@ class TestMainRamas(unittest.TestCase):
             "ruta del proyecto a evaluar",
             "--sin-red omite la comprobación de versiones y licencias en PyPI",
             "--ignorar DIRECTORIO directorio a excluir del análisis (repetible)",
-            "--ejecutar-tests EJECUTA el comando de tests declarado por el proyecto "
-            "(opt-in explícito: es lo único que corre código ajeno, P0.8)",
-            "--requisitos ARCHIVO verifica una lista de requisitos en Markdown "
-            "estructurado (opt-in, read-only; ver docs/REQUISITOS.md)",
-            "--sintesis-llm pide a un LLM propuestas de FONDO a partir del informe "
-            "medido (opt-in; requiere key y red; coste 0 con :free)",
+            ("--ejecutar-tests EJECUTA el comando de tests declarado por el proyecto "
+            "(opt-in explícito: es lo único que corre código ajeno, P0.8)"),
+            ("--requisitos ARCHIVO verifica una lista de requisitos en Markdown "
+            "estructurado (opt-in, read-only; ver docs/REQUISITOS.md)"),
+            ("--sintesis-llm pide a un LLM propuestas de FONDO a partir del informe "
+            "medido (opt-in; requiere key y red; coste 0 con :free)"),
             "--modelo MODELO modelo para la síntesis (defecto: el gratuito del proyecto)",
-            "--investigar resuelve las dudas del modelo con búsqueda real y cita "
-            "las fuentes (implica --sintesis-llm; requiere red)",
+            ("--investigar resuelve las dudas del modelo con búsqueda real y cita "
+            "las fuentes (implica --sintesis-llm; requiere red)"),
         )
         for fragmento in fragmentos:
             with self.subTest(fragmento=fragmento):
@@ -4923,9 +4926,8 @@ class TestMainRamas(unittest.TestCase):
         error = io.StringIO()
         with patch.object(evaluar_proyecto, "cargar_entorno_llm",
                           side_effect=ImportError), \
-                patch.object(evaluar_proyecto, "evaluar") as evaluar_mock:
-            with contextlib.redirect_stderr(error):
-                codigo = main([".", "--sintesis-llm"])
+                patch.object(evaluar_proyecto, "evaluar") as evaluar_mock, contextlib.redirect_stderr(error):
+            codigo = main([".", "--sintesis-llm"])
 
         self.assertEqual(codigo, 2)
         self.assertIn("python-dotenv", error.getvalue())
@@ -5037,16 +5039,16 @@ class TestAmbitoVerificarYCobertura(unittest.TestCase):
         self.assertEqual(
             verificar(raiz, req(evidencia="tests/test_x.txt::test_x"), None),
             ("CUBIERTO",
-             "test declarado en lenguaje no Python: no validado "
-             "estáticamente", "tests/test_x.txt", real))
+             ("test declarado en lenguaje no Python: no validado "
+             "estáticamente"), "tests/test_x.txt", real))
         self.assertEqual(
             verificar(raiz, req(evidencia="tests/test_otro.py::test_x"), None),
             ("NO CUMPLE", "el test 'test_x' no existe en el archivo",
              "tests/test_otro.py", real))
         self.assertEqual(
             verificar(raiz, req(evidencia="tests/test_x.py::test_x"), None),
-            ("CUBIERTO", "test declarado; suite no ejecutada "
-                         "(--ejecutar-tests)", "tests/test_x.py", real))
+            ("CUBIERTO", ("test declarado; suite no ejecutada "
+                         "(--ejecutar-tests)"), "tests/test_x.py", real))
         self.assertEqual(
             verificar(raiz, req(evidencia="tests/test_x.py::test_x"),
                      {"ejecutado": False, "motivo": "sin runner"}),
@@ -5076,8 +5078,8 @@ class TestAmbitoVerificarYCobertura(unittest.TestCase):
         # Las comillas/backticks de los bordes se eliminan antes de dividir
         self.assertEqual(
             verificar(raiz, req(evidencia="`tests/test_x.py::test_x`"), None),
-            ("CUBIERTO", "test declarado; suite no ejecutada "
-                         "(--ejecutar-tests)", "tests/test_x.py", real))
+            ("CUBIERTO", ("test declarado; suite no ejecutada "
+                         "(--ejecutar-tests)"), "tests/test_x.py", real))
         # El juego de caracteres eliminados es exactamente ` ' " (sin "X")
         self.assertEqual(
             verificar(raiz, req(evidencia="tests/test_x.py::test_xX"), None),
@@ -5392,9 +5394,7 @@ class TestDigestoCalidadErrorYH5(unittest.TestCase):
         informe = {"ruta": "/p", "archivos_python": 0, "lineas_python": 0,
                    "dimensiones": {}}
 
-        self.assertEqual(evaluar_proyecto._digesto(informe), "\n".join([
-            "ruta: /p", "python: 0 archivos / 0 líneas",
-            "cobertura: ? criterios evaluados, ? N/A (nivel ?)"]))
+        self.assertEqual(evaluar_proyecto._digesto(informe), "ruta: /p\npython: 0 archivos / 0 líneas\ncobertura: ? criterios evaluados, ? N/A (nivel ?)")
 
     def test_digesto_sin_fallos_usa_guion_largo(self):
         informe = {
@@ -5573,16 +5573,16 @@ class TestEvaluarContrato(unittest.TestCase):
     def test_no_verificado_exacto_con_codigo(self):
         informe = evaluar(self._fixture_minima(), con_red=False)
         self.assertEqual(informe["no_verificado"], [
-            "la suite de tests NO se ejecuta (usa --ejecutar-tests para "
-            "verificarla; P0.8: ejecutar código ajeno es opt-in)",
+            ("la suite de tests NO se ejecuta (usa --ejecutar-tests para "
+            "verificarla; P0.8: ejecutar código ajeno es opt-in)"),
             "versiones y licencias de dependencias no consultadas (--sin-red)"])
 
     def test_no_verificado_exacto_sin_codigo(self):
         raiz = crear_proyecto(self, {"README.md": "solo docs\n"})
         informe = evaluar(raiz, con_red=False)
         self.assertEqual(informe["no_verificado"], [
-            "la suite de tests NO se ejecuta (usa --ejecutar-tests para "
-            "verificarla; P0.8: ejecutar código ajeno es opt-in)",
+            ("la suite de tests NO se ejecuta (usa --ejecutar-tests para "
+            "verificarla; P0.8: ejecutar código ajeno es opt-in)"),
             "versiones y licencias de dependencias no consultadas (--sin-red)",
             "sin archivos de código detectados: cobertura vacía"])
 

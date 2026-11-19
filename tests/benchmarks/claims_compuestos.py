@@ -12,8 +12,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from deep_research_system import EvidenceEvaluator, ResearchContext  # noqa: E402
-from tests.helpers import StubLLM  # noqa: E402
+from deep_research_system import EvidenceEvaluator, ResearchContext
+from tests.helpers import StubLLM
 
 
 def _respuesta(prompt):

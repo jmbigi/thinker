@@ -2,9 +2,7 @@
 
 import unittest
 
-from tests.benchmarks.calibracion_real import (calcular_brier,
-                                              brier_con_intervalo,
-                                              tabla_fiabilidad)
+from tests.benchmarks.calibracion_real import brier_con_intervalo, calcular_brier, tabla_fiabilidad
 
 
 class TestCalibracionReal(unittest.TestCase):

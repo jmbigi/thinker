@@ -8,12 +8,9 @@ limpieza de HTML, resolución de redirecciones, formato del reporte).
 import unittest
 from unittest.mock import patch
 
-from code_design_improvement_tools import (CodeAnalysisContext,
-                                           CodeDesignThinker,
-                                           CodeImprovementOrchestrator)
+from code_design_improvement_tools import CodeAnalysisContext, CodeDesignThinker, CodeImprovementOrchestrator
 from deep_research_system import MockLLM
-from web_search import (DuckDuckGoSearchAPI, MockSearchAPI,
-                        WikipediaSearchAPI, formulate_query)
+from web_search import DuckDuckGoSearchAPI, MockSearchAPI, WikipediaSearchAPI, formulate_query
 
 
 class _Respuesta:
@@ -30,11 +27,14 @@ class _Respuesta:
             raise RuntimeError(f"HTTP {self.status_code}")
 
 
+from typing import ClassVar
+
+
 class TestWikipediaSearch(unittest.TestCase):
 
-    PAYLOAD = {"query": {"search": [
+    PAYLOAD: ClassVar = {"query": {"search": [
         {"title": "Fusión nuclear",
-         "snippet": 'La <span class="searchmatch">fusión</span> &amp; m&aacute;s'},
+         "snippet": 'La <span class="searchmatch">fusión</span> & m&aacute;s'},
     ]}}
 
     def test_construye_url_y_limpia_html(self):
@@ -50,23 +50,22 @@ class TestWikipediaSearch(unittest.TestCase):
         self.assertEqual(get.call_args.kwargs["params"]["srsearch"], "fusión")
 
     def test_respuesta_sin_clave_query_eleva_error(self):
-        with patch("web_search.requests.get", return_value=_Respuesta(payload={"error": "x"})):
-            with self.assertRaises(RuntimeError):
-                WikipediaSearchAPI().search("x")
+        with patch("web_search.requests.get", return_value=_Respuesta(payload={"error": "x"})), \
+             self.assertRaises(RuntimeError):
+            WikipediaSearchAPI().search("x")
 
     def test_json_invalido_eleva_error(self):
         class SinJson(_Respuesta):
             def json(self):
                 raise ValueError("no json")
 
-        with patch("web_search.requests.get", return_value=SinJson()):
-            with self.assertRaises(RuntimeError):
-                WikipediaSearchAPI().search("x")
+        with patch("web_search.requests.get", return_value=SinJson()), self.assertRaises(RuntimeError):
+            WikipediaSearchAPI().search("x")
 
     def test_error_http_se_propaga(self):
-        with patch("web_search.requests.get", return_value=_Respuesta(status=500)):
-            with self.assertRaises(RuntimeError):
-                WikipediaSearchAPI().search("x")
+        with patch("web_search.requests.get", return_value=_Respuesta(status=500)), \
+             self.assertRaises(RuntimeError):
+            WikipediaSearchAPI().search("x")
 
     def test_max_results_cero_no_llama_a_la_red(self):
         with patch("web_search.requests.get") as get:
@@ -98,9 +97,9 @@ class TestDuckDuckGoSearch(unittest.TestCase):
             self.assertEqual(len(DuckDuckGoSearchAPI().search("q", 1)), 1)
 
     def test_html_sin_resultados_eleva_error(self):
-        with patch("web_search.requests.post", return_value=_Respuesta(texto="<html>nada</html>")):
-            with self.assertRaises(RuntimeError):
-                DuckDuckGoSearchAPI().search("q")
+        with patch("web_search.requests.post", return_value=_Respuesta(texto="<html>nada</html>")), \
+             self.assertRaises(RuntimeError):
+            DuckDuckGoSearchAPI().search("q")
 
     def test_max_results_cero_no_llama_a_la_red(self):
         with patch("web_search.requests.post") as post:

@@ -83,8 +83,8 @@ def main(argv=None) -> int:
         return 1
     fallo = False
     for patron, etiqueta in ((CREDENCIALES, "Posibles credenciales"),
-                             (PERSONALES, "Posibles datos personales o rutas "
-                                          "reales")):
+                             (PERSONALES, ("Posibles datos personales o rutas "
+                                          "reales"))):
         hallazgos = [(a, _hallazgos(a, patron)) for a in archivos]
         hallazgos = [(a, h) for a, h in hallazgos if h]
         if hallazgos:

@@ -31,7 +31,7 @@ from dotenv import load_dotenv
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from llm_providers import DEFAULT_FREE_MODEL  # noqa: E402
+from llm_providers import DEFAULT_FREE_MODEL
 
 PROMPT = "Helo"
 

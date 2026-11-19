@@ -8,12 +8,15 @@ import time
 import unittest
 
 import code_design_improvement_tools as cdt
-from code_design_improvement_tools import (SEVERITY_ORDER, CodeAnalysisContext,
-                                           CodeDesignThinker,
-                                           CodeImprovementOrchestrator,
-                                           ThinkingDecisionEngine,
-                                           analyze_python_code,
-                                           analyze_python_source)
+from code_design_improvement_tools import (
+    SEVERITY_ORDER,
+    CodeAnalysisContext,
+    CodeDesignThinker,
+    CodeImprovementOrchestrator,
+    ThinkingDecisionEngine,
+    analyze_python_code,
+    analyze_python_source,
+)
 from deep_research_system import MockLLM
 from tests.helpers import StubLLM
 

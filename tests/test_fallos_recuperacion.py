@@ -2,6 +2,7 @@
 convertirse nunca en "verificado" (offline, StubLLM/StubSearch).
 """
 
+import json
 import unittest
 
 from deep_research_system import _parse_json_response
@@ -35,9 +36,8 @@ class TestSintesisConFallosDeParseo(unittest.TestCase):
 
     def test_json_que_no_es_objeto_ni_array_eleva(self):
         for crudo in ('"solo un string"', "42", "true", "null"):
-            with self.subTest(crudo=crudo):
-                with self.assertRaises(ValueError):
-                    self._sintetizar(crudo)
+            with self.subTest(crudo=crudo), self.assertRaises(ValueError):
+                self._sintetizar(crudo)
 
     def test_propuestas_que_no_es_lista_eleva(self):
         with self.assertRaises(ValueError):
@@ -53,7 +53,7 @@ class TestSintesisConFallosDeParseo(unittest.TestCase):
 
 class TestParseoDelVerificador(unittest.TestCase):
     def test_respuesta_truncada_no_produce_json(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(json.JSONDecodeError):
             _parse_json_response('{"veredicto": "supported", "evidencia": [1, 2')
 
     def test_bloque_markdown_se_extrae(self):
@@ -65,7 +65,7 @@ class TestParseoDelVerificador(unittest.TestCase):
             _parse_json_response('intro {"a": 1} cierre'), {"a": 1})
 
     def test_vacio_eleva_en_vez_de_devolver_none_silencioso(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             _parse_json_response("")
 
 

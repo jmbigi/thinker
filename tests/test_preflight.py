@@ -10,18 +10,33 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from scripts.preflight import (archivos_python, cargar_modulos,
-                               dependencias_declaradas, ejecutar, imprimir,
-                               main, modulos_locales, revisar_duplicados,
-                               revisar_imports, revisar_silencios,
-                               revisar_tareas, _alias_asyncio, _es_main,
-                               _es_import_dinamico, _extraer_nombre_import_dinamico,
-                               _es_type_checking, _lineas_import_opcional,
-                               _lineas_condicionales, _lineas_no_runtime,
-                               _leer_requisitos, _nombre_excepcion,
-                               _nombre_tarea, _nombres_de_lista,
-                               _nombres_setup)
 import scripts.preflight as preflight_mod
+from scripts.preflight import (
+    _alias_asyncio,
+    _es_import_dinamico,
+    _es_main,
+    _es_type_checking,
+    _extraer_nombre_import_dinamico,
+    _leer_requisitos,
+    _lineas_condicionales,
+    _lineas_import_opcional,
+    _lineas_no_runtime,
+    _nombre_excepcion,
+    _nombre_tarea,
+    _nombres_de_lista,
+    _nombres_setup,
+    archivos_python,
+    cargar_modulos,
+    dependencias_declaradas,
+    ejecutar,
+    imprimir,
+    main,
+    modulos_locales,
+    revisar_duplicados,
+    revisar_imports,
+    revisar_silencios,
+    revisar_tareas,
+)
 from tests.helpers import crear_proyecto
 
 RAIZ_THINKER = Path(__file__).resolve().parent.parent
@@ -1061,12 +1076,12 @@ class TestTareasR3(unittest.TestCase):
 
         self.assertEqual([h.linea for h in resultado.hallazgos], [3, 4, 5])
         self.assertEqual([h.mensaje for h in resultado.hallazgos], [
-            "asyncio.create_task sin referencia: el event loop puede "
-            "recolectar la tarea (P1.34)",
-            "asyncio.ensure_future sin referencia: el event loop puede "
-            "recolectar la tarea (P1.34)",
-            "asyncio.ensure_future sin referencia: el event loop puede "
-            "recolectar la tarea (P1.34)"])
+            ("asyncio.create_task sin referencia: el event loop puede "
+            "recolectar la tarea (P1.34)"),
+            ("asyncio.ensure_future sin referencia: el event loop puede "
+            "recolectar la tarea (P1.34)"),
+            ("asyncio.ensure_future sin referencia: el event loop puede "
+            "recolectar la tarea (P1.34)")])
         self.assertEqual(resultado.hallazgos[0].a_dict(), {
             "gate": "tareas", "archivo": "app.py", "linea": 3,
             "mensaje": "asyncio.create_task sin referencia: el event loop "
@@ -1178,13 +1193,13 @@ class TestImprimirR3(unittest.TestCase):
 
         self.assertEqual(salida.getvalue().splitlines(), [
             "PREFLIGHT (offline, read-only): /tmp/x",
-            "Python: 3 archivos | evidencia: [VERIFIED-REAL] observación "
-            "estática, sin ejecutar el código",
+            ("Python: 3 archivos | evidencia: [VERIFIED-REAL] observación "
+            "estática, sin ejecutar el código"),
             "  [OK] sintaxis: 0 hallazgos, 0 warnings",
             "  [FAIL] silencios: 1 hallazgos, 1 warnings",
             "    [VERIFIED-REAL] a.py:2 except con pass/continue/... (P1.26)",
-            "    [VERIFIED-REAL] WARNING b.py:5 silencio aceptado "
-            "(warning): motivo",
+            ("    [VERIFIED-REAL] WARNING b.py:5 silencio aceptado "
+            "(warning): motivo"),
             "PREFLIGHT: FAIL (1 hallazgos, 1 warnings)"])
 
 
@@ -1194,10 +1209,9 @@ class TestMainR3(unittest.TestCase):
     def test_help_documenta_opciones(self):
         salida = io.StringIO()
 
-        with mock.patch.dict(os.environ, {"COLUMNS": "200"}):
-            with redirect_stdout(salida), self.assertRaises(
-                    SystemExit) as contexto:
-                main(["--help"])
+        with mock.patch.dict(os.environ, {"COLUMNS": "200"}), redirect_stdout(salida), self.assertRaises(
+                SystemExit) as contexto:
+            main(["--help"])
 
         self.assertEqual(contexto.exception.code, 0)
         texto = salida.getvalue()
@@ -1224,9 +1238,8 @@ class TestMainR3(unittest.TestCase):
         }
 
         with mock.patch.object(preflight_mod, "ejecutar",
-                               return_value=informe) as ejecutar_mock:
-            with redirect_stdout(salida):
-                codigo = main(["--json"])
+                               return_value=informe) as ejecutar_mock, redirect_stdout(salida):
+            codigo = main(["--json"])
 
         self.assertEqual(codigo, 0)
         self.assertEqual(ejecutar_mock.call_args.args[0],
@@ -1238,9 +1251,8 @@ class TestMainR3(unittest.TestCase):
         error = io.StringIO()
 
         with mock.patch.object(preflight_mod, "ejecutar",
-                               side_effect=OSError("boom")):
-            with redirect_stderr(error):
-                codigo = main(["--json"])
+                               side_effect=OSError("boom")), redirect_stderr(error):
+            codigo = main(["--json"])
 
         self.assertEqual(codigo, 2)
         self.assertIn("no se pudo leer el proyecto", error.getvalue())
@@ -1279,15 +1291,15 @@ class TestEncodingRegionalR3(unittest.TestCase):
                 1)
             for nombre, contenido, esperado in (
                     ("pyproject.toml",
-                     '[project]\nname = "x"\nversion = "0.1.0"\n'
+                     ('[project]\nname = "x"\nversion = "0.1.0"\n'
                      'description = "caf\u00e9"\n'
-                     'dependencies = ["requests"]\n', "requests"),
+                     'dependencies = ["requests"]\n'), "requests"),
                     ("setup.cfg",
-                     "# caf\u00e9\n[options]\ninstall_requires =\n"
-                     "    flask\n", "flask"),
+                     ("# caf\u00e9\n[options]\ninstall_requires =\n"
+                     "    flask\n"), "flask"),
                     ("setup.py",
-                     '# caf\u00e9\nfrom setuptools import setup\n'
-                     'setup(install_requires=["flask"])\n', "flask")):
+                     ('# caf\u00e9\nfrom setuptools import setup\n'
+                     'setup(install_requires=["flask"])\n'), "flask")):
                 base = crear_proyecto(self, {})
                 (base / nombre).write_bytes(contenido.encode("utf-8"))
                 declaradas, hallazgos = dependencias_declaradas(base)

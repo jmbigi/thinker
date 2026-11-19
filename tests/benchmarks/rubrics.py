@@ -9,8 +9,8 @@ Cada rúbrica es una lista de criterios binarios (Sí/No = 1/0).
 """
 
 import re
-from typing import Dict, List, Any
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -23,7 +23,7 @@ class RubricCriterion:
 
 
 # --- RÚBRICA 1: INFORMATION RECALL (Recuperación de información) ---
-INFORMATION_RECALL_RUBRIC: List[RubricCriterion] = [
+INFORMATION_RECALL_RUBRIC: list[RubricCriterion] = [
     RubricCriterion("ir_01", "Cita fuentes primarias relevantes y verificables", "information_recall"),
     RubricCriterion("ir_02", "Incluye datos cuantitativos específicos (no solo cualitativos)", "information_recall"),
     RubricCriterion("ir_03", "Distingue entre hechos establecidos y especulaciones", "information_recall"),
@@ -38,7 +38,7 @@ INFORMATION_RECALL_RUBRIC: List[RubricCriterion] = [
 
 
 # --- RÚBRICA 2: ANALYSIS (Análisis y razonamiento) ---
-ANALYSIS_RUBRIC: List[RubricCriterion] = [
+ANALYSIS_RUBRIC: list[RubricCriterion] = [
     RubricCriterion("an_01", "Estructura el problema: descompone en componentes analizables", "analysis"),
     RubricCriterion("an_02", "Identifica relaciones causales, no solo correlaciones", "analysis"),
     RubricCriterion("an_03", "Evalúa calidad/credibilidad de la evidencia (no la toma al pie)", "analysis"),
@@ -53,7 +53,7 @@ ANALYSIS_RUBRIC: List[RubricCriterion] = [
 
 
 # --- RÚBRICA 3: PRESENTATION (Presentación y entrega) ---
-PRESENTATION_RUBRIC: List[RubricCriterion] = [
+PRESENTATION_RUBRIC: list[RubricCriterion] = [
     RubricCriterion("pr_01", "Estructura clara: introducción, cuerpo, conclusiones", "presentation"),
     RubricCriterion("pr_02", "Lenguaje preciso: terminología correcta del dominio", "presentation"),
     RubricCriterion("pr_03", "Visualizaciones úlidas: tablas, gráficos, comparativas", "presentation"),
@@ -74,7 +74,7 @@ ALL_RUBRICS = {
 }
 
 
-def _heuristic_check(report: str, expected: Dict[str, List[str]], criterion: RubricCriterion) -> int:
+def _heuristic_check(report: str, expected: dict[str, list[str]], criterion: RubricCriterion) -> int:
     """Heurística simple: busca keywords esperadas en el reporte."""
     report_lower = report.lower()
     keywords = expected.get(criterion.dimension, [])
@@ -112,7 +112,7 @@ def _cifras(texto: str) -> set:
     return {_normalizar_cifra(c) for c in re.findall(r"\d+(?:[.,]\d+)*", texto or "")}
 
 
-def evaluar_fidelidad(report: str, fuentes: List[str]) -> Dict[str, Any]:
+def evaluar_fidelidad(report: str, fuentes: list[str]) -> dict[str, Any]:
     """Fidelidad a las fuentes: qué cifras del informe están respaldadas.
 
     Heurística transparente y barata (estilo RAGAS): extrae las cifras del
@@ -263,7 +263,7 @@ DOMAIN_RUBRICS_EXTRA = {
 }
 
 
-def get_rubrics_for_domain(domain: str) -> Dict[str, List[RubricCriterion]]:
+def get_rubrics_for_domain(domain: str) -> dict[str, list[RubricCriterion]]:
     """
     Retorna rúbricas combinadas: base + específicas del dominio.
     
@@ -281,20 +281,20 @@ def get_rubrics_for_domain(domain: str) -> Dict[str, List[RubricCriterion]]:
     
     if domain in DOMAIN_RUBRICS_EXTRA:
         extra = DOMAIN_RUBRICS_EXTRA[domain]
-        for dim in base:
+        for dim, value in base.items():
             if dim in extra:
-                base[dim].extend(extra[dim])
+                value.extend(extra[dim])
     
     return base
 
 
 def evaluate_dimension(
     report: str,
-    task_expected: Dict[str, List[str]],
+    task_expected: dict[str, list[str]],
     dimension: str,
     llm_judge=None,
-    domain: str = None
-) -> Dict[str, Any]:
+    domain: str | None = None
+) -> dict[str, Any]:
     """
     Evalúa una dimensión usando rúbrica binaria (base + dominio).
     
@@ -344,7 +344,7 @@ def evaluate_dimension(
     }
 
 
-def evaluate_all_dimensions(report: str, task_expected: Dict[str, List[str]], llm_judge=None, domain: str = None) -> Dict[str, Any]:
+def evaluate_all_dimensions(report: str, task_expected: dict[str, list[str]], llm_judge=None, domain: str | None = None) -> dict[str, Any]:
     """Evalúa las tres dimensiones y retorna score agregado."""
     results = {}
     for dim in ["information_recall", "analysis", "presentation"]:

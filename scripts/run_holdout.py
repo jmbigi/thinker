@@ -16,7 +16,6 @@ import json
 import sys
 import unittest
 from pathlib import Path
-from typing import Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -26,7 +25,7 @@ MANIFEST = HOLDOUT_DIR / "HASHES.json"
 PATRON = "test_*.py"
 
 
-def calcular_hashes(directorio: Path = HOLDOUT_DIR) -> Dict[str, str]:
+def calcular_hashes(directorio: Path = HOLDOUT_DIR) -> dict[str, str]:
     return {
         archivo.name: hashlib.sha256(archivo.read_bytes()).hexdigest()
         for archivo in sorted(directorio.glob(PATRON))
@@ -35,7 +34,7 @@ def calcular_hashes(directorio: Path = HOLDOUT_DIR) -> Dict[str, str]:
 
 
 def actualizar_manifiesto(directorio: Path = HOLDOUT_DIR,
-                          manifiesto: Path = MANIFEST) -> Dict[str, object]:
+                          manifiesto: Path = MANIFEST) -> dict[str, object]:
     datos = {"version": 1, "files": calcular_hashes(directorio)}
     manifiesto.parent.mkdir(parents=True, exist_ok=True)
     manifiesto.write_text(json.dumps(datos, indent=2, sort_keys=True) + "\n",
@@ -44,7 +43,7 @@ def actualizar_manifiesto(directorio: Path = HOLDOUT_DIR,
 
 
 def verificar_hashes(directorio: Path = HOLDOUT_DIR,
-                     manifiesto: Path = MANIFEST) -> Dict[str, str]:
+                     manifiesto: Path = MANIFEST) -> dict[str, str]:
     if not manifiesto.is_file():
         raise ValueError(f"No existe el manifiesto {manifiesto}; ejecuta "
                          "--update y revisa el cambio")
@@ -54,7 +53,7 @@ def verificar_hashes(directorio: Path = HOLDOUT_DIR,
         raise ValueError(f"No se pudo leer {manifiesto}: {exc}") from exc
     esperados = datos.get("files") if isinstance(datos, dict) else None
     if not isinstance(esperados, dict):
-        raise ValueError(f"{manifiesto}: falta el mapa 'files'")
+        raise TypeError(f"{manifiesto}: falta el mapa 'files'")
     reales = calcular_hashes(directorio)
     faltan = sorted(set(esperados) - set(reales))
     sobran = sorted(set(reales) - set(esperados))
@@ -94,7 +93,7 @@ def ejecutar_tests(directorio: Path = HOLDOUT_DIR) -> bool:
     return resultado.wasSuccessful()
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Verifica hashes y ejecuta el holdout independiente.")
     parser.add_argument("--update", action="store_true",

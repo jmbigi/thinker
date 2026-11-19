@@ -5,8 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mcp_client import MCPStdioClient, MCPSearchAPI
-
+from mcp_client import MCPSearchAPI, MCPStdioClient
 
 _SERVIDOR = r'''
 import json
@@ -76,29 +75,27 @@ class TestMCP(unittest.TestCase):
                 cliente.initialize()
 
     def test_version_no_soportada_cierra_proceso(self):
-        with self.assertRaisesRegex(RuntimeError, "no soportada"):
-            with MCPStdioClient(self._comando("version"), timeout=2):
-                pass
+        with self.assertRaisesRegex(RuntimeError, "no soportada"), \
+             MCPStdioClient(self._comando("version"), timeout=2):
+            pass
 
     def test_timeout_es_fallo_acotado(self):
-        with self.assertRaises(TimeoutError):
-            with MCPStdioClient(self._comando("sleep"), timeout=0.05):
-                pass
+        with self.assertRaises(TimeoutError), MCPStdioClient(self._comando("sleep"), timeout=0.05):
+            pass
 
     def test_limite_de_salida(self):
-        with self.assertRaisesRegex(RuntimeError, "demasiado grande|transporte"):
-            with MCPStdioClient(self._comando("big"), timeout=2, max_output_bytes=100):
-                pass
+        with self.assertRaisesRegex(RuntimeError, "demasiado grande|transporte"), \
+             MCPStdioClient(self._comando("big"), timeout=2, max_output_bytes=100):
+            pass
 
     def test_is_error_se_eleva(self):
-        with MCPStdioClient(self._comando("error"), timeout=2) as cliente:
-            with self.assertRaisesRegex(RuntimeError, "isError"):
-                cliente.call_tool("search", {})
+        with MCPStdioClient(self._comando("error"), timeout=2) as cliente, \
+             self.assertRaisesRegex(RuntimeError, "isError"):
+            cliente.call_tool("search", {})
 
     def test_comando_no_es_shell(self):
-        with self.assertRaises(TypeError):
-            with MCPStdioClient("python fake.py && borrar"):
-                pass
+        with self.assertRaises(TypeError), MCPStdioClient("python fake.py && borrar"):
+            pass
 
 
 if __name__ == "__main__":

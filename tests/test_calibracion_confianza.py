@@ -2,10 +2,7 @@
 
 import unittest
 
-from tests.benchmarks.calibracion_confianza import (calcular_brier,
-                                                   calcular_ece,
-                                                   evaluar,
-                                                   tabla_fiabilidad)
+from tests.benchmarks.calibracion_confianza import calcular_brier, calcular_ece, evaluar, tabla_fiabilidad
 
 
 class TestCalibracionConfianza(unittest.TestCase):

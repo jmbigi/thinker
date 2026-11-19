@@ -20,9 +20,9 @@ from pathlib import Path
 PATRON_TESTS = re.compile(r"(\d+)/(\d+) en")
 PATRON_MUTACION_README = re.compile(
     r"La suite mata el \*\*([\d,]+)%\*\* de los mutantes de `mutmut`"
-    r"\s*\((\d+)/(\d+);", re.S | re.I)
+    r"\s*\((\d+)/(\d+);", re.DOTALL | re.IGNORECASE)
 PATRON_MUTACION_AGENTS = re.compile(
-    r"la mutación global es ([\d,]+)% \((\d+)/(\d+);", re.I)
+    r"la mutación global es ([\d,]+)% \((\d+)/(\d+);", re.IGNORECASE)
 
 
 def contar_tests(raiz: Path) -> int:
@@ -222,7 +222,7 @@ def verificar(raiz: Path) -> list[str]:
             encoding="utf-8")
         version_recomendaciones = re.search(
             r"^\|\s*Paquete (?:actual|publicado)\s*\|\s*\*\*(\d+\.\d+\.\d+)\*\*",
-            texto_recomendaciones, re.M)
+            texto_recomendaciones, re.MULTILINE)
         if version_recomendaciones is None:
             problemas.append(
                 "docs/RECOMENDACIONES-MEJORAS.md no declara la versión del "

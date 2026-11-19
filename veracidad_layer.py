@@ -23,13 +23,10 @@ No se permite `except: pass` ni silencios que traguan errores.
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
 
-from evidence import (Evidence, EvidenceKind, puede_promocionar,
-                      resumen_evidencias, formato_resumen)
+from evidence import Evidence, EvidenceKind, formato_resumen, puede_promocionar, resumen_evidencias
 from thinking_engine import StepThinkingEngine
-
 
 # ---------------------------------------------------------------------------
 # Tipos y estructura de "veredicto de veracidad"
@@ -78,7 +75,7 @@ class VeracityLayer:
         mode: str = "strict",  # strict | query | demo
         permitir_sintetica: bool = False,
         justificacion_sintetica: str = "",
-        motor_pensamiento: Optional[StepThinkingEngine] = None,
+        motor_pensamiento: StepThinkingEngine | None = None,
     ):
         """
         :param mode: modo de operación
@@ -113,7 +110,7 @@ class VeracityLayer:
         self,
         afirmacion: str,
         *,
-        evidencia: Optional[Evidence] = None,
+        evidencia: Evidence | None = None,
         confianza_bruta: float = 1.0,
     ) -> Veredict:
         """
@@ -148,16 +145,16 @@ class VeracityLayer:
             ) from e
 
         # --- Caso 1: Evidencia real verificada ---
-        if evidencia is not None and evidencia.kind is EvidenceKind.VERIFIED_REAL:
-            if puede_promocionar(evidence=evidencia, permitir_sintetica=False):
-                return Veredict(
-                    afirmacion=afirmacion,
-                    verdict="supported",
-                    confianza=min(confianza_bruta, 1.0),
-                    reasoning="Evidencia real y reproducible confirmada",
-                    evidencia=evidencia,
-                )
-            # Evidencia existe pero no se puede promocionar → no_addressed
+        if evidencia is not None and evidencia.kind is EvidenceKind.VERIFIED_REAL \
+           and puede_promocionar(evidence=evidencia, permitir_sintetica=False):
+            return Veredict(
+                afirmacion=afirmacion,
+                verdict="supported",
+                confianza=min(confianza_bruta, 1.0),
+                reasoning="Evidencia real y reproducible confirmada",
+                evidencia=evidencia,
+            )
+        # Evidencia existe pero no se puede promocionar → no_addressed
 
         # --- Caso 2: Evidencia sintética con autorización explícita ---
         if (
@@ -230,7 +227,7 @@ class VeracityLayer:
         respuesta_texto: str,
         *,
         extraer_claims: bool = True,
-    ) -> Tuple[str, List[Veredict]]:
+    ) -> tuple[str, list[Veredict]]:
         """
         Protege una respuesta asegurando 100% veracidad.
 
@@ -246,8 +243,8 @@ class VeracityLayer:
         - NUNCA permite que una afirmación pase sin veredictos explícitos
         """
         lines = respuesta_texto.split("\n")
-        nuevas_lineas: List[str] = []
-        verdicto_list: List[Veredict] = []
+        nuevas_lineas: list[str] = []
+        verdicto_list: list[Veredict] = []
 
         for i, linea in enumerate(lines, start=1):
             # Si la línea ya tiene un marcador de evidencia, la validamos
@@ -264,11 +261,11 @@ class VeracityLayer:
                     nueva_linea = nueva_linea.replace("[verified-real]", "")
                     try:
                         v = self.verificar(
-                            "afirmación con marker verified-real en modo strict (línea {i})".format(i=i),
+                            f"afirmación con marker verified-real en modo strict (línea {i})",
                             evidencia=None,
                         )
                         verdicto_list.append(v)
-                        nueva_linea += "  # ⚠️ {}".format(v.reasoning)
+                        nueva_linea += f"  # ⚠️ {v.reasoning}"
                     except ValueError:
                         # Ya lanzamos arriba si validate_step falla
                         nueva_linea += "  # ❌ Validación de paso falló"
@@ -281,7 +278,7 @@ class VeracityLayer:
                 # se marca y reporta
                 try:
                     v = self.verificar(
-                        "afirmación en línea {i} sin evidencia".format(i=i),
+                        f"afirmación en línea {i} sin evidencia",
                         evidencia=None,
                     )
                 except ValueError as e:
@@ -292,10 +289,10 @@ class VeracityLayer:
                         afirmacion=linea,
                         verdict="not_addressed",
                         confianza=0.0,
-                        reasoning="Error de validación de paso: {0}".format(e),
+                        reasoning=f"Error de validación de paso: {e}",
                         evidencia=Evidence(
                             kind=EvidenceKind.UNVERIFIED,
-                            source="línea {0}".format(i),
+                            source=f"línea {i}",
                             detail="validate_step raised",
                         ),
                     )
@@ -311,7 +308,7 @@ class VeracityLayer:
             if self.mode == "query":
                 try:
                     v = self.verificar(
-                        "afirmación en línea {i} sin evidencia".format(i=i),
+                        f"afirmación en línea {i} sin evidencia",
                         evidencia=None,
                     )
                 except ValueError as e:
@@ -319,10 +316,10 @@ class VeracityLayer:
                         afirmacion=linea,
                         verdict="not_addressed",
                         confianza=0.0,
-                        reasoning="Error de validación: {0}".format(e),
+                        reasoning=f"Error de validación: {e}",
                         evidencia=Evidence(
                             kind=EvidenceKind.UNVERIFIED,
-                            source="línea {0}".format(i),
+                            source=f"línea {i}",
                             detail="validate_step raised",
                         ),
                     )
@@ -350,9 +347,7 @@ class VeracityLayer:
             conteo = resumen_evidencias(
                 [Evidence(kind=EvidenceKind.VERIFIED_REAL, source="internal")]
             )
-            reporte = "\n---\n# Reporte de Veracidad: {0}".format(
-                formato_resumen(conteo)
-            )
+            reporte = f"\n---\n# Reporte de Veracidad: {formato_resumen(conteo)}"
             respuesta_protegida += reporte
 
         return respuesta_protegida, verdicto_list
@@ -368,7 +363,7 @@ class VeracityLayer:
     ) -> str:
         """Devuelve un informe de texto con el estado de veracidad actual."""
         partes = [
-            "Modo de operación: {0}".format(self.mode),
+            f"Modo de operación: {self.mode}",
         ]
         if self.mode == "strict":
             partes.append(
@@ -384,13 +379,9 @@ class VeracityLayer:
             )
 
         if self.permitir_sintetica:
-            partes.append(
-                "Sintética permitida con justificación: "
-                "{0}{1}".format(
-                    self.justificacion_sintetica[:60],
-                    "..." if len(self.justificacion_sintetica) > 60 else "",
-                )
-            )
+            justificacion = self.justificacion_sintetica[:60]
+            truncado = "..." if len(self.justificacion_sintetica) > 60 else ""
+            partes.append(f"Sintética permitida con justificación: {justificacion}{truncado}")
 
         if incluir_resumen_evidencias:
             # Conteos de ejemplo; en producción vendrían de la base real
@@ -401,9 +392,7 @@ class VeracityLayer:
                     Evidence(kind=EvidenceKind.UNVERIFIED, source="pendiente"),
                 ]
             )
-            partes.append("Resumen de evidencias: {0}".format(
-                formato_resumen(conteo)
-            ))
+            partes.append(f"Resumen de evidencias: {formato_resumen(conteo)}")
 
         return "\n".join(partes)
 
@@ -418,8 +407,8 @@ def proteger(
     mode: str = "strict",
     permitir_sintetica: bool = False,
     justificacion_sintetica: str = "",
-    motor_pensamiento: Optional[StepThinkingEngine] = None,
-) -> Tuple[str, List[Veredict]]:
+    motor_pensamiento: StepThinkingEngine | None = None,
+) -> tuple[str, list[Veredict]]:
     """
     Convenience function: protege una respuesta asegurando 100% veracidad.
 
@@ -448,7 +437,7 @@ def verificar_claim_con_pipeline(
     claim: str,
     *,
     fuente: str,
-    motor: Optional[StepThinkingEngine] = None,
+    motor: StepThinkingEngine | None = None,
     modo: str = "strict",
 ) -> Veredict:
     """
@@ -475,7 +464,7 @@ def verificar_claim_con_pipeline(
         afirmacion=claim,
         verdict="supported",
         confianza=1.0,
-        reasoning="Claim verificado pipeline: {0}".format(fuente),
+        reasoning=f"Claim verificado pipeline: {fuente}",
         evidencia=ev,
     )
 
@@ -493,9 +482,9 @@ if __name__ == "__main__":
         mode="strict",
     )
     print("MODO STRICT - sin evidencia:")
-    print("  Texto: {0}...".format(texto1[:120]))
-    print("  Veredicto: verdict={0}, confianza={1:.0%}, "
-          "reasoning='{2}'".format(v1[0].verdict, v1[0].confianza, v1[0].reasoning))
+    print(f"  Texto: {texto1[:120]}...")
+    print(f"  Veredicto: verdict={v1[0].verdict}, confianza={v1[0].confianza:.0%}, "
+          f"reasoning='{v1[0].reasoning}'")
 
     # Modo demo: sintética con justificación
     texto2, v2 = proteger(
@@ -505,10 +494,10 @@ if __name__ == "__main__":
         justificacion_sintetica="MockLLM offline, test honest offline (regla P0.10)",
     )
     print("\nMODO DEMO - sintética con justificación:")
-    print("  Texto: {0}...".format(texto2[:120]))
+    print(f"  Texto: {texto2[:120]}...")
     if v2:
-        print("  Veredicto: verdict={0}, confianza={1:.2f}, "
-              "reasoning='{2}'".format(v2[0].verdict, v2[0].confianza, v2[0].reasoning))
+        print(f"  Veredicto: verdict={v2[0].verdict}, confianza={v2[0].confianza:.2f}, "
+              f"reasoning='{v2[0].reasoning}'")
     else:
         print("  Versión protegida confirmada (sin veredictos internos de error)")
 
@@ -518,9 +507,9 @@ if __name__ == "__main__":
         mode="query",
     )
     print("\nMODO QUERY - sin evidencia:")
-    print("  Texto: {0}...".format(texto3[:120]))
-    print("  Veredicto: verdict={0}, confianza={1:.0%}, "
-          "reasoning='{2}'".format(v3[0].verdict, v3[0].confianza, v3[0].reasoning))
+    print(f"  Texto: {texto3[:120]}...")
+    print(f"  Veredicto: verdict={v3[0].verdict}, confianza={v3[0].confianza:.0%}, "
+          f"reasoning='{v3[0].reasoning}'")
 
     # Informe
     print("\n" + VeracityLayer().informe_veracidad())
@@ -532,5 +521,5 @@ if __name__ == "__main__":
         fuente="informe IAEA 2025",
         modo="strict",
     )
-    print("Claim veredicto: verdict={0}, confianza={1:.2f}, "
-          "reasoning='{2}'".format(v4.verdict, v4.confianza, v4.reasoning[:80]))
+    print(f"Claim veredicto: verdict={v4.verdict}, confianza={v4.confianza:.2f}, "
+          f"reasoning='{v4.reasoning[:80]}'")

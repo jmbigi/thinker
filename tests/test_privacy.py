@@ -12,8 +12,7 @@ from deep_research_system import ResearchContext, ResearchOrchestrator
 from documents import FullTextSearchAPI, LocalDocumentSearchAPI
 from llm_providers import BudgetLLM, MockLLM, OllamaLLM, OpenAILLM, OpenRouterLLM
 from mcp_client import MCPSearchAPI
-from privacy import (GuardSearch, PrivacyPolicy, load_encrypted_research_state,
-                     save_encrypted_research_state)
+from privacy import GuardSearch, PrivacyPolicy, load_encrypted_research_state, save_encrypted_research_state
 from tests.helpers import StubSearch
 from web_search import MockSearchAPI, SearXNGSearchAPI, WikipediaSearchAPI
 
@@ -120,10 +119,9 @@ class TestEncryptedState(unittest.TestCase):
         self.assertNotIn(b"SIMULADO por MockLLM", Path(self.ruta).read_bytes())
 
     def test_falta_clave_es_error_explicito(self):
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "THINKER_STATE_KEY"):
-                save_encrypted_research_state(
-                    self.ruta, ResearchContext("pregunta"), key=None)
+        with patch.dict(os.environ, {}, clear=True), self.assertRaisesRegex(RuntimeError, "THINKER_STATE_KEY"):
+            save_encrypted_research_state(
+                self.ruta, ResearchContext("pregunta"), key=None)
 
 
 if __name__ == "__main__":

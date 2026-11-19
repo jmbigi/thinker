@@ -10,10 +10,18 @@ import os
 import unittest
 from unittest.mock import call, patch
 
-from llm_providers import (DEFAULT_TIMEOUT, OPENROUTER_FALLBACK_CHAIN,
-                           DeepSeekLLM, KiloGatewayLLM, MockLLM, OllamaLLM,
-                           OpenAILLM, OpenRouterLLM, ResponseCache,
-                           _chat_completion)
+from llm_providers import (
+    DEFAULT_TIMEOUT,
+    OPENROUTER_FALLBACK_CHAIN,
+    DeepSeekLLM,
+    KiloGatewayLLM,
+    MockLLM,
+    OllamaLLM,
+    OpenAILLM,
+    OpenRouterLLM,
+    ResponseCache,
+    _chat_completion,
+)
 from tests.helpers import FakeAPIError, make_chat_client, ok_chat_response
 
 
@@ -220,9 +228,8 @@ class TestReintentosExactos(unittest.TestCase):
 
     def test_agota_reintentos_y_eleva_el_ultimo(self):
         cliente = make_chat_client([FakeAPIError("caído", status_code=503)] * 3)
-        with patch("llm_providers.time.sleep"):
-            with self.assertRaises(FakeAPIError):
-                _chat_completion(cliente, "m", "p", 3, "Test")
+        with patch("llm_providers.time.sleep"), self.assertRaises(FakeAPIError):
+            _chat_completion(cliente, "m", "p", 3, "Test")
 
         self.assertEqual(len(cliente.calls), 3)
 
@@ -240,9 +247,8 @@ class TestReintentosExactos(unittest.TestCase):
         cliente = make_chat_client([FakeAPIError("red caída")] * 2)
         errores = io.StringIO()
         with patch("llm_providers.time.sleep"), \
-                contextlib.redirect_stderr(errores):
-            with self.assertRaises(FakeAPIError):
-                _chat_completion(cliente, "m", "p", 2, "Test")
+                contextlib.redirect_stderr(errores), self.assertRaises(FakeAPIError):
+            _chat_completion(cliente, "m", "p", 2, "Test")
 
         self.assertEqual(len(cliente.calls), 2)
         self.assertIn("error transitorio (FakeAPIError)", errores.getvalue())
@@ -541,9 +547,8 @@ class TestOpenRouterGenerateDetalle(unittest.TestCase):
         llm = OpenRouterLLM(api_key="clave-ficticia-de-test")
 
         with patch("openai.OpenAI", return_value=cliente), \
-                patch("llm_providers.time.sleep"):
-            with self.assertRaises(ConnectionError):
-                llm.generate("p")
+                patch("llm_providers.time.sleep"), self.assertRaises(ConnectionError):
+            llm.generate("p")
 
         self.assertEqual(len(cliente.calls), 3)
 
@@ -593,9 +598,8 @@ class TestOpenRouterGenerateDetalle(unittest.TestCase):
                             model="modelo-a:free")
 
         with patch("openai.OpenAI", return_value=cliente), \
-                patch("llm_providers.time.sleep"):
-            with self.assertRaises(FakeAPIError):
-                llm.generate("p")
+                patch("llm_providers.time.sleep"), self.assertRaises(FakeAPIError):
+            llm.generate("p")
 
         self.assertEqual(len(cliente.calls), 3)
 
@@ -606,9 +610,8 @@ class TestOpenRouterGenerateDetalle(unittest.TestCase):
                             model="modelo-a:free")
 
         with patch("openai.OpenAI", return_value=cliente), \
-                patch("llm_providers.time.sleep"):
-            with self.assertRaises(FakeAPIError):
-                llm.generate("p")
+                patch("llm_providers.time.sleep"), self.assertRaises(FakeAPIError):
+            llm.generate("p")
 
         self.assertEqual(len(cliente.calls), 3)
 

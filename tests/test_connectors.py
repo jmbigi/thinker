@@ -3,8 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from web_search import (ArxivSearchAPI, PubMedSearchAPI, SemanticScholarSearchAPI,
-                        SearXNGSearchAPI)
+from web_search import ArxivSearchAPI, PubMedSearchAPI, SearXNGSearchAPI, SemanticScholarSearchAPI
 
 
 class _Respuesta:
@@ -73,9 +72,9 @@ class TestConectores(unittest.TestCase):
         self.assertIn("abstract", get.call_args.kwargs["params"]["fields"])
 
     def test_json_invalido_es_error_explicito(self):
-        with patch("web_search.requests.get", return_value=_Respuesta(ValueError("no json"))):
-            with self.assertRaisesRegex(RuntimeError, "no JSON"):
-                SemanticScholarSearchAPI().search("quantum")
+        with patch("web_search.requests.get", return_value=_Respuesta(ValueError("no json"))), \
+             self.assertRaisesRegex(RuntimeError, "no JSON"):
+            SemanticScholarSearchAPI().search("quantum")
 
 
 if __name__ == "__main__":

@@ -21,15 +21,15 @@ import statistics
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass
+from typing import Any
 
 
 @dataclass
 class BenchmarkResult:
     backend: str
     model: str
-    config: Dict[str, Any]
+    config: dict[str, Any]
 
     # Prefill metrics
     prefill_tokens: int = 0
@@ -45,13 +45,13 @@ class BenchmarkResult:
     ttft_ms: float = 0.0  # Time to first token
 
     # Memory (si disponible)
-    vram_mb: Optional[float] = None
-    ram_mb: Optional[float] = None
+    vram_mb: float | None = None
+    ram_mb: float | None = None
 
     # Raw measurements
-    raw_times: List[float] = None
+    raw_times: list[float] = None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         d = asdict(self)
         if self.raw_times is not None:
             d["raw_times"] = self.raw_times
@@ -66,7 +66,7 @@ class LlamaCppBench:
         self.process = None
         self.port = 11436
 
-    def start_server(self, model: str, args: List[str]) -> bool:
+    def start_server(self, model: str, args: list[str]) -> bool:
         """Inicia llama-server con el modelo y args dados."""
         if self.process:
             self.stop_server()
@@ -86,7 +86,7 @@ class LlamaCppBench:
                 urllib.request.urlopen(f"http://127.0.0.1:{self.port}/health", timeout=1)
                 print("Servidor listo")
                 return True
-            except Exception:
+            except (urllib.error.URLError, ConnectionError, TimeoutError):
                 time.sleep(1)
         print("Timeout esperando servidor")
         return False
@@ -115,23 +115,23 @@ class LlamaCppBench:
             data = json.dumps({
                 "prompt": prompt,
                 "n_predict": max_tokens,
-                "temperature": 0.7,
-                "stream": False,
-            }).encode()
+"temperature": 0.7,
+            "stream": False,
+        }).encode()
 
-            req = urllib.request.Request(
-                url, data=data, headers={"Content-Type": "application/json"}
-            )
+        req = urllib.request.Request(
+            url, data=data, headers={"Content-Type": "application/json"}
+        )
 
-            start = time.perf_counter()
-            try:
-                with urllib.request.urlopen(req, timeout=60) as resp:
-                    result = json.loads(resp.read().decode())
-                elapsed = time.perf_counter() - start
-                results.append((elapsed, result))
-            except Exception as e:
-                print(f"Error en run {run}: {e}")
-                continue
+        start = time.perf_counter()
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read().decode())
+            elapsed = time.perf_counter() - start
+            results.append((elapsed, result))
+        except (urllib.error.URLError, json.JSONDecodeError, ConnectionError, TimeoutError) as e:
+            print(f"Error en run {run}: {e}")
+            continue
 
         if not results:
             raise RuntimeError("No se obtuvieron resultados válidos")
@@ -220,7 +220,7 @@ class OllamaBench:
                     result = json.loads(resp.read().decode())
                 elapsed = time.perf_counter() - start
                 results.append((elapsed, result))
-            except Exception as e:
+            except (urllib.error.URLError, json.JSONDecodeError, ConnectionError, TimeoutError) as e:
                 print(f"Error en run {run}: {e}")
                 continue
 
@@ -258,7 +258,7 @@ class OllaBench:
     def __init__(self, base_url: str = "http://127.0.0.1:40114/olla/proxy/v1"):
         self.base_url = base_url.rstrip("/")
 
-    def benchmark(self, model: str, prompt: str, max_tokens: int = 128, n_runs: int = 5) -> BenchmarkResult:
+    def benchmark(self, model: str, prompt: str, max_tokens: int = 128, n_runs: int = 5, api_key: str = "") -> BenchmarkResult:
         import urllib.request
 
         results = []
@@ -272,8 +272,12 @@ class OllaBench:
                 "stream": False,
             }).encode()
 
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+
             req = urllib.request.Request(
-                url, data=data, headers={"Content-Type": "application/json"}
+                url, data=data, headers=headers
             )
 
             start = time.perf_counter()
@@ -282,7 +286,7 @@ class OllaBench:
                     result = json.loads(resp.read().decode())
                 elapsed = time.perf_counter() - start
                 results.append((elapsed, result))
-            except Exception as e:
+            except (urllib.error.URLError, json.JSONDecodeError, ConnectionError, TimeoutError) as e:
                 print(f"Error en run {run}: {e}")
                 continue
 
@@ -316,7 +320,7 @@ def run_benchmark(
     prompt: str = "Explica la fotosíntesis en detalle, cubriendo las fases luminosa y oscura, los pigmentos fotosintéticos, y la importancia ecológica del proceso.",
     max_tokens: int = 256,
     n_runs: int = 5,
-    llama_cpp_args: Optional[List[str]] = None,
+    llama_cpp_args: list[str] | None = None,
 ) -> BenchmarkResult:
     """Ejecuta benchmark según el backend especificado."""
 
@@ -393,7 +397,7 @@ def main():
                 json.dump(result.to_dict(), f, indent=2)
             print(f"Resultados guardados en {args.output}")
 
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError, json.JSONDecodeError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 

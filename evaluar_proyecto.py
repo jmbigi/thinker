@@ -61,7 +61,7 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from packaging.version import InvalidVersion, Version
 
@@ -126,7 +126,7 @@ class Hallazgo:
     tipo_evidencia: EvidenceKind = EvidenceKind.VERIFIED_REAL
     criterio: str = ""       # criterio que lo origina (para no mezclar el plan)
 
-    def a_dict(self) -> Dict[str, Any]:
+    def a_dict(self) -> dict[str, Any]:
         return {
             "severidad": self.severidad,
             "descripcion": self.descripcion,
@@ -139,13 +139,13 @@ class Hallazgo:
 @dataclass
 class Dimension:
     nombre: str
-    criterios: Dict[str, bool] = field(default_factory=dict)
-    hallazgos: List[Hallazgo] = field(default_factory=list)
-    notas: List[str] = field(default_factory=list)
-    no_aplica: List[Dict[str, str]] = field(default_factory=list)
+    criterios: dict[str, bool] = field(default_factory=dict)
+    hallazgos: list[Hallazgo] = field(default_factory=list)
+    notas: list[str] = field(default_factory=list)
+    no_aplica: list[dict[str, str]] = field(default_factory=list)
 
     @property
-    def puntuacion(self) -> Optional[float]:
+    def puntuacion(self) -> float | None:
         # Sin criterios aplicables no hay puntuación: 0.0 fingiría un fallo.
         if not self.criterios:
             return None
@@ -154,7 +154,7 @@ class Dimension:
     def no_aplicable(self, criterio: str, motivo: str) -> None:
         self.no_aplica.append({"criterio": criterio, "motivo": motivo})
 
-    def a_dict(self) -> Dict[str, Any]:
+    def a_dict(self) -> dict[str, Any]:
         return {
             "puntuacion": self.puntuacion,
             "evaluado": bool(self.criterios),
@@ -181,10 +181,10 @@ class Requisito:
     origen: str
     verificacion: str = ""
     evidencia: str = ""
-    tags: List[str] = field(default_factory=list)
-    avisos: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    avisos: list[str] = field(default_factory=list)
 
-    def a_dict(self) -> Dict[str, Any]:
+    def a_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "titulo": self.titulo,
@@ -202,27 +202,27 @@ class Requisito:
 class Perfil:
     """Lo que el proyecto declara y lo que se puede analizar sin ejecutarlo."""
     ruta: Path
-    py: List[Path]
-    codigo_py: List[Path]
-    tests_py: List[Path]
-    codigo: List[Path]
-    tests: List[Path]
-    lenguajes: Dict[str, int]
-    manifiestos: List[Path]
-    locks: List[Path]
-    deps: List[Dict[str, str]]
-    first_party: Set[str]
+    py: list[Path]
+    codigo_py: list[Path]
+    tests_py: list[Path]
+    codigo: list[Path]
+    tests: list[Path]
+    lenguajes: dict[str, int]
+    manifiestos: list[Path]
+    locks: list[Path]
+    deps: list[dict[str, str]]
+    first_party: set[str]
     es_llm: bool
     es_web: bool
-    pesadas: List[str]
-    versiones_lock: Dict[str, str]
+    pesadas: list[str]
+    versiones_lock: dict[str, str]
 
     @property
-    def deps_python(self) -> List[Dict[str, str]]:
+    def deps_python(self) -> list[dict[str, str]]:
         return [d for d in self.deps if d.get("ecosistema", "python") == "python"]
 
     @property
-    def deps_runtime_python(self) -> List[Dict[str, str]]:
+    def deps_runtime_python(self) -> list[dict[str, str]]:
         # requirements.txt de documentación en un proyecto Java/JS no son
         # dependencias runtime del proyecto. En un proyecto solo-Python (o una
         # fixture mínima con requirements) sí se evaluan.
@@ -232,7 +232,7 @@ class Perfil:
         return [d for d in self.deps_python if d.get("ambito") == "runtime"]
 
     @property
-    def codigo_paquete(self) -> List[Path]:
+    def codigo_paquete(self) -> list[Path]:
         """Código publicable: fuera scripts de build/tooling y setup.py."""
         no_paquete = {"scripts", "script", "tooling", "extras", "bin",
                       "contrib", "benchmarks", "docs_src"}
@@ -241,7 +241,7 @@ class Perfil:
                 and not any(parte.lower() in no_paquete
                             for parte in p.relative_to(self.ruta).parts[:-1])]
 
-    def a_dict(self) -> Dict[str, Any]:
+    def a_dict(self) -> dict[str, Any]:
         return {
             "lenguajes": self.lenguajes,
             "manifiestos": [p.relative_to(self.ruta).as_posix()
@@ -255,7 +255,7 @@ class Perfil:
         }
 
 
-def archivos_python(ruta: Path) -> List[Path]:
+def archivos_python(ruta: Path) -> list[Path]:
     # Solo se ignoran directorios DENTRO del proyecto evaluado: mirar las
     # partes absolutas excluía proyectos alojados en un directorio padre
     # llamado `build`, `dist` o `venv` (0 archivos, informe vacío).
@@ -329,7 +329,7 @@ def _es_lock(archivo: Path) -> bool:
     return fijadas * 2 > len(requisitos)
 
 
-def _modulos_propios(ruta: Path, py: List[Path]) -> Set[str]:
+def _modulos_propios(ruta: Path, py: list[Path]) -> set[str]:
     """Nombres de primera parte, incluyendo layout ``src/`` y subpaquetes."""
     nombres = {p.stem for p in ruta.glob("*.py")}
     for base in (ruta, ruta / "src"):
@@ -350,7 +350,7 @@ def _modulos_propios(ruta: Path, py: List[Path]) -> Set[str]:
     return nombres
 
 
-def _detectar_llm(deps: List[Dict[str, str]]) -> bool:
+def _detectar_llm(deps: list[dict[str, str]]) -> bool:
     runtime = {d["nombre"].lower() for d in deps
                if d.get("ecosistema", "python") == "python"
                and d.get("ambito") == "runtime"}
@@ -358,7 +358,7 @@ def _detectar_llm(deps: List[Dict[str, str]]) -> bool:
                for marca in MARCAS_LLM)
 
 
-def _detectar_web(deps: List[Dict[str, str]]) -> bool:
+def _detectar_web(deps: list[dict[str, str]]) -> bool:
     runtime = {d["nombre"].lower() for d in deps
                if d.get("ambito") == "runtime"}
     return any(marca == nombre for nombre in runtime for marca in MARCAS_WEB)
@@ -413,7 +413,7 @@ def _nombre_excepcion(nodo) -> str:
     return ""
 
 
-def _cuerpo_silencio(cuerpo: List[ast.stmt]) -> bool:
+def _cuerpo_silencio(cuerpo: list[ast.stmt]) -> bool:
     return bool(cuerpo) and all(
         isinstance(nodo, (ast.Pass, ast.Continue, ast.Break))
         or (isinstance(nodo, ast.Expr) and isinstance(nodo.value, ast.Constant)
@@ -427,7 +427,7 @@ def _try_contiene_imports(nodo: ast.Try) -> bool:
                for item in nodo.body for sub in ast.walk(item))
 
 
-def lineas_silenciosas(arbol: ast.AST) -> List[int]:
+def lineas_silenciosas(arbol: ast.AST) -> list[int]:
     """Líneas de ``except`` que silencian, con dos exclusiones honestas.
 
     - Los tests no se analizan en c3 (el llamador filtra): silenciar allí suele
@@ -460,7 +460,7 @@ _MARCA_SILENCIO = re.compile(
 
 
 def clasificar_silencios(arbol: ast.AST,
-                         fuente: str) -> Tuple[List[int], List[Tuple[int, str]]]:
+                         fuente: str) -> tuple[list[int], list[tuple[int, str]]]:
     """Separa silencios no marcados de los aceptados con motivo (R6).
 
     La marca `# noqa: silent: motivo` solo vale en la línea del ``except`` y
@@ -547,7 +547,7 @@ def _funciones_test(arbol: ast.Module):
 
 
 def tests_sin_aserciones(ruta: Path,
-                         modulos_test: List[Path]) -> Tuple[List[str], List[str]]:
+                         modulos_test: list[Path]) -> tuple[list[str], list[str]]:
     """Tests no-op: sin aserción NI operación que pueda fallar.
 
     Un test que solo hace ``pass`` o ``print(1+1)`` no puede fallar y no es un
@@ -635,7 +635,7 @@ def _nodo_aserion_debil(nodo) -> bool:
 
 
 def aserciones_debiles(ruta: Path,
-                       modulos_test: List[Path]) -> Tuple[List[str], List[str]]:
+                       modulos_test: list[Path]) -> tuple[list[str], list[str]]:
     """Aserciones que no pueden fallar por construcción (R7).
 
     Señal informativa, separada de c5 (que mide tests no-op). Es conservadora:
@@ -659,14 +659,14 @@ def aserciones_debiles(ruta: Path,
     return marcas, con_error
 
 
-def _git(ruta: Path, *args: str) -> Optional[str]:
+def _git(ruta: Path, *args: str) -> str | None:
     """Ejecuta git SOLO con argumentos de fecha/recuento (nunca autores)."""
     entorno = {clave: valor for clave, valor in os.environ.items()
                if clave not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
     try:
         salida = subprocess.run(["git", "-C", str(ruta), *args],
-                                capture_output=True, text=True, timeout=20,
-                                env=entorno)
+                                 check=False, capture_output=True, text=True, timeout=20,
+                                 env=entorno)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return salida.stdout.strip() if salida.returncode == 0 else None
@@ -674,7 +674,7 @@ def _git(ruta: Path, *args: str) -> Optional[str]:
 
 # --- Dimensiones -----------------------------------------------------------
 
-def _tiene_punto_entrada(ruta: Path, perfil: Perfil) -> List[str]:
+def _tiene_punto_entrada(ruta: Path, perfil: Perfil) -> list[str]:
     """Puntos de entrada reales, sin ejecutar: código, scripts o bin."""
     encontrados = []
     for p in perfil.codigo_py:
@@ -684,9 +684,7 @@ def _tiene_punto_entrada(ruta: Path, perfil: Perfil) -> List[str]:
             encontrados.append(p.relative_to(ruta).as_posix())
     for p in perfil.codigo:
         texto = leer(p)
-        if p.suffix == ".java" and re.search(r"static\s+void\s+main\s*\(", texto):
-            encontrados.append(p.relative_to(ruta).as_posix())
-        elif p.suffix == ".go" and re.search(r"(?m)^func\s+main\s*\(", texto):
+        if p.suffix == ".java" and re.search(r"static\s+void\s+main\s*\(", texto) or p.suffix == ".go" and re.search(r"(?m)^func\s+main\s*\(", texto):
             encontrados.append(p.relative_to(ruta).as_posix())
     for p in perfil.manifiestos:
         texto = leer(p)
@@ -785,14 +783,14 @@ def evaluar_funcionalidades(ruta: Path, perfil: Perfil) -> Dimension:
     return dim
 
 
-def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
+def detectar_comando_tests(ruta: Path) -> dict[str, Any] | None:
     """Comando de tests DECLARADO por el proyecto (nunca adivinado).
 
     Cubre los ecosistemas que el perfil puede detectar y registra el origen.
     Un ``package.json`` con el script de error de npm no se considera runner.
     """
     makefile = ruta / "Makefile"
-    if makefile.exists() and re.search(r"^test:", leer(makefile), re.M) \
+    if makefile.exists() and re.search(r"^test:", leer(makefile), re.MULTILINE) \
             and shutil.which("make"):
         return {"comando": ["make", "test"], "origen": "Makefile (target test)"}
     # Sin `make` disponible (p. ej. Windows), se sigue buscando el runner
@@ -821,7 +819,7 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
             continue
         texto = leer(candidato)
         for patron in patrones:
-            m = re.search(r"(?:^|(?<=`))[ \t]*" + patron, texto, re.M)
+            m = re.search(r"(?:^|(?<=`))[ \t]*" + patron, texto, re.MULTILINE)
             if m:
                 comando = m.group(1).split()
                 if comando[0] in ("python", "python3"):
@@ -865,7 +863,7 @@ def detectar_comando_tests(ruta: Path) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _linter_configurado(perfil: Perfil) -> Tuple[bool, str]:
+def _linter_configurado(perfil: Perfil) -> tuple[bool, str]:
     """Linter del ecosistema, con el archivo que lo declara."""
     textos = {p: leer(p) for p in perfil.manifiestos}
     for p, texto in textos.items():
@@ -880,7 +878,7 @@ def _linter_configurado(perfil: Perfil) -> Tuple[bool, str]:
                 r'"(?:eslint|biome|prettier)"', texto):
             return True, p.relative_to(perfil.ruta).as_posix()
         if nombre in ("build.gradle", "build.gradle.kts", "pom.xml") and re.search(
-                r"checkstyle|spotless|pmd|spotbugs|eslint", texto, re.I):
+                r"checkstyle|spotless|pmd|spotbugs|eslint", texto, re.IGNORECASE):
             return True, p.relative_to(perfil.ruta).as_posix()
     for patron in (".ruff.toml", "ruff.toml", ".eslintrc*", "eslint.config.*",
                    ".flake8", ".pylintrc"):
@@ -889,7 +887,7 @@ def _linter_configurado(perfil: Perfil) -> Tuple[bool, str]:
     return False, ""
 
 
-def _preexec_limites(cpu_segundos: Optional[int]):
+def _preexec_limites(cpu_segundos: int | None):
     """Devuelve un preexec_fn POSIX que acota la CPU del proceso evaluado.
 
     En Windows devuelve None (no hay `resource`; el `timeout` de subprocess
@@ -911,7 +909,7 @@ def _preexec_limites(cpu_segundos: Optional[int]):
 
 
 def ejecutar_tests(ruta: Path, timeout: int = 900,
-                   limite_cpu_s: Optional[int] = None) -> Dict[str, Any]:
+                    limite_cpu_s: int | None = None) -> dict[str, Any]:
     """Ejecuta el comando de tests declarado (opt-in explícito, P0.8).
 
     Es lo ÚNICO que ejecuta código del proyecto evaluado y solo se hace con
@@ -931,17 +929,17 @@ def ejecutar_tests(ruta: Path, timeout: int = 900,
 
     inicio = time.monotonic()
     try:
-        proceso = subprocess.run(deteccion["comando"], cwd=str(ruta),
-                                 capture_output=True, text=True, timeout=timeout,
-                                 shell=False,
-                                 preexec_fn=_preexec_limites(limite_cpu_s))
+        proceso = subprocess.run(deteccion["comando"], check=False, cwd=str(ruta),
+                                  capture_output=True, text=True, timeout=timeout,
+                                  shell=False,
+                                  preexec_fn=_preexec_limites(limite_cpu_s))
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"ejecutado": True, "comando": " ".join(deteccion["comando"]),
                 "origen": deteccion["origen"], "error": type(exc).__name__,
                 "detalle": str(exc)[:200]}
     duracion = round(time.monotonic() - inicio, 1)
     salida = (proceso.stdout or "") + (proceso.stderr or "")
-    resumen = re.search(r"^Ran (\d+) tests?", salida, re.M)
+    resumen = re.search(r"^Ran (\d+) tests?", salida, re.MULTILINE)
     return {
         "ejecutado": True,
         "comando": " ".join(deteccion["comando"]),
@@ -949,15 +947,14 @@ def ejecutar_tests(ruta: Path, timeout: int = 900,
         "codigo": proceso.returncode,
         "ok": proceso.returncode == 0,
         "tests": int(resumen.group(1)) if resumen else None,
-        "resumen": next((linea for linea in reversed(salida.splitlines())
-                         if linea.startswith(("OK", "FAILED"))), ""),
-        "duracion_s": duracion,
+        "duracion": duracion,
+        "salida": salida[-2000:],
     }
 
 
 def evaluar_calidad(ruta: Path, perfil: Perfil,
                     ejecutar: bool = False,
-                    resultado_tests: Optional[Dict[str, Any]] = None) -> Dimension:
+                    resultado_tests: dict[str, Any] | None = None) -> Dimension:
     dim = Dimension("calidad")
     lineas_codigo = sum(len(leer(p).splitlines()) for p in perfil.codigo)
     lineas_test = sum(len(leer(p).splitlines()) for p in perfil.tests)
@@ -1093,7 +1090,7 @@ def _clave_nombre(nombre: str) -> str:
 
 def _parsear_requisito(linea: str, origen: str = "",
                        ambito: str = "runtime",
-                       ecosistema: str = "python") -> Optional[Dict[str, str]]:
+                       ecosistema: str = "python") -> dict[str, str] | None:
     """Dependencia PEP 508 de una línea; ``None`` si no es un paquete PyPI.
 
     Las directivas de pip (``-r``, ``-e``, ``--index-url``, ``--hash``), las
@@ -1153,7 +1150,7 @@ def _ambito_requirements(archivo: Path, ruta: Path) -> str:
 
 
 def _leer_requirements(archivo: Path, ruta: Path,
-                       vistos: Optional[Set[Path]] = None) -> List[Dict[str, str]]:
+                       vistos: set[Path] | None = None) -> list[dict[str, str]]:
     if vistos is None:
         vistos = set()
     archivo = archivo.resolve()
@@ -1179,7 +1176,7 @@ def _leer_requirements(archivo: Path, ruta: Path,
     return deps
 
 
-def _agregar_items(deps: List[Dict[str, str]], items: Any, origen: str,
+def _agregar_items(deps: list[dict[str, str]], items: Any, origen: str,
                    ambito: str) -> None:
     if not isinstance(items, list):
         return
@@ -1192,7 +1189,7 @@ def _agregar_items(deps: List[Dict[str, str]], items: Any, origen: str,
 
 
 def _dependencias_pyproject(texto: str,
-                            origen: str = "pyproject.toml") -> List[Dict[str, str]]:
+                            origen: str = "pyproject.toml") -> list[dict[str, str]]:
     """Dependencias de ``pyproject.toml``: PEP 621, PEP 735 y Poetry/PDM.
 
     Las listas de herramientas ajenas a ``[project]`` no se interpretan como
@@ -1204,13 +1201,13 @@ def _dependencias_pyproject(texto: str,
     except tomllib.TOMLDecodeError:
         datos = None
     if not isinstance(datos, dict):
-        bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto, re.M | re.S)
+        bloque = re.search(r"^dependencies\s*=\s*\[(.*?)\]", texto, re.MULTILINE | re.DOTALL)
         if bloque is None:
             return []
         return [dep for item in re.findall(r'["\']([^"\']+)["\']', bloque.group(1))
                 for dep in [_parsear_requisito(item, origen)] if dep]
 
-    deps: List[Dict[str, str]] = []
+    deps: list[dict[str, str]] = []
     proyecto = datos.get("project")
     if isinstance(proyecto, dict):
         _agregar_items(deps, proyecto.get("dependencies"), origen, "runtime")
@@ -1316,14 +1313,14 @@ def _requisito_poetry(nombre: str, version: str) -> str:
     return f"{nombre}{version}"
 
 
-def _dependencias_setup_cfg(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
+def _dependencias_setup_cfg(archivo: Path, ruta: Path) -> list[dict[str, str]]:
     parser = configparser.ConfigParser()
     try:
         parser.read_string(leer(archivo))
     except configparser.Error:
         return []
     origen = archivo.relative_to(ruta).as_posix()
-    deps: List[Dict[str, str]] = []
+    deps: list[dict[str, str]] = []
     if parser.has_section("options"):
         for clave in ("install_requires", "tests_require"):
             valor = parser.get("options", clave, fallback="")
@@ -1339,7 +1336,7 @@ def _dependencias_setup_cfg(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
     return deps
 
 
-def _literales_lista(nodo: ast.AST) -> List[str]:
+def _literales_lista(nodo: ast.AST) -> list[str]:
     if not isinstance(nodo, (ast.List, ast.Tuple)):
         return []
     return [elemento.value for elemento in nodo.elts
@@ -1347,14 +1344,14 @@ def _literales_lista(nodo: ast.AST) -> List[str]:
             and isinstance(elemento.value, str)]
 
 
-def _dependencias_setup_py(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
+def _dependencias_setup_py(archivo: Path, ruta: Path) -> list[dict[str, str]]:
     """Lee ``setup(...)`` con AST (sin ejecutarlo); no confunde claves de extras."""
     try:
         arbol = ast.parse(leer(archivo), filename=str(archivo))
     except SyntaxError:
         return []
     origen = archivo.relative_to(ruta).as_posix()
-    deps: List[Dict[str, str]] = []
+    deps: list[dict[str, str]] = []
     for nodo in ast.walk(arbol):
         if not isinstance(nodo, ast.Call) \
                 or not isinstance(nodo.func, ast.Name) \
@@ -1373,7 +1370,7 @@ def _dependencias_setup_py(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
     return deps
 
 
-def _dependencias_package_json(archivo: Path, ruta: Path) -> List[Dict[str, str]]:
+def _dependencias_package_json(archivo: Path, ruta: Path) -> list[dict[str, str]]:
     try:
         datos = json.loads(leer(archivo))
     except (json.JSONDecodeError, TypeError) as exc:
@@ -1381,7 +1378,7 @@ def _dependencias_package_json(archivo: Path, ruta: Path) -> List[Dict[str, str]
                       RuntimeWarning, stacklevel=2)
         return []
     origen = archivo.relative_to(ruta).as_posix()
-    deps: List[Dict[str, str]] = []
+    deps: list[dict[str, str]] = []
     for seccion, ambito in (("dependencies", "runtime"),
                             ("devDependencies", "dev"),
                             ("peerDependencies", "opcional")):
@@ -1402,7 +1399,7 @@ def _dependencias_package_json(archivo: Path, ruta: Path) -> List[Dict[str, str]
     return deps
 
 
-def _dependencias(ruta: Path) -> List[Dict[str, str]]:
+def _dependencias(ruta: Path) -> list[dict[str, str]]:
     """Dependencias directas de TODOS los manifiestos, con ámbito y origen.
 
     Cubre ``requirements*.txt`` (incluidos subdirectorios y ``-r``), todos los
@@ -1411,8 +1408,8 @@ def _dependencias(ruta: Path) -> List[Dict[str, str]]:
     rangos. Una misma dependencia se cuenta una vez, prefiriendo runtime y la
     declaración fijada.
     """
-    deps: List[Dict[str, str]] = []
-    vistos_req: Set[Path] = set()
+    deps: list[dict[str, str]] = []
+    vistos_req: set[Path] = set()
     for archivo in sorted(p for p in ruta.rglob("*")
                           if p.is_file() and not any(
                               es_parte_ignorada(parte, IGNORAR)
@@ -1432,7 +1429,7 @@ def _dependencias(ruta: Path) -> List[Dict[str, str]]:
             deps.extend(_dependencias_setup_py(archivo, ruta))
         elif nombre == "package.json":
             deps.extend(_dependencias_package_json(archivo, ruta))
-    unicas: Dict[Tuple[str, str], Dict[str, str]] = {}
+    unicas: dict[tuple[str, str], dict[str, str]] = {}
     for dep in deps:
         clave = (dep.get("ecosistema", "python"), _clave_nombre(dep["nombre"]))
         previa = unicas.get(clave)
@@ -1451,9 +1448,9 @@ def _dependencias(ruta: Path) -> List[Dict[str, str]]:
     return list(unicas.values())
 
 
-def _versiones_lock(ruta: Path) -> Dict[str, str]:
+def _versiones_lock(ruta: Path) -> dict[str, str]:
     """Versiones resueltas por los locks (solo datos; nunca se ejecuta nada)."""
-    versiones: Dict[str, str] = {}
+    versiones: dict[str, str] = {}
 
     def _toml_lock(archivo: Path) -> None:
         try:
@@ -1539,7 +1536,7 @@ def _versiones_lock(ruta: Path) -> Dict[str, str]:
     return versiones
 
 
-def ultima_version_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
+def ultima_version_pypi(nombre: str, timeout: int = 15) -> dict[str, Any]:
     """Última versión publicada; si falla, el MOTIVO va en `error` (no se oculta)."""
     try:
         with urllib.request.urlopen(f"https://pypi.org/pypi/{nombre}/json",
@@ -1680,7 +1677,7 @@ LICENCIAS_LIBRES = ("mit", "bsd", "apache", "gpl", "lgpl", "mpl", "isc",
                     "psf-2.0", "python-2.0", "cc0-1.0", "0bsd")
 
 
-def _es_licencia_libre(texto: str) -> Optional[bool]:
+def _es_licencia_libre(texto: str) -> bool | None:
     """Decide licencias libres por texto/expresión SPDX, sin inventar.
 
     PEP 639 hizo que PyPI publique ``license_expression``; los clasificadores
@@ -1702,7 +1699,7 @@ def _es_licencia_libre(texto: str) -> Optional[bool]:
     return libre_conocida
 
 
-def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
+def licencia_pypi(nombre: str, timeout: int = 15) -> dict[str, Any]:
     """Licencia declarada en PyPI; si falla, el MOTIVO va en `error`.
 
     Orden de lectura (PEP 639): ``license_expression`` > clasificador OSI >
@@ -1735,14 +1732,14 @@ def licencia_pypi(nombre: str, timeout: int = 15) -> Dict[str, Any]:
             "fuente": "license", "error": ""}
 
 
-def licencias_no_runtime(perfil: Perfil, con_red: bool) -> List[Dict[str, Any]]:
+def licencias_no_runtime(perfil: Perfil, con_red: bool) -> list[dict[str, Any]]:
     """Licencias informativas de dependencias no runtime (R10).
 
     No se mezclan con `h5_licencias_libres`, que sigue midiendo solo runtime.
     Sin red, o si PyPI no da metadato, cada entrada se declara `unverified`
     con su motivo; no se inventa una licencia.
     """
-    entradas: List[Dict[str, Any]] = []
+    entradas: list[dict[str, Any]] = []
     vistos = set()
     for dep in perfil.deps_python:
         if dep.get("ambito") == "runtime":
@@ -1751,7 +1748,7 @@ def licencias_no_runtime(perfil: Perfil, con_red: bool) -> List[Dict[str, Any]]:
         if not nombre or nombre in vistos:
             continue
         vistos.add(nombre)
-        entrada: Dict[str, Any] = {
+        entrada: dict[str, Any] = {
             "nombre": nombre,
             "ambito": dep.get("ambito", "opcional"),
             "origen": dep.get("origen", ""),
@@ -1777,7 +1774,7 @@ def licencias_no_runtime(perfil: Perfil, con_red: bool) -> List[Dict[str, Any]]:
     return entradas
 
 
-def _registro_decisiones(ruta: Path, perfil: Perfil) -> List[str]:
+def _registro_decisiones(ruta: Path, perfil: Perfil) -> list[str]:
     """Documentos de decisiones/ADR/changelog, en cualquier subdirectorio."""
     claves = ("adr", "decision", "changelog", "changes", "history",
               "release-notes", "releasenotes", "lecciones")
@@ -1812,7 +1809,7 @@ def evaluar_herramientas(ruta: Path, perfil: Perfil,
             criterio="h1_manifiesto"))
 
     licencia = [p.name for p in ruta.iterdir()
-                if p.is_file() and re.match(r"(LICEN[CS]E|COPYING)", p.name, re.I)]
+                if p.is_file() and re.match(r"(LICEN[CS]E|COPYING)", p.name, re.IGNORECASE)]
     dim.criterios["h2_licencia"] = bool(licencia)
     if not licencia:
         dim.hallazgos.append(Hallazgo(
@@ -1942,13 +1939,13 @@ def evaluar_inteligencia(ruta: Path, perfil: Perfil) -> Dimension:
     dim.criterios["i2_timeouts_explicitos"] = bool(
         re.search(r"timeout\s*=", texto))
     dim.criterios["i3_reintentos_con_limite"] = bool(
-        re.search(r"(max_retries|reintent|backoff|retry)", texto, re.I))
+        re.search(r"(max_retries|reintent|backoff|retry)", texto, re.IGNORECASE))
     dim.criterios["i4_valida_respuestas"] = bool(
         re.search(r"json\.loads|JSONDecodeError|_parse_", texto))
     dim.criterios["i5_declara_lo_simulado"] = bool(
-        re.search(r"(simulad|mock)", texto, re.I))
+        re.search(r"(simulad|mock)", texto, re.IGNORECASE))
     dim.criterios["i6_metricas_propias"] = bool(
-        re.search(r"(benchmark|rúbrica|rubrica|metric|medición|medicion)", texto, re.I))
+        re.search(r"(benchmark|rúbrica|rubrica|metric|medición|medicion)", texto, re.IGNORECASE))
 
     for clave, nombre in (("i1_cachea_trabajo_repetido", "caché"),
                           ("i2_timeouts_explicitos", "timeouts explícitos"),
@@ -1979,7 +1976,7 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
     for p in perfil.codigo_py:
         contenido = leer(p)
         lineas = contenido.splitlines()
-        for m in re.finditer(r"^\s+import |^\s+from ", contenido, re.M):
+        for m in re.finditer(r"^\s+import |^\s+from ", contenido, re.MULTILINE):
             inicio = contenido[:m.start()].count("\n")
             cabecera = "\n".join(lineas[:inicio])
             linea = lineas[inicio] if inicio < len(lineas) else ""
@@ -2033,7 +2030,7 @@ def evaluar_eficiencia(ruta: Path, perfil: Perfil) -> Dimension:
 
 # --- Mejoras propuestas: cada una nace de una métrica y trae su verificación --
 
-MEJORAS: Dict[str, Dict[str, str]] = {
+MEJORAS: dict[str, dict[str, str]] = {
     "f1_puntos_de_entrada": {
         "prioridad": "baja",
         "propuesta": "Exponer un punto de entrada ejecutable (CLI)",
@@ -2185,7 +2182,7 @@ def _esfuerzo(n_sitios: int) -> str:
     return "alto"
 
 
-def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
+def proponer_mejoras(informe: dict[str, Any]) -> list[dict[str, str]]:
     """Plan de mejora DERIVADO de las métricas del informe.
 
     Cada propuesta usa SOLO los hallazgos de su criterio. Antes se reutilizaba
@@ -2224,19 +2221,19 @@ def proponer_mejoras(informe: Dict[str, Any]) -> List[Dict[str, str]]:
     return propuestas
 
 
-def plan_texto(informe: Dict[str, Any]) -> List[str]:
+def plan_texto(informe: dict[str, Any]) -> list[str]:
     """Resumen del plan: cuántas propuestas por prioridad y el orden de trabajo."""
     propuestas = informe.get("mejoras", [])
     if not propuestas:
         return ["Plan de mejora: nada que proponer (todos los criterios cumplen)."]
-    conteo: Dict[str, int] = {}
+    conteo: dict[str, int] = {}
     for p in propuestas:
         conteo[p["prioridad"]] = conteo.get(p["prioridad"], 0) + 1
     resumen = ", ".join(f"{n} {prioridad}" for prioridad, n in
                         sorted(conteo.items(),
                                key=lambda x: {"alta": 0, "media": 1, "baja": 2}[x[0]]))
-    return [f"Plan de mejora: {len(propuestas)} propuestas ({resumen}); "
-            f"ordenadas por prioridad, secuencia y esfuerzo."]
+    return [(f"Plan de mejora: {len(propuestas)} propuestas ({resumen}); "
+            f"ordenadas por prioridad, secuencia y esfuerzo.")]
 
 
 # --- Síntesis con LLM (opt-in): lo que el plan mecánico no ve ----------------
@@ -2262,8 +2259,8 @@ Máximo 5 propuestas, ordenadas por impacto.
 INFORME MEDIDO:"""
 
 
-def investigar_preguntas(preguntas: List[str], search_api,
-                         max_por_pregunta: int = 2) -> List[Dict[str, Any]]:
+def investigar_preguntas(preguntas: list[str], search_api,
+                         max_por_pregunta: int = 2) -> list[dict[str, Any]]:
     """Resuelve las dudas declaradas por el modelo con búsqueda real y citada.
 
     Reutiliza `web_search` (Wikipedia/DuckDuckGo, sin API key). Cada hallazgo
@@ -2287,15 +2284,15 @@ def investigar_preguntas(preguntas: List[str], search_api,
     return hallazgos
 
 
-def _puntuacion_texto(valor: Optional[float], decimales: int = 2) -> str:
+def _puntuacion_texto(valor: float | None, decimales: int = 2) -> str:
     return "N/A" if valor is None else f"{valor:.{decimales}f}"
 
 
-def _digesto(informe: Dict[str, Any], max_hallazgos: int = 20) -> str:
+def _digesto(informe: dict[str, Any], max_hallazgos: int = 20) -> str:
     """Resumen del informe medido para el prompt (solo datos del propio informe)."""
     lineas = [f"ruta: {informe['ruta']}",
-              f"python: {informe['archivos_python']} archivos / "
-              f"{informe['lineas_python']} líneas"]
+              (f"python: {informe['archivos_python']} archivos / "
+              f"{informe['lineas_python']} líneas")]
     cobertura = informe.get("cobertura", {})
     lineas.append(f"cobertura: {cobertura.get('criterios_evaluados', '?')} "
                   f"criterios evaluados, "
@@ -2314,7 +2311,7 @@ def _digesto(informe: Dict[str, Any], max_hallazgos: int = 20) -> str:
     return "\n".join(lineas)
 
 
-def sintetizar_con_llm(informe: Dict[str, Any], llm) -> Dict[str, Any]:
+def sintetizar_con_llm(informe: dict[str, Any], llm) -> dict[str, Any]:
     """Genera propuestas con un LLM a partir del informe medido (opt-in).
 
     Control anti-invención (mecánico): cada propuesta se marca `con_respaldo`
@@ -2335,9 +2332,9 @@ def sintetizar_con_llm(informe: Dict[str, Any], llm) -> Dict[str, Any]:
     elif isinstance(datos, list):          # contrato antiguo: solo propuestas
         crudas, preguntas = datos, []
     else:
-        raise ValueError("La síntesis debe ser un objeto o array JSON")
+        raise TypeError("La síntesis debe ser un objeto o array JSON")
     if not isinstance(crudas, list):
-        raise ValueError("`propuestas` debe ser una lista")
+        raise TypeError("`propuestas` debe ser una lista")
 
     propuestas = []
     for item in crudas:
@@ -2399,7 +2396,7 @@ def _normalizar_texto(texto: str) -> str:
         str.maketrans("áéíóúüñ", "aeiouun")).split())
 
 
-def parsear_requisitos(archivo: Path) -> List[Requisito]:
+def parsear_requisitos(archivo: Path) -> list[Requisito]:
     """Lee el Markdown estructurado de requisitos; falla con línea, no adivina.
 
     Formato: ``## ID: título`` y campos ``- Clave: valor``. Un campo
@@ -2411,10 +2408,10 @@ def parsear_requisitos(archivo: Path) -> List[Requisito]:
     except (OSError, UnicodeDecodeError) as exc:
         raise ValueError(f"No se pudo leer {archivo}: {exc}") from exc
 
-    requisitos: List[Requisito] = []
-    actual: Optional[Dict[str, Any]] = None
-    ultimo_campo: Optional[str] = None
-    ids: Set[str] = set()
+    requisitos: list[Requisito] = []
+    actual: dict[str, Any] | None = None
+    ultimo_campo: str | None = None
+    ids: set[str] = set()
     en_bloque = False
 
     def cerrar() -> None:
@@ -2530,7 +2527,7 @@ def _texto_legible(ruta: Path, archivo: Path) -> str:
         return str(archivo)
 
 
-def _resolver_evidencia(ruta: Path, texto: str) -> Optional[Path]:
+def _resolver_evidencia(ruta: Path, texto: str) -> Path | None:
     """Resuelve una ruta de evidencia SOLO si queda dentro del proyecto."""
     limpio = texto.strip().strip("`'\"")
     if not limpio:
@@ -2548,7 +2545,7 @@ def _resolver_evidencia(ruta: Path, texto: str) -> Optional[Path]:
     return candidato
 
 
-def _test_existe(archivo: Path, nombre: str) -> Optional[bool]:
+def _test_existe(archivo: Path, nombre: str) -> bool | None:
     """Busca una función de test Python por nombre; None si no se puede leer."""
     try:
         arbol = ast.parse(leer(archivo), filename=str(archivo))
@@ -2561,7 +2558,7 @@ def _test_existe(archivo: Path, nombre: str) -> Optional[bool]:
 
 
 def _buscar_tag(perfil: Perfil, tag: str,
-                avisos: Optional[List[str]] = None) -> str:
+                avisos: list[str] | None = None) -> str:
     """Devuelve ``archivo:línea`` del primer tag encontrado, o cadena vacía.
 
     Un archivo ilegible no se omite en silencio: se registra en ``avisos`` y la
@@ -2569,7 +2566,7 @@ def _buscar_tag(perfil: Perfil, tag: str,
     """
     if not tag:
         return ""
-    vistos: Set[Path] = set()
+    vistos: set[Path] = set()
     for archivo in perfil.codigo + perfil.tests:
         if archivo in vistos:
             continue
@@ -2588,7 +2585,7 @@ def _buscar_tag(perfil: Perfil, tag: str,
     return ""
 
 
-def _avisos_criterio(criterio: str) -> List[str]:
+def _avisos_criterio(criterio: str) -> list[str]:
     """Heurística declarada: avisa de criterios poco medibles, no los absuelve."""
     normalizado = _normalizar_texto(criterio)
     avisos = []
@@ -2601,7 +2598,7 @@ def _avisos_criterio(criterio: str) -> List[str]:
 
 
 def _verificar_test(ruta: Path, req: Requisito,
-                    resultado_tests: Optional[Dict[str, Any]]):
+                    resultado_tests: dict[str, Any] | None):
     if not req.evidencia:
         return ("NO VERIFICABLE", "método 'test' sin evidencia declarada", "",
                 EvidenceKind.UNVERIFIED)
@@ -2621,8 +2618,8 @@ def _verificar_test(ruta: Path, req: Requisito,
                 legible, EvidenceKind.VERIFIED_REAL)
     if archivo.suffix != ".py":
         return ("CUBIERTO",
-                "test declarado en lenguaje no Python: no validado "
-                "estáticamente", legible, EvidenceKind.VERIFIED_REAL)
+                ("test declarado en lenguaje no Python: no validado "
+                "estáticamente"), legible, EvidenceKind.VERIFIED_REAL)
     existe = _test_existe(archivo, test_nombre)
     if existe is None:
         return ("NO VERIFICABLE", "no se pudo analizar el archivo de test",
@@ -2696,7 +2693,7 @@ def _verificar_tag(perfil: Perfil, req: Requisito):
 
 
 def _verificar_requisito(ruta: Path, perfil: Perfil, req: Requisito,
-                         resultado_tests: Optional[Dict[str, Any]]):
+                         resultado_tests: dict[str, Any] | None):
     if not req.verificacion:
         return ("NO VERIFICABLE", "sin método de verificación declarado", "",
                 EvidenceKind.UNVERIFIED)
@@ -2717,9 +2714,9 @@ def _verificar_requisito(ruta: Path, perfil: Perfil, req: Requisito,
 
 
 def verificar_requisitos(ruta: Path, perfil: Perfil,
-                         requisitos: List[Requisito], archivo: Path,
-                         resultado_tests: Optional[Dict[str, Any]] = None
-                         ) -> Dict[str, Any]:
+                         requisitos: list[Requisito], archivo: Path,
+                         resultado_tests: dict[str, Any] | None = None
+                         ) -> dict[str, Any]:
     """Contrasta requisitos contra evidencia estática y, opt-in, la suite.
 
     No toca el GLOBAL de las seis dimensiones: devuelve un informe aparte.
@@ -2769,7 +2766,7 @@ def verificar_requisitos(ruta: Path, perfil: Perfil,
 def evaluar(ruta: Path, con_red: bool = True,
             ejecutar_tests_flag: bool = False, llm=None,
             investigar: bool = False, search_api=None,
-            requisitos_path: Optional[Path] = None) -> Dict[str, Any]:
+            requisitos_path: Path | None = None) -> dict[str, Any]:
     """Evalúa un proyecto y devuelve el informe completo (sin escribir nada).
 
     `ejecutar_tests_flag` es un opt-in EXPLÍCITO: es lo único que ejecuta código
@@ -2893,21 +2890,21 @@ def evaluar(ruta: Path, con_red: bool = True,
     return informe
 
 
-def _etiqueta_global(cobertura: Dict[str, Any]) -> str:
+def _etiqueta_global(cobertura: dict[str, Any]) -> str:
     """Rótulo honesto: no llamar GLOBAL a una cobertura no comparable (R5)."""
     return "GLOBAL" if cobertura.get("comparable", True) \
         else "GLOBAL NO COMPARABLE"
 
 
-def informe_texto(informe: Dict[str, Any]) -> List[str]:
+def informe_texto(informe: dict[str, Any]) -> list[str]:
     cobertura = informe.get("cobertura", {})
     lineas = [f"EVALUACIÓN DE PROYECTO (read-only): {informe['ruta']}",
-              f"Python: {informe['archivos_python']} archivos / "
-              f"{informe['lineas_python']} líneas",
-              f"Cobertura: {cobertura.get('criterios_evaluados', '?')} criterios "
+              (f"Python: {informe['archivos_python']} archivos / "
+              f"{informe['lineas_python']} líneas"),
+              (f"Cobertura: {cobertura.get('criterios_evaluados', '?')} criterios "
               f"evaluados, {cobertura.get('criterios_no_aplicables', '?')} N/A "
               f"(nivel {cobertura.get('nivel', '?')}); lenguajes: "
-              f"{', '.join(cobertura.get('lenguajes', {})) or 'ninguno'}",
+              f"{', '.join(cobertura.get('lenguajes', {})) or 'ninguno'}"),
               ""]
     for nombre, datos in informe["dimensiones"].items():
         lineas.append(f"== {nombre.upper()} — "
@@ -3009,7 +3006,7 @@ def informe_texto(informe: Dict[str, Any]) -> List[str]:
     return lineas
 
 
-def cargar_entorno_llm(dotenv_path: Optional[Path] = None) -> None:
+def cargar_entorno_llm(dotenv_path: Path | None = None) -> None:
     """Carga `.env` solo para los modos opt-in que llaman a un proveedor real.
 
     El resto del evaluador sigue siendo offline: no lee `.env` ni toca la red
@@ -3021,7 +3018,7 @@ def cargar_entorno_llm(dotenv_path: Optional[Path] = None) -> None:
     load_dotenv(dotenv_path or (Path.cwd() / ".env"))
 
 
-def main(argv: List[str] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Evalúa un proyecto externo en 6 dimensiones (read-only).")
     parser.add_argument("ruta", help="ruta del proyecto a evaluar")

@@ -9,9 +9,10 @@ códigos son hashes de trazabilidad, no códigos VQ aprendidos.
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List
+from typing import Any
 
 
 def _hash(texto: str) -> str:
@@ -34,7 +35,7 @@ def _cubierto(claim: str, contenido: str) -> bool:
 @dataclass
 class ConceptResult:
     report: str
-    traces: List[Dict[str, Any]]
+    traces: list[dict[str, Any]]
     generated_sections: int
 
 
@@ -48,7 +49,7 @@ class ResidualConceptGenerator:
         self.llm = llm_provider
         self.max_workers = max_workers
 
-    def _map(self, func: Callable, items: List[Any]) -> List[Any]:
+    def _map(self, func: Callable, items: list[Any]) -> list[Any]:
         if self.max_workers == 1:
             return [func(item) for item in items]
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -63,12 +64,12 @@ class ResidualConceptGenerator:
                 contenido = cleaner(context, contenido, seccion["titulo"]).strip()
             return {"indice": indice, "seccion": seccion, "contenido": contenido,
                     "error": ""}
-        except Exception as exc:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
             return {"indice": indice, "seccion": seccion, "contenido": "",
                     "error": f"{type(exc).__name__}: {exc}"}
 
     def _nivel_residual(self, item):
-        entrada, context, fuentes, claims = item
+        entrada, _context, fuentes, claims = item
         seccion = entrada["seccion"]
         titulo = seccion["titulo"]
         faltantes = [claim for claim in seccion["claims"]
@@ -98,13 +99,13 @@ new topic, introduction, conclusion, or information already in the parent."""
                         "estado": "duplicado"}
             return {**entrada, "refinamiento": refinamiento,
                     "faltantes": faltantes, "estado": "generated" if refinamiento else "empty"}
-        except Exception as exc:
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as exc:
             return {**entrada, "refinamiento": "", "faltantes": faltantes,
                     "estado": "error", "error_residual": f"{type(exc).__name__}: {exc}"}
 
-    def generate(self, context, secciones: List[Dict[str, Any]], fuentes_txt: str,
+    def generate(self, context, secciones: list[dict[str, Any]], fuentes_txt: str,
                  claims_txt: str, prompt_builder: Callable,
-                 content_cleaner: Callable = None) -> ConceptResult:
+                 content_cleaner: Callable | None = None) -> ConceptResult:
         """Produce niveles residuales y una reconstrucción determinista."""
         raiz = _hash(context.question + json.dumps(secciones, sort_keys=True,
                                                     ensure_ascii=False))

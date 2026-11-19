@@ -12,17 +12,27 @@ import unittest
 from unittest.mock import patch
 
 import deep_research_system as drs
-from deep_research_system import (DEFAULT_FREE_MODEL, ClaimExtractor,
-                                  DecisionEngine, EvidenceEvaluator,
-                                  KiloGatewayLLM, LLMProvider, MockLLM,
-                                  OllamaLLM, OpenAILLM, OpenRouterLLM,
-                                  QuestionDecomposer, ReportGenerator,
-                                  ResearchContext, ResearchOrchestrator,
-                                  SourceRetriever, _chat_completion,
-                                  _parse_json_response)
-from tests.helpers import (FakeAPIError, StubLLM, StubSearch,
-                           make_chat_client, ok_chat_response)
+from deep_research_system import (
+    DEFAULT_FREE_MODEL,
+    ClaimExtractor,
+    DecisionEngine,
+    EvidenceEvaluator,
+    KiloGatewayLLM,
+    LLMProvider,
+    MockLLM,
+    OllamaLLM,
+    OpenAILLM,
+    OpenRouterLLM,
+    QuestionDecomposer,
+    ReportGenerator,
+    ResearchContext,
+    ResearchOrchestrator,
+    SourceRetriever,
+    _chat_completion,
+    _parse_json_response,
+)
 from llm_providers import DeepSeekLLM
+from tests.helpers import FakeAPIError, StubLLM, StubSearch, make_chat_client, ok_chat_response
 from web_search import MockSearchAPI
 
 
@@ -81,9 +91,8 @@ class TestChatCompletion(unittest.TestCase):
         ])
         stderr = io.StringIO()
         with patch("deep_research_system.time.sleep") as mock_sleep, \
-                contextlib.redirect_stderr(stderr):
-            with self.assertRaises(FakeAPIError):
-                _chat_completion(client, "m", "p", 3, "TestLLM")
+                contextlib.redirect_stderr(stderr), self.assertRaises(FakeAPIError):
+            _chat_completion(client, "m", "p", 3, "TestLLM")
         self.assertEqual(len(client.calls), 3)
         self.assertEqual(mock_sleep.call_count, 2)
 
@@ -92,9 +101,8 @@ class TestChatCompletion(unittest.TestCase):
             FakeAPIError("Unauthorized", status_code=401),
             ok_chat_response("nunca se alcanza"),
         ])
-        with patch("deep_research_system.time.sleep") as mock_sleep:
-            with self.assertRaises(FakeAPIError):
-                _chat_completion(client, "m", "p", 3, "TestLLM")
+        with patch("deep_research_system.time.sleep") as mock_sleep, self.assertRaises(FakeAPIError):
+            _chat_completion(client, "m", "p", 3, "TestLLM")
         self.assertEqual(len(client.calls), 1)
         mock_sleep.assert_not_called()
 
@@ -330,10 +338,12 @@ class TestLLMProviders(unittest.TestCase):
         def boom():
             raise real_requests.HTTPError("500")
         resp.raise_for_status = boom
-        resp.json = lambda: {}
-        with patch("requests.post", return_value=resp):
-            with self.assertRaises(real_requests.HTTPError):
-                OllamaLLM().generate("p")
+        resp.json = dict
+        with patch("requests.post", return_value=resp), self.assertRaises(real_requests.HTTPError):
+            OllamaLLM().generate("p")
+
+
+from typing import ClassVar
 
 
 class TestDeepSeekLLM(unittest.TestCase):
@@ -343,7 +353,7 @@ class TestDeepSeekLLM(unittest.TestCase):
     vacíos, para que un fallo NUNCA imprima una clave (P0.6).
     """
 
-    SIN_CLAVES = {"DEEPSEEK_API_KEY": "", "OPENAI_API_KEY": ""}
+    SIN_CLAVES: ClassVar = {"DEEPSEEK_API_KEY": "", "OPENAI_API_KEY": ""}
 
     def test_valores_por_defecto(self):
         with patch.dict(os.environ, self.SIN_CLAVES):
@@ -798,8 +808,8 @@ class TestDecisionEngines(unittest.TestCase):
         for bruta, esperada, raw in casos:
             with self.subTest(bruta=bruta):
                 llm = StubLLM(lambda p, b=bruta: (
-                    '{"verdict": "supported", "credibility": "%s", '
-                    '"confidence": 0.5, "reasoning": "ok"}' % b))
+                    f'{{"verdict": "supported", "credibility": "{b}", '
+                    '"confidence": 0.5, "reasoning": "ok"}'))
                 ctx = ResearchContext("q")
 
                 ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "c"})
@@ -1445,8 +1455,8 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
         self.assertEqual(ev["verdict"], "supported")
 
     def test_resultado_y_registro_exactos(self):
-        llm = self._llm(['{"verdict": "supported", "credibility": 0.75, '
-                         '"confidence": 0.6, "reasoning": "r"}'])
+        llm = self._llm([('{"verdict": "supported", "credibility": 0.75, '
+                         '"confidence": 0.6, "reasoning": "r"}')])
         ctx = self._contexto()
 
         ev = EvidenceEvaluator(llm).decide(ctx, {"claim": "c", "source_url": "u1"})
@@ -1732,9 +1742,8 @@ class TestFidelidadYVerificacionIndependiente(unittest.TestCase):
 
     def test_muestras_consenso_invalidas_se_rechazan(self):
         for valor in (0, -1, 1.5, "3", True):
-            with self.subTest(valor=valor):
-                with self.assertRaises(ValueError):
-                    EvidenceEvaluator(self._llm([]), muestras_consenso=valor)
+            with self.subTest(valor=valor), self.assertRaises(ValueError):
+                EvidenceEvaluator(self._llm([]), muestras_consenso=valor)
 
     def test_orchestrator_pasa_muestras_consenso(self):
         orquestador = ResearchOrchestrator(MockLLM(), MockSearchAPI(),
@@ -1849,7 +1858,7 @@ class JuezFijo:
 class TestEvaluadorDeRelevanciaCrag(unittest.TestCase):
     """Acción correctiva de CRAG: con relevancia baja se reformula la consulta."""
 
-    RESULTADOS = [{"title": "T", "url": "u", "snippet": "s"}]
+    RESULTADOS: ClassVar = [{"title": "T", "url": "u", "snippet": "s"}]
 
     def test_sin_juez_una_sola_consulta_y_sin_decisiones_crag(self):
         search = StubSearch(self.RESULTADOS)
@@ -2362,15 +2371,15 @@ class TestMutantesDirigidos(unittest.TestCase):
 
         SourceRetriever(search).decide(ctx, sub)
 
-        requery = [d for d in ctx.decision_log
-                   if d["decision"] == "requery"][0]
+        requery = next(d for d in ctx.decision_log
+                   if d["decision"] == "requery")
         self.assertEqual(
             requery["rationale"],
             f"Sin resultados para '{search.queries[0][:40]}'; "
             f"se amplía la consulta")
         self.assertGreater(len(search.queries[0]), 40)  # el corte se ejerce
-        no_results = [d for d in ctx.decision_log
-                      if d["decision"] == "no_results"][0]
+        no_results = next(d for d in ctx.decision_log
+                      if d["decision"] == "no_results")
         self.assertEqual(
             no_results["rationale"],
             f"Sin resultados tras {len(search.queries)} consultas "
@@ -2386,8 +2395,8 @@ class TestMutantesDirigidos(unittest.TestCase):
         SourceRetriever(search, evaluador_relevancia=JuezFijo([0.1, 0.9])
                         ).decide(ctx, "x" * 60)
 
-        reformulacion = [d for d in ctx.decision_log
-                         if d["decision"] == "crag_reformular"][0]
+        reformulacion = next(d for d in ctx.decision_log
+                         if d["decision"] == "crag_reformular")
         self.assertEqual(
             reformulacion["rationale"],
             f"Resultados poco relevantes para '{search.queries[0][:40]}'; "

@@ -4,15 +4,13 @@
 import json
 import os
 from dataclasses import dataclass
-from typing import Tuple
 from urllib.parse import urlparse
 
 from documents import CompositeSearchAPI, FullTextSearchAPI, LocalDocumentSearchAPI
-from llm_providers import (BudgetLLM, DeepSeekFreeAgentLLM, LLMProvider,
-                           LocalFallbackLLM, MockLLM, OllamaLLM, OpenAILLM)
+from llm_providers import BudgetLLM, DeepSeekFreeAgentLLM, LLMProvider, LocalFallbackLLM, MockLLM, OllamaLLM, OpenAILLM
 from mcp_client import MCPSearchAPI
-from research_state import (atomic_write_bytes, context_from_state, context_to_state)
-from web_search import (MockSearchAPI, SearchAPI, SearXNGSearchAPI, _es_host_publico)
+from research_state import atomic_write_bytes, context_from_state, context_to_state
+from web_search import MockSearchAPI, SearchAPI, SearXNGSearchAPI, _es_host_publico
 
 SCOPES = ("public", "local-only", "private-documents")
 
@@ -40,7 +38,7 @@ def _validate_llm(provider: LLMProvider, scope: str) -> None:
         _validate_llm(provider.primary, scope)
         return _validate_llm(provider.fallback, scope)
     if isinstance(provider, DeepSeekFreeAgentLLM):
-        raise RuntimeError(
+        raise TypeError(
             f"{scope}: deepseek-free-agent reenvía prompts a chat.deepseek.com")
     if isinstance(provider, OllamaLLM):
         if _host_local(provider.base_url):
@@ -89,7 +87,7 @@ class GuardLLM(LLMProvider):
         self.scope = normalize_scope(scope)
         _validate_llm(provider, self.scope)
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    def generate(self, prompt: str, model: str | None = None, **kwargs) -> str:
         return self.provider.generate(prompt, model=model, **kwargs)
 
 
@@ -120,7 +118,7 @@ class PrivacyPolicy:
     def __post_init__(self):
         normalize_scope(self.scope)
 
-    def apply(self, llm: LLMProvider, search: SearchAPI) -> Tuple[GuardLLM, GuardSearch]:
+    def apply(self, llm: LLMProvider, search: SearchAPI) -> tuple[GuardLLM, GuardSearch]:
         return GuardLLM(llm, self.scope), GuardSearch(search, self.scope)
 
 
@@ -157,5 +155,5 @@ def load_encrypted_research_state(path: str, key=None):
     report = state.get("report", "")
     completed = state.get("completed", False)
     if not isinstance(report, str) or not isinstance(completed, bool):
-        raise RuntimeError("Campos report/completed inválidos en el estado")
+        raise TypeError("Campos report/completed inválidos en el estado")
     return contexto, report, completed

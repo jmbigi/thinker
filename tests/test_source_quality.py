@@ -1,11 +1,10 @@
 """Tests de las dimensiones separadas de calidad de fuentes (offline)."""
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-from source_quality import (_actualidad, _claims_para_fuente, _host,
-                            evaluar_fuentes)
+from source_quality import _actualidad, _claims_para_fuente, _host, evaluar_fuentes
 
 
 class _DateTimeFijo(datetime):
@@ -37,7 +36,7 @@ class TestAutoridad(unittest.TestCase):
 
 class TestActualidad(unittest.TestCase):
     def _dias(self, dias):
-        fecha = (datetime.now(timezone.utc) - timedelta(days=dias)).isoformat()
+        fecha = (datetime.now(UTC) - timedelta(days=dias)).isoformat()
         return evaluar_fuentes([{"url": "https://example.org", "snippet": "x",
                                  "published_at": fecha}])[
             "fuentes"][0]["dimensiones"]["actualidad"]
@@ -147,7 +146,7 @@ class TestDimensionesSeparadas(unittest.TestCase):
 
 class TestRobustezFuentes(unittest.TestCase):
     def test_fecha_futura_no_recibe_actualidad_maxima(self):
-        fecha = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+        fecha = (datetime.now(UTC) + timedelta(days=1)).isoformat()
         actualidad = evaluar_fuentes([{
             "url": "https://example.org", "snippet": "x", "published_at": fecha,
         }])["fuentes"][0]["dimensiones"]["actualidad"]
@@ -206,7 +205,7 @@ class TestRobustezFuentes(unittest.TestCase):
             ]
             for dias, valor, detalle in casos:
                 with self.subTest(dias=dias):
-                    fecha = (datetime(2026, 10, 31, 12, tzinfo=timezone.utc)
+                    fecha = (datetime(2026, 10, 31, 12, tzinfo=UTC)
                              - timedelta(days=dias)).isoformat()
                     self.assertEqual(_actualidad({"published_at": fecha}), {
                         "valor": valor, "dias": dias, "metodo": "fecha declarada",

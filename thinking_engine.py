@@ -22,11 +22,12 @@ import hashlib
 import re
 import sys
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 # Nombres públicos del módulo
-__all__ = ["StepThinkingEngine", "ThinkingNode", "ToTEngine", "SearchStrategy"]
+__all__ = ["SearchStrategy", "StepThinkingEngine", "ThinkingNode", "ToTEngine"]
 
 
 @dataclass
@@ -44,9 +45,9 @@ class ThinkingNode:
     step_name: str
     score: float = 0.0
     parent: Optional["ThinkingNode"] = None
-    children: List["ThinkingNode"] = field(default_factory=list)
+    children: list["ThinkingNode"] = field(default_factory=list)
     depth: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     
     def add_child(self, child: "ThinkingNode") -> "ThinkingNode":
         child.parent = self
@@ -54,7 +55,7 @@ class ThinkingNode:
         self.children.append(child)
         return child
     
-    def path_to_root(self) -> List["ThinkingNode"]:
+    def path_to_root(self) -> list["ThinkingNode"]:
         """Retorna la cadena de nodos desde la raíz hasta este nodo."""
         path = []
         node = self
@@ -97,7 +98,7 @@ class StepThinkingEngine(ABC):
 
     # --- A implementar por cada motor concreto -----------------------------
     @abstractmethod
-    def _step_builders(self) -> List[Tuple[str, Callable[[Dict[str, Any]], str]]]:
+    def _step_builders(self) -> list[tuple[str, Callable[[dict[str, Any]], str]]]:
         """Lista de (nombre, constructor del prompt) para cada paso.
 
         El constructor recibe un diccionario con las salidas previas indexadas
@@ -106,21 +107,21 @@ class StepThinkingEngine(ABC):
         """
 
     @abstractmethod
-    def _render_thought(self, steps: List[Tuple[str, str]]) -> str:
+    def _render_thought(self, steps: list[tuple[str, str]]) -> str:
         """Representación legible del ciclo completo."""
 
     # --- Ciclo común (lineal, compatible hacia atrás) ----------------------
-    def think(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def think(self, prompt: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         """Ejecuta el ciclo completo de pensamiento estructurado (lineal)."""
         self.step_count = 0
         return self._run_cycle(prompt, context or {})
 
-    def _run_cycle(self, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        outputs: Dict[str, Any] = {"prompt": prompt, "context": context}
+    def _run_cycle(self, prompt: str, context: dict[str, Any]) -> dict[str, Any]:
+        outputs: dict[str, Any] = {"prompt": prompt, "context": context}
 
-        steps: List[Tuple[str, str]] = []
-        invalid_steps: List[str] = []
-        fases: List[Dict[str, str]] = []
+        steps: list[tuple[str, str]] = []
+        invalid_steps: list[str] = []
+        fases: list[dict[str, str]] = []
 
         # `max_steps` acota de verdad el ciclo: un motor configurado con 3
         # pasos no ejecuta los 7 (antes el atributo era decorativo).
@@ -174,11 +175,11 @@ class StepThinkingEngine(ABC):
     def _hash_fase(nombre: str, contenido: str) -> str:
         """Hash corto y estable de una fase congelada (nombre + contenido)."""
         return hashlib.sha256(
-            f"{nombre}\x00{contenido}".encode("utf-8")).hexdigest()[:16]
+            f"{nombre}\x00{contenido}".encode()).hexdigest()[:16]
 
     @classmethod
-    def verificar_congelacion(cls, steps: List[Tuple[str, str]],
-                              fases: List[Dict[str, str]]) -> bool:
+    def verificar_congelacion(cls, steps: list[tuple[str, str]],
+                              fases: list[dict[str, str]]) -> bool:
         """True si los pasos devueltos coinciden byte a byte con las fases congeladas.
 
         El consumidor puede mutar la lista `steps` después del ciclo: esta
@@ -192,14 +193,14 @@ class StepThinkingEngine(ABC):
             and cls._hash_fase(nombre, contenido) == fase["hash"]
             for (nombre, contenido), fase in zip(steps, fases))
 
-    def _bloque_fases_congeladas(self, fases: List[Dict[str, str]]) -> str:
+    def _bloque_fases_congeladas(self, fases: list[dict[str, str]]) -> str:
         """Bloque de prompt que declara las fases previas como INMUTABLES."""
         lineas = [
             "",
             "[FASES CONGELADAS — INMUTABLES]",
-            "Cada fase congelada es inmodificable. Si una evidencia posterior "
+            ("Cada fase congelada es inmodificable. Si una evidencia posterior "
             "la contradice, declara la contradicción en la fase actual; NO "
-            "reescribas, resumas ni contradigas su contenido.",
+            "reescribas, resumas ni contradigas su contenido."),
         ]
         for fase in fases:
             lineas.append(
@@ -225,7 +226,7 @@ class StepThinkingEngine(ABC):
         return len(meaningful) >= 10
 
     @staticmethod
-    def _compute_confidence(steps: List[Tuple[str, str]]) -> float:
+    def _compute_confidence(steps: list[tuple[str, str]]) -> float:
         """Confianza = proporción de pasos con contenido no vacío."""
         if not steps:
             return 0.0
@@ -233,7 +234,7 @@ class StepThinkingEngine(ABC):
         return round(filled / len(steps), 2)
 
     @staticmethod
-    def _extract_decision(steps: List[Tuple[str, str]]) -> Any:
+    def _extract_decision(steps: list[tuple[str, str]]) -> Any:
         """Decisión = último paso con contenido (marca de la fase alcanzada)."""
         if len(steps) >= 5:
             last = next((name for name, content in reversed(steps)
@@ -267,7 +268,7 @@ class ToTEngine(StepThinkingEngine):
         beam_width: int = 3,
         search_strategy: str = SearchStrategy.BEAM,
         min_score_threshold: float = 0.3,
-        max_depth: Optional[int] = None,
+        max_depth: int | None = None,
         voto_top_k: int = 1,
         congelar_fases: bool = False,
     ):
@@ -280,15 +281,15 @@ class ToTEngine(StepThinkingEngine):
         self.max_depth = max_depth or max_steps
         # Self-Consistency (arXiv:2203.11171) opt-in: 1 = mejor hoja por score.
         self.voto_top_k = voto_top_k
-        self._root: Optional[ThinkingNode] = None
-        self._all_nodes: List[ThinkingNode] = []
+        self._root: ThinkingNode | None = None
+        self._all_nodes: list[ThinkingNode] = []
     
     def think_tot(
         self,
         prompt: str,
-        context: Dict[str, Any] = None,
+        context: dict[str, Any] | None = None,
         return_tree: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Ejecuta pensamiento con Tree of Thoughts.
         
@@ -397,8 +398,8 @@ class ToTEngine(StepThinkingEngine):
         self,
         node: ThinkingNode,
         step_name: str,
-        builder: Callable[[Dict[str, Any]], str],
-    ) -> List[ThinkingNode]:
+        builder: Callable[[dict[str, Any]], str],
+    ) -> list[ThinkingNode]:
         """Genera múltiples ramas (candidatos) para un paso dado."""
         # Construir outputs previos desde el camino a la raíz. `prompt` y
         # `context` viven SOLO en la raíz; leerlos del nodo actual los perdía
@@ -432,7 +433,7 @@ class ToTEngine(StepThinkingEngine):
         
         return branches
     
-    def _evaluate_state(self, content: str, step_name: str, outputs: Dict[str, Any]) -> float:
+    def _evaluate_state(self, content: str, step_name: str, outputs: dict[str, Any]) -> float:
         """
         Evalúa la calidad de un estado de pensamiento (0-1).
         
@@ -459,7 +460,7 @@ class ToTEngine(StepThinkingEngine):
         # Fallback heurístico (código original)
         return self._evaluate_state_heuristic(content, step_name, outputs)
     
-    def _evaluate_state_heuristic(self, content: str, step_name: str, outputs: Dict[str, Any]) -> float:
+    def _evaluate_state_heuristic(self, content: str, step_name: str, outputs: dict[str, Any]) -> float:
         """Heurística original: keywords, longitud, coherencia."""
         score = 0.5  # base por pasar validación
         
@@ -481,14 +482,14 @@ class ToTEngine(StepThinkingEngine):
         if outputs:
             prev_text = " ".join(str(v) for v in outputs.values() if isinstance(v, str))
             if prev_text:
-                prev_words = set(w.lower() for w in prev_text.split() if len(w) > 4)
-                curr_words = set(w.lower() for w in content.split() if len(w) > 4)
+                prev_words = {w.lower() for w in prev_text.split() if len(w) > 4}
+                curr_words = {w.lower() for w in content.split() if len(w) > 4}
                 overlap = len(prev_words & curr_words) / max(len(prev_words), 1)
                 score += min(overlap * 0.2, 0.15)
         
         return min(round(score, 2), 1.0)
     
-    def _evaluate_state_llm(self, content: str, step_name: str, outputs: Dict[str, Any]) -> float:
+    def _evaluate_state_llm(self, content: str, step_name: str, outputs: dict[str, Any]) -> float:
         """
         LLM-as-judge para evaluar calidad de pensamiento.
         
@@ -500,9 +501,9 @@ class ToTEngine(StepThinkingEngine):
         """
         # Construir contexto previo
         prev_steps = ""
-        for n in outputs:
-            if isinstance(outputs[n], str) and n not in ("prompt", "context"):
-                prev_steps += f"\n--- {n} ---\n{outputs[n][:300]}"
+        for n, value in outputs.items():
+            if isinstance(value, str) and n not in ("prompt", "context"):
+                prev_steps += f"\n--- {n} ---\n{value[:300]}"
         
         prompt = f"""Eres un evaluador experto de calidad de razonamiento. Evalúa el siguiente pensamiento en una tarea de investigación.
 
@@ -632,7 +633,7 @@ Responde SOLO con el JSON."""
             return self._root
         return max(final_beam, key=lambda n: n.score)
     
-    def _render_tot_tree(self, node: Optional[ThinkingNode] = None, indent: int = 0) -> str:
+    def _render_tot_tree(self, node: ThinkingNode | None = None, indent: int = 0) -> str:
         """Renderiza el árbol completo para debugging."""
         if node is None:
             node = self._root

@@ -9,19 +9,19 @@ import os
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from deep_research_system import ResearchContext
 
 STATE_SCHEMA_VERSION = 1
 
 
-def source_key(source: Dict[str, Any]) -> str:
+def source_key(source: dict[str, Any]) -> str:
     texto = f"{source.get('url', '')}\x00{source.get('snippet', '')}"
     return hashlib.sha256(texto.encode("utf-8")).hexdigest()
 
 
-def claim_key(claim: Dict[str, Any]) -> str:
+def claim_key(claim: dict[str, Any]) -> str:
     url = claim.get("source_id") or claim.get("source_url", "")
     contenido = claim.get("source_key", "")
     texto = f"{url}\x00{contenido}\x00{claim.get('claim', '')}"
@@ -29,7 +29,7 @@ def claim_key(claim: Dict[str, Any]) -> str:
 
 
 def context_to_state(context: ResearchContext, report: str = "",
-                     completed: bool = False) -> Dict[str, Any]:
+                     completed: bool = False) -> dict[str, Any]:
     """Serializa todo lo necesario para reanudar, no solo el resumen."""
     return {
         "schema_version": STATE_SCHEMA_VERSION,
@@ -56,27 +56,27 @@ def context_to_state(context: ResearchContext, report: str = "",
     }
 
 
-def context_from_state(state: Dict[str, Any]) -> ResearchContext:
+def context_from_state(state: dict[str, Any]) -> ResearchContext:
     """Restaura un contexto validado; una entrada inválida no se ignora."""
     if not isinstance(state, dict):
-        raise RuntimeError("El estado de investigación debe ser un objeto JSON")
+        raise TypeError("El estado de investigación debe ser un objeto JSON")
     if state.get("schema_version") != STATE_SCHEMA_VERSION:
         raise RuntimeError(
             f"Esquema de estado no soportado: {state.get('schema_version')!r}")
     if not isinstance(state.get("question"), str) or not state["question"].strip():
-        raise RuntimeError("El estado no contiene una pregunta válida")
+        raise ValueError("El estado no contiene una pregunta válida")
     listas = ("subquestions", "sources", "claims", "evaluations", "conclusions",
               "decision_log", "retrieved_subquestions", "processed_source_keys",
               "evaluated_claim_keys")
     for clave in listas:
         if not isinstance(state.get(clave), list):
-            raise RuntimeError(f"Campo de estado inválido: {clave}")
+            raise TypeError(f"Campo de estado inválido: {clave}")
     if not isinstance(state.get("retrieval_cache"), dict):
-        raise RuntimeError("Campo de estado inválido: retrieval_cache")
+        raise TypeError("Campo de estado inválido: retrieval_cache")
     max_iterations = state.get("max_iterations")
     if not isinstance(max_iterations, int) or isinstance(max_iterations, bool) \
             or max_iterations < 1:
-        raise RuntimeError("Campo de estado inválido: max_iterations")
+        raise TypeError("Campo de estado inválido: max_iterations")
 
     iteration = state.get("iteration", 0)
     if not isinstance(iteration, int) or isinstance(iteration, bool) or iteration < 0:
@@ -84,7 +84,7 @@ def context_from_state(state: Dict[str, Any]) -> ResearchContext:
 
     decomposed = state.get("decomposed", False)
     if not isinstance(decomposed, bool):
-        raise RuntimeError("Campo de estado inválido: decomposed")
+        raise TypeError("Campo de estado inválido: decomposed")
 
     contexto = ResearchContext(state["question"], max_iterations)
     contexto.iteration = iteration
@@ -107,7 +107,7 @@ def context_from_state(state: Dict[str, Any]) -> ResearchContext:
     return contexto
 
 
-def load_research_state(path: str) -> Tuple[ResearchContext, str, bool]:
+def load_research_state(path: str) -> tuple[ResearchContext, str, bool]:
     ruta = Path(path)
     try:
         state = json.loads(ruta.read_text(encoding="utf-8"))
@@ -117,7 +117,7 @@ def load_research_state(path: str) -> Tuple[ResearchContext, str, bool]:
     report = state.get("report", "")
     completed = state.get("completed", False)
     if not isinstance(report, str) or not isinstance(completed, bool):
-        raise RuntimeError("Campos report/completed inválidos en el estado")
+        raise TypeError("Campos report/completed inválidos en el estado")
     return contexto, report, completed
 
 

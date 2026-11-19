@@ -16,7 +16,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from typing import Any, Dict, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from documents import PassageIndex
 
@@ -105,8 +106,8 @@ def ndcg_at_k(ranked: Sequence[str], relevant: Iterable[str], k: int) -> float:
     return dcg / idcg if idcg else 0.0
 
 
-def evaluar_consulta(index: PassageIndex, consulta: Dict[str, Any],
-                     k: int = 10) -> Dict[str, Any]:
+def evaluar_consulta(index: PassageIndex, consulta: dict[str, Any],
+                     k: int = 10) -> dict[str, Any]:
     resultados = index.search(consulta["query"], max_results=k)
     ranked = [resultado["id"] for resultado in resultados]
     return {
@@ -122,8 +123,8 @@ def evaluar_consulta(index: PassageIndex, consulta: Dict[str, Any],
     }
 
 
-def evaluar(corpus: Sequence[Dict[str, Any]] = CORPUS,
-            consultas: Sequence[Dict[str, Any]] = CONSULTAS) -> Dict[str, Any]:
+def evaluar(corpus: Sequence[dict[str, Any]] = CORPUS,
+            consultas: Sequence[dict[str, Any]] = CONSULTAS) -> dict[str, Any]:
     index = PassageIndex(corpus)
     resultados = [evaluar_consulta(index, consulta) for consulta in consultas]
     metricas = ("recall@1", "recall@3", "recall@5", "recall@10",

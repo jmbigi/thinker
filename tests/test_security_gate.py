@@ -9,9 +9,9 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from llm_providers import (GateCheckedLLM, GateDecision, GateResult,
-                           LocalToolGate, gate_check)
+from llm_providers import GateCheckedLLM, GateDecision, GateResult, LocalToolGate, gate_check
 
 
 class _Provider:
@@ -150,7 +150,9 @@ class TestLocalToolGate(unittest.TestCase):
 
     def test_auditoria_no_escribible_deniega(self):
         gate = self._gate(audit_path="/proc/1/auditoria-imposible.jsonl")
-        resultado = gate.check("read_file", {"path": str(self.root / "dentro.txt")})
+        # Simular error de escritura en la auditoría (cross-platform)
+        with patch.object(gate, "_auditar", return_value="auditoría no escribible (simulada)"):
+            resultado = gate.check("read_file", {"path": str(self.root / "dentro.txt")})
         self.assertEqual(resultado.decision, GateDecision.DENY)
         self.assertIn("auditoría", resultado.reason)
 

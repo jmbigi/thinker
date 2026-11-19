@@ -2,8 +2,7 @@
 
 import unittest
 
-from evidence import (Evidence, EvidenceKind, formato_resumen,
-                      puede_promocionar, resumen_evidencias)
+from evidence import Evidence, EvidenceKind, formato_resumen, puede_promocionar, resumen_evidencias
 
 
 class TestEvidenceKind(unittest.TestCase):

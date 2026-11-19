@@ -64,8 +64,8 @@ def generar_config(destino: Path, timeout: float = 60.0) -> Path:
 
 def _cosmic(argumentos, cwd):
     return subprocess.run([sys.executable, "-m", "cosmic_ray", *argumentos],
-                          cwd=cwd, capture_output=True, text=True,
-                          timeout=86400)
+                           check=False, cwd=cwd, capture_output=True, text=True,
+                           timeout=86400)
 
 
 def main(argv=None) -> int:

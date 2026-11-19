@@ -1,6 +1,7 @@
 """Tests temporales para proyecto Forthtrade + Thinker."""
 
 import os
+
 from main import pensar_codigo
 
 

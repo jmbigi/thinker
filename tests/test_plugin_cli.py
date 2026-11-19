@@ -122,9 +122,8 @@ class TestPluginCli(unittest.TestCase):
 
     def test_unload_sin_nombre_lo_rechaza_argparse(self):
         """`unload` exige el nombre posicional: argparse sale con código 2."""
-        with contextlib.redirect_stderr(io.StringIO()):
-            with self.assertRaises(SystemExit) as ctx:
-                cli.main(["unload"])
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as ctx:
+            cli.main(["unload"])
 
         self.assertEqual(ctx.exception.code, 2)
 

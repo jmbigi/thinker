@@ -3,8 +3,7 @@
 import math
 import unittest
 
-from tests.benchmarks.rag_retrieval import (evaluar, ndcg_at_k, recall_at_k,
-                                            reciprocal_rank)
+from tests.benchmarks.rag_retrieval import evaluar, ndcg_at_k, recall_at_k, reciprocal_rank
 
 
 class TestMetricas(unittest.TestCase):

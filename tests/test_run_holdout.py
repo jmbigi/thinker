@@ -7,8 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.run_holdout import (actualizar_manifiesto, calcular_hashes,
-                                 ejecutar_tests, verificar_hashes)
+from scripts.run_holdout import actualizar_manifiesto, calcular_hashes, ejecutar_tests, verificar_hashes
 
 
 class TestRunnerDeHoldout(unittest.TestCase):

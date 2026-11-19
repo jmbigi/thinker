@@ -5,7 +5,6 @@ Aquí versión reducida pero representativa para validación continua.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -15,8 +14,8 @@ class BenchmarkTask:
     domain: str
     complexity: str  # "simple", "moderate", "complex", "expert"
     question: str
-    expected_elements: Dict[str, List[str]]  # Claves por dimensión de evaluación
-    metadata: Dict = None
+    expected_elements: dict[str, list[str]]  # Claves por dimensión de evaluación
+    metadata: dict = None
     
     def __post_init__(self):
         if self.metadata is None:
@@ -25,7 +24,7 @@ class BenchmarkTask:
 
 # --- 20 Tareas: 5 dominios × 4 niveles de complejidad ---
 
-BENCHMARK_TASKS: List[BenchmarkTask] = [
+BENCHMARK_TASKS: list[BenchmarkTask] = [
     # === DOMINIO: CIENCIA Y TECNOLOGÍA ===
     BenchmarkTask(
         id="scitech_simple_01",
@@ -278,7 +277,7 @@ BENCHMARK_TASKS: List[BenchmarkTask] = [
 ]
 
 
-def get_task(task_id: str) -> Optional[BenchmarkTask]:
+def get_task(task_id: str) -> BenchmarkTask | None:
     """Obtiene una tarea por ID."""
     for task in BENCHMARK_TASKS:
         if task.id == task_id:
@@ -286,7 +285,7 @@ def get_task(task_id: str) -> Optional[BenchmarkTask]:
     return None
 
 
-def list_tasks(domain: str = None, complexity: str = None) -> List[BenchmarkTask]:
+def list_tasks(domain: str | None = None, complexity: str | None = None) -> list[BenchmarkTask]:
     """Lista tareas filtradas por dominio y/o complejidad."""
     tasks = BENCHMARK_TASKS
     if domain:
@@ -296,9 +295,9 @@ def list_tasks(domain: str = None, complexity: str = None) -> List[BenchmarkTask
     return tasks
 
 
-def get_domains() -> List[str]:
-    return sorted(set(t.domain for t in BENCHMARK_TASKS))
+def get_domains() -> list[str]:
+    return sorted({t.domain for t in BENCHMARK_TASKS})
 
 
-def get_complexities() -> List[str]:
+def get_complexities() -> list[str]:
     return ["simple", "moderate", "complex", "expert"]

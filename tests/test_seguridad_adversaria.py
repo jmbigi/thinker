@@ -15,10 +15,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deep_research_system import ResearchOrchestrator
+from llm_providers import MockLLM
 from plugins.registry import PluginRegistry
 from tests.helpers import StubSearch
 from web_search import MockSearchAPI, formulate_query
-from llm_providers import MockLLM
 
 CANARIO = "sk-CANARIO-DOCTOR-0123456789abcdef"
 
@@ -76,9 +76,9 @@ class TestConfiguracionMalformadaDePlugins(unittest.TestCase):
             registro = PluginRegistry(
                 plugin_dirs=[str(Path(tmp) / "sin-plugins")],
                 config_path=str(config))
-            with contextlib.redirect_stderr(io.StringIO()) as err:
-                with contextlib.redirect_stdout(io.StringIO()):
-                    self.assertEqual(registro.discover_plugins(), 0)
+            with contextlib.redirect_stderr(io.StringIO()) as err, \
+                 contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(registro.discover_plugins(), 0)
             # El error de YAML se declara en stderr; nunca se silencia.
             self.assertTrue(err.getvalue())
 

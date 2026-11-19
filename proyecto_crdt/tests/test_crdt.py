@@ -1,5 +1,6 @@
 from crdt import CRDTText
 
+
 def test_insert_at_end():
     crdt = CRDTText()
     crdt.insert('a')

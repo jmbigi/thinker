@@ -1,18 +1,19 @@
 import logging
-import uuid
 import time
-from typing import Callable, Optional, Dict, Any
+import uuid
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 class PasoSaga:
     """Represents a single step in a saga."""
-    def __init__(self, nombre: str, compensacion: Optional[Callable] = None):
+    def __init__(self, nombre: str, compensacion: Callable | None = None):
         self.nombre = nombre
         self.compensacion = compensacion
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
-    def run(self, token: Optional[str] = None) -> Dict[str, Any]:
+    def run(self, token: str | None = None) -> dict[str, Any]:
         """
         Execute the step.
         If token is provided and already used, return cached result (idempotency).
@@ -30,13 +31,13 @@ class PasoSaga:
         self._cache[token] = result
         return result
 
-    def compensar(self) -> Dict[str, Any]:
+    def compensar(self) -> dict[str, Any]:
         """Execute compensation logic if defined."""
         if self.compensacion is None:
             return {"compensated": False}
         try:
             return self.compensacion()
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             logger.error("Compensation failed for step %s: %s", self.nombre, e)
             return {"compensated": False, "error": str(e)}
 
@@ -57,7 +58,7 @@ class OrquestadorSaga:
         self.pasos.append(paso)
         logger.info("Added step %s to saga", paso.nombre)
 
-    def ejecutar(self, max_retries: int = 3, backoff_factor: float = 0.5) -> Dict[str, Any]:
+    def ejecutar(self, max_retries: int = 3, backoff_factor: float = 0.5) -> dict[str, Any]:
         """
         Execute the saga.
         Returns a dict with keys:
@@ -76,7 +77,7 @@ class OrquestadorSaga:
                 historial.append(result)
                 self._pasos_completados.append(paso)
                 # Step succeeded, continue to next step
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError) as e:
                 logger.warning("Step %s failed on initial attempt: %s", paso.nombre, e)
                 # Retry logic
                 for attempt in range(1, max_retries + 1):
@@ -86,7 +87,7 @@ class OrquestadorSaga:
                         result = paso.run(token=token)
                         historial.append(result)
                         break  # success after retry
-                    except Exception:
+                    except (RuntimeError, ValueError, TypeError):
                         if attempt == max_retries:
                             logger.error("Step %s failed after %d retries", paso.nombre, max_retries)
                             # Add to DLQ
