@@ -43,3 +43,10 @@ dist/
 
 # PDF de referencia descargado: material de terceros, no se redistribuye
 jellyfish.pdf
+
+# Logs y scripts de depuración locales
+*.log
+diagnose*.ps1
+verify*.ps1
+run_checks.py
+test_write.py
